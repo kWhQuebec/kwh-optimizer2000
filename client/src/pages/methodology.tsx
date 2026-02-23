@@ -7,7 +7,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { FileDown, Calculator, Sun, Battery, DollarSign, BarChart3, Zap, TrendingUp, Info, Clock, Wallet, Settings } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { FileDown, Calculator, Sun, Battery, DollarSign, BarChart3, Zap, TrendingUp, Info, Clock, Wallet, Settings, Snowflake } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function MethodologyPage() {
@@ -69,7 +70,7 @@ export default function MethodologyPage() {
       </div>
 
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-5" data-testid="tabs-methodology">
+        <TabsList className="grid w-full grid-cols-6" data-testid="tabs-methodology">
           <TabsTrigger value="overview" data-testid="tab-overview">
             <Info className="mr-2 h-4 w-4" />
             {t.tabs.overview}
@@ -77,6 +78,10 @@ export default function MethodologyPage() {
           <TabsTrigger value="solar" data-testid="tab-solar">
             <Sun className="mr-2 h-4 w-4" />
             {t.tabs.solar}
+          </TabsTrigger>
+          <TabsTrigger value="snow" data-testid="tab-snow">
+            <Snowflake className="mr-2 h-4 w-4" />
+            {t.tabs.snow}
           </TabsTrigger>
           <TabsTrigger value="battery" data-testid="tab-battery">
             <Battery className="mr-2 h-4 w-4" />
@@ -99,6 +104,10 @@ export default function MethodologyPage() {
 
           <TabsContent value="solar" className="space-y-6">
             <SolarSection t={t} language={language} />
+          </TabsContent>
+
+          <TabsContent value="snow" className="space-y-6">
+            <SnowSection t={t} />
           </TabsContent>
 
           <TabsContent value="battery" className="space-y-6">
@@ -571,6 +580,69 @@ function SolarSection({ t, language }: { t: typeof fr; language: string }) {
   );
 }
 
+function SnowSection({ t }: { t: typeof fr }) {
+  return (
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Snowflake className="h-5 w-5 text-blue-400" />
+            {t.snow.profiles.title}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="prose dark:prose-invert max-w-none">
+          <p>{t.snow.profiles.description}</p>
+
+          <div className="overflow-x-auto mt-4">
+            <table className="w-full text-sm border-collapse">
+              <thead>
+                <tr className="bg-muted">
+                  <th className="p-2 text-left">{t.snow.profiles.table.profile}</th>
+                  <th className="p-2 text-center">{t.snow.profiles.table.annualLoss}</th>
+                  <th className="p-2 text-center">{t.snow.profiles.table.janLoss}</th>
+                  <th className="p-2 text-center">{t.snow.profiles.table.source}</th>
+                  <th className="p-2 text-left">{t.snow.profiles.table.useCase}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {t.snow.profiles.rows.map((row, i) => (
+                  <tr key={i} className={`border-b ${i === 0 ? 'bg-blue-50/50 dark:bg-blue-950/20' : ''}`}>
+                    <td className="p-2 font-medium">{row.profile}</td>
+                    <td className="p-2 text-center"><Badge variant={i === 0 ? "default" : "outline"}>{row.annual}</Badge></td>
+                    <td className="p-2 text-center">{row.jan}</td>
+                    <td className="p-2 text-center">{row.source}</td>
+                    <td className="p-2">{row.useCase}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Info className="h-5 w-5 text-amber-500" />
+            {t.snow.nait.title}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="prose dark:prose-invert max-w-none">
+          <p>{t.snow.nait.description}</p>
+          <ul>
+            {t.snow.nait.points.map((point, i) => (
+              <li key={i}>{point}</li>
+            ))}
+          </ul>
+          <Alert className="mt-4">
+            <AlertDescription>{t.snow.nait.caveat}</AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    </>
+  );
+}
+
 function BatterySection({ t }: { t: typeof fr }) {
   return (
     <>
@@ -904,6 +976,7 @@ const fr = {
   tabs: {
     overview: "Aperçu",
     solar: "Production Solaire",
+    snow: "Pertes Neige",
     battery: "Stockage",
     financial: "Financier",
     optimization: "Optimisation",
@@ -1237,6 +1310,37 @@ const fr = {
     },
   },
 
+  snow: {
+    profiles: {
+      title: "Profils de pertes de neige",
+      description: "Trois profils de pertes saisonnières sont disponibles. Le profil « Ballasté 10° » est appliqué par défaut lorsque la source de rendement est Google Solar API, car les données Google incluent déjà l'irradiance mais pas l'impact de la neige.",
+      table: {
+        profile: "Profil",
+        annualLoss: "Perte annuelle",
+        janLoss: "Perte janvier",
+        source: "Source",
+        useCase: "Cas d'usage",
+      },
+      rows: [
+        { profile: "Ballasté 10° (défaut)", annual: "~5%", jan: "18%", source: "NAIT 2017", useCase: "Racks ballastés KB/Opsun 10° (défaut Google)" },
+        { profile: "Toit plat 0-5°", annual: "~15%", jan: "55%", source: "PVGIS Montréal", useCase: "Panneaux à plat sur membrane" },
+        { profile: "Toit incliné >15°", annual: "~10%", jan: "30%", source: "Littérature", useCase: "Toits en pente, la neige glisse" },
+      ],
+    },
+    nait: {
+      title: "Étude NAIT Edmonton (2017)",
+      description: "Le profil par défaut (ballasté 10°) est basé sur le NAIT Reference Array Report d'Edmonton, une étude rigoureuse sur 5 ans mesurant l'impact de la neige sur des panneaux identiques à différents angles.",
+      points: [
+        "Équipement identique à tous les angles (Conergy P-230PA, Enphase M215)",
+        "Référence = rangée dégagée manuellement après chaque chute de neige",
+        "14° (angle le plus proche de 10°) = 4,81% de perte annuelle vs référence",
+        "Distribution mensuelle interpolée depuis le profil toit plat, mise à l'échelle ~5% annuel",
+        "Edmonton reçoit une neige plus sèche que Montréal — 5% est une interprétation conservatrice pour le Québec",
+      ],
+      caveat: "Note : 14° est un proxy pour 10° — la perte réelle à 10° peut être légèrement supérieure. Des mesures terrain Québec sont en cours pour valider.",
+    },
+  },
+
   battery: {
     peakShaving: {
       title: "Écrêtage de Pointe (Peak Shaving)",
@@ -1445,6 +1549,7 @@ const en = {
   tabs: {
     overview: "Overview",
     solar: "Solar Production",
+    snow: "Snow Losses",
     battery: "Storage",
     financial: "Financial",
     optimization: "Optimization",
@@ -1775,6 +1880,37 @@ const en = {
         ],
         note: "KB 10° offers the best density (+27% more panels on same surface) but less production per panel. Opsun 20° recommended by Rematek Énergie for optimal ROI.",
       },
+    },
+  },
+
+  snow: {
+    profiles: {
+      title: "Snow loss profiles",
+      description: "Three seasonal loss profiles are available. The \"Ballasted 10°\" profile is applied by default when the yield source is Google Solar API, since Google data includes irradiance but not snow impact.",
+      table: {
+        profile: "Profile",
+        annualLoss: "Annual loss",
+        janLoss: "January loss",
+        source: "Source",
+        useCase: "Use case",
+      },
+      rows: [
+        { profile: "Ballasted 10° (default)", annual: "~5%", jan: "18%", source: "NAIT 2017", useCase: "KB/Opsun 10° ballasted racks (Google default)" },
+        { profile: "Flat roof 0-5°", annual: "~15%", jan: "55%", source: "PVGIS Montreal", useCase: "Panels flat on membrane" },
+        { profile: "Tilted roof >15°", annual: "~10%", jan: "30%", source: "Literature", useCase: "Sloped roofs, snow slides off" },
+      ],
+    },
+    nait: {
+      title: "NAIT Edmonton Study (2017)",
+      description: "The default profile (ballasted 10°) is based on the NAIT Reference Array Report from Edmonton, a rigorous 5-year study measuring snow impact on identical panels at different angles.",
+      points: [
+        "Identical equipment at all angles (Conergy P-230PA, Enphase M215)",
+        "Reference = row manually cleared after each snowfall",
+        "14° (closest to 10°) = 4.81% annual loss vs cleared reference",
+        "Monthly distribution interpolated from flat roof profile, scaled to ~5% annual total",
+        "Edmonton receives drier snow than Montreal — 5% is a conservative interpretation for Quebec",
+      ],
+      caveat: "Note: 14° is a proxy for 10° — actual loss at 10° may be slightly higher. Quebec field measurements are underway for validation.",
     },
   },
 

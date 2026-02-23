@@ -577,7 +577,7 @@ export function runPotentialAnalysis(
   
   let effectiveSnowProfile = h.snowLossProfile;
   if (currentYieldSource === 'google' && (!effectiveSnowProfile || effectiveSnowProfile === 'none')) {
-    effectiveSnowProfile = 'flat_roof';
+    effectiveSnowProfile = 'ballasted_10deg';
   }
 
   const simResult = runHourlySimulation(hourlyData, pvSizeKW, battEnergyKWh, battPowerKW, demandShavingSetpointKW, yieldFactor, systemParams, currentYieldSource, effectiveSnowProfile);

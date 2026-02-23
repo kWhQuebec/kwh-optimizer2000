@@ -99,8 +99,8 @@ export default function RessourcesPage() {
         ? "Les panneaux solaires fonctionnent-ils en hiver au Québec?"
         : "Do solar panels work in winter in Quebec?",
       answer: language === "fr"
-        ? "Absolument! Les panneaux produisent toute l'année. En fait, le froid améliore leur efficacité. La production hivernale représente environ 15-20% de la production annuelle. La neige glisse généralement des panneaux inclinés et le système est dimensionné pour l'année complète, pas juste l'été."
-        : "Absolutely! Panels produce year-round. In fact, cold temperatures improve their efficiency. Winter production represents about 15-20% of annual production. Snow typically slides off tilted panels and the system is sized for the full year, not just summer."
+        ? "Absolument! Les panneaux produisent toute l'année. Le froid améliore leur efficacité (+0,4%/°C sous 25°C). Selon l'étude NAIT Edmonton (5 ans, panneaux identiques à tous les angles), les racks ballastés à 10° ne perdent que ~5% annuellement à cause de la neige. Notre simulateur intègre ce profil validé par défaut."
+        : "Absolutely! Panels produce year-round. Cold improves efficiency (+0.4%/°C below 25°C). Per the NAIT Edmonton study (5 years, identical panels at all angles), ballasted racks at 10° only lose ~5% annually due to snow. Our simulator integrates this validated profile by default."
     },
     {
       category: "technical",

@@ -456,8 +456,8 @@ export const BRAND_CONTENT = {
       {
         mythFr: "La neige bloque les panneaux",
         mythEn: "Snow blocks panels",
-        realityFr: "Glisse rapidement sur panneaux inclinés. Effet albédo = bonus 5-10%.",
-        realityEn: "Slides off tilted panels quickly. Albedo effect = 5-10% bonus.",
+        realityFr: "Étude NAIT (5 ans, Edmonton) : seulement ~5% de perte annuelle à 10°. Effet albédo = bonus 5-10%.",
+        realityEn: "NAIT study (5 years, Edmonton): only ~5% annual loss at 10°. Albedo effect = 5-10% bonus.",
       },
       {
         mythFr: "Journées courtes = non viable",

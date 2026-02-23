@@ -278,8 +278,8 @@ export const getFAQSchema = (lang: "fr" | "en"): StructuredData => ({
       "acceptedAnswer": {
         "@type": "Answer",
         "text": lang === "fr"
-          ? "Oui, absolument. Les panneaux solaires sont dimensionnés sur la production annuelle complète. Bien que la production soit plus basse en hiver, le système bénéficie du mesurage net qui accumule les crédits sur 24 mois. Le froid améliore en fait l'efficacité des panneaux (+0,4% par degré sous 25°C), et l'effet albédo de la neige ajoute 5-10% de production supplémentaire."
-          : "Yes, absolutely. Panels are sized on annual production. While winter output is lower, net metering accumulates credits over 24 months. Cold actually improves panel efficiency (+0.4% per degree below 25°C), and snow albedo adds 5-10% extra production."
+          ? "Oui, absolument. Les panneaux produisent toute l'année. Le froid améliore l'efficacité (+0,4%/°C sous 25°C). Selon l'étude NAIT Edmonton (5 ans), les racks ballastés à 10° ne perdent que ~5% annuellement à cause de la neige. Le mesurage net accumule les crédits sur 24 mois."
+          : "Yes, absolutely. Panels produce year-round. Cold improves efficiency (+0.4%/°C below 25°C). Per the NAIT Edmonton study (5 years), ballasted racks at 10° only lose ~5% annually due to snow. Net metering accumulates credits over 24 months."
       }
     },
     {

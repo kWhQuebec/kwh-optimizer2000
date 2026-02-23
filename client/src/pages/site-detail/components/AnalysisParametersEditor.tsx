@@ -357,29 +357,34 @@ export function AnalysisParametersEditor({
                   </Label>
                   <select
                     value={merged.snowLossProfile || "none"}
-                    onChange={(e) => onChange({ ...value, snowLossProfile: e.target.value as 'none' | 'flat_roof' | 'tilted' })}
+                    onChange={(e) => onChange({ ...value, snowLossProfile: e.target.value as 'none' | 'flat_roof' | 'tilted' | 'ballasted_10deg' })}
                     disabled={disabled}
                     className="h-8 text-sm rounded-md border border-input bg-background px-3 py-1 focus:outline-none focus:ring-2 focus:ring-ring"
                     data-testid="select-snow-loss-profile"
                   >
                     <option value="none">{language === "fr" ? "Aucun" : "None"}</option>
+                    <option value="ballasted_10deg">
+                      {language === "fr"
+                        ? "Ballast\u00E9 10\u00B0 \u2014 NAIT (~5%/an, d\u00E9faut)"
+                        : "Ballasted 10\u00B0 \u2014 NAIT (~5%/yr, default)"}
+                    </option>
                     <option value="flat_roof">
                       {language === "fr"
-                        ? "Toit plat (PVGIS: jan 55%, f\u00E9v 45%, mars 30%, d\u00E9c 40%)"
-                        : "Flat roof (PVGIS: Jan 55%, Feb 45%, Mar 30%, Dec 40%)"}
+                        ? "Toit plat 0-5\u00B0 \u2014 PVGIS (~15%/an)"
+                        : "Flat roof 0-5\u00B0 \u2014 PVGIS (~15%/yr)"}
                     </option>
                     <option value="tilted">
                       {language === "fr"
-                        ? "Toit inclin\u00E9 >15\u00B0 (jan 30%, f\u00E9v 25%, mars 15%, d\u00E9c 20%)"
-                        : "Tilted roof >15\u00B0 (Jan 30%, Feb 25%, Mar 15%, Dec 20%)"}
+                        ? "Toit inclin\u00E9 >15\u00B0 (~10%/an)"
+                        : "Tilted roof >15\u00B0 (~10%/yr)"}
                     </option>
                   </select>
                 </div>
                 <p className="text-xs text-muted-foreground flex items-center gap-1">
                   <Info className="w-3 h-3" />
                   {language === "fr"
-                    ? "Profil de pertes saisonni\u00E8res dues \u00E0 la neige (calibr\u00E9 PVGIS Montr\u00E9al). Forc\u00E9 automatiquement si la source de rendement est Google Solar API."
-                    : "Seasonal snow loss profile (PVGIS-calibrated for Montreal). Automatically forced when yield source is Google Solar API."}
+                    ? "Profil NAIT (ballast\u00E9 10\u00B0, ~5%/an) appliqu\u00E9 par d\u00E9faut avec Google Solar API. Bas\u00E9 sur l'\u00E9tude NAIT Edmonton 2017 (14\u00B0 proxy pour 10\u00B0)."
+                    : "NAIT profile (ballasted 10\u00B0, ~5%/yr) applied by default with Google Solar API. Based on NAIT Edmonton 2017 study (14\u00B0 proxy for 10\u00B0)."}
                 </p>
               </div>
             </div>

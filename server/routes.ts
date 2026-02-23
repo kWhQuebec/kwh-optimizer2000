@@ -803,9 +803,9 @@ function runPotentialAnalysis(
     moduleQualityGainPercent: h.moduleQualityGainPercent ?? 0.0075,
   };
   
-  let effectiveSnowProfile = h.snowLossProfile;
+  let effectiveSnowProfile: 'none' | 'flat_roof' | 'tilted' | 'ballasted_10deg' | undefined = h.snowLossProfile;
   if (currentYieldSource === 'google' && (!effectiveSnowProfile || effectiveSnowProfile === 'none')) {
-    effectiveSnowProfile = 'flat_roof';
+    effectiveSnowProfile = 'ballasted_10deg';
   }
 
   const simResult = runHourlySimulation(hourlyData, pvSizeKW, battEnergyKWh, battPowerKW, demandShavingSetpointKW, yieldFactor, systemParams, currentYieldSource, effectiveSnowProfile);
@@ -1759,7 +1759,7 @@ function runHourlySimulation(
   solarYieldFactor: number = 1.0,
   systemParams: SystemModelingParams = { inverterLoadRatio: 1.45, temperatureCoefficient: -0.004, wireLossPercent: 0.03, skipTempCorrection: false, lidLossPercent: 0.01, mismatchLossPercent: 0.02, mismatchStringsLossPercent: 0.0015, moduleQualityGainPercent: 0.0075 },
   yieldSource: 'google' | 'manual' | 'default' = 'default',
-  snowLossProfile?: 'none' | 'flat_roof' | 'tilted'
+  snowLossProfile?: 'none' | 'flat_roof' | 'tilted' | 'ballasted_10deg'
 ) {
   return centralRunHourlySimulation(hourlyData, pvSizeKW, battEnergyKWh, battPowerKW, threshold, solarYieldFactor, systemParams, yieldSource, snowLossProfile);
 }

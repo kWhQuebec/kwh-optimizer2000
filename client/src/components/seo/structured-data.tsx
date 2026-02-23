@@ -116,7 +116,7 @@ export const faqPageSchema = (): StructuredData => ({
       "name": "Est-ce que le solaire fonctionne en hiver au Québec?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Oui, absolument. Les panneaux solaires sont dimensionnés sur la production annuelle complète. Bien que la production soit plus basse en hiver, le système bénéficie du mesurage net qui accumule les crédits sur 24 mois. Le froid améliore en fait l'efficacité des panneaux (+0,4% par degré sous 25°C), et l'effet albédo de la neige ajoute 5-10% de production supplémentaire."
+        "text": "Oui, absolument. Les panneaux produisent toute l'année. Le froid améliore l'efficacité (+0,4%/°C sous 25°C). Selon l'étude NAIT Edmonton (5 ans), les racks ballastés à 10° ne perdent que ~5% annuellement à cause de la neige. Le mesurage net accumule les crédits sur 24 mois."
       }
     },
     {

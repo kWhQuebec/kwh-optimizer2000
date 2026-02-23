@@ -59,11 +59,12 @@ export function generateMethodologyPDF(
     [t("1. Aperçu et objectifs", "1. Overview and objectives"), "2"],
     [t("2. Données d'entrée et hypothèses", "2. Input data and assumptions"), "2"],
     [t("3. Simulation de production solaire", "3. Solar production simulation"), "3"],
-    [t("4. Stockage et écrêtage de pointe", "4. Storage and peak shaving"), "4"],
-    [t("5. Modélisation financière", "5. Financial modeling"), "5"],
-    [t("6. Incitatifs et subventions", "6. Incentives and subsidies"), "6"],
-    [t("7. Optimisation et sensibilité", "7. Optimization and sensitivity"), "7"],
-    [t("8. Références et normes", "8. References and standards"), "8"],
+    [t("4. Modélisation des pertes de neige", "4. Snow loss modeling"), "4"],
+    [t("5. Stockage et écrêtage de pointe", "5. Storage and peak shaving"), "5"],
+    [t("6. Modélisation financière", "6. Financial modeling"), "6"],
+    [t("7. Incitatifs et subventions", "7. Incentives and subsidies"), "7"],
+    [t("8. Optimisation et sensibilité", "8. Optimization and sensitivity"), "8"],
+    [t("9. Références et normes", "9. References and standards"), "9"],
   ];
 
   tocItems.forEach(([title, page]) => {
@@ -249,9 +250,93 @@ export function generateMethodologyPDF(
 
   drawFooter(3);
 
-  // ==================== PAGE 4: BATTERY STORAGE ====================
+  // ==================== PAGE 4: SNOW LOSS MODELING ====================
   doc.addPage();
-  drawSectionHeader(t("4. STOCKAGE ET ÉCRÊTAGE DE POINTE", "4. STORAGE AND PEAK SHAVING"), 4);
+  drawSectionHeader(t("4. MODÉLISATION DES PERTES DE NEIGE", "4. SNOW LOSS MODELING"), 4);
+
+  doc.fontSize(11).fillColor(COLORS.darkGray);
+  doc.text(t(
+    "Trois profils de pertes saisonnières dues à la neige sont intégrés au simulateur. Le profil par défaut (ballasté 10°) est appliqué automatiquement lorsque la source de rendement est Google Solar API.",
+    "Three seasonal snow loss profiles are integrated in the simulator. The default profile (ballasted 10°) is applied automatically when the yield source is Google Solar API."
+  ), margin, doc.y, { width: contentWidth });
+  doc.moveDown(1.5);
+
+  // Profile comparison table
+  const snowHeaders = [
+    t("Profil", "Profile"),
+    t("Perte annuelle", "Annual loss"),
+    t("Perte janv.", "Jan. loss"),
+    t("Source", "Source"),
+  ];
+  const snowRows = [
+    [t("Ballasté 10° (défaut)", "Ballasted 10° (default)"), "~5%", "18%", "NAIT 2017"],
+    [t("Toit plat 0-5°", "Flat roof 0-5°"), "~15%", "55%", "PVGIS Montréal"],
+    [t("Incliné >15°", "Tilted >15°"), "~10%", "30%", t("Littérature", "Literature")],
+  ];
+
+  const snowColW = [contentWidth * 0.32, contentWidth * 0.18, contentWidth * 0.18, contentWidth * 0.32];
+
+  // Table header
+  doc.rect(margin, doc.y, contentWidth, 18).fill(COLORS.blue);
+  doc.fontSize(8).fillColor("#FFFFFF").font("Helvetica-Bold");
+  let sx = margin;
+  snowHeaders.forEach((h, i) => {
+    doc.text(h, sx + 6, doc.y + 5, { width: snowColW[i] - 12 });
+    sx += snowColW[i];
+  });
+  doc.y += 18;
+
+  // Table rows
+  snowRows.forEach((row, ri) => {
+    const bg = ri % 2 === 0 ? "#F7F8FC" : "#FFFFFF";
+    doc.rect(margin, doc.y, contentWidth, 18).fill(bg);
+    doc.fontSize(8).fillColor(COLORS.darkGray).font(ri === 0 ? "Helvetica-Bold" : "Helvetica");
+    sx = margin;
+    row.forEach((cell, ci) => {
+      doc.text(cell, sx + 6, doc.y + 5, { width: snowColW[ci] - 12 });
+      sx += snowColW[ci];
+    });
+    doc.y += 18;
+  });
+  doc.font("Helvetica");
+  doc.moveDown(1.5);
+
+  // NAIT study details
+  doc.font("Helvetica-Bold").fontSize(11).fillColor(COLORS.blue);
+  doc.text(t("Étude NAIT Edmonton (2017)", "NAIT Edmonton Study (2017)"));
+  doc.font("Helvetica").fontSize(10).fillColor(COLORS.darkGray);
+  doc.moveDown(0.5);
+  doc.text(t(
+    "Le profil par défaut est basé sur le NAIT Reference Array Report d'Edmonton — une étude de 5 ans mesurant l'impact de la neige sur des panneaux identiques (Conergy P-230PA, Enphase M215) à différents angles.",
+    "The default profile is based on the NAIT Reference Array Report from Edmonton — a 5-year study measuring snow impact on identical panels (Conergy P-230PA, Enphase M215) at different angles."
+  ), margin, doc.y, { width: contentWidth });
+  doc.moveDown(1);
+
+  const naitPoints = [
+    t("Référence = rangée dégagée manuellement après chaque chute de neige", "Reference = row manually cleared after each snowfall"),
+    t("14° (angle le plus proche de 10°) = 4,81% de perte annuelle vs référence", "14° (closest to 10°) = 4.81% annual loss vs cleared reference"),
+    t("Distribution mensuelle interpolée, mise à l'échelle ~5% annuel", "Monthly distribution interpolated, scaled to ~5% annual total"),
+    t("Edmonton: neige plus sèche que Montréal — 5% est conservateur pour le Québec", "Edmonton: drier snow than Montreal — 5% is conservative for Quebec"),
+  ];
+
+  naitPoints.forEach(point => {
+    doc.fontSize(9).fillColor(COLORS.darkGray);
+    doc.text(`• ${point}`, margin + 10, doc.y, { width: contentWidth - 20 });
+    doc.moveDown(0.5);
+  });
+
+  doc.moveDown(0.5);
+  doc.fontSize(8).fillColor(COLORS.mediumGray);
+  doc.text(t(
+    "Note : 14° est un proxy pour 10° — la perte réelle à 10° peut être légèrement supérieure. Des mesures terrain Québec sont en cours.",
+    "Note: 14° is a proxy for 10° — actual loss at 10° may be slightly higher. Quebec field measurements are underway."
+  ), margin, doc.y, { width: contentWidth, align: "center" });
+
+  drawFooter(4);
+
+  // ==================== PAGE 5: BATTERY STORAGE ====================
+  doc.addPage();
+  drawSectionHeader(t("5. STOCKAGE ET ÉCRÊTAGE DE POINTE", "5. STORAGE AND PEAK SHAVING"), 5);
 
   doc.fontSize(11).fillColor(COLORS.darkGray);
   doc.text(t(
@@ -336,11 +421,11 @@ export function generateMethodologyPDF(
     doc.moveDown(0.3);
   });
 
-  drawFooter(4);
+  drawFooter(5);
 
-  // ==================== PAGE 5: FINANCIAL MODELING ====================
+  // ==================== PAGE 6: FINANCIAL MODELING ====================
   doc.addPage();
-  drawSectionHeader(t("5. MODÉLISATION FINANCIÈRE", "5. FINANCIAL MODELING"), 5);
+  drawSectionHeader(t("6. MODÉLISATION FINANCIÈRE", "6. FINANCIAL MODELING"), 6);
 
   doc.fontSize(11).fillColor(COLORS.darkGray);
   doc.text(t(
@@ -409,11 +494,11 @@ export function generateMethodologyPDF(
     doc.moveDown(0.6);
   });
 
-  drawFooter(5);
+  drawFooter(6);
 
-  // ==================== PAGE 6: INCENTIVES ====================
+  // ==================== PAGE 7: INCENTIVES ====================
   doc.addPage();
-  drawSectionHeader(t("6. INCITATIFS ET SUBVENTIONS", "6. INCENTIVES AND SUBSIDIES"), 6);
+  drawSectionHeader(t("7. INCITATIFS ET SUBVENTIONS", "7. INCENTIVES AND SUBSIDIES"), 7);
 
   doc.fontSize(11).fillColor(COLORS.darkGray).font("Helvetica-Bold");
   doc.text(t("Incitatifs Hydro-Québec (Programme Autoproduction):", "Hydro-Québec Incentives (Self-Generation Program):"));
@@ -498,11 +583,11 @@ export function generateMethodologyPDF(
   ), margin + 10, doc.y - 30);
   doc.font("Helvetica");
 
-  drawFooter(6);
+  drawFooter(7);
 
-  // ==================== PAGE 7: OPTIMIZATION ====================
+  // ==================== PAGE 8: OPTIMIZATION ====================
   doc.addPage();
-  drawSectionHeader(t("7. OPTIMISATION ET SENSIBILITÉ", "7. OPTIMIZATION AND SENSITIVITY"), 7);
+  drawSectionHeader(t("8. OPTIMISATION ET SENSIBILITÉ", "8. OPTIMIZATION AND SENSITIVITY"), 8);
 
   doc.fontSize(11).fillColor(COLORS.darkGray);
   doc.text(t(
@@ -580,11 +665,11 @@ export function generateMethodologyPDF(
     doc.moveDown(0.3);
   });
 
-  drawFooter(7);
+  drawFooter(8);
 
-  // ==================== PAGE 8: REFERENCES ====================
+  // ==================== PAGE 9: REFERENCES ====================
   doc.addPage();
-  drawSectionHeader(t("8. RÉFÉRENCES ET NORMES", "8. REFERENCES AND STANDARDS"), 8);
+  drawSectionHeader(t("9. RÉFÉRENCES ET NORMES", "9. REFERENCES AND STANDARDS"), 9);
 
   doc.fontSize(11).fillColor(COLORS.darkGray).font("Helvetica-Bold");
   doc.text(t("Tarifs Hydro-Québec:", "Hydro-Québec Rates:"));
@@ -661,5 +746,5 @@ export function generateMethodologyPDF(
   doc.text("info@kwh.quebec", margin + 20, doc.y - 35);
   doc.text("www.kwh.quebec", margin + 20, doc.y - 20);
 
-  drawFooter(8);
+  drawFooter(9);
 }

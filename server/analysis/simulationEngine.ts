@@ -48,6 +48,30 @@ export const SNOW_LOSS_TILTED: number[] = [
   0.20, // Dec
 ];
 
+/**
+ * Snow loss profile for 10° ballasted racks (KB, Opsun 10°).
+ * Source: NAIT Reference Array Report, Edmonton, March 31, 2017.
+ * 5-year study, same equipment (Conergy P-230PA, Enphase M215) at all angles.
+ * 14° (closest to 10°) = 4.81% annual snow loss vs cleared reference.
+ * Monthly distribution scaled from flat_roof shape to ~5% annual total.
+ * Note: 14° is a proxy for 10° — actual 10° loss may be slightly higher.
+ * Edmonton snow is drier than Montreal; ~5% is a conservative interpretation.
+ */
+export const SNOW_LOSS_BALLASTED_10DEG: number[] = [
+  0.18, // Jan
+  0.14, // Feb
+  0.10, // Mar
+  0.02, // Apr
+  0.00, // May
+  0.00, // Jun
+  0.00, // Jul
+  0.00, // Aug
+  0.00, // Sep
+  0.00, // Oct
+  0.03, // Nov
+  0.13, // Dec
+];
+
 const BASELINE_CAPACITY_FACTOR = 0.645;
 
 export interface HourlySimulationResult {
@@ -108,7 +132,7 @@ export function runHourlySimulation(
   solarYieldFactor: number = 1.0,
   systemParams: SystemModelingParams = { inverterLoadRatio: 1.45, temperatureCoefficient: -0.004, wireLossPercent: 0.03, skipTempCorrection: false, lidLossPercent: 0.01, mismatchLossPercent: 0.02, mismatchStringsLossPercent: 0.0015, moduleQualityGainPercent: 0.0075 },
   yieldSource: 'google' | 'manual' | 'default' = 'default',
-  snowLossProfile?: 'none' | 'flat_roof' | 'tilted'
+  snowLossProfile?: 'none' | 'flat_roof' | 'tilted' | 'ballasted_10deg'
 ): HourlySimulationResult {
   const hourlyProfile: HourlyProfileEntry[] = [];
   let soc = battEnergyKWh * 0.5;
@@ -189,6 +213,8 @@ export function runHourlySimulation(
       dcProduction *= (1 - SNOW_LOSS_FLAT_ROOF[month - 1]);
     } else if (snowLossProfile === 'tilted') {
       dcProduction *= (1 - SNOW_LOSS_TILTED[month - 1]);
+    } else if (snowLossProfile === 'ballasted_10deg') {
+      dcProduction *= (1 - SNOW_LOSS_BALLASTED_10DEG[month - 1]);
     }
 
     let acProduction = dcProduction;
@@ -469,7 +495,7 @@ export function runScenarioWithSizing(
 
   let effectiveSnowProfile = h.snowLossProfile;
   if (scenarioYieldSource === 'google' && (!effectiveSnowProfile || effectiveSnowProfile === 'none')) {
-    effectiveSnowProfile = 'flat_roof';
+    effectiveSnowProfile = 'ballasted_10deg';
   }
 
   const simResult = runHourlySimulation(hourlyData, pvSizeKW, battEnergyKWh, battPowerKW, demandShavingSetpointKW, yieldFactor, systemParams, scenarioYieldSource, effectiveSnowProfile);

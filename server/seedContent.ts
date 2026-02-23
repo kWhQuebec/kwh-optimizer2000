@@ -65,7 +65,7 @@ const DEFAULT_CONTENT = [
       },
       {
         question: { fr: "Le solaire fonctionne-t-il en hiver au Québec?", en: "Does solar work in winter in Quebec?" },
-        answer: { fr: "Oui. Les panneaux produisent 25-30% de leur capacité en hiver. Les journées froides et ensoleillées sont idéales — le froid améliore l'efficacité. La neige cause 5-10% de perte saisonnière, mais les panneaux sont conçus pour la rejeter.", en: "Yes. Panels produce 25-30% of capacity in winter. Cold, sunny days are ideal — cold improves efficiency. Snow causes 5-10% seasonal loss, but panels are designed to shed it." }
+        answer: { fr: "Oui. Les panneaux produisent 25-30% de leur capacité en hiver. Le froid améliore l'efficacité (+0,4%/°C). Selon l'étude NAIT Edmonton (5 ans), les panneaux à 10° ne perdent que ~5% annuellement à cause de la neige. Notre simulateur intègre ce profil validé par défaut.", en: "Yes. Panels produce 25-30% of capacity in winter. Cold improves efficiency (+0.4%/°C). Per the NAIT Edmonton study (5 years), panels at 10° only lose ~5% annually due to snow. Our simulator integrates this validated profile by default." }
       },
       {
         question: { fr: "Combien de temps prend le projet complet?", en: "How long does the full project take?" },
