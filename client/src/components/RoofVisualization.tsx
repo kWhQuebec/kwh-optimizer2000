@@ -1103,11 +1103,10 @@ export function RoofVisualization({
           const WIND_SETBACK_M = 2.5;
           const windSetbackPenalty = distToEdge < WIND_SETBACK_M ? 0.4 * (1 - distToEdge / WIND_SETBACK_M) : 0;
 
-          // South priority uses ABSOLUTE latitude across all polygons (not polygon-relative)
+          // South priority within THIS polygon (not global — each polygon fills independently)
           // Lower latitude = further south = higher priority
-          // Scale: 1 degree lat ≈ 111km, roof spans maybe 200m max → ~0.0018 degrees
-          // Multiply by 1e7 to get meaningful integer separation between rows
-          const absoluteSouthScore = Math.round((globalCentroid.lat - panelCenterLat) * 1e7);
+          // Uses local centroid so priority is relative within each polygon
+          const absoluteSouthScore = Math.round((localCentroid.lat - panelCenterLat) * 1e7);
           
           // Secondary score: edge distance + shadow avoidance (0-999 range)
           const secondaryScore = Math.round((edgeScore * 0.6 + 0.4) * (1 - shadowPenalty) * (1 - windSetbackPenalty) * 999);
@@ -1357,18 +1356,55 @@ export function RoofVisualization({
     return panels;
   }, []);
 
-  // Sort panels by priority (south-first, then center columns)
-  // When reducing panel count, panels on the south side of the roof are kept first
+  // Sort panels with PROPORTIONAL PER-POLYGON allocation (industry-standard EPC layout)
+  // Each polygon (roof section) fills independently — like real installations where each
+  // roof section gets its own racking array. South-first priority applies WITHIN each polygon.
+  // When capacity is reduced, panels are removed proportionally from all polygons.
   const sortPanelsByRowPriority = useCallback((panels: PanelPosition[]): PanelPosition[] => {
-    // Global sort by priority - highest first (south rows, center columns)
-    // This ensures southern panels are prioritized for better solar yield
-    const sorted = [...panels].sort((a, b) => (b.priority || 0) - (a.priority || 0));
+    // Step 1: Group panels by polygon and sort each group by priority (south-first within polygon)
+    const byPolygon = new Map<string, PanelPosition[]>();
+    for (const p of panels) {
+      const pid = p.polygonId || "default";
+      if (!byPolygon.has(pid)) byPolygon.set(pid, []);
+      byPolygon.get(pid)!.push(p);
+    }
     
-    // Count polygons for logging
-    const polygonIds = new Set(panels.map(p => p.polygonId));
-    console.log(`[RoofVisualization] Sorted ${sorted.length} panels by row priority across ${polygonIds.size} polygon(s)`);
+    // Sort each polygon's panels by priority (highest first = south-first within that polygon)
+    byPolygon.forEach((group) => {
+      group.sort((a: PanelPosition, b: PanelPosition) => (b.priority || 0) - (a.priority || 0));
+    });
     
-    return sorted;
+    const polygonGroups = Array.from(byPolygon.entries());
+    const totalPanels = panels.length;
+    
+    if (polygonGroups.length <= 1) {
+      // Single polygon — simple sort is fine
+      const sorted = polygonGroups.length === 1 ? polygonGroups[0][1] : [];
+      console.log(`[RoofVisualization] Sorted ${sorted.length} panels (single polygon)`);
+      return sorted;
+    }
+    
+    // Step 2: True proportional interleaving using normalized rank keys
+    // Each panel gets a key = (rank_within_polygon + 0.5) / polygon_total_count
+    // Sorting all panels by this key ensures any prefix slice(0, N) gives each
+    // polygon ~N × (polygon_count / total_count) panels — truly proportional.
+    // Example: polygon A (100 panels) and B (50 panels) → at 75 panels shown,
+    // A gets ~50, B gets ~25 (proportional to 100:50 = 2:1 ratio)
+    const sorted: { panel: PanelPosition; key: number }[] = [];
+    for (const [, group] of polygonGroups) {
+      const groupLen = group.length;
+      for (let i = 0; i < groupLen; i++) {
+        sorted.push({ panel: group[i], key: (i + 0.5) / groupLen });
+      }
+    }
+    // Sort by normalized rank — panels at similar fill ratios across polygons interleave
+    sorted.sort((a, b) => a.key - b.key);
+    
+    const result = sorted.map(s => s.panel);
+    
+    console.log(`[RoofVisualization] Sorted ${result.length} panels proportionally across ${polygonGroups.length} polygon(s): ${polygonGroups.map(([pid, g]) => `${pid.slice(0,8)}=${g.length}`).join(", ")}`);
+    
+    return result;
   }, []);
 
   useEffect(() => {
