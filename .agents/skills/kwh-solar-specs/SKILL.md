@@ -43,6 +43,20 @@ description: Technical specifications for kWh Québec solar equipment and analys
 - **Roof albedo**: 0.60 (conservative; PVSyst range 0.42–0.60)
 - **Temperature coefficient**: -0.4%/°C
 
+### Snow Loss Profiles (PVGIS-calibrated, Montreal)
+
+**Flat roof (≤15° slope)** — ~15% annual loss:
+```
+Jan: 55%, Feb: 45%, Mar: 30%, Apr: 5%, May-Oct: 0%, Nov: 10%, Dec: 40%
+```
+
+**Tilted roof (>15° slope)** — ~10% annual loss:
+```
+Jan: 35%, Feb: 25%, Mar: 15%, Apr: 0%, May-Oct: 0%, Nov: 5%, Dec: 25%
+```
+
+**Critical rule**: Google Solar API and PVGIS EXCLUDE snow. Any yield from these sources MUST have a snow profile applied for Quebec.
+
 ### Where These Values Live in Code
 
 - Defaults: `shared/schema.ts` → `defaultAnalysisAssumptions`
@@ -50,6 +64,34 @@ description: Technical specifications for kWh Québec solar equipment and analys
 - Simulation: `server/routes/siteAnalysisHelpers.ts` → `runHourlySimulation()`
 - Duplicate simulation: `server/routes.ts` → `runHourlySimulation()` (legacy)
 - Display: `shared/brandContent.ts` → `BRAND_CONTENT.assumptions`
+
+## Costs Reference (2025)
+
+| PV System Size | $/W |
+|---|---|
+| < 100 kW | 2.30 |
+| 100–500 kW | 2.15 |
+| 500–1,000 kW | 2.00 |
+| 1–3 MW | 1.85 |
+| 3+ MW | 1.70 |
+
+- **Battery capacity**: 450 $/kWh
+- **Battery power**: 800 $/kW (verify — possibly low)
+- **O&M solar**: 1% CAPEX/year
+- **O&M battery**: 1% CAPEX/year (code currently has 0.5% — to correct)
+
+## Incentives
+
+- **HQ Autoproduction**: Verify current official grid before modifying incentive calculations. Program changes regularly.
+- **ITC federal**: 30% (on net CAPEX after HQ)
+- **Tax shield CCA**: 26.5% rate, 90% factor
+
+## Financial Parameters
+
+- **Discount rate**: 7%
+- **Inflation**: 3.5%
+- **Battery replacement**: Year 10 (possibly conservative — 12-15 years more realistic)
+- **Replacement cost**: 60% of original (possibly optimistic — 75-80% more realistic)
 
 ## Important Notes
 

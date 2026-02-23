@@ -1,0 +1,139 @@
+# kWh Optimizer 2000 — Règles de développement
+
+## Identité du projet
+
+**Produit** : Plateforme SaaS d'optimisation de systèmes PV + stockage pour le marché commercial/industriel québécois.
+**Stack** : React + TypeScript + Tailwind + shadcn/ui (frontend) | Node.js + Express + Drizzle ORM + PostgreSQL (backend)
+**Routeur** : wouter (PAS react-router)
+**State** : TanStack Query (server state), useState/useRef (local state)
+**Repo** : github.com/kWhQuebec/kwh-optimizer2000
+
+---
+
+## Règles métier critiques (JAMAIS enfreindre)
+
+1. **Tarifs HQ** : Les tarifs M, G, L, D doivent correspondre aux valeurs officielles Hydro-Québec en vigueur. Ne jamais hardcoder un tarif sans référence à la source.
+2. **Incitatifs** : Valider le programme Autoproduction HQ contre la grille officielle courante avant de modifier les calculs d'incitatifs. Le programme change régulièrement.
+3. **Snow loss** : Google Solar API et PVGIS **excluent** la neige. Tout yield provenant de ces sources DOIT avoir un profil neige appliqué pour le Québec.
+4. **Simulations** : Ne jamais supprimer ou écraser une simulation existante. Les simulations sont historiques — on en crée de nouvelles.
+5. **Pas de checkboxes manuelles** : Toute progression de tâche/workflow doit être détectée automatiquement à partir de données mesurables en BD (champs remplis, documents signés, etc.). Jamais de case à cocher manuelle.
+
+---
+
+## Conventions de code
+
+### Brand
+- Primary Blue : `#003DA6`
+- Dark Blue : `#002B75`
+- Accent Gold : `#FFB005`
+- Green : `#16A34A`
+- Gray : `#AAAAAA`
+- Font body/titres : Montserrat
+- Font données/chiffres : JetBrains Mono
+
+### Frontend
+- Composants UI : shadcn/ui exclusivement (pas de Material UI, Ant Design, etc.)
+- Routing : `useLocation` et `<Route>` de wouter
+- Requêtes API : `useQuery` / `useMutation` de TanStack Query
+- Formulaires : React Hook Form + zod pour validation
+- Icônes : lucide-react
+- Pas de `localStorage` pour l'état applicatif — tout passe par l'API
+
+### Backend
+- ORM : Drizzle — pas de raw SQL sauf pour les requêtes analytiques complexes
+- Schéma BD : `shared/schema.ts` — toute modification de schéma nécessite une migration Drizzle
+- Routes : Express avec validation zod sur les entrées
+- Erreurs : toujours retourner des codes HTTP appropriés avec messages clairs
+
+### TypeScript
+- `strict: true` — pas de `any` sauf cas exceptionnels documentés
+- Interfaces pour les objets métier, types pour les unions/intersections
+- Exporter les types partagés depuis `shared/`
+
+---
+
+## Fichiers protégés (ne JAMAIS modifier sans demander)
+
+- `shared/schema.ts` — schéma de base de données (impact migrations)
+- `drizzle/` — fichiers de migration
+- `server/routes/siteAnalysisHelpers.ts` — moteur de simulation (impact calculs financiers clients)
+- `shared/finance/cashflowEngine.ts` — modèle financier (impact propositions clients)
+- `.env` / `.env.production` — secrets
+
+---
+
+## Processus de travail
+
+### Avant de coder
+1. Lire les fichiers concernés en entier avant de proposer des changements
+2. Comprendre le flux de données complet (frontend → API → backend → BD → retour)
+3. Pour les changements touchant le simulateur ou les finances : vérifier les hypothèses contre les sources officielles (HQ, CRA, etc.)
+
+### Pendant le développement
+- Faire des changements atomiques — un seul objectif par commit
+- Tester que le TypeScript compile (`npx tsc --noEmit`)
+- Vérifier les régressions visuelles sur les pages impactées
+- Si un bug est trouvé pendant le développement d'une feature : le corriger immédiatement, ne pas laisser trainer
+
+### Vérification avant de déclarer "terminé"
+- [ ] Le code compile sans erreur TypeScript
+- [ ] Les routes API retournent les bonnes données (tester avec curl ou dans le navigateur)
+- [ ] L'UI affiche correctement les données sur desktop ET mobile
+- [ ] Les états edge-case sont gérés (données manquantes, listes vides, erreurs réseau)
+- [ ] Pas de console.error dans le navigateur
+- [ ] Les calculs financiers produisent des résultats cohérents (NPV, IRR, payback dans des ranges réalistes)
+
+---
+
+## Paramètres du simulateur PV (référence)
+
+### Yield solaire
+- Baseline Québec : 1,150 kWh/kWp/an (avant pertes)
+- Montréal optimal (30° sud) : ~1,305 kWh/kWp (PVGIS, sans neige)
+- Montréal toit plat (10°) : ~1,178 kWh/kWp (PVGIS, sans neige)
+- Après pertes système + neige (toit plat) : ~1,000-1,050 kWh/kWp réaliste
+
+### Pertes système
+- Wire loss : 3%
+- LID : 1% (conservateur — modules 2025+ souvent <0.5%)
+- Mismatch : 2%
+- Dégradation : 0.4%/an
+- ILR (inverter load ratio) : 1.45
+
+### Profil neige toit plat (Montréal)
+```
+Jan: 55%, Fév: 45%, Mar: 30%, Avr: 5%, Mai-Oct: 0%, Nov: 10%, Déc: 40%
+```
+
+### Coûts (2025)
+- PV <100 kW : 2.30 $/W
+- PV 100-500 kW : 2.15 $/W
+- PV 500-1000 kW : 2.00 $/W
+- PV 1-3 MW : 1.85 $/W
+- PV 3+ MW : 1.70 $/W
+- Batterie capacité : 450 $/kWh
+- Batterie puissance : 800 $/kW (vérifier — possiblement bas)
+- O&M solaire : 1% CAPEX/an
+- O&M batterie : 1% CAPEX/an (le code a 0.5% — à corriger)
+
+### Incitatifs
+- HQ Autoproduction : vérifier grille officielle courante
+- ITC fédéral : 30% (sur CAPEX net après HQ)
+- Bouclier fiscal CCA : 26.5% taux, 90% facteur
+
+### Paramètres financiers
+- Taux d'actualisation : 7%
+- Inflation : 3.5%
+- Remplacement batterie : année 10 (possiblement conservateur — 12-15 ans plus réaliste)
+- Coût remplacement : 60% de l'original (possiblement optimiste — 75-80% plus réaliste)
+
+---
+
+## Erreurs fréquentes à éviter
+
+1. **State React non réinitialisé** : Quand l'URL change (ex: navigation entre sites), les useState gardent leur ancienne valeur. Toujours réinitialiser dans un useEffect qui dépend de l'ID.
+2. **useEffect sans dépendance `id`** : Si un effet dépend des données d'un site spécifique, l'`id` du site DOIT être dans le tableau de dépendances.
+3. **staleTime trop court** : Ne pas overrider le staleTime du queryClient sans bonne raison. Le default (60s) est suffisant.
+4. **Composants disabled** : Ne jamais mettre `disabled={true}` sur des onglets/steps de navigation. Utiliser un style visuel différent (opacité, couleur) mais garder le clic fonctionnel.
+5. **Données Google Solar sans correction neige** : Toujours appliquer le profil neige quand la source yield est 'google' et le site est au Québec.
+6. **Simulations orphelines** : Toujours vérifier que `selectedSimulationId` correspond à une simulation existante dans le site courant avant de l'utiliser.
