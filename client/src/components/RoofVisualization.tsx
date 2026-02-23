@@ -232,8 +232,8 @@ function selectNonOverlappingRectangles(
       }
     }
 
-    // Allow if less than 20% overlap (some overlap ok for adjacent rectangles)
-    if (overlapCount > totalCells * 0.20) continue;
+    // Strict: no overlap allowed (clean non-overlapping rectangles)
+    if (overlapCount > 0) continue;
 
     // Claim this rectangle
     for (let r = rect.startRow; r <= rect.endRow; r++) {
@@ -251,6 +251,9 @@ function selectNonOverlappingRectangles(
 /**
  * Master function: rectangle-first professional layout filter.
  * Replaces all previous layer-based approaches with a single coherent algorithm.
+ *
+ * CRITICAL: Uses sparse grid (original row/col indices) to preserve physical gaps.
+ * Dense indexing would make non-adjacent rows appear adjacent, creating false rectangles.
  */
 function applyProfessionalLayoutFilters(panels: PanelPosition[]): PanelPosition[] {
   if (panels.length === 0) return panels;
@@ -270,56 +273,62 @@ function applyProfessionalLayoutFilters(panels: PanelPosition[]): PanelPosition[
   let totalRectangles = 0;
 
   byPolygon.forEach((polyPanels, polygonId) => {
-    // Map row/col indices to 0-based dense indices
-    const rowSet = new Set<number>();
-    const colSet = new Set<number>();
+    // Use SPARSE grid: original row/col indices directly
+    // This preserves physical gaps (obstacles, setbacks) as empty cells
+    let minRow = Infinity, maxRow = -Infinity, minCol = Infinity, maxCol = -Infinity;
     for (const p of polyPanels) {
-      rowSet.add(p.rowIndex ?? 0);
-      colSet.add(p.colIndex ?? 0);
+      const r = p.rowIndex ?? 0;
+      const c = p.colIndex ?? 0;
+      minRow = Math.min(minRow, r);
+      maxRow = Math.max(maxRow, r);
+      minCol = Math.min(minCol, c);
+      maxCol = Math.max(maxCol, c);
     }
 
-    const sortedRows = Array.from(rowSet).sort((a, b) => a - b);
-    const sortedCols = Array.from(colSet).sort((a, b) => a - b);
+    const numRows = maxRow - minRow + 1;
+    const numCols = maxCol - minCol + 1;
 
-    const rowToIdx = new Map<number, number>();
-    const colToIdx = new Map<number, number>();
-    sortedRows.forEach((r, i) => rowToIdx.set(r, i));
-    sortedCols.forEach((c, i) => colToIdx.set(c, i));
+    // Safety: if grid is unreasonably large, fall back to keeping all panels
+    if (numRows * numCols > 500000) {
+      console.warn(`[LayoutFilter] Polygon ${polygonId.slice(0, 8)}: grid too large (${numRows}×${numCols}), skipping filter`);
+      for (const p of polyPanels) kept.push(p);
+      return;
+    }
 
-    const numRows = sortedRows.length;
-    const numCols = sortedCols.length;
-
-    // Build occupancy grid
+    // Build sparse occupancy grid (offset to 0-based)
     const occupancy: boolean[][] = [];
     for (let r = 0; r < numRows; r++) {
       occupancy.push(new Array(numCols).fill(false));
     }
 
-    // Also build a lookup from (denseRow, denseCol) → panel
-    const panelAt = new Map<string, PanelPosition>();
+    const panelLookup = new Map<string, PanelPosition>();
     for (const p of polyPanels) {
-      const ri = rowToIdx.get(p.rowIndex ?? 0)!;
-      const ci = colToIdx.get(p.colIndex ?? 0)!;
-      occupancy[ri][ci] = true;
-      panelAt.set(`${ri}:${ci}`, p);
+      const r = (p.rowIndex ?? 0) - minRow;
+      const c = (p.colIndex ?? 0) - minCol;
+      occupancy[r][c] = true;
+      panelLookup.set(`${r}:${c}`, p);
     }
 
     // Step 2: Find maximal rectangles
     const candidates = findMaximalRectangles(occupancy, numRows, numCols);
 
-    // Step 3: Greedy selection
+    // Step 3: Greedy selection (zero overlap — clean non-overlapping rectangles)
     const selected = selectNonOverlappingRectangles(candidates, numRows, numCols);
 
     totalRectangles += selected.length;
 
     // Step 4: Collect panels inside selected rectangles
     const inRect = new Set<string>();
-    for (const rect of selected) {
+    // Track which rectangle each cell belongs to for priority scoring
+    const cellToRect = new Map<string, number>();
+    for (let si = 0; si < selected.length; si++) {
+      const rect = selected[si];
       for (let r = rect.startRow; r <= rect.endRow; r++) {
         for (let c = rect.startCol; c <= rect.endCol; c++) {
-          // Only include cells that actually have panels (occupancy = true)
           if (occupancy[r][c]) {
-            inRect.add(`${r}:${c}`);
+            const key = `${r}:${c}`;
+            inRect.add(key);
+            cellToRect.set(key, si);
           }
         }
       }
@@ -327,34 +336,24 @@ function applyProfessionalLayoutFilters(panels: PanelPosition[]): PanelPosition[
 
     // Step 5: Keep only panels inside rectangles, with priority scoring
     for (const p of polyPanels) {
-      const ri = rowToIdx.get(p.rowIndex ?? 0)!;
-      const ci = colToIdx.get(p.colIndex ?? 0)!;
-      const key = `${ri}:${ci}`;
+      const r = (p.rowIndex ?? 0) - minRow;
+      const c = (p.colIndex ?? 0) - minCol;
+      const key = `${r}:${c}`;
 
       if (inRect.has(key)) {
-        // Find which rectangle this panel belongs to (for priority scoring)
-        let bestRect: typeof selected[0] | null = null;
-        for (const rect of selected) {
-          if (ri >= rect.startRow && ri <= rect.endRow && ci >= rect.startCol && ci <= rect.endCol) {
-            bestRect = rect;
-            break;
-          }
-        }
+        const rectIdx = cellToRect.get(key);
+        if (rectIdx !== undefined) {
+          const rect = selected[rectIdx];
 
-        // Priority bonus: larger rectangles get higher priority, interior panels even more
-        if (bestRect) {
-          const rectWidth = bestRect.endCol - bestRect.startCol + 1;
-          const rectHeight = bestRect.endRow - bestRect.startRow + 1;
-
-          // Distance from edge (0 = edge, higher = more interior)
-          const distFromLeft = ci - bestRect.startCol;
-          const distFromRight = bestRect.endCol - ci;
-          const distFromTop = ri - bestRect.startRow;
-          const distFromBottom = bestRect.endRow - ri;
+          // Distance from rectangle edge (0 = edge, higher = more interior)
+          const distFromLeft = c - rect.startCol;
+          const distFromRight = rect.endCol - c;
+          const distFromTop = r - rect.startRow;
+          const distFromBottom = rect.endRow - r;
           const minEdgeDist = Math.min(distFromLeft, distFromRight, distFromTop, distFromBottom);
 
           // Rectangle size bonus (0-300): larger blocks get priority
-          const sizeBonus = Math.min(bestRect.area / 50, 1) * 300;
+          const sizeBonus = Math.min(rect.area / 50, 1) * 300;
           // Interior bonus (0-200): center panels kept when slider reduces
           const interiorBonus = Math.min(minEdgeDist / 3, 1) * 200;
 
@@ -365,7 +364,7 @@ function applyProfessionalLayoutFilters(panels: PanelPosition[]): PanelPosition[
       }
     }
 
-    console.log(`[LayoutFilter] Polygon ${polygonId.slice(0, 8)}: ${selected.length} rectangles selected from ${candidates.length} candidates, ${polyPanels.length} → ${inRect.size} panels`);
+    console.log(`[LayoutFilter] Polygon ${polygonId.slice(0, 8)}: ${selected.length} rectangles from ${candidates.length} candidates, ${polyPanels.length} → ${inRect.size} panels`);
   });
 
   const removed = before - kept.length;
