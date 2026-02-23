@@ -962,42 +962,17 @@ export async function generatePresentationPPTX(
       capexNet: simulation.capexNet,
     });
 
-    // Individual factor bars
-    const factors = [
-      { label: t("Retour simple", "Simple Payback"), value: simulation.simplePaybackYears ? `${simulation.simplePaybackYears.toFixed(1)} ${t("ans", "yrs")}` : "—", score: 0, max: 35 },
-      { label: t("TRI 25 ans", "25yr IRR"), value: simulation.irr25 ? `${(simulation.irr25 * 100).toFixed(1)}%` : "—", score: 0, max: 25 },
-      { label: t("Ratio économies", "Savings Ratio"), value: simulation.annualCostBefore > 0 ? `${((simulation.annualSavings / simulation.annualCostBefore) * 100).toFixed(0)}%` : "—", score: 0, max: 20 },
-      { label: t("Autosuffisance", "Self-sufficiency"), value: `${(simulation.selfSufficiencyPercent || 0).toFixed(0)}%`, score: 0, max: 20 },
-    ];
-
-    // Recalculate individual scores for display
-    if (simulation.simplePaybackYears > 0) {
-      const p = simulation.simplePaybackYears;
-      factors[0].score = p <= 4 ? 35 : p <= 6 ? 30 : p <= 8 ? 22 : p <= 10 ? 15 : p <= 14 ? 8 : 3;
-    }
-    if (simulation.irr25 != null) {
-      const i = simulation.irr25 * 100;
-      factors[1].score = i >= 20 ? 25 : i >= 15 ? 22 : i >= 10 ? 18 : i >= 7 ? 12 : i >= 4 ? 6 : 2;
-    }
-    if (simulation.annualSavings && simulation.annualCostBefore > 0) {
-      const r = simulation.annualSavings / simulation.annualCostBefore;
-      factors[2].score = r >= 0.5 ? 20 : r >= 0.35 ? 16 : r >= 0.2 ? 12 : r >= 0.1 ? 7 : 3;
-    }
-    if (simulation.selfSufficiencyPercent) {
-      const s = simulation.selfSufficiencyPercent;
-      factors[3].score = s >= 60 ? 20 : s >= 40 ? 15 : s >= 25 ? 10 : s >= 15 ? 6 : 2;
-    }
-
-    const factorBars = factors.map(f => {
-      const pct = f.max > 0 ? (f.score / f.max) * 100 : 0;
-      const barColor = pct >= 70 ? 'var(--green)' : pct >= 40 ? '#F59E0B' : 'var(--red)';
+    // Individual factor bars — from computeFitScore (single source of truth)
+    const factorBars = fitResult.factors.map(f => {
+      const pct = f.maxScore > 0 ? (f.score / f.maxScore) * 100 : 0;
+      const label = lang === "fr" ? f.labelFr : f.labelEn;
       return `<div style="display:flex;align-items:center;gap:16px;margin-bottom:12px;">
-        <div style="width:180px;font-size:15px;color:var(--dark);font-weight:500;">${f.label}</div>
+        <div style="width:180px;font-size:15px;color:var(--dark);font-weight:500;">${label}</div>
         <div style="flex:1;height:24px;background:#e5e7eb;border-radius:12px;overflow:hidden;position:relative;">
-          <div style="height:100%;width:${pct}%;background:${barColor};border-radius:12px;transition:width 0.5s;"></div>
+          <div style="height:100%;width:${pct}%;background:${f.barColor};border-radius:12px;transition:width 0.5s;"></div>
         </div>
-        <div style="width:100px;font-size:14px;color:var(--gray);text-align:right;">${f.value}</div>
-        <div style="width:60px;font-size:14px;font-weight:700;color:var(--primary);text-align:right;">${f.score}/${f.max}</div>
+        <div style="width:100px;font-size:14px;color:var(--gray);text-align:right;">${f.displayValue}</div>
+        <div style="width:60px;font-size:14px;font-weight:700;color:var(--primary);text-align:right;">${f.score}/${f.maxScore}</div>
       </div>`;
     }).join('');
 
