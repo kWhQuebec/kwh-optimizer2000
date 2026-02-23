@@ -882,7 +882,6 @@ export function RoofVisualization({
     console.log(`[RoofVisualization] Expanded ${expandedConstraintPolygons.length} constraint polygons for 1.2m clearance`);
     
     const metersPerDegreeLat = 111320;
-    const metersPerDegreeLng = 111320 * Math.cos(globalCentroid.lat * Math.PI / 180);
     
     const panelPitchX = PANEL_WIDTH_M + PANEL_GAP_M;
     // KB_ROW_SPACING_M (1.557m) is already the center-to-center row pitch
@@ -917,22 +916,22 @@ export function RoofVisualization({
     let totalRejectedByConstraint = 0;
     
     for (const { polygon, id, coords } of solarPolygonData) {
-      // Use THIS polygon's centroid for distance calculations
+      // Each polygon uses its OWN centroid as coordinate origin — independent field segments
+      // This ensures each roof section has its own racking grid, like real EPC designs
       const localCentroid = computeCentroid(coords);
+      const localMetersPerDegreeLng = 111320 * Math.cos(localCentroid.lat * Math.PI / 180);
       
-      // NEW: Use distance-based validation instead of inset polygon
-      // This works correctly for L-shaped and concave polygons where inset fails
       console.log(`[RoofVisualization] Polygon ${id.slice(0,8)}: using 4-corner distance validation (${PERIMETER_SETBACK_M}m setback from panel edge)`);
       
       // The original polygon for containment check
       const originalPath = coords.map(([lng, lat]) => ({ lat, lng }));
       const originalPolygon = new google.maps.Polygon({ paths: originalPath });
       
-      // Compute THIS polygon's bounding box in unified rotated space
+      // Compute THIS polygon's bounding box using its LOCAL centroid as origin
       let minXRot = Infinity, maxXRot = -Infinity, minYRot = Infinity, maxYRot = -Infinity;
       for (const [lng, lat] of coords) {
-        const x = (lng - globalCentroid.lng) * metersPerDegreeLng;
-        const y = (lat - globalCentroid.lat) * metersPerDegreeLat;
+        const x = (lng - localCentroid.lng) * localMetersPerDegreeLng;
+        const y = (lat - localCentroid.lat) * metersPerDegreeLat;
         const rx = x * cos - y * sin;
         const ry = x * sin + y * cos;
         minXRot = Math.min(minXRot, rx);
@@ -952,7 +951,8 @@ export function RoofVisualization({
       minYRot -= MARGIN_M;
       maxYRot += MARGIN_M;
       
-      // Snap grid origin to global alignment so panels align across polygons
+      // Each polygon gets its OWN grid origin — no global snapping
+      // This is how real EPC works: each roof section has independent racking
       const gridOriginX = Math.floor(minXRot / panelPitchX) * panelPitchX;
       const gridOriginY = Math.floor(minYRot / panelPitchY) * panelPitchY;
       
@@ -987,13 +987,13 @@ export function RoofVisualization({
             { x: gridX, y: gridY + PANEL_HEIGHT_M }
           ];
           
-          // Convert back to geographic coordinates using GLOBAL centroid
+          // Convert back to geographic coordinates using LOCAL centroid
           const panelCornersGeo = panelCornersRotated.map(corner => {
             const unrotatedX = corner.x * cosPos - corner.y * sinPos;
             const unrotatedY = corner.x * sinPos + corner.y * cosPos;
             return {
-              lat: globalCentroid.lat + unrotatedY / metersPerDegreeLat,
-              lng: globalCentroid.lng + unrotatedX / metersPerDegreeLng
+              lat: localCentroid.lat + unrotatedY / metersPerDegreeLat,
+              lng: localCentroid.lng + unrotatedX / localMetersPerDegreeLng
             };
           });
           
@@ -1129,7 +1129,7 @@ export function RoofVisualization({
           allPanels.push({
             lat: panelCornersGeo[0].lat,
             lng: panelCornersGeo[0].lng,
-            widthDeg: metersToDegreesLng(PANEL_WIDTH_M, globalCentroid.lat),
+            widthDeg: metersToDegreesLng(PANEL_WIDTH_M, localCentroid.lat),
             heightDeg: metersToDegreesLat(PANEL_HEIGHT_M),
             polygonId: id,
             corners: panelCornersGeo,
