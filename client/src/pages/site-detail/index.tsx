@@ -2339,6 +2339,7 @@ export default function SiteDetailPage() {
                 onOpenRoofDrawing={() => setIsRoofDrawingModalOpen(true)}
                 onCompareScenarios={(site.simulationRuns?.length ?? 0) > 1 ? () => setActiveTab("compare") : undefined}
                 onGeometryUpdate={(data) => setGeometryCapacity(data)}
+                onVisualizationCaptureReady={(captureFunc) => { visualizationCaptureRef.current = captureFunc; }}
               />
               {isStaff && latestSimulation && (
                 <Collapsible>
