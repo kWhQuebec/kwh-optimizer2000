@@ -2599,9 +2599,19 @@ export default function SiteDetailPage() {
                 </div>
               </CardHeader>
               <CardContent>
-                {geometryCapacity?.arrays && geometryCapacity.arrays.length > 0 ? (
+                {geometryCapacity && geometryCapacity.maxCapacityKW > 0 ? (
                   <SLDDiagram
-                    arrays={geometryCapacity.arrays}
+                    arrays={geometryCapacity.arrays && geometryCapacity.arrays.length > 0
+                      ? geometryCapacity.arrays
+                      : [{
+                          id: 1,
+                          panelCount: geometryCapacity.panelCount,
+                          rows: Math.ceil(Math.sqrt(geometryCapacity.panelCount)),
+                          columns: Math.ceil(geometryCapacity.panelCount / Math.ceil(Math.sqrt(geometryCapacity.panelCount))),
+                          capacityKW: geometryCapacity.maxCapacityKW,
+                          polygonId: "fallback",
+                        }]
+                    }
                     config={{
                       inverterType: sldInverterType,
                       siteName: site?.name || site?.client?.name || "",
