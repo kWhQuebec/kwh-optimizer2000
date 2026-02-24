@@ -12,6 +12,7 @@
  */
 
 import React, { useMemo, useRef, useCallback } from "react";
+import { KWH_LOGO_DATA_URI } from "./sld-logo-data";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -389,12 +390,9 @@ function SLDCartouche({
 
       {/* ===== A. COMPANY BLOCK ===== */}
       <line x1={rpX} y1={innerTop + companyBlockH} x2={innerRight} y2={innerTop + companyBlockH} stroke={DARK} strokeWidth={0.5} />
-      <text x={rpX + rpW / 2} y={innerTop + 28} textAnchor="middle" fontSize={16} fontWeight={700}
-        fill={BRAND_BLUE} fontFamily={FONT}>kWh Québec</text>
-      <text x={rpX + rpW / 2} y={innerTop + 46} textAnchor="middle" fontSize={8} fill="#64748b" fontFamily={FONT}>
-        Montréal, QC, Canada</text>
-      <text x={rpX + rpW / 2} y={innerTop + 58} textAnchor="middle" fontSize={8} fill="#64748b" fontFamily={FONT}>
-        info@kwhquebec.com</text>
+      <image href={KWH_LOGO_DATA_URI} x={rpX + rpW/2 - 60} y={innerTop + 8} width={120} height={48} preserveAspectRatio="xMidYMid meet" />
+      <text x={rpX + rpW / 2} y={innerTop + 64} textAnchor="middle" fontSize={7.5} fill="#64748b" fontFamily={FONT}>
+        Montréal, QC, Canada — info@kwhquebec.com</text>
 
       {/* ===== B. NOTE BLOCK ===== */}
       {(() => {
@@ -459,19 +457,23 @@ function SLDCartouche({
           { col: 0, row: 1, label: "COURANT ALTERNATIF (AC)", type: "ac" },
           { col: 0, row: 2, label: "MODULE PV", type: "pv" },
           { col: 0, row: 3, label: "ONDULEUR (DC/AC)", type: "inv" },
+          { col: 0, row: 4, label: "TRANSFORMATEUR", type: "transformer" },
           { col: 1, row: 0, label: "COMPTEUR", type: "meter" },
           { col: 1, row: 1, label: "PANNEAU PRINCIPAL", type: "panel" },
           { col: 1, row: 2, label: "MISE À LA TERRE", type: "ground" },
           { col: 1, row: 3, label: "DISJONCTEUR / SECTIONNEUR", type: "breaker" },
+          { col: 1, row: 4, label: "FUSIBLE", type: "fuse" },
         ] : [
           { col: 0, row: 0, label: "DIRECT CURRENT (DC)", type: "dc" },
           { col: 0, row: 1, label: "ALTERNATING CURRENT (AC)", type: "ac" },
           { col: 0, row: 2, label: "PV MODULE", type: "pv" },
           { col: 0, row: 3, label: "INVERTER (DC/AC)", type: "inv" },
+          { col: 0, row: 4, label: "TRANSFORMER", type: "transformer" },
           { col: 1, row: 0, label: "METER", type: "meter" },
           { col: 1, row: 1, label: "MAIN PANEL", type: "panel" },
           { col: 1, row: 2, label: "GROUNDING", type: "ground" },
           { col: 1, row: 3, label: "BREAKER / DISCONNECT", type: "breaker" },
+          { col: 1, row: 4, label: "FUSE", type: "fuse" },
         ];
 
         return (
@@ -488,25 +490,45 @@ function SLDCartouche({
                 <g key={i}>
                   {entry.type === "dc" && (
                     <>
-                      <line x1={ex} y1={ey} x2={ex + 20} y2={ey} stroke="#dc2626" strokeWidth={2} />
-                      <line x1={ex} y1={ey - 2} x2={ex + 20} y2={ey - 2} stroke="#dc2626" strokeWidth={0.5} />
-                      <line x1={ex} y1={ey + 2} x2={ex + 20} y2={ey + 2} stroke="#dc2626" strokeWidth={0.5} />
+                      <line x1={ex} y1={ey-2} x2={ex+20} y2={ey-2} stroke="#dc2626" strokeWidth={1.5} />
+                      <line x1={ex} y1={ey+2} x2={ex+5} y2={ey+2} stroke="#dc2626" strokeWidth={1.5} />
+                      <line x1={ex+8} y1={ey+2} x2={ex+13} y2={ey+2} stroke="#dc2626" strokeWidth={1.5} />
+                      <line x1={ex+16} y1={ey+2} x2={ex+20} y2={ey+2} stroke="#dc2626" strokeWidth={1.5} />
                     </>
                   )}
                   {entry.type === "ac" && (
-                    <line x1={ex} y1={ey} x2={ex + 20} y2={ey} stroke="#2563eb" strokeWidth={1.5} />
+                    <path d={`M${ex},${ey} Q${ex+5},${ey-6} ${ex+10},${ey} Q${ex+15},${ey+6} ${ex+20},${ey}`} fill="none" stroke="#2563eb" strokeWidth={1.5} />
                   )}
                   {entry.type === "pv" && (
-                    <rect x={ex} y={ey - 5} width={20} height={10} rx={2} fill="#fef3c7" stroke="#d97706" strokeWidth={1} />
+                    <g>
+                      <circle cx={ex+10} cy={ey} r={7} fill="none" stroke="#d97706" strokeWidth={1} />
+                      <line x1={ex+7} y1={ey+3} x2={ex+13} y2={ey-3} stroke="#d97706" strokeWidth={1} />
+                      <line x1={ex+13} y1={ey-3} x2={ex+11} y2={ey-1} stroke="#d97706" strokeWidth={1} />
+                      <line x1={ex+2} y1={ey-5} x2={ex+5} y2={ey-3} stroke="#d97706" strokeWidth={0.8} />
+                      <line x1={ex+1} y1={ey-2} x2={ex+4} y2={ey} stroke="#d97706" strokeWidth={0.8} />
+                    </g>
                   )}
                   {entry.type === "inv" && (
-                    <rect x={ex} y={ey - 5} width={20} height={10} rx={2} fill="#dcfce7" stroke="#16a34a" strokeWidth={1} />
+                    <g>
+                      <rect x={ex} y={ey-6} width={20} height={12} fill="none" stroke="#16a34a" strokeWidth={1} />
+                      <polygon points={`${ex+4},${ey+4} ${ex+10},${ey-4} ${ex+16},${ey+4}`} fill="none" stroke="#16a34a" strokeWidth={0.8} />
+                      <text x={ex+3} y={ey+5} fontSize={4} fill="#16a34a" fontFamily={FONT}>~</text>
+                      <text x={ex+14} y={ey-2} fontSize={4} fill="#16a34a" fontFamily={FONT}>=</text>
+                    </g>
                   )}
                   {entry.type === "meter" && (
-                    <circle cx={ex + 10} cy={ey} r={6} fill="#f0fdf4" stroke="#16a34a" strokeWidth={1} />
+                    <g>
+                      <circle cx={ex+10} cy={ey} r={7} fill="none" stroke="#16a34a" strokeWidth={1} />
+                      <text x={ex+10} y={ey+1} textAnchor="middle" dominantBaseline="middle" fontSize={5} fill="#16a34a" fontFamily={FONT} fontWeight={600}>kWh</text>
+                    </g>
                   )}
                   {entry.type === "panel" && (
-                    <rect x={ex} y={ey - 5} width={20} height={10} rx={2} fill="#f1f5f9" stroke="#334155" strokeWidth={1} />
+                    <g>
+                      <rect x={ex} y={ey-6} width={20} height={12} fill="none" stroke="#334155" strokeWidth={1.2} />
+                      <line x1={ex+5} y1={ey-4} x2={ex+5} y2={ey+4} stroke="#334155" strokeWidth={0.8} />
+                      <line x1={ex+10} y1={ey-4} x2={ex+10} y2={ey+4} stroke="#334155" strokeWidth={0.8} />
+                      <line x1={ex+15} y1={ey-4} x2={ex+15} y2={ey+4} stroke="#334155" strokeWidth={0.8} />
+                    </g>
                   )}
                   {entry.type === "ground" && (
                     <>
@@ -517,7 +539,24 @@ function SLDCartouche({
                     </>
                   )}
                   {entry.type === "breaker" && (
-                    <rect x={ex} y={ey - 5} width={20} height={10} rx={2} fill="#fef9c3" stroke="#ca8a04" strokeWidth={1} />
+                    <g>
+                      <circle cx={ex+3} cy={ey} r={2} fill="#ca8a04" stroke="#ca8a04" strokeWidth={0.5} />
+                      <line x1={ex+5} y1={ey} x2={ex+17} y2={ey-6} stroke="#ca8a04" strokeWidth={1.2} />
+                      <circle cx={ex+17} cy={ey} r={2} fill="none" stroke="#ca8a04" strokeWidth={0.5} />
+                    </g>
+                  )}
+                  {entry.type === "transformer" && (
+                    <g>
+                      <circle cx={ex+7} cy={ey} r={5} fill="none" stroke="#475569" strokeWidth={1} />
+                      <circle cx={ex+13} cy={ey} r={5} fill="none" stroke="#475569" strokeWidth={1} />
+                    </g>
+                  )}
+                  {entry.type === "fuse" && (
+                    <g>
+                      <line x1={ex} y1={ey} x2={ex+5} y2={ey} stroke="#475569" strokeWidth={1} />
+                      <rect x={ex+5} y={ey-3} width={10} height={6} fill="none" stroke="#475569" strokeWidth={1} rx={1} />
+                      <line x1={ex+15} y1={ey} x2={ex+20} y2={ey} stroke="#475569" strokeWidth={1} />
+                    </g>
                   )}
                   <text x={ex + 26} y={ey + 1} fontSize={7} fill="#334155" fontFamily={FONT}
                     dominantBaseline="middle">{entry.label}</text>
@@ -569,11 +608,10 @@ function SLDCartouche({
               {fr ? "Émission initiale" : "Initial issue"}</text>
 
             {/* 3. Company + Site info */}
-            <text x={siteX + siteW / 2} y={bY + 22} textAnchor="middle" fontSize={10} fontWeight={700}
-              fill={BRAND_BLUE} fontFamily={FONT}>kWh Québec</text>
-            <text x={siteX + siteW / 2} y={bY + 36} textAnchor="middle" fontSize={7} fill="#64748b" fontFamily={FONT}>
+            <image href={KWH_LOGO_DATA_URI} x={siteX + siteW/2 - 40} y={bY + 6} width={80} height={32} preserveAspectRatio="xMidYMid meet" />
+            <text x={siteX + siteW / 2} y={bY + 44} textAnchor="middle" fontSize={7} fill="#64748b" fontFamily={FONT}>
               {config.siteAddress || config.siteName || ""}</text>
-            <text x={siteX + siteW / 2} y={bY + 48} textAnchor="middle" fontSize={7} fill="#64748b" fontFamily={FONT}>
+            <text x={siteX + siteW / 2} y={bY + 56} textAnchor="middle" fontSize={7} fill="#64748b" fontFamily={FONT}>
               {config.systemCapacityKW ? `${config.systemCapacityKW} kWc` : ""}</text>
 
             {/* 4. Drawing title + number */}
@@ -616,9 +654,14 @@ function StringInverterSLD({
 }) {
   const fr = language === "fr";
 
+  const showAll = inverters.length <= 2;
+  const displayInverters = showAll ? inverters : [inverters[0], inverters[inverters.length - 1]];
+  const hiddenCount = showAll ? 0 : inverters.length - 2;
+
   const maxStringsPerInv = Math.max(...inverters.map(inv => inv.strings.length), 1);
-  const totalInverters = inverters.length;
   const invBlockH = Math.max(INV_BOX_H + 10, maxStringsPerInv * (STRING_BOX_H + 8) + 20);
+  const gapBlockH = hiddenCount > 0 ? 50 : 0;
+  const displayCount = displayInverters.length;
 
   const colPV = SVG_MARGIN + 10;
   const colCombiner = colPV + STRING_BOX_W + COL_GAP + 20;
@@ -631,7 +674,7 @@ function StringInverterSLD({
 
   const rightPanelW = CARTOUCHE_RIGHT_PANEL_W;
   const totalW = diagramW + rightPanelW + 20;
-  const diagramContentH = totalInverters * invBlockH + SVG_MARGIN * 2 + 50;
+  const diagramContentH = displayCount * invBlockH + gapBlockH + SVG_MARGIN * 2 + 50;
   const minH = 500;
   const bottomStripH = CARTOUCHE_BOTTOM_H;
   const totalH = Math.max(diagramContentH, minH) + bottomStripH + 20;
@@ -644,6 +687,14 @@ function StringInverterSLD({
   const serviceA = config.serviceAmperage || 400;
   const mainBreakerA = config.mainBreakerA || 200;
 
+  const getBlockY = (dispIdx: number) => {
+    if (dispIdx === 0) return startY;
+    if (hiddenCount > 0) return startY + invBlockH + gapBlockH;
+    return startY + dispIdx * invBlockH;
+  };
+
+  const gapY = startY + invBlockH;
+
   return (
     <svg
       viewBox={`0 0 ${totalW} ${totalH}`}
@@ -651,22 +702,27 @@ function StringInverterSLD({
       style={{ maxWidth: totalW, background: "white" }}
       xmlns="http://www.w3.org/2000/svg"
     >
-      {/* Column headers */}
       <SLDLabel x={colPV + STRING_BOX_W / 2} y={startY - 12} text={fr ? "STRINGS PV" : "PV STRINGS"} fontSize={8} color="#475569" />
       <SLDLabel x={colCombiner + COMBINER_W / 2} y={startY - 12} text={fr ? "BOÎTE COMB." : "COMBINER"} fontSize={8} color="#475569" />
       <SLDLabel x={colInverter + INV_BOX_W / 2} y={startY - 12} text={fr ? "ONDULEUR" : "INVERTER"} fontSize={8} color="#475569" />
       <SLDLabel x={colACDisconnect + ELEMENT_W / 2} y={startY - 12} text={fr ? "SECTIONNEUR AC" : "AC DISCONNECT"} fontSize={8} color="#475569" />
 
-      {/* For each inverter, draw its block */}
-      {inverters.map((inv, invIdx) => {
-        const blockY = startY + invIdx * invBlockH;
+      {displayInverters.map((inv, dispIdx) => {
+        const blockY = getBlockY(dispIdx);
         const invCenterY = blockY + invBlockH / 2;
+
+        const showAllStrings = inv.strings.length <= 4;
+        const displayStrings = showAllStrings ? inv.strings : [inv.strings[0], inv.strings[1], inv.strings[inv.strings.length - 1]];
+        const hiddenStrings = showAllStrings ? 0 : inv.strings.length - 3;
 
         return (
           <g key={inv.inverterId}>
-            {/* Strings */}
-            {inv.strings.map((str, sIdx) => {
-              const strY = blockY + 10 + sIdx * (STRING_BOX_H + 8);
+            {displayStrings.map((str, sIdx) => {
+              let visualIdx = sIdx;
+              if (!showAllStrings && sIdx === 2) {
+                visualIdx = inv.strings.length - 1;
+              }
+              const strY = blockY + 10 + visualIdx * (STRING_BOX_H + 8);
               const strCenterY = strY + STRING_BOX_H / 2;
 
               return (
@@ -677,13 +733,11 @@ function StringInverterSLD({
                     sublabel={`${str.vocString}V / ${str.iscString}A`}
                     fill="#fef3c7" stroke="#d97706"
                   />
-                  {/* Wire from string to combiner */}
                   <SLDLine
                     x1={colPV + STRING_BOX_W} y1={strCenterY}
                     x2={colCombiner} y2={strCenterY}
                     color="#dc2626"
                   />
-                  {/* DC label on first string wire */}
                   {sIdx === 0 && (
                     <WireLabel
                       x1={colPV + STRING_BOX_W} y1={strCenterY}
@@ -695,7 +749,17 @@ function StringInverterSLD({
               );
             })}
 
-            {/* Combiner box */}
+            {hiddenStrings > 0 && (
+              <g>
+                <text x={colPV + STRING_BOX_W / 2} y={blockY + 10 + 2 * (STRING_BOX_H + 8) + 12} textAnchor="middle" fontSize={12} fill="#94a3b8" fontFamily={FONT}>
+                  {"⋮"}
+                </text>
+                <text x={colPV + STRING_BOX_W / 2} y={blockY + 10 + 2 * (STRING_BOX_H + 8) + 26} textAnchor="middle" fontSize={7} fill="#64748b" fontFamily={FONT}>
+                  {fr ? `× ${inv.strings.length} chaînes` : `× ${inv.strings.length} strings`}
+                </text>
+              </g>
+            )}
+
             <SLDBox
               x={colCombiner} y={invCenterY - COMBINER_H / 2} w={COMBINER_W} h={COMBINER_H}
               label={fr ? `Comb. #${inv.inverterId}` : `Comb. #${inv.inverterId}`}
@@ -703,7 +767,6 @@ function StringInverterSLD({
               fill="#e0f2fe" stroke="#0284c7"
             />
 
-            {/* Wire combiner → inverter */}
             <SLDLine
               x1={colCombiner + COMBINER_W} y1={invCenterY}
               x2={colInverter} y2={invCenterY}
@@ -715,7 +778,6 @@ function StringInverterSLD({
               label={`DC ${Math.round(inv.totalCapacityKW * 1000 / (serviceV || 600))}A`}
             />
 
-            {/* Inverter */}
             <SLDBox
               x={colInverter} y={invCenterY - INV_BOX_H / 2} w={INV_BOX_W} h={INV_BOX_H}
               label={`INV-${inv.inverterId}`}
@@ -724,7 +786,6 @@ function StringInverterSLD({
               bold
             />
 
-            {/* Wire inverter → AC disconnect */}
             <SLDLine
               x1={colInverter + INV_BOX_W} y1={invCenterY}
               x2={colACDisconnect} y2={invCenterY}
@@ -736,7 +797,6 @@ function StringInverterSLD({
               label="AC"
             />
 
-            {/* AC Disconnect */}
             <SLDBox
               x={colACDisconnect} y={invCenterY - ELEMENT_H / 2} w={ELEMENT_W} h={ELEMENT_H}
               label={fr ? `Sectionneur #${inv.inverterId}` : `Disconnect #${inv.inverterId}`}
@@ -744,39 +804,44 @@ function StringInverterSLD({
               fill="#fef9c3" stroke="#ca8a04"
             />
 
-            {/* Connect combiner to all strings vertically */}
             {inv.strings.length > 1 && (
-              <>
-                <SLDLine
-                  x1={colCombiner} y1={blockY + 10 + STRING_BOX_H / 2}
-                  x2={colCombiner} y2={blockY + 10 + (inv.strings.length - 1) * (STRING_BOX_H + 8) + STRING_BOX_H / 2}
-                  color="#0284c7"
-                />
-              </>
+              <SLDLine
+                x1={colCombiner} y1={blockY + 10 + STRING_BOX_H / 2}
+                x2={colCombiner} y2={blockY + 10 + ((showAllStrings ? inv.strings.length : inv.strings.length) - 1) * (STRING_BOX_H + 8) + STRING_BOX_H / 2}
+                color="#0284c7"
+              />
             )}
           </g>
         );
       })}
 
-      {/* Common AC bus section (right side) */}
+      {hiddenCount > 0 && (
+        <g>
+          <text x={colInverter + INV_BOX_W / 2} y={gapY + 15} textAnchor="middle" fontSize={16} fill="#94a3b8" fontFamily={FONT}>{"⋮"}</text>
+          <text x={colInverter + INV_BOX_W / 2} y={gapY + 32} textAnchor="middle" fontSize={9} fill="#64748b" fontFamily={FONT}>
+            {fr ? `× ${inverters.length} onduleurs identiques` : `× ${inverters.length} identical inverters`}
+          </text>
+          <line x1={colPV} y1={gapY + 2} x2={colACDisconnect + ELEMENT_W} y2={gapY + 2} stroke="#e2e8f0" strokeWidth={0.5} strokeDasharray="4 3" />
+          <line x1={colPV} y1={gapY + gapBlockH - 2} x2={colACDisconnect + ELEMENT_W} y2={gapY + gapBlockH - 2} stroke="#e2e8f0" strokeWidth={0.5} strokeDasharray="4 3" />
+        </g>
+      )}
+
       {(() => {
         const busX = colACDisconnect + ELEMENT_W + 20;
-        const busTopY = startY + invBlockH / 2;
-        const busBottomY = startY + (totalInverters - 1) * invBlockH + invBlockH / 2;
+        const busTopY = getBlockY(0) + invBlockH / 2;
+        const busBottomY = getBlockY(displayCount - 1) + invBlockH / 2;
         const busMidY = (busTopY + busBottomY) / 2;
 
         return (
           <g>
-            {/* Vertical AC bus */}
-            {totalInverters > 1 && (
+            {displayCount > 1 && (
               <SLDLine x1={busX} y1={busTopY} x2={busX} y2={busBottomY} color="#2563eb" />
             )}
 
-            {/* Connect each disconnect to bus */}
-            {inverters.map((inv, invIdx) => {
-              const cy = startY + invIdx * invBlockH + invBlockH / 2;
+            {displayInverters.map((_inv, dispIdx) => {
+              const cy = getBlockY(dispIdx) + invBlockH / 2;
               return (
-                <SLDLine key={inv.inverterId}
+                <SLDLine key={_inv.inverterId}
                   x1={colACDisconnect + ELEMENT_W} y1={cy}
                   x2={busX} y2={cy}
                   color="#2563eb"
@@ -784,26 +849,28 @@ function StringInverterSLD({
               );
             })}
 
-            {/* Bus → Meter */}
+            {hiddenCount > 0 && (
+              <g>
+                <line x1={busX} y1={gapY + 5} x2={busX} y2={gapY + gapBlockH - 5} stroke="#2563eb" strokeWidth={1.5} strokeDasharray="4 3" />
+              </g>
+            )}
+
             <SLDLine x1={busX} y1={busMidY} x2={colMeter} y2={busMidY} color="#2563eb" />
             <WireLabel x1={busX} y1={busMidY} x2={colMeter} y2={busMidY}
               label={`${serviceV}V`} />
 
-            {/* Production Meter */}
             <SLDCircle
               cx={colMeter + METER_R} cy={busMidY} r={METER_R}
               label="kWh" sublabel={fr ? "Prod." : "Prod."}
               fill="#f0fdf4" stroke="#16a34a"
             />
 
-            {/* Meter → Main Panel */}
             <SLDLine
               x1={colMeter + METER_R * 2} y1={busMidY}
               x2={colMainPanel} y2={busMidY}
               color="#2563eb"
             />
 
-            {/* Main Electrical Panel */}
             <SLDBox
               x={colMainPanel} y={busMidY - ELEMENT_H / 2} w={ELEMENT_W} h={ELEMENT_H}
               label={fr ? "Panneau principal" : "Main Panel"}
@@ -812,7 +879,6 @@ function StringInverterSLD({
               bold
             />
 
-            {/* Main Panel → Grid */}
             <SLDLine
               x1={colMainPanel + ELEMENT_W} y1={busMidY}
               x2={colGrid} y2={busMidY}
@@ -824,7 +890,6 @@ function StringInverterSLD({
               label={fr ? "Réseau HQ" : "Grid"}
             />
 
-            {/* Grid symbol */}
             <SLDBox
               x={colGrid} y={busMidY - ELEMENT_H / 2} w={ELEMENT_W} h={ELEMENT_H}
               label={fr ? "RÉSEAU" : "GRID"}
@@ -833,7 +898,6 @@ function StringInverterSLD({
               bold
             />
 
-            {/* Ground symbol at main panel */}
             <SLDLine x1={colMainPanel + ELEMENT_W / 2} y1={busMidY + ELEMENT_H / 2}
               x2={colMainPanel + ELEMENT_W / 2} y2={busMidY + ELEMENT_H / 2 + 15} color="#475569" />
             <SLDLine x1={colMainPanel + ELEMENT_W / 2 - 10} y1={busMidY + ELEMENT_H / 2 + 15}
@@ -848,7 +912,6 @@ function StringInverterSLD({
         );
       })()}
 
-      {/* Cartouche */}
       <SLDCartouche
         rightPanelX={rightPanelX}
         rightPanelWidth={rightPanelW}
@@ -883,8 +946,13 @@ function MicroInverterSLD({
   const fr = language === "fr";
 
   const blockH = 70;
-  const totalGroups = groups.length;
   const startY = 30;
+
+  const showAll = groups.length <= 2;
+  const displayGroups = showAll ? groups : [groups[0], groups[groups.length - 1]];
+  const hiddenGroupCount = showAll ? 0 : groups.length - 2;
+  const gapBlockH = hiddenGroupCount > 0 ? 50 : 0;
+  const displayCount = displayGroups.length;
 
   const colPV = SVG_MARGIN + 10;
   const colMicro = colPV + ARRAY_BOX_W + COL_GAP;
@@ -896,18 +964,25 @@ function MicroInverterSLD({
 
   const rightPanelW = CARTOUCHE_RIGHT_PANEL_W;
   const totalW = diagramW + rightPanelW + 20;
-  const diagramContentH = startY + totalGroups * blockH + 50;
+  const diagramContentH = startY + displayCount * blockH + gapBlockH + 50;
   const minH = 500;
   const bottomStripH = CARTOUCHE_BOTTOM_H;
   const totalH = Math.max(diagramContentH, minH) + bottomStripH + 20;
   const bottomStripY = totalH - bottomStripH - 10;
   const rightPanelX = diagramW + 10;
 
-  const microName = config.microInverterModelName || DEFAULT_MICRO_INV_NAME;
   const microW = config.microInverterPowerW || DEFAULT_MICRO_INV_W;
   const serviceV = config.serviceVoltage || 240;
   const serviceA = config.serviceAmperage || 200;
   const mainBreakerA = config.mainBreakerA || 200;
+
+  const getGroupY = (dispIdx: number) => {
+    if (dispIdx === 0) return startY;
+    if (hiddenGroupCount > 0) return startY + blockH + gapBlockH;
+    return startY + dispIdx * blockH;
+  };
+
+  const gapY = startY + blockH;
 
   return (
     <svg
@@ -916,17 +991,16 @@ function MicroInverterSLD({
       style={{ maxWidth: totalW, background: "white" }}
       xmlns="http://www.w3.org/2000/svg"
     >
-      {/* Column headers */}
       <SLDLabel x={colPV + ARRAY_BOX_W / 2} y={startY - 12} text={fr ? "ARRAY PV" : "PV ARRAY"} fontSize={8} color="#475569" />
       <SLDLabel x={colMicro + INV_BOX_W / 2} y={startY - 12} text={fr ? "MICRO-ONDULEURS" : "MICROINVERTERS"} fontSize={8} color="#475569" />
       <SLDLabel x={colBranch + ELEMENT_W / 2} y={startY - 12} text={fr ? "CIRCUIT BRANCHE" : "BRANCH CIRCUIT"} fontSize={8} color="#475569" />
 
-      {groups.map((grp, gIdx) => {
-        const cy = startY + gIdx * blockH + blockH / 2;
+      {displayGroups.map((grp, dispIdx) => {
+        const baseY = getGroupY(dispIdx);
+        const cy = baseY + blockH / 2;
 
         return (
           <g key={grp.arrayId}>
-            {/* PV Array */}
             <SLDBox
               x={colPV} y={cy - ARRAY_BOX_H / 2} w={ARRAY_BOX_W} h={ARRAY_BOX_H}
               label={`Array #${grp.arrayId}`}
@@ -934,11 +1008,9 @@ function MicroInverterSLD({
               fill="#fef3c7" stroke="#d97706"
             />
 
-            {/* DC wire */}
             <SLDLine x1={colPV + ARRAY_BOX_W} y1={cy} x2={colMicro} y2={cy} color="#dc2626" />
             <WireLabel x1={colPV + ARRAY_BOX_W} y1={cy} x2={colMicro} y2={cy} label="DC 1:1" />
 
-            {/* Micro-inverter block */}
             <SLDBox
               x={colMicro} y={cy - INV_BOX_H / 2} w={INV_BOX_W} h={INV_BOX_H}
               label={`${grp.panelCount}× μINV`}
@@ -947,11 +1019,9 @@ function MicroInverterSLD({
               bold
             />
 
-            {/* AC wire */}
             <SLDLine x1={colMicro + INV_BOX_W} y1={cy} x2={colBranch} y2={cy} color="#2563eb" />
             <WireLabel x1={colMicro + INV_BOX_W} y1={cy} x2={colBranch} y2={cy} label="AC Bus" />
 
-            {/* Branch circuit breaker */}
             <SLDBox
               x={colBranch} y={cy - ELEMENT_H / 2} w={ELEMENT_W} h={ELEMENT_H}
               label={fr ? `Disj. #${grp.arrayId}` : `Brkr #${grp.arrayId}`}
@@ -962,27 +1032,41 @@ function MicroInverterSLD({
         );
       })}
 
-      {/* Common section */}
+      {hiddenGroupCount > 0 && (
+        <g>
+          <text x={colMicro + INV_BOX_W / 2} y={gapY + 15} textAnchor="middle" fontSize={16} fill="#94a3b8" fontFamily={FONT}>{"⋮"}</text>
+          <text x={colMicro + INV_BOX_W / 2} y={gapY + 32} textAnchor="middle" fontSize={9} fill="#64748b" fontFamily={FONT}>
+            {fr ? `× ${groups.length} groupes identiques` : `× ${groups.length} identical groups`}
+          </text>
+          <line x1={colPV} y1={gapY + 2} x2={colBranch + ELEMENT_W} y2={gapY + 2} stroke="#e2e8f0" strokeWidth={0.5} strokeDasharray="4 3" />
+          <line x1={colPV} y1={gapY + gapBlockH - 2} x2={colBranch + ELEMENT_W} y2={gapY + gapBlockH - 2} stroke="#e2e8f0" strokeWidth={0.5} strokeDasharray="4 3" />
+        </g>
+      )}
+
       {(() => {
         const busX = colBranch + ELEMENT_W + 20;
-        const busTopY = startY + blockH / 2;
-        const busBottomY = startY + (totalGroups - 1) * blockH + blockH / 2;
+        const busTopY = getGroupY(0) + blockH / 2;
+        const busBottomY = getGroupY(displayCount - 1) + blockH / 2;
         const busMidY = (busTopY + busBottomY) / 2;
 
         return (
           <g>
-            {totalGroups > 1 && (
+            {displayCount > 1 && (
               <SLDLine x1={busX} y1={busTopY} x2={busX} y2={busBottomY} color="#2563eb" />
             )}
 
-            {groups.map((grp, gIdx) => {
-              const cy = startY + gIdx * blockH + blockH / 2;
+            {displayGroups.map((grp, dispIdx) => {
+              const cy = getGroupY(dispIdx) + blockH / 2;
               return (
                 <SLDLine key={grp.arrayId}
                   x1={colBranch + ELEMENT_W} y1={cy} x2={busX} y2={cy} color="#2563eb"
                 />
               );
             })}
+
+            {hiddenGroupCount > 0 && (
+              <line x1={busX} y1={gapY + 5} x2={busX} y2={gapY + gapBlockH - 5} stroke="#2563eb" strokeWidth={1.5} strokeDasharray="4 3" />
+            )}
 
             <SLDLine x1={busX} y1={busMidY} x2={colMeter} y2={busMidY} color="#2563eb" />
 
@@ -1012,7 +1096,6 @@ function MicroInverterSLD({
               bold
             />
 
-            {/* Ground */}
             <SLDLine x1={colMainPanel + ELEMENT_W / 2} y1={busMidY + ELEMENT_H / 2}
               x2={colMainPanel + ELEMENT_W / 2} y2={busMidY + ELEMENT_H / 2 + 15} color="#475569" />
             <SLDLine x1={colMainPanel + ELEMENT_W / 2 - 10} y1={busMidY + ELEMENT_H / 2 + 15}
