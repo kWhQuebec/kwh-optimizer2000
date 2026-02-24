@@ -1,22 +1,18 @@
 /**
- * SLD (Single Line Diagram) — Schéma unifilaire interactif
+ * SLD (Single Line Diagram) — Schéma unifilaire professionnel
  *
- * Génère automatiquement un SLD basé sur les arrays modulaires du système PV.
- * Supporte string inverters et micro-inverters.
+ * Vertical top-to-bottom layout matching IEC/IEEE engineering drawing standards.
+ * Flow: Grid → Meter → Transformer → AC Combiner → Inverters → DC Combiner → PV Strings
  *
  * Conventions:
  * - Jinko 660W panels, Voc = 49.85V, Isc = 17.28A
  * - String inverters: max 1000V DC (CSA), ~13 panels/string max
  * - Micro-inverters: 1 per panel, AC bus daisy-chain
- * - IFC/CSA compliant labeling
+ * - IEC/CSA compliant labeling, monochrome engineering style
  */
 
 import React, { useMemo, useRef, useCallback } from "react";
 import { KWH_LOGO_DATA_URI } from "./sld-logo-data";
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// TYPES
-// ═══════════════════════════════════════════════════════════════════════════════
 
 export interface SLDArrayInfo {
   id: number;
@@ -29,17 +25,13 @@ export interface SLDArrayInfo {
 
 export interface SLDElectricalConfig {
   inverterType: "string" | "micro";
-  // String inverter config
   stringInverterModelName?: string;
   stringInverterPowerKW?: number;
-  // Micro inverter config
   microInverterModelName?: string;
   microInverterPowerW?: number;
-  // Electrical service
-  serviceVoltage?: number; // 120/240, 347/600, etc.
+  serviceVoltage?: number;
   serviceAmperage?: number;
   mainBreakerA?: number;
-  // Site info
   siteName?: string;
   siteAddress?: string;
   systemCapacityKW?: number;
@@ -53,7 +45,7 @@ interface SLDInverterAssignment {
   strings: {
     stringId: number;
     panelsInString: number;
-    vocString: number; // Voc × panels
+    vocString: number;
     iscString: number;
     arrayId: number;
   }[];
@@ -76,78 +68,41 @@ export interface SLDDiagramProps {
   height?: number;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// CONSTANTS — Jinko 660W JKM660N-78HL4-BDV
-// ═══════════════════════════════════════════════════════════════════════════════
-
 const PANEL_WATT = 660;
-const PANEL_VOC = 49.85; // V — Open circuit voltage at STC
-const PANEL_ISC = 17.28; // A — Short circuit current at STC
-const PANEL_VMP = 41.69; // V — Max power voltage
-const PANEL_IMP = 15.84; // A — Max power current
-
-// String sizing — CSA/NEC: max system voltage 1000V DC
+const PANEL_VOC = 49.85;
+const PANEL_ISC = 17.28;
 const MAX_SYSTEM_VOLTAGE_DC = 1000;
-// Temperature correction factor for cold climate (Quebec, -30°C)
-// Voc increases ~0.3%/°C below 25°C → factor ≈ 1.165 for -30°C
 const TEMP_CORRECTION_VOC = 1.165;
-const MAX_PANELS_PER_STRING = Math.floor(MAX_SYSTEM_VOLTAGE_DC / (PANEL_VOC * TEMP_CORRECTION_VOC)); // ~17
+const MAX_PANELS_PER_STRING = Math.floor(MAX_SYSTEM_VOLTAGE_DC / (PANEL_VOC * TEMP_CORRECTION_VOC));
 
-// Default string inverter specs (generic 50kW commercial)
 const DEFAULT_STRING_INV_KW = 50;
 const DEFAULT_STRING_INV_NAME = "Onduleur string 50 kW";
 const DEFAULT_STRING_INV_MAX_STRINGS = 10;
-const DEFAULT_STRING_INV_MPPT = 4;
 
-// Default micro inverter specs
 const DEFAULT_MICRO_INV_W = 800;
 const DEFAULT_MICRO_INV_NAME = "Micro-onduleur 800W";
-const DEFAULT_MICRO_INV_MAX_PER_BRANCH = 16; // Max micros per AC branch circuit
+const DEFAULT_MICRO_INV_MAX_PER_BRANCH = 16;
 
-// SVG layout constants
-const SVG_MARGIN = 30;
-const ELEMENT_H = 40;
-const ELEMENT_W = 120;
-const STRING_BOX_W = 90;
-const STRING_BOX_H = 32;
-const ARRAY_BOX_W = 100;
-const ARRAY_BOX_H = 36;
-const INV_BOX_W = 110;
-const INV_BOX_H = 44;
-const COMBINER_W = 80;
-const COMBINER_H = 36;
-const METER_R = 22;
-const PANEL_BOX_W = 70;
-const PANEL_BOX_H = 50;
-const ROW_GAP = 60;
-const COL_GAP = 40;
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// ELECTRICAL CALCULATIONS
-// ═══════════════════════════════════════════════════════════════════════════════
+const FONT = "Inter, system-ui, sans-serif";
+const STROKE = "#1e293b";
+const STROKE_LIGHT = "#475569";
+const STROKE_FAINT = "#94a3b8";
 
 function calculateStringInverterLayout(
   arrays: SLDArrayInfo[],
   invPowerKW: number = DEFAULT_STRING_INV_KW,
   invName: string = DEFAULT_STRING_INV_NAME
 ): SLDInverterAssignment[] {
-  const totalPanels = arrays.reduce((sum, a) => sum + a.panelCount, 0);
-  const totalCapacityKW = totalPanels * PANEL_WATT / 1000;
-
-  // Optimal panels per string: maximize without exceeding voltage
-  const panelsPerString = Math.min(MAX_PANELS_PER_STRING, 13); // Conservative: 13 panels × 49.85V × 1.165 = 755V
-
-  // Build all strings from all arrays
+  const panelsPerString = Math.min(MAX_PANELS_PER_STRING, 13);
   const allStrings: { panelsInString: number; arrayId: number }[] = [];
 
   for (const arr of arrays) {
     let remaining = arr.panelCount;
     while (remaining > 0) {
       const n = Math.min(remaining, panelsPerString);
-      if (n >= Math.ceil(panelsPerString * 0.6)) { // Min 60% of target string length
+      if (n >= Math.ceil(panelsPerString * 0.6)) {
         allStrings.push({ panelsInString: n, arrayId: arr.id });
       } else if (allStrings.length > 0 && allStrings[allStrings.length - 1].arrayId === arr.id) {
-        // Add remainder to last string of same array if possible
         allStrings[allStrings.length - 1].panelsInString += n;
       } else {
         allStrings.push({ panelsInString: n, arrayId: arr.id });
@@ -156,7 +111,6 @@ function calculateStringInverterLayout(
     }
   }
 
-  // Assign strings to inverters
   const maxStringsPerInv = DEFAULT_STRING_INV_MAX_STRINGS;
   const inverters: SLDInverterAssignment[] = [];
   let strIdx = 0;
@@ -169,7 +123,6 @@ function calculateStringInverterLayout(
 
     while (strIdx < allStrings.length && stringInInv < maxStringsPerInv) {
       const s = allStrings[strIdx];
-      // Check if adding this string exceeds inverter DC capacity (typically 1.3× AC rating)
       const newCapKW = (invPanels + s.panelsInString) * PANEL_WATT / 1000;
       if (invStrings.length > 0 && newCapKW > invPowerKW * 1.3) break;
 
@@ -211,617 +164,284 @@ function calculateMicroInverterLayout(
     acBranchCircuitA: Math.round(
       Math.ceil(arr.panelCount / DEFAULT_MICRO_INV_MAX_PER_BRANCH) *
       (microPowerW / 240) * 1.25 * 10
-    ) / 10, // 125% continuous load factor
+    ) / 10,
   }));
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// SVG DRAWING HELPERS
+// IEC SYMBOL COMPONENTS — Monochrome engineering style
 // ═══════════════════════════════════════════════════════════════════════════════
 
-function SLDBox({ x, y, w, h, label, sublabel, fill = "#f8fafc", stroke = "#334155", fontSize = 10, bold = false }: {
-  x: number; y: number; w: number; h: number; label: string; sublabel?: string;
-  fill?: string; stroke?: string; fontSize?: number; bold?: boolean;
-}) {
+function IECMeterV({ cx, cy, r = 16 }: { cx: number; cy: number; r?: number }) {
   return (
     <g>
-      <rect x={x} y={y} width={w} height={h} rx={4} fill={fill} stroke={stroke} strokeWidth={1.5} />
-      <text x={x + w / 2} y={y + (sublabel ? h / 2 - 5 : h / 2 + 1)} textAnchor="middle" dominantBaseline="middle"
-        fontSize={fontSize} fontWeight={bold ? 700 : 500} fill="#1e293b" fontFamily="Inter, system-ui, sans-serif">
-        {label}
-      </text>
-      {sublabel && (
-        <text x={x + w / 2} y={y + h / 2 + 8} textAnchor="middle" dominantBaseline="middle"
-          fontSize={8} fill="#64748b" fontFamily="Inter, system-ui, sans-serif">
-          {sublabel}
-        </text>
-      )}
+      <circle cx={cx} cy={cy} r={r} fill="white" stroke={STROKE} strokeWidth={1.5} />
+      <text x={cx} y={cy + 1} textAnchor="middle" dominantBaseline="middle"
+        fontSize={r * 0.7} fontWeight={700} fill={STROKE} fontFamily={FONT}>M</text>
     </g>
   );
 }
 
-function SLDCircle({ cx, cy, r, label, sublabel, fill = "#f8fafc", stroke = "#334155" }: {
-  cx: number; cy: number; r: number; label: string; sublabel?: string;
-  fill?: string; stroke?: string;
-}) {
+function IECTransformerV({ cx, cy, size = 50 }: { cx: number; cy: number; size?: number }) {
+  const coilW = size * 0.6;
+  const coilH = size * 0.3;
+  const gap = 4;
   return (
     <g>
-      <circle cx={cx} cy={cy} r={r} fill={fill} stroke={stroke} strokeWidth={1.5} />
-      <text x={cx} y={cy - (sublabel ? 4 : 0)} textAnchor="middle" dominantBaseline="middle"
-        fontSize={10} fontWeight={600} fill="#1e293b" fontFamily="Inter, system-ui, sans-serif">
-        {label}
-      </text>
-      {sublabel && (
-        <text x={cx} y={cy + 10} textAnchor="middle" dominantBaseline="middle"
-          fontSize={7} fill="#64748b" fontFamily="Inter, system-ui, sans-serif">
-          {sublabel}
-        </text>
-      )}
+      <line x1={cx} y1={cy - size/2} x2={cx} y2={cy - gap - coilH/2} stroke={STROKE} strokeWidth={1.5} />
+      {/* Primary winding (top) */}
+      <path d={`M${cx - coilW/2},${cy - gap - coilH/2} Q${cx - coilW/4},${cy - gap - coilH} ${cx},${cy - gap - coilH/2} Q${cx + coilW/4},${cy - gap} ${cx + coilW/2},${cy - gap - coilH/2}`}
+        fill="none" stroke={STROKE} strokeWidth={1.5} />
+      <path d={`M${cx - coilW/2},${cy - gap - coilH/2 + coilH*0.35} Q${cx - coilW/4},${cy - gap - coilH + coilH*0.35} ${cx},${cy - gap - coilH/2 + coilH*0.35} Q${cx + coilW/4},${cy - gap + coilH*0.35} ${cx + coilW/2},${cy - gap - coilH/2 + coilH*0.35}`}
+        fill="none" stroke={STROKE} strokeWidth={1.5} />
+      {/* Secondary winding (bottom) */}
+      <path d={`M${cx - coilW/2},${cy + gap + coilH/2} Q${cx - coilW/4},${cy + gap} ${cx},${cy + gap + coilH/2} Q${cx + coilW/4},${cy + gap + coilH} ${cx + coilW/2},${cy + gap + coilH/2}`}
+        fill="none" stroke={STROKE} strokeWidth={1.5} />
+      <path d={`M${cx - coilW/2},${cy + gap + coilH/2 - coilH*0.35} Q${cx - coilW/4},${cy + gap - coilH*0.35} ${cx},${cy + gap + coilH/2 - coilH*0.35} Q${cx + coilW/4},${cy + gap + coilH - coilH*0.35} ${cx + coilW/2},${cy + gap + coilH/2 - coilH*0.35}`}
+        fill="none" stroke={STROKE} strokeWidth={1.5} />
+      <line x1={cx} y1={cy + gap + coilH/2} x2={cx} y2={cy + size/2} stroke={STROKE} strokeWidth={1.5} />
     </g>
   );
 }
 
-function SLDLine({ x1, y1, x2, y2, dashed = false, color = "#475569" }: {
-  x1: number; y1: number; x2: number; y2: number; dashed?: boolean; color?: string;
-}) {
-  return (
-    <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={color} strokeWidth={1.5}
-      strokeDasharray={dashed ? "4 3" : undefined} />
-  );
-}
-
-function SLDLabel({ x, y, text, fontSize = 8, color = "#64748b", anchor = "middle" as const }: {
-  x: number; y: number; text: string; fontSize?: number; color?: string; anchor?: "start" | "middle" | "end";
-}) {
-  return (
-    <text x={x} y={y} textAnchor={anchor} dominantBaseline="middle"
-      fontSize={fontSize} fill={color} fontFamily="Inter, system-ui, sans-serif">
-      {text}
-    </text>
-  );
-}
-
-// Wire label annotation
-function WireLabel({ x1, y1, x2, y2, label }: {
-  x1: number; y1: number; x2: number; y2: number; label: string;
-}) {
-  const mx = (x1 + x2) / 2;
-  const my = (y1 + y2) / 2;
-  return (
-    <text x={mx} y={my - 6} textAnchor="middle" dominantBaseline="middle"
-      fontSize={7} fill="#94a3b8" fontFamily="Inter, system-ui, sans-serif" fontStyle="italic">
-      {label}
-    </text>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// IEC/IEEE ELECTRICAL SYMBOL COMPONENTS
-// ═══════════════════════════════════════════════════════════════════════════════
-
-function IECInverter({ cx, cy, size = 40, label, sublabel }: {
-  cx: number; cy: number; size?: number; label?: string; sublabel?: string;
-}) {
-  const s = size;
-  const hs = s / 2;
+function IECBreakerV({ cx, y1, length = 24 }: { cx: number; y1: number; length?: number }) {
+  const dotR = 2.5;
   return (
     <g>
-      <rect x={cx - hs} y={cy - hs} width={s} height={s} fill="white" stroke="#16a34a" strokeWidth={1.8} rx={2} />
-      <polygon points={`${cx - hs*0.5},${cy + hs*0.45} ${cx},${cy - hs*0.45} ${cx + hs*0.5},${cy + hs*0.45}`} fill="none" stroke="#16a34a" strokeWidth={1.2} />
-      <text x={cx - hs*0.35} y={cy + hs*0.7} fontSize={s*0.2} fill="#16a34a" fontFamily="Inter, system-ui, sans-serif">~</text>
-      <text x={cx + hs*0.2} y={cy - hs*0.3} fontSize={s*0.18} fill="#16a34a" fontFamily="Inter, system-ui, sans-serif">=</text>
-      {label && <text x={cx} y={cy + hs + 12} textAnchor="middle" fontSize={8} fontWeight={600} fill="#1e293b" fontFamily="Inter, system-ui, sans-serif">{label}</text>}
-      {sublabel && <text x={cx} y={cy + hs + 22} textAnchor="middle" fontSize={7} fill="#64748b" fontFamily="Inter, system-ui, sans-serif">{sublabel}</text>}
+      <circle cx={cx} cy={y1 + dotR} r={dotR} fill={STROKE} />
+      <line x1={cx} y1={y1 + dotR * 2} x2={cx + 8} y2={y1 + length - dotR * 2} stroke={STROKE} strokeWidth={1.8} />
+      <circle cx={cx} cy={y1 + length - dotR} r={dotR} fill="none" stroke={STROKE} strokeWidth={1.2} />
     </g>
   );
 }
 
-function IECMeter({ cx, cy, r = 20, label, sublabel }: {
-  cx: number; cy: number; r?: number; label?: string; sublabel?: string;
-}) {
+function IECGroundV({ cx, topY }: { cx: number; topY: number }) {
   return (
     <g>
-      <circle cx={cx} cy={cy} r={r} fill="white" stroke="#16a34a" strokeWidth={1.8} />
-      <text x={cx} y={cy + 1} textAnchor="middle" dominantBaseline="middle" fontSize={r * 0.55} fontWeight={700} fill="#16a34a" fontFamily="Inter, system-ui, sans-serif">kWh</text>
-      {label && <text x={cx} y={cy + r + 12} textAnchor="middle" fontSize={8} fontWeight={600} fill="#1e293b" fontFamily="Inter, system-ui, sans-serif">{label}</text>}
-      {sublabel && <text x={cx} y={cy + r + 22} textAnchor="middle" fontSize={7} fill="#64748b" fontFamily="Inter, system-ui, sans-serif">{sublabel}</text>}
+      <line x1={cx} y1={topY} x2={cx} y2={topY + 6} stroke={STROKE} strokeWidth={1.5} />
+      <line x1={cx - 10} y1={topY + 6} x2={cx + 10} y2={topY + 6} stroke={STROKE} strokeWidth={1.8} />
+      <line x1={cx - 6} y1={topY + 10} x2={cx + 6} y2={topY + 10} stroke={STROKE} strokeWidth={1.5} />
+      <line x1={cx - 3} y1={topY + 14} x2={cx + 3} y2={topY + 14} stroke={STROKE} strokeWidth={1.2} />
     </g>
   );
 }
 
-function IECBreaker({ x, cy, width = 30, label, sublabel }: {
-  x: number; cy: number; width?: number; label?: string; sublabel?: string;
-}) {
-  const dotR = 3;
-  const x1 = x + dotR;
-  const x2 = x + width - dotR;
+function IECFuseV({ cx, y, length = 16 }: { cx: number; y: number; length?: number }) {
+  const capH = length * 0.5;
+  const capW = 6;
   return (
     <g>
-      <line x1={x} y1={cy} x2={x1 - dotR} y2={cy} stroke="#475569" strokeWidth={1.5} />
-      <circle cx={x1} cy={cy} r={dotR} fill="#475569" />
-      <line x1={x1 + dotR} y1={cy} x2={x2} y2={cy - 12} stroke="#475569" strokeWidth={2} />
-      <circle cx={x2} cy={cy} r={dotR} fill="none" stroke="#475569" strokeWidth={1.5} />
-      <line x1={x2 + dotR} y1={cy} x2={x + width} y2={cy} stroke="#475569" strokeWidth={1.5} />
-      {label && <text x={x + width / 2} y={cy + 18} textAnchor="middle" fontSize={8} fontWeight={600} fill="#1e293b" fontFamily="Inter, system-ui, sans-serif">{label}</text>}
-      {sublabel && <text x={x + width / 2} y={cy + 28} textAnchor="middle" fontSize={7} fill="#64748b" fontFamily="Inter, system-ui, sans-serif">{sublabel}</text>}
+      <line x1={cx} y1={y} x2={cx} y2={y + (length - capH) / 2} stroke={STROKE} strokeWidth={1.2} />
+      <rect x={cx - capW/2} y={y + (length - capH) / 2} width={capW} height={capH}
+        fill="none" stroke={STROKE} strokeWidth={1.2} rx={capW/2} />
+      <line x1={cx} y1={y + (length + capH) / 2} x2={cx} y2={y + length} stroke={STROKE} strokeWidth={1.2} />
     </g>
   );
 }
 
-function IECFuse({ x, cy, width = 24 }: {
-  x: number; cy: number; width?: number;
-}) {
-  const capW = width * 0.5;
-  const capH = 8;
-  const capX = x + (width - capW) / 2;
-  return (
-    <g>
-      <line x1={x} y1={cy} x2={capX} y2={cy} stroke="#475569" strokeWidth={1.2} />
-      <rect x={capX} y={cy - capH/2} width={capW} height={capH} fill="none" stroke="#475569" strokeWidth={1.2} rx={capH/2} />
-      <line x1={capX + capW} y1={cy} x2={x + width} y2={cy} stroke="#475569" strokeWidth={1.2} />
-    </g>
-  );
-}
-
-function IECTransformer({ cx, cy, size = 30, label, sublabel }: {
-  cx: number; cy: number; size?: number; label?: string; sublabel?: string;
-}) {
-  const r = size * 0.35;
-  const offset = r * 0.7;
-  return (
-    <g>
-      <line x1={cx - size/2} y1={cy} x2={cx - offset - r} y2={cy} stroke="#475569" strokeWidth={1.5} />
-      <circle cx={cx - offset} cy={cy} r={r} fill="white" stroke="#475569" strokeWidth={1.5} />
-      <circle cx={cx + offset} cy={cy} r={r} fill="white" stroke="#475569" strokeWidth={1.5} />
-      <line x1={cx + offset + r} y1={cy} x2={cx + size/2} y2={cy} stroke="#475569" strokeWidth={1.5} />
-      {label && <text x={cx} y={cy + r + 14} textAnchor="middle" fontSize={8} fontWeight={600} fill="#1e293b" fontFamily="Inter, system-ui, sans-serif">{label}</text>}
-      {sublabel && <text x={cx} y={cy + r + 24} textAnchor="middle" fontSize={7} fill="#64748b" fontFamily="Inter, system-ui, sans-serif">{sublabel}</text>}
-    </g>
-  );
-}
-
-function IECGround({ cx, topY, label }: {
-  cx: number; topY: number; label?: string;
-}) {
-  return (
-    <g>
-      <line x1={cx} y1={topY} x2={cx} y2={topY + 8} stroke="#475569" strokeWidth={1.5} />
-      <line x1={cx - 10} y1={topY + 8} x2={cx + 10} y2={topY + 8} stroke="#475569" strokeWidth={1.8} />
-      <line x1={cx - 6} y1={topY + 12} x2={cx + 6} y2={topY + 12} stroke="#475569" strokeWidth={1.5} />
-      <line x1={cx - 3} y1={topY + 16} x2={cx + 3} y2={topY + 16} stroke="#475569" strokeWidth={1.2} />
-      {label && <text x={cx + 14} y={topY + 12} fontSize={7} fill="#475569" fontFamily="Inter, system-ui, sans-serif" dominantBaseline="middle">{label}</text>}
-    </g>
-  );
-}
-
-function IECMainPanel({ x, y, w = 70, h = 50, label, sublabel }: {
-  x: number; y: number; w?: number; h?: number; label?: string; sublabel?: string;
-}) {
-  return (
-    <g>
-      <rect x={x} y={y} width={w} height={h} fill="white" stroke="#334155" strokeWidth={2} rx={2} />
-      <line x1={x + w*0.25} y1={y + 6} x2={x + w*0.25} y2={y + h - 6} stroke="#334155" strokeWidth={1.5} />
-      <line x1={x + w*0.5} y1={y + 6} x2={x + w*0.5} y2={y + h - 6} stroke="#334155" strokeWidth={1.5} />
-      <line x1={x + w*0.75} y1={y + 6} x2={x + w*0.75} y2={y + h - 6} stroke="#334155" strokeWidth={1.5} />
-      {label && <text x={x + w/2} y={y + h + 12} textAnchor="middle" fontSize={8} fontWeight={600} fill="#1e293b" fontFamily="Inter, system-ui, sans-serif">{label}</text>}
-      {sublabel && <text x={x + w/2} y={y + h + 22} textAnchor="middle" fontSize={7} fill="#64748b" fontFamily="Inter, system-ui, sans-serif">{sublabel}</text>}
-    </g>
-  );
-}
-
-function IECGrid({ cx, cy, size = 40, label, sublabel }: {
-  cx: number; cy: number; size?: number; label?: string; sublabel?: string;
-}) {
+function IECInverterV({ cx, cy, size = 36 }: { cx: number; cy: number; size?: number }) {
   const hs = size / 2;
   return (
     <g>
-      <rect x={cx - hs} y={cy - hs} width={size} height={size} fill="white" stroke="#1e293b" strokeWidth={2} rx={2} />
-      <path d={`M${cx - hs*0.6},${cy} C${cx - hs*0.3},${cy - hs*0.5} ${cx},${cy - hs*0.5} ${cx},${cy} C${cx},${cy + hs*0.5} ${cx + hs*0.3},${cy + hs*0.5} ${cx + hs*0.6},${cy}`} fill="none" stroke="#1e293b" strokeWidth={1.5} />
-      {label && <text x={cx} y={cy + hs + 12} textAnchor="middle" fontSize={8} fontWeight={700} fill="#1e293b" fontFamily="Inter, system-ui, sans-serif">{label}</text>}
-      {sublabel && <text x={cx} y={cy + hs + 22} textAnchor="middle" fontSize={7} fill="#64748b" fontFamily="Inter, system-ui, sans-serif">{sublabel}</text>}
+      <rect x={cx - hs} y={cy - hs} width={size} height={size} fill="white" stroke={STROKE} strokeWidth={1.5} rx={2} />
+      <polygon points={`${cx - hs*0.45},${cy + hs*0.4} ${cx},${cy - hs*0.4} ${cx + hs*0.45},${cy + hs*0.4}`}
+        fill="none" stroke={STROKE} strokeWidth={1.2} />
+      <text x={cx - hs*0.3} y={cy + hs*0.6} fontSize={size*0.2} fill={STROKE} fontFamily={FONT}>~</text>
+      <text x={cx + hs*0.15} y={cy - hs*0.25} fontSize={size*0.18} fill={STROKE} fontFamily={FONT}>=</text>
     </g>
   );
 }
 
-function IECPVString({ x, y, w = 80, h = 30, label, sublabel }: {
-  x: number; y: number; w?: number; h?: number; label?: string; sublabel?: string;
-}) {
-  const cx = x + w/2;
-  const cy = y + h/2;
+function IECPVModuleV({ cx, cy, w = 28, h = 22 }: { cx: number; cy: number; w?: number; h?: number }) {
   return (
     <g>
-      <rect x={x} y={y} width={w} height={h} fill="white" stroke="#d97706" strokeWidth={1.5} rx={2} />
-      <line x1={x + w*0.3} y1={y + h*0.8} x2={x + w*0.7} y2={y + h*0.2} stroke="#d97706" strokeWidth={1.2} />
-      <polygon points={`${x+w*0.65},${y+h*0.2} ${x+w*0.7},${y+h*0.2} ${x+w*0.7},${y+h*0.3}`} fill="#d97706" />
-      <line x1={x - 4} y1={y + h*0.2} x2={x + w*0.15} y2={y + h*0.35} stroke="#d97706" strokeWidth={0.8} />
-      <polygon points={`${x+w*0.12},${y+h*0.3} ${x+w*0.15},${y+h*0.35} ${x+w*0.1},${y+h*0.42}`} fill="#d97706" />
-      <line x1={x - 4} y1={y + h*0.45} x2={x + w*0.15} y2={y + h*0.6} stroke="#d97706" strokeWidth={0.8} />
-      <polygon points={`${x+w*0.12},${y+h*0.55} ${x+w*0.15},${y+h*0.6} ${x+w*0.1},${y+h*0.67}`} fill="#d97706" />
-      {label && <text x={cx} y={cy - 1} textAnchor="middle" dominantBaseline="middle" fontSize={8} fontWeight={600} fill="#92400e" fontFamily="Inter, system-ui, sans-serif">{label}</text>}
-      {sublabel && <text x={cx} y={cy + 10} textAnchor="middle" dominantBaseline="middle" fontSize={7} fill="#b45309" fontFamily="Inter, system-ui, sans-serif">{sublabel}</text>}
+      <rect x={cx - w/2} y={cy - h/2} width={w} height={h} fill="white" stroke={STROKE} strokeWidth={1.2} rx={1} />
+      <line x1={cx - w*0.3} y1={cy + h*0.35} x2={cx + w*0.3} y2={cy - h*0.35} stroke={STROKE} strokeWidth={1} />
+      <polygon points={`${cx + w*0.25},${cy - h*0.35} ${cx + w*0.3},${cy - h*0.35} ${cx + w*0.3},${cy - h*0.15}`} fill={STROKE} />
+      <line x1={cx - w*0.55} y1={cy - h*0.2} x2={cx - w*0.25} y2={cy - h*0.05} stroke={STROKE} strokeWidth={0.8} />
+      <polygon points={`${cx - w*0.28},${cy - h*0.1} ${cx - w*0.25},${cy - h*0.05} ${cx - w*0.32},${cy + h*0.02}`} fill={STROKE} />
     </g>
   );
 }
 
-function IECCombinerBox({ x, y, w = 80, h = 36, label, sublabel, stringCount = 1 }: {
-  x: number; y: number; w?: number; h?: number; label?: string; sublabel?: string; stringCount?: number;
+function IECCombinerBoxV({ x, y, w, h, label, fuseCount = 2 }: {
+  x: number; y: number; w: number; h: number; label?: string; fuseCount?: number;
 }) {
-  const fuseCount = Math.min(stringCount, 4);
-  const fuseSpacing = w / (fuseCount + 1);
+  const fc = Math.min(fuseCount, 6);
+  const spacing = w / (fc + 1);
   return (
     <g>
-      <rect x={x} y={y} width={w} height={h} fill="white" stroke="#0284c7" strokeWidth={1.5} strokeDasharray="4 2" rx={2} />
-      {Array.from({ length: fuseCount }).map((_, fi) => {
-        const fx = x + fuseSpacing * (fi + 1) - 6;
-        const fy = y + h / 2;
+      <rect x={x} y={y} width={w} height={h} fill="white" stroke={STROKE} strokeWidth={1.5}
+        strokeDasharray="6 3" rx={2} />
+      {Array.from({ length: fc }).map((_, i) => {
+        const fx = x + spacing * (i + 1);
+        return <IECFuseV key={i} cx={fx} y={y + h * 0.25} length={h * 0.5} />;
+      })}
+      {label && (
+        <text x={x + w / 2} y={y + h + 12} textAnchor="middle" fontSize={7} fill={STROKE_LIGHT}
+          fontFamily={FONT}>{label}</text>
+      )}
+    </g>
+  );
+}
+
+function UtilityPole({ cx, cy }: { cx: number; cy: number }) {
+  return (
+    <g>
+      <line x1={cx} y1={cy - 25} x2={cx} y2={cy + 15} stroke={STROKE} strokeWidth={2} />
+      <line x1={cx - 18} y1={cy - 18} x2={cx + 18} y2={cy - 18} stroke={STROKE} strokeWidth={1.5} />
+      <line x1={cx - 14} y1={cy - 12} x2={cx + 14} y2={cy - 12} stroke={STROKE} strokeWidth={1.5} />
+      <circle cx={cx - 12} cy={cy - 18} r={2} fill="white" stroke={STROKE} strokeWidth={1} />
+      <circle cx={cx + 12} cy={cy - 18} r={2} fill="white" stroke={STROKE} strokeWidth={1} />
+      <circle cx={cx - 8} cy={cy - 12} r={2} fill="white" stroke={STROKE} strokeWidth={1} />
+      <circle cx={cx + 8} cy={cy - 12} r={2} fill="white" stroke={STROKE} strokeWidth={1} />
+    </g>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// GRID COORDINATES BORDER
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function GridBorder({ width, height, marginLeft, marginTop, innerW, innerH }: {
+  width: number; height: number; marginLeft: number; marginTop: number; innerW: number; innerH: number;
+}) {
+  const rowLabels = "ABCDEFGHJKLMNPQR".split("");
+  const colCount = 13;
+  const cellW = innerW / colCount;
+  const cellH = innerH / Math.min(rowLabels.length, Math.ceil(innerH / 50));
+  const rowCount = Math.floor(innerH / cellH);
+  const tickLen = marginLeft - 4;
+
+  return (
+    <g>
+      <rect x={0} y={0} width={width} height={height} fill="none" stroke={STROKE} strokeWidth={2} />
+      <rect x={marginLeft} y={marginTop} width={innerW} height={innerH} fill="none" stroke={STROKE} strokeWidth={1} />
+
+      {Array.from({ length: colCount }).map((_, i) => {
+        const x = marginLeft + cellW * (i + 0.5);
         return (
-          <g key={fi}>
-            <rect x={fx} y={fy - 3} width={12} height={6} fill="none" stroke="#0284c7" strokeWidth={1} rx={3} />
+          <g key={`col-${i}`}>
+            <line x1={marginLeft + cellW * i} y1={marginTop} x2={marginLeft + cellW * i} y2={marginTop - 2}
+              stroke={STROKE_FAINT} strokeWidth={0.5} />
+            <text x={x} y={marginTop - 5} textAnchor="middle" fontSize={6} fill={STROKE_LIGHT} fontFamily={FONT}>
+              {i + 1}
+            </text>
+            <text x={x} y={height - 4} textAnchor="middle" fontSize={6} fill={STROKE_LIGHT} fontFamily={FONT}>
+              {i + 1}
+            </text>
           </g>
         );
       })}
-      {label && <text x={x + w/2} y={y + h + 12} textAnchor="middle" fontSize={8} fontWeight={600} fill="#1e293b" fontFamily="Inter, system-ui, sans-serif">{label}</text>}
-      {sublabel && <text x={x + w/2} y={y + h + 22} textAnchor="middle" fontSize={7} fill="#64748b" fontFamily="Inter, system-ui, sans-serif">{sublabel}</text>}
+
+      {Array.from({ length: Math.min(rowCount, rowLabels.length) }).map((_, i) => {
+        const y = marginTop + cellH * (i + 0.5);
+        return (
+          <g key={`row-${i}`}>
+            <line x1={marginLeft} y1={marginTop + cellH * i} x2={marginLeft - 2} y2={marginTop + cellH * i}
+              stroke={STROKE_FAINT} strokeWidth={0.5} />
+            <text x={marginLeft - tickLen / 2 - 2} y={y} textAnchor="middle" dominantBaseline="middle"
+              fontSize={6} fill={STROKE_LIGHT} fontFamily={FONT}>{rowLabels[i]}</text>
+          </g>
+        );
+      })}
     </g>
   );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// CARTOUCHE (TITLE BLOCK) — Professional engineering drawing border
+// TITLE BLOCK (bottom-right cartouche)
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const CARTOUCHE_RIGHT_PANEL_W = 280;
-const CARTOUCHE_BOTTOM_H = 70;
-const FONT = "Inter, system-ui, sans-serif";
-const BRAND_BLUE = "#003DA6";
-const DARK = "#1e293b";
-
-interface SLDCartoucheProps {
-  rightPanelX: number;
-  rightPanelWidth: number;
-  topY: number;
-  bottomStripY: number;
-  totalWidth: number;
-  totalHeight: number;
-  config: SLDElectricalConfig;
-  arrays: SLDArrayInfo[];
-  inverterLayout?: SLDInverterAssignment[] | null;
-  microLayout?: SLDMicroInverterGroup[] | null;
-  language: "fr" | "en";
-}
-
-function SLDCartouche({
-  rightPanelX, rightPanelWidth, topY, bottomStripY,
-  totalWidth, totalHeight, config, arrays,
-  inverterLayout, microLayout, language
-}: SLDCartoucheProps) {
-  const fr = language === "fr";
-  const rpX = rightPanelX;
-  const rpW = rightPanelWidth;
-  const innerLeft = 4;
-  const innerTop = topY;
-  const innerRight = totalWidth - 4;
-  const innerBottom = totalHeight - 4;
-
-  const companyBlockH = 80;
-  const noteBlockH = 50;
-  const summaryBlockH = 140;
-  const legendBlockStartY = innerTop + companyBlockH + noteBlockH + summaryBlockH;
-  const legendBlockH = bottomStripY - legendBlockStartY;
-
-  const totalStrings = inverterLayout
-    ? inverterLayout.reduce((s, inv) => s + inv.strings.length, 0)
-    : 0;
-  const panelsPerString = inverterLayout && inverterLayout.length > 0 && inverterLayout[0].strings.length > 0
-    ? inverterLayout[0].strings[0].panelsInString
-    : MAX_PANELS_PER_STRING;
+function TitleBlock({ x, y, w, h, config, fr, totalStrings, panelsPerString, inverterCount }: {
+  x: number; y: number; w: number; h: number;
+  config: SLDElectricalConfig; fr: boolean;
+  totalStrings: number; panelsPerString: number; inverterCount: number;
+}) {
+  const col1W = w * 0.4;
+  const col2W = w * 0.6;
+  const rowH = 11;
+  const topSection = h * 0.35;
 
   const invModelName = config.inverterType === "string"
     ? (config.stringInverterModelName || DEFAULT_STRING_INV_NAME)
     : (config.microInverterModelName || DEFAULT_MICRO_INV_NAME);
-
   const invPower = config.inverterType === "string"
     ? `${config.stringInverterPowerKW || DEFAULT_STRING_INV_KW} kW`
     : `${config.microInverterPowerW || DEFAULT_MICRO_INV_W} W`;
 
-  const serviceV = config.serviceVoltage || 600;
-
   const summaryRows = fr ? [
-    ["Modèle de module PV", "Jinko JKM660N-78HL4-BDV (660W)"],
-    ["Nombre total des modules PV", `${config.totalPanels || arrays.reduce((s, a) => s + a.panelCount, 0)}`],
-    ["Nombre des modules par chaîne", `${panelsPerString}`],
-    ["Nombre totale des chaînes", `${totalStrings || arrays.length}`],
-    ["Modèle d'onduleur", invModelName],
-    ["Puissance/Tension de l'onduleur", `${invPower} / ${serviceV}V`],
-    ["Puissance totale de la centrale", `${config.systemCapacityKW || 0} kWc`],
+    ["Module PV", "Jinko JKM660N-78HL4-BDV (660W)"],
+    ["Modules totaux", `${config.totalPanels || 0}`],
+    ["Modules/chaîne", `${panelsPerString}`],
+    ["Chaînes totales", `${totalStrings}`],
+    ["Onduleur", invModelName],
+    ["Puissance ond.", invPower],
+    ["Puissance totale", `${config.systemCapacityKW || 0} kWc`],
+    ["Onduleurs", `${inverterCount}`],
   ] : [
-    ["PV Module Model", "Jinko JKM660N-78HL4-BDV (660W)"],
-    ["Total PV Modules", `${config.totalPanels || arrays.reduce((s, a) => s + a.panelCount, 0)}`],
-    ["Modules per String", `${panelsPerString}`],
-    ["Total Strings", `${totalStrings || arrays.length}`],
-    ["Inverter Model", invModelName],
-    ["Inverter Power/Voltage", `${invPower} / ${serviceV}V`],
-    ["Total Plant Capacity", `${config.systemCapacityKW || 0} kWp`],
+    ["PV Module", "Jinko JKM660N-78HL4-BDV (660W)"],
+    ["Total Modules", `${config.totalPanels || 0}`],
+    ["Modules/String", `${panelsPerString}`],
+    ["Total Strings", `${totalStrings}`],
+    ["Inverter", invModelName],
+    ["Inv. Power", invPower],
+    ["Total Capacity", `${config.systemCapacityKW || 0} kWp`],
+    ["Inverters", `${inverterCount}`],
   ];
-
-  const bottomY = bottomStripY;
-  const bH = CARTOUCHE_BOTTOM_H;
-  const warnW = totalWidth * 0.35;
-  const revW = totalWidth * 0.18;
-  const siteW = totalWidth * 0.22;
-  const titleW = totalWidth - warnW - revW - siteW;
 
   return (
     <g>
-      <rect x={0} y={0} width={totalWidth} height={totalHeight} fill="none" stroke={DARK} strokeWidth={2} />
-      <rect x={4} y={4} width={totalWidth - 8} height={totalHeight - 8} fill="none" stroke={DARK} strokeWidth={0.5} />
+      <rect x={x} y={y} width={w} height={h} fill="white" stroke={STROKE} strokeWidth={1.5} />
 
-      <line x1={rpX} y1={innerTop} x2={rpX} y2={bottomStripY} stroke={DARK} strokeWidth={0.5} />
-      <line x1={innerLeft} y1={bottomStripY} x2={innerRight} y2={bottomStripY} stroke={DARK} strokeWidth={0.75} />
+      {/* Top: Logo + title */}
+      <line x1={x} y1={y + topSection} x2={x + w} y2={y + topSection} stroke={STROKE} strokeWidth={0.5} />
+      <image href={KWH_LOGO_DATA_URI} x={x + 6} y={y + 4} width={70} height={28} preserveAspectRatio="xMidYMid meet" />
+      <text x={x + w / 2 + 20} y={y + 12} textAnchor="middle" fontSize={8} fontWeight={700} fill={STROKE} fontFamily={FONT}>
+        {fr ? "SCHÉMA UNIFILAIRE" : "SINGLE LINE DIAGRAM"}
+      </text>
+      <text x={x + w / 2 + 20} y={y + 22} textAnchor="middle" fontSize={7} fill={STROKE_LIGHT} fontFamily={FONT}>
+        {config.siteName || config.siteAddress || ""}
+      </text>
+      <text x={x + w - 8} y={y + topSection - 4} textAnchor="end" fontSize={6} fill={STROKE_LIGHT} fontFamily={FONT}>
+        SLD-001 | {fr ? "Rév. 0" : "Rev. 0"} | {new Date().toISOString().slice(0, 10)}
+      </text>
 
-      {/* ===== A. COMPANY BLOCK ===== */}
-      <line x1={rpX} y1={innerTop + companyBlockH} x2={innerRight} y2={innerTop + companyBlockH} stroke={DARK} strokeWidth={0.5} />
-      <image href={KWH_LOGO_DATA_URI} x={rpX + rpW/2 - 60} y={innerTop + 8} width={120} height={48} preserveAspectRatio="xMidYMid meet" />
-      <text x={rpX + rpW / 2} y={innerTop + 64} textAnchor="middle" fontSize={7.5} fill="#64748b" fontFamily={FONT}>
-        Montréal, QC, Canada — info@kwhquebec.com</text>
-
-      {/* ===== B. NOTE BLOCK ===== */}
-      {(() => {
-        const noteY = innerTop + companyBlockH;
+      {/* Bottom: Summary table */}
+      <rect x={x} y={y + topSection} width={w} height={12} fill={STROKE} />
+      <text x={x + w / 2} y={y + topSection + 8} textAnchor="middle" fontSize={6.5} fontWeight={700}
+        fill="white" fontFamily={FONT}>
+        {fr ? "RÉCAPITULATIF" : "SUMMARY"}
+      </text>
+      {summaryRows.map((row, i) => {
+        const ry = y + topSection + 12 + i * rowH;
         return (
-          <g>
-            <line x1={rpX} y1={noteY + noteBlockH} x2={innerRight} y2={noteY + noteBlockH} stroke={DARK} strokeWidth={0.5} />
-            <text x={rpX + 10} y={noteY + 16} fontSize={9} fontWeight={700} fill={DARK} fontFamily={FONT}>NOTE</text>
-            <line x1={rpX + 10} y1={noteY + 19} x2={rpX + 42} y2={noteY + 19} stroke={DARK} strokeWidth={0.5} />
-            <text x={rpX + 10} y={noteY + 32} fontSize={7.5} fill="#64748b" fontFamily={FONT}>
-              {fr ? "Ce document est un document type et" : "This document is a typical drawing and"}
-            </text>
-            <text x={rpX + 10} y={noteY + 42} fontSize={7.5} fill="#64748b" fontFamily={FONT}>
-              {fr ? "non pas pour la construction." : "not for construction."}
-            </text>
+          <g key={i}>
+            {i % 2 === 0 && <rect x={x} y={ry} width={w} height={rowH} fill="#f8fafc" />}
+            <line x1={x + col1W} y1={ry} x2={x + col1W} y2={ry + rowH} stroke="#e2e8f0" strokeWidth={0.3} />
+            <text x={x + 4} y={ry + rowH / 2 + 1} fontSize={6} fill={STROKE_LIGHT} fontFamily={FONT}
+              dominantBaseline="middle">{row[0]}</text>
+            <text x={x + col1W + 4} y={ry + rowH / 2 + 1} fontSize={6} fill={STROKE} fontWeight={600}
+              fontFamily={FONT} dominantBaseline="middle">{row[1]}</text>
           </g>
         );
-      })()}
+      })}
 
-      {/* ===== C. SYSTEM SUMMARY TABLE ===== */}
-      {(() => {
-        const tableY = innerTop + companyBlockH + noteBlockH;
-        const headerH = 18;
-        const rowH = 17;
-        const labelW = rpW * 0.55;
-        return (
-          <g>
-            <rect x={rpX} y={tableY} width={rpW} height={headerH} fill={DARK} />
-            <text x={rpX + rpW / 2} y={tableY + 12} textAnchor="middle" fontSize={8} fontWeight={700}
-              fill="white" fontFamily={FONT}>
-              {fr ? "TABLEAU RÉCAPITULATIF DU SYSTÈME" : "SYSTEM SUMMARY TABLE"}
-            </text>
-            {summaryRows.map((row, i) => {
-              const ry = tableY + headerH + i * rowH;
-              const bgFill = i % 2 === 0 ? "#f8fafc" : "white";
-              return (
-                <g key={i}>
-                  <rect x={rpX} y={ry} width={rpW} height={rowH} fill={bgFill} />
-                  <line x1={rpX + labelW} y1={ry} x2={rpX + labelW} y2={ry + rowH} stroke="#e2e8f0" strokeWidth={0.5} />
-                  <line x1={rpX} y1={ry + rowH} x2={rpX + rpW} y2={ry + rowH} stroke="#e2e8f0" strokeWidth={0.5} />
-                  <text x={rpX + 6} y={ry + rowH / 2 + 1} fontSize={7.5} fill="#334155" fontFamily={FONT}
-                    dominantBaseline="middle">{row[0]}</text>
-                  <text x={rpX + labelW + 6} y={ry + rowH / 2 + 1} fontSize={7.5} fill="#0f172a" fontWeight={600}
-                    fontFamily={FONT} dominantBaseline="middle">{row[1]}</text>
-                </g>
-              );
-            })}
-            <line x1={rpX} y1={tableY + headerH + summaryRows.length * rowH}
-              x2={innerRight} y2={tableY + headerH + summaryRows.length * rowH} stroke={DARK} strokeWidth={0.5} />
-          </g>
-        );
-      })()}
-
-      {/* ===== D. LEGEND BLOCK ===== */}
-      {(() => {
-        const legY = legendBlockStartY;
-        const headerH = 18;
-        const entryH = 20;
-        const colW = rpW / 2;
-        const legendEntries = fr ? [
-          { col: 0, row: 0, label: "COURANT CONTINU (DC)", type: "dc" },
-          { col: 0, row: 1, label: "COURANT ALTERNATIF (AC)", type: "ac" },
-          { col: 0, row: 2, label: "MODULE PV", type: "pv" },
-          { col: 0, row: 3, label: "ONDULEUR (DC/AC)", type: "inv" },
-          { col: 0, row: 4, label: "BOÎTE DE COMBINAISON", type: "combiner" },
-          { col: 1, row: 0, label: "COMPTEUR", type: "meter" },
-          { col: 1, row: 1, label: "PANNEAU PRINCIPAL", type: "panel" },
-          { col: 1, row: 2, label: "MISE À LA TERRE", type: "ground" },
-          { col: 1, row: 3, label: "DISJONCTEUR / SECTIONNEUR", type: "breaker" },
-          { col: 1, row: 4, label: "FUSIBLE", type: "fuse" },
-        ] : [
-          { col: 0, row: 0, label: "DIRECT CURRENT (DC)", type: "dc" },
-          { col: 0, row: 1, label: "ALTERNATING CURRENT (AC)", type: "ac" },
-          { col: 0, row: 2, label: "PV MODULE", type: "pv" },
-          { col: 0, row: 3, label: "INVERTER (DC/AC)", type: "inv" },
-          { col: 0, row: 4, label: "COMBINER BOX", type: "combiner" },
-          { col: 1, row: 0, label: "METER", type: "meter" },
-          { col: 1, row: 1, label: "MAIN PANEL", type: "panel" },
-          { col: 1, row: 2, label: "GROUNDING", type: "ground" },
-          { col: 1, row: 3, label: "BREAKER / DISCONNECT", type: "breaker" },
-          { col: 1, row: 4, label: "FUSE", type: "fuse" },
-        ];
-
-        return (
-          <g>
-            <rect x={rpX} y={legY} width={rpW} height={headerH} fill={DARK} />
-            <text x={rpX + rpW / 2} y={legY + 12} textAnchor="middle" fontSize={8} fontWeight={700}
-              fill="white" fontFamily={FONT}>
-              {fr ? "LÉGENDE" : "LEGEND"}
-            </text>
-            {legendEntries.map((entry, i) => {
-              const ex = rpX + entry.col * colW + 8;
-              const ey = legY + headerH + entry.row * entryH + entryH / 2;
-              return (
-                <g key={i}>
-                  {entry.type === "dc" && (
-                    <>
-                      <line x1={ex} y1={ey-3} x2={ex+20} y2={ey-3} stroke="#dc2626" strokeWidth={1.8} />
-                      <line x1={ex+2} y1={ey+1} x2={ex+7} y2={ey+1} stroke="#dc2626" strokeWidth={1.8} />
-                      <line x1={ex+9} y1={ey+1} x2={ex+14} y2={ey+1} stroke="#dc2626" strokeWidth={1.8} />
-                      <line x1={ex+16} y1={ey+1} x2={ex+20} y2={ey+1} stroke="#dc2626" strokeWidth={1.8} />
-                    </>
-                  )}
-                  {entry.type === "ac" && (
-                    <path d={`M${ex},${ey} C${ex+3},${ey-7} ${ex+7},${ey-7} ${ex+10},${ey} C${ex+13},${ey+7} ${ex+17},${ey+7} ${ex+20},${ey}`} fill="none" stroke="#2563eb" strokeWidth={1.8} />
-                  )}
-                  {entry.type === "pv" && (
-                    <g>
-                      <rect x={ex+1} y={ey-7} width={18} height={14} fill="none" stroke="#d97706" strokeWidth={1.2} rx={1} />
-                      <line x1={ex+5} y1={ey+5} x2={ex+15} y2={ey-5} stroke="#d97706" strokeWidth={1.2} />
-                      <polygon points={`${ex+13},${ey-5} ${ex+15},${ey-5} ${ex+15},${ey-3}`} fill="#d97706" stroke="none" />
-                      <line x1={ex-2} y1={ey-4} x2={ex+3} y2={ey-2} stroke="#d97706" strokeWidth={0.9} />
-                      <polygon points={`${ex+2},${ey-3} ${ex+3},${ey-2} ${ex+1},${ey-1}`} fill="#d97706" stroke="none" />
-                      <line x1={ex-2} y1={ey} x2={ex+3} y2={ey+2} stroke="#d97706" strokeWidth={0.9} />
-                      <polygon points={`${ex+2},${ey+1} ${ex+3},${ey+2} ${ex+1},${ey+3}`} fill="#d97706" stroke="none" />
-                    </g>
-                  )}
-                  {entry.type === "inv" && (
-                    <g>
-                      <rect x={ex+1} y={ey-7} width={18} height={14} fill="none" stroke="#16a34a" strokeWidth={1.2} rx={1} />
-                      <polygon points={`${ex+5},${ey+5} ${ex+10},${ey-5} ${ex+15},${ey+5}`} fill="none" stroke="#16a34a" strokeWidth={1} />
-                    </g>
-                  )}
-                  {entry.type === "meter" && (
-                    <g>
-                      <circle cx={ex+10} cy={ey} r={8} fill="none" stroke="#16a34a" strokeWidth={1.2} />
-                      <text x={ex+10} y={ey+1} textAnchor="middle" dominantBaseline="middle" fontSize={5.5} fill="#16a34a" fontFamily={FONT} fontWeight={700}>kWh</text>
-                    </g>
-                  )}
-                  {entry.type === "panel" && (
-                    <g>
-                      <rect x={ex+1} y={ey-7} width={18} height={14} fill="none" stroke="#334155" strokeWidth={1.2} rx={1} />
-                      <line x1={ex+5} y1={ey-5} x2={ex+5} y2={ey+5} stroke="#334155" strokeWidth={1} />
-                      <line x1={ex+10} y1={ey-5} x2={ex+10} y2={ey+5} stroke="#334155" strokeWidth={1} />
-                      <line x1={ex+15} y1={ey-5} x2={ex+15} y2={ey+5} stroke="#334155" strokeWidth={1} />
-                    </g>
-                  )}
-                  {entry.type === "ground" && (
-                    <g>
-                      <line x1={ex+10} y1={ey-7} x2={ex+10} y2={ey-2} stroke="#475569" strokeWidth={1.2} />
-                      <line x1={ex+3} y1={ey-2} x2={ex+17} y2={ey-2} stroke="#475569" strokeWidth={1.5} />
-                      <line x1={ex+5} y1={ey+1} x2={ex+15} y2={ey+1} stroke="#475569" strokeWidth={1.3} />
-                      <line x1={ex+7} y1={ey+4} x2={ex+13} y2={ey+4} stroke="#475569" strokeWidth={1.1} />
-                      <line x1={ex+9} y1={ey+7} x2={ex+11} y2={ey+7} stroke="#475569" strokeWidth={0.9} />
-                    </g>
-                  )}
-                  {entry.type === "breaker" && (
-                    <g>
-                      <line x1={ex} y1={ey} x2={ex+5} y2={ey} stroke="#475569" strokeWidth={1.2} />
-                      <circle cx={ex+6} cy={ey} r={1.5} fill="#475569" stroke="#475569" strokeWidth={0.5} />
-                      <line x1={ex+7.5} y1={ey} x2={ex+16} y2={ey-7} stroke="#475569" strokeWidth={1.5} />
-                      <circle cx={ex+17} cy={ey} r={1.5} fill="none" stroke="#475569" strokeWidth={1} />
-                      <line x1={ex+18.5} y1={ey} x2={ex+22} y2={ey} stroke="#475569" strokeWidth={1.2} />
-                    </g>
-                  )}
-                  {entry.type === "combiner" && (
-                    <g>
-                      <rect x={ex+1} y={ey-7} width={18} height={14} fill="none" stroke="#0284c7" strokeWidth={1.2} strokeDasharray="3 1.5" rx={1} />
-                      <rect x={ex+4} y={ey-2} width={5} height={4} fill="none" stroke="#0284c7" strokeWidth={0.8} rx={2} />
-                      <rect x={ex+11} y={ey-2} width={5} height={4} fill="none" stroke="#0284c7" strokeWidth={0.8} rx={2} />
-                    </g>
-                  )}
-                  {entry.type === "fuse" && (
-                    <g>
-                      <line x1={ex} y1={ey} x2={ex+5} y2={ey} stroke="#475569" strokeWidth={1.2} />
-                      <rect x={ex+5} y={ey-3} width={12} height={6} fill="none" stroke="#475569" strokeWidth={1.2} rx={3} />
-                      <line x1={ex+8} y1={ey} x2={ex+14} y2={ey} stroke="#475569" strokeWidth={0.8} />
-                      <line x1={ex+17} y1={ey} x2={ex+22} y2={ey} stroke="#475569" strokeWidth={1.2} />
-                    </g>
-                  )}
-                  <text x={ex + 26} y={ey + 1} fontSize={7} fill="#334155" fontFamily={FONT}
-                    dominantBaseline="middle">{entry.label}</text>
-                </g>
-              );
-            })}
-          </g>
-        );
-      })()}
-
-      {/* ===== BOTTOM CARTOUCHE STRIP ===== */}
-      {(() => {
-        const bY = bottomY;
-        const warnX = innerLeft;
-        const revX = warnX + warnW;
-        const siteX = revX + revW;
-        const titleX = siteX + siteW;
-
-        return (
-          <g>
-            <line x1={revX} y1={bY} x2={revX} y2={innerBottom} stroke={DARK} strokeWidth={0.5} />
-            <line x1={siteX} y1={bY} x2={siteX} y2={innerBottom} stroke={DARK} strokeWidth={0.5} />
-            <line x1={titleX} y1={bY} x2={titleX} y2={innerBottom} stroke={DARK} strokeWidth={0.5} />
-
-            {/* 1. Warning text */}
-            <text x={warnX + warnW / 2} y={bY + bH / 2 - 4} textAnchor="middle" fontSize={8} fontWeight={700}
-              fill="#dc2626" fontFamily={FONT}>
-              {fr ? "CONCEPTION PRÉLIMINAIRE" : "PRELIMINARY DESIGN"}
-            </text>
-            <text x={warnX + warnW / 2} y={bY + bH / 2 + 10} textAnchor="middle" fontSize={8} fontWeight={700}
-              fill="#dc2626" fontFamily={FONT}>
-              {fr ? "PAS POUR LA CONSTRUCTION" : "NOT FOR CONSTRUCTION"}
-            </text>
-
-            {/* 2. Revision table */}
-            <text x={revX + revW / 2} y={bY + 12} textAnchor="middle" fontSize={7} fontWeight={700}
-              fill={DARK} fontFamily={FONT}>
-              {fr ? "RÉVISIONS" : "REVISIONS"}
-            </text>
-            <line x1={revX + 4} y1={bY + 16} x2={revX + revW - 4} y2={bY + 16} stroke="#e2e8f0" strokeWidth={0.5} />
-            <text x={revX + 8} y={bY + 26} fontSize={6.5} fill="#64748b" fontFamily={FONT}>
-              {fr ? "Rév." : "Rev."}</text>
-            <text x={revX + 30} y={bY + 26} fontSize={6.5} fill="#64748b" fontFamily={FONT}>Date</text>
-            <text x={revX + 70} y={bY + 26} fontSize={6.5} fill="#64748b" fontFamily={FONT}>Description</text>
-            <line x1={revX + 4} y1={bY + 30} x2={revX + revW - 4} y2={bY + 30} stroke="#e2e8f0" strokeWidth={0.5} />
-            <text x={revX + 8} y={bY + 42} fontSize={6.5} fill="#0f172a" fontFamily={FONT}>0</text>
-            <text x={revX + 30} y={bY + 42} fontSize={6.5} fill="#0f172a" fontFamily={FONT}>2026-02-24</text>
-            <text x={revX + 70} y={bY + 42} fontSize={6.5} fill="#0f172a" fontFamily={FONT}>
-              {fr ? "Émission initiale" : "Initial issue"}</text>
-
-            {/* 3. Company + Site info */}
-            <image href={KWH_LOGO_DATA_URI} x={siteX + siteW/2 - 40} y={bY + 6} width={80} height={32} preserveAspectRatio="xMidYMid meet" />
-            <text x={siteX + siteW / 2} y={bY + 44} textAnchor="middle" fontSize={7} fill="#64748b" fontFamily={FONT}>
-              {config.siteAddress || config.siteName || ""}</text>
-            <text x={siteX + siteW / 2} y={bY + 56} textAnchor="middle" fontSize={7} fill="#64748b" fontFamily={FONT}>
-              {config.systemCapacityKW ? `${config.systemCapacityKW} kWc` : ""}</text>
-
-            {/* 4. Drawing title + number */}
-            <text x={titleX + titleW / 2} y={bY + 18} textAnchor="middle" fontSize={8.5} fontWeight={700}
-              fill={DARK} fontFamily={FONT}>
-              {fr ? "SCHÉMA UNIFILAIRE TYPIQUE" : "TYPICAL SINGLE LINE DIAGRAM"}
-            </text>
-            <text x={titleX + titleW / 2} y={bY + 30} textAnchor="middle" fontSize={8} fontWeight={600}
-              fill={DARK} fontFamily={FONT}>
-              {fr ? "POUR LA CENTRALE PV" : "FOR PV PLANT"}
-            </text>
-            <line x1={titleX + 6} y1={bY + 38} x2={titleX + titleW - 6} y2={bY + 38} stroke="#e2e8f0" strokeWidth={0.5} />
-            <text x={titleX + titleW / 2 - 30} y={bY + 52} textAnchor="middle" fontSize={7} fill="#64748b" fontFamily={FONT}>
-              SLD-001</text>
-            <text x={titleX + titleW / 2 + 10} y={bY + 52} textAnchor="middle" fontSize={7} fill="#64748b" fontFamily={FONT}>
-              {fr ? "Rév. 0" : "Rev. 0"}</text>
-            <text x={titleX + titleW / 2 + 40} y={bY + 52} textAnchor="middle" fontSize={7} fill="#64748b" fontFamily={FONT}>
-              1/1</text>
-          </g>
-        );
-      })()}
+      {/* Warning */}
+      <text x={x + w / 2} y={y + h - 10} textAnchor="middle" fontSize={6} fontWeight={700}
+        fill="#dc2626" fontFamily={FONT}>
+        {fr ? "CONCEPTION PRÉLIMINAIRE — PAS POUR LA CONSTRUCTION" : "PRELIMINARY DESIGN — NOT FOR CONSTRUCTION"}
+      </text>
     </g>
   );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// STRING INVERTER SLD RENDERER
+// STRING INVERTER SLD — VERTICAL LAYOUT
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function StringInverterSLD({
-  inverters,
-  config,
-  arrays,
-  language = "fr"
+  inverters, config, arrays, language = "fr"
 }: {
   inverters: SLDInverterAssignment[];
   config: SLDElectricalConfig;
@@ -829,55 +449,60 @@ function StringInverterSLD({
   language: "fr" | "en";
 }) {
   const fr = language === "fr";
-
-  const showAll = inverters.length <= 2;
-  const displayInverters = showAll ? inverters : [inverters[0], inverters[inverters.length - 1]];
-  const hiddenCount = showAll ? 0 : inverters.length - 2;
-
-  const maxStringsPerInv = Math.max(...inverters.map(inv => inv.strings.length), 1);
-  const invBlockH = Math.max(INV_BOX_H + 10, maxStringsPerInv * (STRING_BOX_H + 8) + 20);
-  const gapBlockH = hiddenCount > 0 ? 50 : 0;
-  const displayCount = displayInverters.length;
-
-  const IEC_INV_SIZE = 44;
-  const IEC_BREAKER_W = 36;
-  const IEC_PANEL_W = 70;
-  const IEC_PANEL_H = 50;
-  const IEC_GRID_SIZE = 44;
-
-  const colPV = SVG_MARGIN + 10;
-  const colCombiner = colPV + STRING_BOX_W + COL_GAP + 20;
-  const colInverter = colCombiner + COMBINER_W + COL_GAP;
-  const colACDisconnect = colInverter + IEC_INV_SIZE + COL_GAP;
-  const colMeter = colACDisconnect + IEC_BREAKER_W + COL_GAP + 20;
-  const colMainPanel = colMeter + METER_R * 2 + COL_GAP + 20;
-  const colGrid = colMainPanel + IEC_PANEL_W + COL_GAP;
-  const diagramW = colGrid + IEC_GRID_SIZE + SVG_MARGIN;
-
-  const rightPanelW = CARTOUCHE_RIGHT_PANEL_W;
-  const totalW = diagramW + rightPanelW + 20;
-  const diagramContentH = displayCount * invBlockH + gapBlockH + SVG_MARGIN * 2 + 50;
-  const minH = 500;
-  const bottomStripH = CARTOUCHE_BOTTOM_H;
-  const totalH = Math.max(diagramContentH, minH) + bottomStripH + 20;
-  const bottomStripY = totalH - bottomStripH - 10;
-  const rightPanelX = diagramW + 10;
-
-  const startY = 30;
-
   const serviceV = config.serviceVoltage || 600;
   const serviceA = config.serviceAmperage || 400;
   const mainBreakerA = config.mainBreakerA || 200;
 
-  const getBlockY = (dispIdx: number) => {
-    if (dispIdx === 0) return startY;
-    if (hiddenCount > 0) return startY + invBlockH + gapBlockH;
-    return startY + dispIdx * invBlockH;
+  const showMax = 3;
+  const showAll = inverters.length <= showMax;
+  const displayInverters = showAll ? inverters : [inverters[0], inverters[Math.floor(inverters.length / 2)], inverters[inverters.length - 1]];
+  const hiddenCount = showAll ? 0 : inverters.length - showMax;
+
+  const invColW = 120;
+  const gapCol = hiddenCount > 0 ? 60 : 0;
+  const displayCount = displayInverters.length;
+
+  const marginLeft = 20;
+  const marginTop = 18;
+  const titleBlockW = 220;
+  const titleBlockH = 140;
+
+  const pvZoneW = Math.max(displayCount * invColW + gapCol, 300);
+  const innerW = pvZoneW + 60;
+  const totalW = innerW + marginLeft * 2 + titleBlockW;
+
+  const rowGrid = marginTop + 30;
+  const rowBreaker1 = rowGrid + 55;
+  const rowMeter = rowBreaker1 + 50;
+  const rowTransformer = rowMeter + 65;
+  const rowGround = rowTransformer + 40;
+  const rowACCombiner = rowGround + 55;
+  const rowACBreakerTop = rowACCombiner + 60;
+  const rowPVZoneTop = rowACBreakerTop + 45;
+  const rowInverter = rowPVZoneTop + 55;
+  const rowDCCombiner = rowInverter + 65;
+  const rowDCFuse = rowDCCombiner + 55;
+  const rowPVStrings = rowDCFuse + 55;
+  const rowPVZoneBottom = rowPVStrings + 45;
+
+  const totalH = rowPVZoneBottom + 30 + marginTop;
+  const centerX = marginLeft + innerW / 2;
+
+  const panelsPerString = inverters.length > 0 && inverters[0].strings.length > 0
+    ? inverters[0].strings[0].panelsInString : MAX_PANELS_PER_STRING;
+  const totalStrings = inverters.reduce((s, inv) => s + inv.strings.length, 0);
+
+  const getInvX = (dispIdx: number) => {
+    if (showAll) {
+      const blockStart = marginLeft + (innerW - displayCount * invColW) / 2;
+      return blockStart + dispIdx * invColW + invColW / 2;
+    }
+    const blockStart = marginLeft + (innerW - (displayCount * invColW + gapCol)) / 2;
+    if (dispIdx === 0) return blockStart + invColW / 2;
+    if (dispIdx === 1 && hiddenCount > 0) return blockStart + invColW + gapCol / 2;
+    if (dispIdx === 1 && hiddenCount === 0) return blockStart + invColW + invColW / 2;
+    return blockStart + (displayCount - 1) * invColW + gapCol + invColW / 2;
   };
-
-  const gapY = startY + invBlockH;
-
-  const invCenterX = colInverter + IEC_INV_SIZE / 2;
 
   return (
     <svg
@@ -886,232 +511,254 @@ function StringInverterSLD({
       style={{ maxWidth: totalW, background: "white" }}
       xmlns="http://www.w3.org/2000/svg"
     >
-      <SLDLabel x={colPV + STRING_BOX_W / 2} y={startY - 12} text={fr ? "STRINGS PV" : "PV STRINGS"} fontSize={8} color="#475569" />
-      <SLDLabel x={colCombiner + COMBINER_W / 2} y={startY - 12} text={fr ? "BOÎTE COMB." : "COMBINER"} fontSize={8} color="#475569" />
-      <SLDLabel x={invCenterX} y={startY - 12} text={fr ? "ONDULEUR" : "INVERTER"} fontSize={8} color="#475569" />
-      <SLDLabel x={colACDisconnect + IEC_BREAKER_W / 2} y={startY - 12} text={fr ? "SECT. AC" : "AC DISC."} fontSize={8} color="#475569" />
+      <GridBorder width={totalW - titleBlockW} height={totalH} marginLeft={marginLeft} marginTop={marginTop}
+        innerW={innerW} innerH={totalH - marginTop * 2} />
 
-      {displayInverters.map((inv, dispIdx) => {
-        const blockY = getBlockY(dispIdx);
-        const invCenterY = blockY + invBlockH / 2;
+      {/* ═══ ROW 1: UTILITY POLE + GRID CONNECTION ═══ */}
+      <UtilityPole cx={centerX + 80} cy={rowGrid} />
+      <text x={centerX + 80} y={rowGrid + 26} textAnchor="middle" fontSize={7} fill={STROKE_LIGHT} fontFamily={FONT}>
+        {fr ? "Nouveau Poteau" : "Utility Pole"}
+      </text>
+      <text x={centerX + 80} y={rowGrid + 34} textAnchor="middle" fontSize={6} fill={STROKE_LIGHT} fontFamily={FONT}>
+        MT
+      </text>
+      <line x1={centerX + 80} y1={rowGrid + 15} x2={centerX + 80} y2={rowGrid + 45}
+        stroke={STROKE} strokeWidth={1} strokeDasharray="4 2" />
 
-        const showAllStrings = inv.strings.length <= 4;
-        const displayStrings = showAllStrings ? inv.strings : [inv.strings[0], inv.strings[1], inv.strings[inv.strings.length - 1]];
-        const hiddenStrings = showAllStrings ? 0 : inv.strings.length - 3;
+      {/* ═══ ROW 2: MAIN BREAKER ═══ */}
+      <text x={centerX - 30} y={rowBreaker1 - 5} textAnchor="end" fontSize={7} fill={STROKE} fontWeight={600} fontFamily={FONT}>
+        {`${serviceA}A`}
+      </text>
+      <IECBreakerV cx={centerX} y1={rowBreaker1 - 12} length={24} />
+      <line x1={centerX} y1={rowGrid + 45} x2={centerX} y2={rowBreaker1 - 12} stroke={STROKE} strokeWidth={1.5} />
 
+      {/* ═══ ROW 3: PRODUCTION METER ═══ */}
+      <line x1={centerX} y1={rowBreaker1 + 12} x2={centerX} y2={rowMeter - 16} stroke={STROKE} strokeWidth={1.5} />
+      <IECMeterV cx={centerX} cy={rowMeter} r={16} />
+      <text x={centerX + 24} y={rowMeter} fontSize={7} fill={STROKE_LIGHT} fontFamily={FONT} dominantBaseline="middle">
+        {`${serviceA}A`}
+      </text>
+
+      {/* ═══ ROW 4: TRANSFORMER ═══ */}
+      <line x1={centerX} y1={rowMeter + 16} x2={centerX} y2={rowTransformer - 25} stroke={STROKE} strokeWidth={1.5} />
+      <IECTransformerV cx={centerX} cy={rowTransformer} size={50} />
+      <text x={centerX + 35} y={rowTransformer} fontSize={7} fill={STROKE_LIGHT} fontFamily={FONT} dominantBaseline="middle">
+        {`${Math.round((config.systemCapacityKW || 100) * 1.2)}kVA`}
+      </text>
+
+      {/* ═══ AUXILIARY SERVICE + GROUND ═══ */}
+      <line x1={centerX - 35} y1={rowTransformer} x2={centerX - 60} y2={rowTransformer}
+        stroke={STROKE} strokeWidth={1} />
+      <IECBreakerV cx={centerX - 60} y1={rowTransformer} length={18} />
+      <IECGroundV cx={centerX - 60} topY={rowTransformer + 20} />
+      <text x={centerX - 60} y={rowGround + 15} textAnchor="middle" fontSize={6} fill={STROKE_LIGHT} fontFamily={FONT}>
+        {fr ? "Service auxiliaire" : "Auxiliary service"}
+      </text>
+
+      {/* ═══ ROW 5: AC COMBINER BOX ═══ */}
+      <line x1={centerX} y1={rowTransformer + 25} x2={centerX} y2={rowACCombiner - 5} stroke={STROKE} strokeWidth={1.5} />
+      <text x={marginLeft + 10} y={rowACCombiner - 10} fontSize={8} fontWeight={600} fill={STROKE} fontFamily={FONT}>
+        {fr ? "Boîte de combinaison AC" : "AC Combiner Box"}
+      </text>
+      {(() => {
+        const acBoxW = Math.min(pvZoneW - 20, displayCount * invColW + (hiddenCount > 0 ? gapCol : 0) + 40);
+        const acBoxX = centerX - acBoxW / 2;
+        const acBoxH = 40;
         return (
-          <g key={inv.inverterId}>
-            {displayStrings.map((str, sIdx) => {
-              let visualIdx = sIdx;
-              if (!showAllStrings && sIdx === 2) {
-                visualIdx = inv.strings.length - 1;
-              }
-              const strY = blockY + 10 + visualIdx * (STRING_BOX_H + 8);
-              const strCenterY = strY + STRING_BOX_H / 2;
+          <g>
+            <rect x={acBoxX} y={rowACCombiner} width={acBoxW} height={acBoxH}
+              fill="white" stroke={STROKE} strokeWidth={1.5} rx={2} />
+            <text x={centerX} y={rowACCombiner - 2} textAnchor="middle" fontSize={7} fill={STROKE_LIGHT} fontFamily={FONT}>
+              {`${Math.round((config.systemCapacityKW || 100) * 1000 / serviceV * 1.25)}A`}
+            </text>
 
+            <line x1={centerX} y1={rowACCombiner - 5} x2={centerX} y2={rowACCombiner} stroke={STROKE} strokeWidth={1.5} />
+
+            {displayInverters.map((inv, dispIdx) => {
+              const ix = getInvX(dispIdx);
+              const breakerA = Math.round(inv.powerKW * 1000 / serviceV * 1.25);
               return (
-                <g key={str.stringId}>
-                  <IECPVString
-                    x={colPV} y={strY} w={STRING_BOX_W} h={STRING_BOX_H}
-                    label={`${str.panelsInString}× PV`}
-                    sublabel={`${str.vocString}V / ${str.iscString}A`}
-                  />
-                  <SLDLine
-                    x1={colPV + STRING_BOX_W} y1={strCenterY}
-                    x2={colCombiner} y2={strCenterY}
-                    color="#dc2626"
-                  />
-                  {sIdx === 0 && (
-                    <WireLabel
-                      x1={colPV + STRING_BOX_W} y1={strCenterY}
-                      x2={colCombiner} y2={strCenterY}
-                      label="DC"
-                    />
-                  )}
+                <g key={inv.inverterId}>
+                  <text x={ix} y={rowACCombiner + 12} textAnchor="middle" fontSize={7} fill={STROKE_LIGHT} fontFamily={FONT}>
+                    {`${breakerA}A`}
+                  </text>
+                  <IECBreakerV cx={ix} y1={rowACCombiner + 15} length={18} />
+                  <line x1={ix} y1={rowACCombiner + acBoxH} x2={ix} y2={rowACBreakerTop}
+                    stroke={STROKE} strokeWidth={1.2} />
                 </g>
               );
             })}
 
-            {hiddenStrings > 0 && (
-              <g>
-                <text x={colPV + STRING_BOX_W / 2} y={blockY + 10 + 2 * (STRING_BOX_H + 8) + 12} textAnchor="middle" fontSize={12} fill="#94a3b8" fontFamily={FONT}>
-                  {"⋮"}
-                </text>
-                <text x={colPV + STRING_BOX_W / 2} y={blockY + 10 + 2 * (STRING_BOX_H + 8) + 26} textAnchor="middle" fontSize={7} fill="#64748b" fontFamily={FONT}>
-                  {fr ? `× ${inv.strings.length} chaînes` : `× ${inv.strings.length} strings`}
-                </text>
-              </g>
-            )}
-
-            <IECCombinerBox
-              x={colCombiner} y={invCenterY - COMBINER_H / 2} w={COMBINER_W} h={COMBINER_H}
-              label={`Comb. #${inv.inverterId}`}
-              sublabel={`${inv.strings.length} str.`}
-              stringCount={inv.strings.length}
-            />
-
-            <SLDLine
-              x1={colCombiner + COMBINER_W} y1={invCenterY}
-              x2={colInverter} y2={invCenterY}
-              color="#dc2626"
-            />
-            <WireLabel
-              x1={colCombiner + COMBINER_W} y1={invCenterY}
-              x2={colInverter} y2={invCenterY}
-              label={`DC ${Math.round(inv.totalCapacityKW * 1000 / (serviceV || 600))}A`}
-            />
-
-            <IECInverter
-              cx={invCenterX} cy={invCenterY} size={IEC_INV_SIZE}
-              label={`INV-${inv.inverterId}`}
-              sublabel={`${inv.powerKW} kW | ${inv.totalPanels} pan.`}
-            />
-
-            <SLDLine
-              x1={invCenterX + IEC_INV_SIZE / 2} y1={invCenterY}
-              x2={colACDisconnect} y2={invCenterY}
-              color="#2563eb"
-            />
-            <WireLabel
-              x1={invCenterX + IEC_INV_SIZE / 2} y1={invCenterY}
-              x2={colACDisconnect} y2={invCenterY}
-              label="AC"
-            />
-
-            <IECBreaker
-              x={colACDisconnect} cy={invCenterY} width={IEC_BREAKER_W}
-              label={fr ? `Sect. #${inv.inverterId}` : `Disc. #${inv.inverterId}`}
-              sublabel={`${Math.round(inv.powerKW * 1000 / (serviceV || 600) * 1.25)}A`}
-            />
-
-            {inv.strings.length > 1 && (
-              <SLDLine
-                x1={colCombiner} y1={blockY + 10 + STRING_BOX_H / 2}
-                x2={colCombiner} y2={blockY + 10 + ((showAllStrings ? inv.strings.length : inv.strings.length) - 1) * (STRING_BOX_H + 8) + STRING_BOX_H / 2}
-                color="#0284c7"
-              />
-            )}
-          </g>
-        );
-      })}
-
-      {hiddenCount > 0 && (
-        <g>
-          <text x={invCenterX} y={gapY + 15} textAnchor="middle" fontSize={16} fill="#94a3b8" fontFamily={FONT}>{"⋮"}</text>
-          <text x={invCenterX} y={gapY + 32} textAnchor="middle" fontSize={9} fill="#64748b" fontFamily={FONT}>
-            {fr ? `× ${inverters.length} onduleurs identiques` : `× ${inverters.length} identical inverters`}
-          </text>
-          <line x1={colPV} y1={gapY + 2} x2={colACDisconnect + IEC_BREAKER_W} y2={gapY + 2} stroke="#e2e8f0" strokeWidth={0.5} strokeDasharray="4 3" />
-          <line x1={colPV} y1={gapY + gapBlockH - 2} x2={colACDisconnect + IEC_BREAKER_W} y2={gapY + gapBlockH - 2} stroke="#e2e8f0" strokeWidth={0.5} strokeDasharray="4 3" />
-        </g>
-      )}
-
-      {(() => {
-        const busX = colACDisconnect + IEC_BREAKER_W + 20;
-        const busTopY = getBlockY(0) + invBlockH / 2;
-        const busBottomY = getBlockY(displayCount - 1) + invBlockH / 2;
-        const busMidY = (busTopY + busBottomY) / 2;
-
-        const meterCx = colMeter + METER_R;
-        const panelX = colMainPanel;
-        const panelCx = panelX + IEC_PANEL_W / 2;
-        const gridCx = colGrid + IEC_GRID_SIZE / 2;
-
-        return (
-          <g>
-            {displayCount > 1 && (
-              <SLDLine x1={busX} y1={busTopY} x2={busX} y2={busBottomY} color="#2563eb" />
-            )}
-
-            {displayInverters.map((_inv, dispIdx) => {
-              const cy = getBlockY(dispIdx) + invBlockH / 2;
+            {hiddenCount > 0 && (() => {
+              const gapCx = getInvX(1);
               return (
-                <SLDLine key={_inv.inverterId}
-                  x1={colACDisconnect + IEC_BREAKER_W} y1={cy}
-                  x2={busX} y2={cy}
-                  color="#2563eb"
-                />
+                <g>
+                  <text x={gapCx} y={rowACCombiner + acBoxH / 2 + 2} textAnchor="middle" fontSize={14}
+                    fill={STROKE_FAINT} fontFamily={FONT}>{"..."}</text>
+                </g>
               );
-            })}
-
-            {hiddenCount > 0 && (
-              <g>
-                <line x1={busX} y1={gapY + 5} x2={busX} y2={gapY + gapBlockH - 5} stroke="#2563eb" strokeWidth={1.5} strokeDasharray="4 3" />
-              </g>
-            )}
-
-            <SLDLine x1={busX} y1={busMidY} x2={meterCx - METER_R} y2={busMidY} color="#2563eb" />
-            <WireLabel x1={busX} y1={busMidY} x2={meterCx - METER_R} y2={busMidY}
-              label={`${serviceV}V`} />
-
-            <IECMeter
-              cx={meterCx} cy={busMidY} r={METER_R}
-              label={fr ? "Prod." : "Prod."}
-            />
-
-            <SLDLine
-              x1={meterCx + METER_R} y1={busMidY}
-              x2={panelX} y2={busMidY}
-              color="#2563eb"
-            />
-
-            <IECMainPanel
-              x={panelX} y={busMidY - IEC_PANEL_H / 2} w={IEC_PANEL_W} h={IEC_PANEL_H}
-              label={fr ? "Panneau principal" : "Main Panel"}
-              sublabel={`${mainBreakerA}A / ${serviceV}V`}
-            />
-
-            <SLDLine
-              x1={panelX + IEC_PANEL_W} y1={busMidY}
-              x2={gridCx - IEC_GRID_SIZE / 2} y2={busMidY}
-              color="#475569"
-            />
-            <WireLabel
-              x1={panelX + IEC_PANEL_W} y1={busMidY}
-              x2={gridCx - IEC_GRID_SIZE / 2} y2={busMidY}
-              label={fr ? "Réseau HQ" : "Grid"}
-            />
-
-            <IECGrid
-              cx={gridCx} cy={busMidY} size={IEC_GRID_SIZE}
-              label={fr ? "RÉSEAU" : "GRID"}
-              sublabel={`${serviceV}V / ${serviceA}A`}
-            />
-
-            <IECGround
-              cx={panelCx}
-              topY={busMidY + IEC_PANEL_H / 2}
-              label="GND"
-            />
+            })()}
           </g>
         );
       })()}
 
-      <SLDCartouche
-        rightPanelX={rightPanelX}
-        rightPanelWidth={rightPanelW}
-        topY={4}
-        bottomStripY={bottomStripY}
-        totalWidth={totalW}
-        totalHeight={totalH}
-        config={config}
-        arrays={arrays}
-        inverterLayout={inverters}
-        language={language}
+      {/* ═══ ZONE CHAMPS PV (dashed box) ═══ */}
+      {(() => {
+        const zoneMargin = 15;
+        const zoneX = marginLeft + zoneMargin;
+        const zoneW = innerW - zoneMargin * 2;
+        return (
+          <g>
+            <rect x={zoneX} y={rowPVZoneTop - 15} width={zoneW} height={rowPVZoneBottom - rowPVZoneTop + 30}
+              fill="none" stroke={STROKE} strokeWidth={1} strokeDasharray="8 4" rx={4} />
+            <text x={zoneX + 8} y={rowPVZoneTop - 3} fontSize={8} fontWeight={600} fill={STROKE} fontFamily={FONT}>
+              ZONE CHAMPS PV
+            </text>
+          </g>
+        );
+      })()}
+
+      {/* ═══ INVERTER COLUMNS ═══ */}
+      {displayInverters.map((inv, dispIdx) => {
+        const ix = getInvX(dispIdx);
+        const isMiddleGap = !showAll && dispIdx === 1;
+
+        if (isMiddleGap) {
+          return (
+            <g key={`gap-${inv.inverterId}`}>
+              <text x={ix} y={rowInverter} textAnchor="middle" fontSize={14}
+                fill={STROKE_FAINT} fontFamily={FONT}>{"..."}</text>
+              <text x={ix} y={rowInverter + 16} textAnchor="middle" fontSize={7}
+                fill={STROKE_LIGHT} fontFamily={FONT}>
+                {fr ? `× ${inverters.length} onduleurs` : `× ${inverters.length} inverters`}
+              </text>
+              <text x={ix} y={rowInverter + 26} textAnchor="middle" fontSize={6}
+                fill={STROKE_LIGHT} fontFamily={FONT}>
+                {fr ? "identiques" : "identical"}
+              </text>
+            </g>
+          );
+        }
+
+        const breakerA = Math.round(inv.powerKW * 1000 / serviceV * 1.25);
+
+        return (
+          <g key={inv.inverterId}>
+            {/* AC Breaker for this inverter */}
+            <IECBreakerV cx={ix} y1={rowACBreakerTop} length={20} />
+            <text x={ix + 18} y={rowACBreakerTop + 10} fontSize={6} fill={STROKE_LIGHT} fontFamily={FONT}>
+              {`${breakerA}A`}
+            </text>
+
+            {/* Vertical line to inverter */}
+            <line x1={ix} y1={rowACBreakerTop + 20} x2={ix} y2={rowInverter - 18} stroke={STROKE} strokeWidth={1.2} />
+
+            {/* Inverter */}
+            <IECInverterV cx={ix} cy={rowInverter} size={36} />
+            <text x={ix} y={rowInverter + 24} textAnchor="middle" fontSize={7} fontWeight={600} fill={STROKE} fontFamily={FONT}>
+              {`Onduleur H-${inv.inverterId}`}
+            </text>
+            <text x={ix} y={rowInverter + 33} textAnchor="middle" fontSize={6} fill={STROKE_LIGHT} fontFamily={FONT}>
+              {`${inv.powerKW}kW`}
+            </text>
+
+            {/* Vertical line to DC Combiner */}
+            <line x1={ix} y1={rowInverter + 36} x2={ix} y2={rowDCCombiner - 5} stroke={STROKE} strokeWidth={1.2} />
+
+            {/* DC Combiner Box */}
+            <IECCombinerBoxV
+              x={ix - 40} y={rowDCCombiner} w={80} h={30}
+              label={fr ? `Boîte de combinaison CC` : "DC Combiner Box"}
+              fuseCount={Math.min(inv.strings.length, 4)}
+            />
+            <text x={ix} y={rowDCCombiner - 7} textAnchor="middle" fontSize={6} fill={STROKE_LIGHT} fontFamily={FONT}>
+              {`${Math.round(inv.totalCapacityKW * 1000 / serviceV)}A`}
+            </text>
+            <text x={ix} y={rowDCCombiner + 42 + 10} textAnchor="middle" fontSize={6} fill={STROKE_LIGHT} fontFamily={FONT}>
+              {`${inv.totalCapacityKW}kWc`}
+            </text>
+
+            {/* DC Fuses */}
+            {(() => {
+              const maxShow = 2;
+              const showAllStr = inv.strings.length <= maxShow;
+              const displayStr = showAllStr ? inv.strings : [inv.strings[0], inv.strings[inv.strings.length - 1]];
+              const strSpacing = 30;
+              const startX = ix - ((displayStr.length - 1) * strSpacing) / 2;
+
+              return (
+                <g>
+                  {displayStr.map((str, si) => {
+                    const sx = startX + si * strSpacing;
+                    return (
+                      <g key={str.stringId}>
+                        <line x1={sx} y1={rowDCCombiner + 30} x2={sx} y2={rowDCFuse} stroke={STROKE} strokeWidth={1} />
+                        <IECFuseV cx={sx} y={rowDCFuse} length={14} />
+                        <text x={sx + 10} y={rowDCFuse + 7} fontSize={5.5} fill={STROKE_LIGHT} fontFamily={FONT}>
+                          {`${Math.round(PANEL_ISC * 1.56)}A`}
+                        </text>
+                        <line x1={sx} y1={rowDCFuse + 14} x2={sx} y2={rowPVStrings - 12} stroke={STROKE} strokeWidth={1} strokeDasharray="4 2" />
+                        <text x={sx} y={rowDCFuse + 26} textAnchor="middle" fontSize={5} fill={STROKE_LIGHT} fontFamily={FONT}>2×</text>
+                        <IECPVModuleV cx={sx} cy={rowPVStrings} />
+                        <text x={sx} y={rowPVStrings + 16} textAnchor="middle" fontSize={6} fill={STROKE_LIGHT} fontFamily={FONT}>
+                          {fr ? `Chaîne` : "String"}
+                        </text>
+                        <text x={sx} y={rowPVStrings + 24} textAnchor="middle" fontSize={6} fill={STROKE_LIGHT} fontFamily={FONT}>
+                          PV-{str.stringId}
+                        </text>
+                      </g>
+                    );
+                  })}
+
+                  {!showAllStr && (
+                    <g>
+                      <text x={ix} y={rowDCFuse + 7} textAnchor="middle" fontSize={10} fill={STROKE_FAINT} fontFamily={FONT}>
+                        {"..."}
+                      </text>
+                      <text x={ix} y={rowPVStrings + 24} textAnchor="middle" fontSize={6} fill={STROKE_LIGHT} fontFamily={FONT}>
+                        {fr ? `× ${inv.strings.length} chaînes` : `× ${inv.strings.length} strings`}
+                      </text>
+                    </g>
+                  )}
+                </g>
+              );
+            })()}
+          </g>
+        );
+      })}
+
+      {/* ═══ TITLE BLOCK ═══ */}
+      <TitleBlock
+        x={totalW - titleBlockW - 1} y={totalH - titleBlockH - 1}
+        w={titleBlockW} h={titleBlockH}
+        config={config} fr={fr}
+        totalStrings={totalStrings}
+        panelsPerString={panelsPerString}
+        inverterCount={inverters.length}
       />
+
+      {/* NOTE block top-right */}
+      <g>
+        <rect x={totalW - titleBlockW - 1} y={1} width={titleBlockW} height={40} fill="white" stroke={STROKE} strokeWidth={1} />
+        <text x={totalW - titleBlockW + 8} y={14} fontSize={7} fontWeight={700} fill={STROKE} fontFamily={FONT}>NOTE</text>
+        <line x1={totalW - titleBlockW + 8} y1={17} x2={totalW - titleBlockW + 35} y2={17} stroke={STROKE} strokeWidth={0.5} />
+        <text x={totalW - titleBlockW + 8} y={28} fontSize={6} fill={STROKE_LIGHT} fontFamily={FONT}>
+          {fr ? "Ce document est un document type et" : "This is a typical drawing and"}
+        </text>
+        <text x={totalW - titleBlockW + 8} y={36} fontSize={6} fill={STROKE_LIGHT} fontFamily={FONT}>
+          {fr ? "non pas pour la construction." : "not for construction."}
+        </text>
+      </g>
     </svg>
   );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// MICRO INVERTER SLD RENDERER
+// MICRO INVERTER SLD — VERTICAL LAYOUT
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function MicroInverterSLD({
-  groups,
-  config,
-  arrays,
-  language = "fr"
+  groups, config, arrays, language = "fr"
 }: {
   groups: SLDMicroInverterGroup[];
   config: SLDElectricalConfig;
@@ -1119,53 +766,53 @@ function MicroInverterSLD({
   language: "fr" | "en";
 }) {
   const fr = language === "fr";
-
-  const blockH = 70;
-  const startY = 30;
-
-  const showAll = groups.length <= 2;
-  const displayGroups = showAll ? groups : [groups[0], groups[groups.length - 1]];
-  const hiddenGroupCount = showAll ? 0 : groups.length - 2;
-  const gapBlockH = hiddenGroupCount > 0 ? 50 : 0;
-  const displayCount = displayGroups.length;
-
-  const MICRO_IEC_INV_SIZE = 44;
-  const MICRO_IEC_BREAKER_W = 36;
-  const MICRO_IEC_PANEL_W = 70;
-  const MICRO_IEC_PANEL_H = 50;
-  const MICRO_IEC_GRID_SIZE = 44;
-
-  const colPV = SVG_MARGIN + 10;
-  const colMicro = colPV + ARRAY_BOX_W + COL_GAP;
-  const colBranch = colMicro + MICRO_IEC_INV_SIZE + COL_GAP;
-  const colMeter = colBranch + MICRO_IEC_BREAKER_W + COL_GAP + 20;
-  const colMainPanel = colMeter + METER_R * 2 + COL_GAP + 20;
-  const colGrid = colMainPanel + MICRO_IEC_PANEL_W + COL_GAP;
-  const diagramW = colGrid + MICRO_IEC_GRID_SIZE + SVG_MARGIN;
-
-  const rightPanelW = CARTOUCHE_RIGHT_PANEL_W;
-  const totalW = diagramW + rightPanelW + 20;
-  const diagramContentH = startY + displayCount * blockH + gapBlockH + 50;
-  const minH = 500;
-  const bottomStripH = CARTOUCHE_BOTTOM_H;
-  const totalH = Math.max(diagramContentH, minH) + bottomStripH + 20;
-  const bottomStripY = totalH - bottomStripH - 10;
-  const rightPanelX = diagramW + 10;
-
-  const microW = config.microInverterPowerW || DEFAULT_MICRO_INV_W;
   const serviceV = config.serviceVoltage || 240;
   const serviceA = config.serviceAmperage || 200;
   const mainBreakerA = config.mainBreakerA || 200;
+  const microW = config.microInverterPowerW || DEFAULT_MICRO_INV_W;
 
-  const getGroupY = (dispIdx: number) => {
-    if (dispIdx === 0) return startY;
-    if (hiddenGroupCount > 0) return startY + blockH + gapBlockH;
-    return startY + dispIdx * blockH;
+  const showMax = 3;
+  const showAll = groups.length <= showMax;
+  const displayGroups = showAll ? groups : [groups[0], groups[Math.floor(groups.length / 2)], groups[groups.length - 1]];
+  const hiddenCount = showAll ? 0 : groups.length - showMax;
+  const displayCount = displayGroups.length;
+
+  const grpColW = 120;
+  const gapCol = hiddenCount > 0 ? 60 : 0;
+
+  const marginLeft = 20;
+  const marginTop = 18;
+  const titleBlockW = 220;
+  const titleBlockH = 140;
+
+  const pvZoneW = Math.max(displayCount * grpColW + gapCol, 300);
+  const innerW = pvZoneW + 60;
+  const totalW = innerW + marginLeft * 2 + titleBlockW;
+
+  const rowGrid = marginTop + 30;
+  const rowBreaker1 = rowGrid + 55;
+  const rowMeter = rowBreaker1 + 50;
+  const rowACPanel = rowMeter + 55;
+  const rowPVZoneTop = rowACPanel + 55;
+  const rowBranchBreaker = rowPVZoneTop + 40;
+  const rowMicroInv = rowBranchBreaker + 55;
+  const rowPVArrays = rowMicroInv + 55;
+  const rowPVZoneBottom = rowPVArrays + 45;
+
+  const totalH = rowPVZoneBottom + 30 + marginTop;
+  const centerX = marginLeft + innerW / 2;
+
+  const getGrpX = (dispIdx: number) => {
+    if (showAll) {
+      const blockStart = marginLeft + (innerW - displayCount * grpColW) / 2;
+      return blockStart + dispIdx * grpColW + grpColW / 2;
+    }
+    const blockStart = marginLeft + (innerW - (displayCount * grpColW + gapCol)) / 2;
+    if (dispIdx === 0) return blockStart + grpColW / 2;
+    if (dispIdx === 1 && hiddenCount > 0) return blockStart + grpColW + gapCol / 2;
+    if (dispIdx === 1 && hiddenCount === 0) return blockStart + grpColW + grpColW / 2;
+    return blockStart + (displayCount - 1) * grpColW + gapCol + grpColW / 2;
   };
-
-  const gapY = startY + blockH;
-
-  const microInvCenterX = colMicro + MICRO_IEC_INV_SIZE / 2;
 
   return (
     <svg
@@ -1174,129 +821,138 @@ function MicroInverterSLD({
       style={{ maxWidth: totalW, background: "white" }}
       xmlns="http://www.w3.org/2000/svg"
     >
-      <SLDLabel x={colPV + ARRAY_BOX_W / 2} y={startY - 12} text={fr ? "ARRAY PV" : "PV ARRAY"} fontSize={8} color="#475569" />
-      <SLDLabel x={microInvCenterX} y={startY - 12} text={fr ? "MICRO-ONDULEURS" : "MICROINVERTERS"} fontSize={8} color="#475569" />
-      <SLDLabel x={colBranch + MICRO_IEC_BREAKER_W / 2} y={startY - 12} text={fr ? "DISJONCTEUR" : "BREAKER"} fontSize={8} color="#475569" />
+      <GridBorder width={totalW - titleBlockW} height={totalH} marginLeft={marginLeft} marginTop={marginTop}
+        innerW={innerW} innerH={totalH - marginTop * 2} />
 
-      {displayGroups.map((grp, dispIdx) => {
-        const baseY = getGroupY(dispIdx);
-        const cy = baseY + blockH / 2;
+      {/* Grid connection */}
+      <UtilityPole cx={centerX + 60} cy={rowGrid} />
+      <text x={centerX + 60} y={rowGrid + 28} textAnchor="middle" fontSize={7} fill={STROKE_LIGHT} fontFamily={FONT}>
+        {fr ? "Réseau" : "Grid"}
+      </text>
 
-        return (
-          <g key={grp.arrayId}>
-            <IECPVString
-              x={colPV} y={cy - ARRAY_BOX_H / 2} w={ARRAY_BOX_W} h={ARRAY_BOX_H}
-              label={`Array #${grp.arrayId}`}
-              sublabel={`${grp.panelCount} pan. / ${grp.capacityKW} kW`}
-            />
+      {/* Main breaker */}
+      <line x1={centerX} y1={rowGrid + 20} x2={centerX} y2={rowBreaker1 - 12} stroke={STROKE} strokeWidth={1.5} />
+      <IECBreakerV cx={centerX} y1={rowBreaker1 - 12} length={24} />
+      <text x={centerX - 24} y={rowBreaker1} fontSize={7} fill={STROKE} fontWeight={600} fontFamily={FONT} textAnchor="end">
+        {`${serviceA}A`}
+      </text>
 
-            <SLDLine x1={colPV + ARRAY_BOX_W} y1={cy} x2={colMicro} y2={cy} color="#dc2626" />
-            <WireLabel x1={colPV + ARRAY_BOX_W} y1={cy} x2={colMicro} y2={cy} label="DC 1:1" />
+      {/* Meter */}
+      <line x1={centerX} y1={rowBreaker1 + 12} x2={centerX} y2={rowMeter - 16} stroke={STROKE} strokeWidth={1.5} />
+      <IECMeterV cx={centerX} cy={rowMeter} r={16} />
 
-            <IECInverter
-              cx={microInvCenterX} cy={cy} size={MICRO_IEC_INV_SIZE}
-              label={`${grp.panelCount}× μINV`}
-              sublabel={`${microW}W ${fr ? "chaque" : "each"}`}
-            />
+      {/* Main panel */}
+      <line x1={centerX} y1={rowMeter + 16} x2={centerX} y2={rowACPanel - 20} stroke={STROKE} strokeWidth={1.5} />
+      <rect x={centerX - 40} y={rowACPanel - 20} width={80} height={35}
+        fill="white" stroke={STROKE} strokeWidth={1.5} rx={2} />
+      <text x={centerX} y={rowACPanel} textAnchor="middle" dominantBaseline="middle" fontSize={7} fontWeight={600}
+        fill={STROKE} fontFamily={FONT}>{fr ? "Panneau principal" : "Main Panel"}</text>
+      <text x={centerX} y={rowACPanel + 10} textAnchor="middle" fontSize={6} fill={STROKE_LIGHT} fontFamily={FONT}>
+        {`${mainBreakerA}A / ${serviceV}V`}
+      </text>
+      <IECGroundV cx={centerX + 50} topY={rowACPanel - 5} />
 
-            <SLDLine x1={microInvCenterX + MICRO_IEC_INV_SIZE / 2} y1={cy} x2={colBranch} y2={cy} color="#2563eb" />
-            <WireLabel x1={microInvCenterX + MICRO_IEC_INV_SIZE / 2} y1={cy} x2={colBranch} y2={cy} label="AC Bus" />
+      {/* Bus line to branches */}
+      <line x1={centerX} y1={rowACPanel + 15} x2={centerX} y2={rowPVZoneTop} stroke={STROKE} strokeWidth={1.5} />
 
-            <IECBreaker
-              x={colBranch} cy={cy} width={MICRO_IEC_BREAKER_W}
-              label={fr ? `Disj. #${grp.arrayId}` : `Brkr #${grp.arrayId}`}
-              sublabel={`${Math.ceil(grp.acBranchCircuitA)}A`}
-            />
-          </g>
-        );
-      })}
-
-      {hiddenGroupCount > 0 && (
-        <g>
-          <text x={microInvCenterX} y={gapY + 15} textAnchor="middle" fontSize={16} fill="#94a3b8" fontFamily={FONT}>{"⋮"}</text>
-          <text x={microInvCenterX} y={gapY + 32} textAnchor="middle" fontSize={9} fill="#64748b" fontFamily={FONT}>
-            {fr ? `× ${groups.length} groupes identiques` : `× ${groups.length} identical groups`}
-          </text>
-          <line x1={colPV} y1={gapY + 2} x2={colBranch + MICRO_IEC_BREAKER_W} y2={gapY + 2} stroke="#e2e8f0" strokeWidth={0.5} strokeDasharray="4 3" />
-          <line x1={colPV} y1={gapY + gapBlockH - 2} x2={colBranch + MICRO_IEC_BREAKER_W} y2={gapY + gapBlockH - 2} stroke="#e2e8f0" strokeWidth={0.5} strokeDasharray="4 3" />
-        </g>
-      )}
-
+      {/* ZONE CHAMPS PV */}
       {(() => {
-        const busX = colBranch + MICRO_IEC_BREAKER_W + 20;
-        const busTopY = getGroupY(0) + blockH / 2;
-        const busBottomY = getGroupY(displayCount - 1) + blockH / 2;
-        const busMidY = (busTopY + busBottomY) / 2;
-
-        const meterCx = colMeter + METER_R;
-        const panelX = colMainPanel;
-        const panelCx = panelX + MICRO_IEC_PANEL_W / 2;
-        const gridCx = colGrid + MICRO_IEC_GRID_SIZE / 2;
-
+        const zoneMargin = 15;
+        const zoneX = marginLeft + zoneMargin;
+        const zoneW = innerW - zoneMargin * 2;
         return (
           <g>
-            {displayCount > 1 && (
-              <SLDLine x1={busX} y1={busTopY} x2={busX} y2={busBottomY} color="#2563eb" />
-            )}
-
-            {displayGroups.map((grp, dispIdx) => {
-              const cy = getGroupY(dispIdx) + blockH / 2;
-              return (
-                <SLDLine key={grp.arrayId}
-                  x1={colBranch + MICRO_IEC_BREAKER_W} y1={cy} x2={busX} y2={cy} color="#2563eb"
-                />
-              );
-            })}
-
-            {hiddenGroupCount > 0 && (
-              <line x1={busX} y1={gapY + 5} x2={busX} y2={gapY + gapBlockH - 5} stroke="#2563eb" strokeWidth={1.5} strokeDasharray="4 3" />
-            )}
-
-            <SLDLine x1={busX} y1={busMidY} x2={meterCx - METER_R} y2={busMidY} color="#2563eb" />
-
-            <IECMeter
-              cx={meterCx} cy={busMidY} r={METER_R}
-              label={fr ? "Prod." : "Prod."}
-            />
-
-            <SLDLine x1={meterCx + METER_R} y1={busMidY} x2={panelX} y2={busMidY} color="#2563eb" />
-
-            <IECMainPanel
-              x={panelX} y={busMidY - MICRO_IEC_PANEL_H / 2} w={MICRO_IEC_PANEL_W} h={MICRO_IEC_PANEL_H}
-              label={fr ? "Panneau principal" : "Main Panel"}
-              sublabel={`${mainBreakerA}A / ${serviceV}V`}
-            />
-
-            <SLDLine x1={panelX + MICRO_IEC_PANEL_W} y1={busMidY} x2={gridCx - MICRO_IEC_GRID_SIZE / 2} y2={busMidY} color="#475569" />
-
-            <IECGrid
-              cx={gridCx} cy={busMidY} size={MICRO_IEC_GRID_SIZE}
-              label={fr ? "RÉSEAU" : "GRID"}
-              sublabel={`${serviceV}V / ${serviceA}A`}
-            />
-
-            <IECGround
-              cx={panelCx}
-              topY={busMidY + MICRO_IEC_PANEL_H / 2}
-              label="GND"
-            />
+            <rect x={zoneX} y={rowPVZoneTop - 12} width={zoneW} height={rowPVZoneBottom - rowPVZoneTop + 24}
+              fill="none" stroke={STROKE} strokeWidth={1} strokeDasharray="8 4" rx={4} />
+            <text x={zoneX + 8} y={rowPVZoneTop} fontSize={8} fontWeight={600} fill={STROKE} fontFamily={FONT}>
+              ZONE CHAMPS PV
+            </text>
           </g>
         );
       })()}
 
-      {/* Cartouche */}
-      <SLDCartouche
-        rightPanelX={rightPanelX}
-        rightPanelWidth={rightPanelW}
-        topY={4}
-        bottomStripY={bottomStripY}
-        totalWidth={totalW}
-        totalHeight={totalH}
-        config={config}
-        arrays={arrays}
-        microLayout={groups}
-        language={language}
+      {/* Horizontal bus */}
+      {(() => {
+        const firstX = getGrpX(0);
+        const lastX = getGrpX(displayCount - 1);
+        return (
+          <line x1={firstX} y1={rowBranchBreaker - 10} x2={lastX} y2={rowBranchBreaker - 10}
+            stroke={STROKE} strokeWidth={1.5} />
+        );
+      })()}
+      <line x1={centerX} y1={rowPVZoneTop} x2={centerX} y2={rowBranchBreaker - 10}
+        stroke={STROKE} strokeWidth={1.5} />
+
+      {/* Branch groups */}
+      {displayGroups.map((grp, dispIdx) => {
+        const gx = getGrpX(dispIdx);
+        const isMiddleGap = !showAll && dispIdx === 1;
+
+        if (isMiddleGap) {
+          return (
+            <g key={`gap-${grp.arrayId}`}>
+              <text x={gx} y={rowMicroInv} textAnchor="middle" fontSize={14}
+                fill={STROKE_FAINT} fontFamily={FONT}>{"..."}</text>
+              <text x={gx} y={rowMicroInv + 16} textAnchor="middle" fontSize={7}
+                fill={STROKE_LIGHT} fontFamily={FONT}>
+                {fr ? `× ${groups.length} groupes` : `× ${groups.length} groups`}
+              </text>
+            </g>
+          );
+        }
+
+        return (
+          <g key={grp.arrayId}>
+            <line x1={gx} y1={rowBranchBreaker - 10} x2={gx} y2={rowBranchBreaker} stroke={STROKE} strokeWidth={1.2} />
+            <IECBreakerV cx={gx} y1={rowBranchBreaker} length={20} />
+            <text x={gx + 16} y={rowBranchBreaker + 10} fontSize={6} fill={STROKE_LIGHT} fontFamily={FONT}>
+              {`${Math.ceil(grp.acBranchCircuitA)}A`}
+            </text>
+
+            <line x1={gx} y1={rowBranchBreaker + 20} x2={gx} y2={rowMicroInv - 18} stroke={STROKE} strokeWidth={1.2} />
+
+            <IECInverterV cx={gx} cy={rowMicroInv} size={36} />
+            <text x={gx} y={rowMicroInv + 24} textAnchor="middle" fontSize={7} fontWeight={600} fill={STROKE} fontFamily={FONT}>
+              {`${grp.panelCount}× μINV`}
+            </text>
+            <text x={gx} y={rowMicroInv + 33} textAnchor="middle" fontSize={6} fill={STROKE_LIGHT} fontFamily={FONT}>
+              {`${microW}W ${fr ? "chaque" : "each"}`}
+            </text>
+
+            <line x1={gx} y1={rowMicroInv + 36} x2={gx} y2={rowPVArrays - 14} stroke={STROKE} strokeWidth={1.2} strokeDasharray="4 2" />
+
+            <IECPVModuleV cx={gx} cy={rowPVArrays} />
+            <text x={gx} y={rowPVArrays + 16} textAnchor="middle" fontSize={6} fill={STROKE_LIGHT} fontFamily={FONT}>
+              {`Array #${grp.arrayId}`}
+            </text>
+            <text x={gx} y={rowPVArrays + 24} textAnchor="middle" fontSize={6} fill={STROKE_LIGHT} fontFamily={FONT}>
+              {`${grp.panelCount} pan. / ${grp.capacityKW}kW`}
+            </text>
+          </g>
+        );
+      })}
+
+      {/* Title block */}
+      <TitleBlock
+        x={totalW - titleBlockW - 1} y={totalH - titleBlockH - 1}
+        w={titleBlockW} h={titleBlockH}
+        config={config} fr={fr}
+        totalStrings={groups.length}
+        panelsPerString={groups.length > 0 ? groups[0].panelCount : 0}
+        inverterCount={groups.reduce((s, g) => s + g.panelCount, 0)}
       />
+
+      <g>
+        <rect x={totalW - titleBlockW - 1} y={1} width={titleBlockW} height={40} fill="white" stroke={STROKE} strokeWidth={1} />
+        <text x={totalW - titleBlockW + 8} y={14} fontSize={7} fontWeight={700} fill={STROKE} fontFamily={FONT}>NOTE</text>
+        <line x1={totalW - titleBlockW + 8} y1={17} x2={totalW - titleBlockW + 35} y2={17} stroke={STROKE} strokeWidth={0.5} />
+        <text x={totalW - titleBlockW + 8} y={28} fontSize={6} fill={STROKE_LIGHT} fontFamily={FONT}>
+          {fr ? "Ce document est un document type et" : "This is a typical drawing and"}
+        </text>
+        <text x={totalW - titleBlockW + 8} y={36} fontSize={6} fill={STROKE_LIGHT} fontFamily={FONT}>
+          {fr ? "non pas pour la construction." : "not for construction."}
+        </text>
+      </g>
     </svg>
   );
 }
@@ -1309,7 +965,6 @@ export default function SLDDiagram({ arrays, config, language = "fr", width, hei
   const svgRef = useRef<SVGSVGElement | null>(null);
   const fr = language === "fr";
 
-  // Compute electrical layout
   const inverterLayout = useMemo(() => {
     if (config.inverterType === "string") {
       return calculateStringInverterLayout(
@@ -1331,22 +986,15 @@ export default function SLDDiagram({ arrays, config, language = "fr", width, hei
     return null;
   }, [arrays, config]);
 
-  // Export SVG as string (for PDF generation)
   const getSVGString = useCallback((): string | null => {
-    // Find the actual SVG element inside the wrapper
     const container = svgRef.current;
     if (!container) return null;
-
-    // The rendered SVG is a child since we wrap in a div
     const svgEl = container.querySelector?.("svg") || container;
     if (!svgEl) return null;
-
     const serializer = new XMLSerializer();
     return serializer.serializeToString(svgEl);
   }, []);
 
-  // Expose getSVGString for parent components
-  // Store on the ref div as a property for parent access
   const containerRef = useCallback((node: HTMLDivElement | null) => {
     if (node) {
       (node as any).__getSVGString = getSVGString;
@@ -1383,7 +1031,6 @@ export default function SLDDiagram({ arrays, config, language = "fr", width, hei
         />
       )}
 
-      {/* Summary table below diagram */}
       <div className="mt-4 text-xs text-muted-foreground space-y-1 px-2">
         <div className="flex justify-between border-b pb-1">
           <span className="font-medium">{fr ? "Résumé électrique" : "Electrical Summary"}</span>
