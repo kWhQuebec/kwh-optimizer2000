@@ -15,12 +15,14 @@ import {
   insertMeterReadingSchema,
   insertSimulationRunSchema,
   insertRoofPolygonSchema,
+  insertProjectBudgetSchema,
   defaultAnalysisAssumptions,
   sites as sitesTable,
   roofPolygons as roofPolygonsTable,
   type AnalysisAssumptions,
   type Site,
 } from "@shared/schema";
+import { BUDGET_CATEGORIES } from "@shared/stageLabels";
 import {
   runMonteCarloAnalysis,
   createSimplifiedScenarioRunner,
@@ -1824,6 +1826,308 @@ router.get("/:id/copy-roof-from-address", authMiddleware, asyncHandler(async (re
     copied: true,
     sourceId: sourceSiteId,
     polygonCount: sourcePolygons.length,
+  });
+}));
+
+// ========================================
+// PHASE 1 — Close the Loop: Budget, Baseline, Reconciliation
+// ========================================
+
+// --- BUDGET CRUD ---
+
+router.get("/:siteId/budgets", authMiddleware, asyncHandler(async (req: AuthRequest, res) => {
+  const site = await storage.getSite(req.params.siteId);
+  if (!site) throw new NotFoundError("Site");
+
+  const budgets = await storage.getProjectBudgets(req.params.siteId);
+
+  // Summary calculations
+  const summary = {
+    totalOriginal: 0,
+    totalRevised: 0,
+    totalCommitted: 0,
+    totalActual: 0,
+    variance: 0,
+    percentOfRevised: 0,
+  };
+
+  for (const b of budgets) {
+    summary.totalOriginal += b.originalAmount || 0;
+    summary.totalRevised += b.revisedAmount || 0;
+    summary.totalCommitted += b.committedAmount || 0;
+    summary.totalActual += b.actualAmount || 0;
+  }
+  summary.variance = summary.totalActual - summary.totalRevised;
+  summary.percentOfRevised = summary.totalRevised > 0
+    ? Math.round((summary.totalActual / summary.totalRevised) * 100)
+    : 0;
+
+  res.json({ siteId: req.params.siteId, budgets, summary });
+}));
+
+router.post("/:siteId/budgets", authMiddleware, requireStaff, asyncHandler(async (req: AuthRequest, res) => {
+  const site = await storage.getSite(req.params.siteId);
+  if (!site) throw new NotFoundError("Site");
+
+  const data = insertProjectBudgetSchema.parse({
+    ...req.body,
+    siteId: req.params.siteId,
+  });
+
+  const budget = await storage.createProjectBudget(data);
+  res.status(201).json(budget);
+}));
+
+// Auto-initialize budget from price breakdown + construction agreement
+router.post("/:siteId/budgets/initialize", authMiddleware, requireStaff, asyncHandler(async (req: AuthRequest, res) => {
+  const site = await storage.getSite(req.params.siteId);
+  if (!site) throw new NotFoundError("Site");
+
+  // Check if already initialized
+  const existing = await storage.getProjectBudgets(req.params.siteId);
+  if (existing.length > 0) {
+    throw new ConflictError("Budget already initialized. Delete existing items first.");
+  }
+
+  // Get price breakdown for "original" amounts
+  const simulations = await storage.getSimulationRunsBySite(site.id);
+  const latestSim = simulations.length > 0
+    ? simulations.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime())[0]
+    : null;
+
+  let capacityKW = site.kbKwDc || 100;
+  if (latestSim?.pvSizeKW) capacityKW = latestSim.pvSizeKW;
+
+  const { getTieredSolarCostPerW } = await import("../analysis/potentialAnalysis");
+  const costPerW = getTieredSolarCostPerW(capacityKW);
+  const totalCost = Math.round(costPerW * capacityKW * 1000);
+
+  const categoryRatios: Record<string, number> = {
+    racking: 0.18, panels: 0.28, inverters: 0.12, bos_electrical: 0.10,
+    labor: 0.20, soft_costs: 0.07, permits: 0.05,
+  };
+
+  const createdBudgets = [];
+  for (const cat of BUDGET_CATEGORIES) {
+    const ratio = categoryRatios[cat.key] || 0;
+    const originalAmount = Math.round(totalCost * ratio);
+
+    const budget = await storage.createProjectBudget({
+      siteId: req.params.siteId,
+      category: cat.key,
+      description: cat.labelFr,
+      originalAmount,
+      revisedAmount: originalAmount,
+      committedAmount: 0,
+      actualAmount: 0,
+    });
+    createdBudgets.push(budget);
+  }
+
+  log.info(`Initialized ${createdBudgets.length} budget items for site ${req.params.siteId} (total: $${totalCost})`);
+  res.status(201).json({ budgets: createdBudgets, totalEstimate: totalCost });
+}));
+
+router.put("/:siteId/budgets/:budgetId", authMiddleware, requireStaff, asyncHandler(async (req: AuthRequest, res) => {
+  const updated = await storage.updateProjectBudget(req.params.budgetId, req.body);
+  if (!updated) throw new NotFoundError("Budget item");
+  res.json(updated);
+}));
+
+router.delete("/:siteId/budgets/:budgetId", authMiddleware, requireStaff, asyncHandler(async (req: AuthRequest, res) => {
+  const deleted = await storage.deleteProjectBudget(req.params.budgetId);
+  if (!deleted) throw new NotFoundError("Budget item");
+  res.json({ success: true });
+}));
+
+// --- BASELINE ---
+
+router.post("/:siteId/baseline/snapshot", authMiddleware, requireStaff, asyncHandler(async (req: AuthRequest, res) => {
+  const site = await storage.getSite(req.params.siteId);
+  if (!site) throw new NotFoundError("Site");
+
+  // Extract baseline from HQ consumption history
+  const history = (site.hqConsumptionHistory as any[]) || [];
+  if (history.length === 0) {
+    throw new BadRequestError("No HQ consumption history available to create baseline. Upload a bill first.");
+  }
+
+  // Take the most recent 12 entries as baseline
+  const sorted = [...history].sort((a: any, b: any) => {
+    const dateA = a.period || a.date || "";
+    const dateB = b.period || b.date || "";
+    return dateB.localeCompare(dateA);
+  });
+
+  const last12 = sorted.slice(0, 12);
+  const monthlyProfile = last12.map((entry: any, idx: number) => ({
+    month: idx + 1,
+    kWh: entry.kWh || entry.kwh || 0,
+    cost: entry.amount || entry.cost || 0,
+    period: entry.period || entry.date || "",
+  }));
+
+  const annualKwh = monthlyProfile.reduce((sum: number, m: any) => sum + (m.kWh || 0), 0);
+  const annualCost = monthlyProfile.reduce((sum: number, m: any) => sum + (m.cost || 0), 0);
+  const peakDemand = Math.max(...history.map((e: any) => e.kW || e.kw || 0), 0);
+
+  await storage.updateSite(req.params.siteId, {
+    baselineSnapshotDate: new Date(),
+    baselineAnnualConsumptionKwh: annualKwh,
+    baselineAnnualCostCad: annualCost,
+    baselinePeakDemandKw: peakDemand || null,
+    baselineMonthlyProfile: monthlyProfile,
+  });
+
+  log.info(`Baseline snapshot captured for site ${req.params.siteId}: ${annualKwh} kWh/yr, $${annualCost}/yr`);
+
+  res.json({
+    baselineSnapshotDate: new Date(),
+    baselineAnnualConsumptionKwh: annualKwh,
+    baselineAnnualCostCad: annualCost,
+    baselinePeakDemandKw: peakDemand || null,
+    baselineMonthlyProfile: monthlyProfile,
+  });
+}));
+
+router.get("/:siteId/baseline", authMiddleware, asyncHandler(async (req: AuthRequest, res) => {
+  const site = await storage.getSite(req.params.siteId);
+  if (!site) throw new NotFoundError("Site");
+
+  if (!site.baselineSnapshotDate) {
+    return res.json({ hasBaseline: false });
+  }
+
+  res.json({
+    hasBaseline: true,
+    baselineSnapshotDate: site.baselineSnapshotDate,
+    baselineAnnualConsumptionKwh: site.baselineAnnualConsumptionKwh,
+    baselineAnnualCostCad: site.baselineAnnualCostCad,
+    baselinePeakDemandKw: site.baselinePeakDemandKw,
+    baselineMonthlyProfile: site.baselineMonthlyProfile,
+    operationsStartDate: site.operationsStartDate,
+  });
+}));
+
+router.put("/:siteId/baseline", authMiddleware, requireStaff, asyncHandler(async (req: AuthRequest, res) => {
+  const site = await storage.getSite(req.params.siteId);
+  if (!site) throw new NotFoundError("Site");
+
+  const { baselineAnnualConsumptionKwh, baselineAnnualCostCad, baselinePeakDemandKw, baselineMonthlyProfile, operationsStartDate } = req.body;
+
+  await storage.updateSite(req.params.siteId, {
+    ...(baselineAnnualConsumptionKwh !== undefined && { baselineAnnualConsumptionKwh }),
+    ...(baselineAnnualCostCad !== undefined && { baselineAnnualCostCad }),
+    ...(baselinePeakDemandKw !== undefined && { baselinePeakDemandKw }),
+    ...(baselineMonthlyProfile !== undefined && { baselineMonthlyProfile }),
+    ...(operationsStartDate !== undefined && { operationsStartDate: new Date(operationsStartDate) }),
+  });
+
+  res.json({ success: true });
+}));
+
+// --- RECONCILIATION ---
+
+router.get("/:siteId/reconciliation", authMiddleware, asyncHandler(async (req: AuthRequest, res) => {
+  const site = await storage.getSite(req.params.siteId);
+  if (!site) throw new NotFoundError("Site");
+
+  if (!site.baselineMonthlyProfile || !site.operationsStartDate) {
+    return res.json({
+      hasData: false,
+      message: "Baseline or operations start date not set.",
+      months: [],
+      summary: { totalHistoricalKwh: 0, totalPredictedSavingsKwh: 0, totalActualKwh: 0, totalSavingsKwh: 0, achievementPercent: 0, costSavings: 0 },
+    });
+  }
+
+  // Get latest simulation for predicted production
+  const simulations = await storage.getSimulationRunsBySite(site.id);
+  const latestSim = simulations.length > 0
+    ? simulations.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime())[0]
+    : null;
+
+  const annualProductionKwh = latestSim?.totalProductionKWh || latestSim?.annualEnergySavingsKWh || 0;
+  const monthlyPredictedSavings = annualProductionKwh / 12;
+
+  // Get meter readings for post-installation period
+  const meterReadings = await storage.getMeterReadingsBySite(site.id);
+
+  const baselineProfile = (site.baselineMonthlyProfile as any[]) || [];
+  const opsStart = new Date(site.operationsStartDate);
+  const now = new Date();
+
+  const months: any[] = [];
+  let totalHistoricalKwh = 0;
+  let totalPredictedSavingsKwh = 0;
+  let totalActualKwh = 0;
+
+  // Iterate month by month from operations start to now
+  const cursor = new Date(opsStart.getFullYear(), opsStart.getMonth(), 1);
+  while (cursor <= now) {
+    const year = cursor.getFullYear();
+    const month = cursor.getMonth(); // 0-indexed
+
+    // Historical: from baseline monthly profile (use month index to map)
+    const baselineEntry = baselineProfile[month % baselineProfile.length] || { kWh: 0, cost: 0 };
+    const historical = baselineEntry.kWh || baselineEntry.kwh || 0;
+
+    // Predicted savings: from simulation (monthly average)
+    const predicted = monthlyPredictedSavings;
+
+    // Actual consumption: aggregate meter readings for this month
+    const monthStart = new Date(year, month, 1);
+    const monthEnd = new Date(year, month + 1, 1);
+    const monthReadings = meterReadings.filter(r => {
+      const ts = new Date(r.timestamp!);
+      return ts >= monthStart && ts < monthEnd;
+    });
+    const actualConsumption = monthReadings.reduce((sum, r) => sum + (r.kWh || 0), 0);
+
+    // Savings = historical - actual (positive = saving energy)
+    const savings = historical - actualConsumption;
+    const achievementPercent = predicted > 0 ? Math.round((savings / predicted) * 100) : 0;
+
+    const monthNames = ["Jan", "Fév", "Mar", "Avr", "Mai", "Jun", "Jul", "Aoû", "Sep", "Oct", "Nov", "Déc"];
+
+    months.push({
+      year,
+      month: month + 1, // 1-indexed for display
+      label: `${monthNames[month]} ${year}`,
+      historicalKwh: Math.round(historical),
+      predictedSavingsKwh: Math.round(predicted),
+      actualConsumptionKwh: Math.round(actualConsumption),
+      savingsKwh: Math.round(savings),
+      achievementPercent,
+    });
+
+    totalHistoricalKwh += historical;
+    totalPredictedSavingsKwh += predicted;
+    totalActualKwh += actualConsumption;
+
+    cursor.setMonth(cursor.getMonth() + 1);
+  }
+
+  const totalSavingsKwh = totalHistoricalKwh - totalActualKwh;
+  const overallAchievement = totalPredictedSavingsKwh > 0
+    ? Math.round((totalSavingsKwh / totalPredictedSavingsKwh) * 100)
+    : 0;
+
+  // Estimate cost savings using average energy rate
+  const energyRate = 0.06061; // Default M tariff
+  const costSavings = Math.round(totalSavingsKwh * energyRate);
+
+  res.json({
+    hasData: true,
+    months,
+    summary: {
+      totalHistoricalKwh: Math.round(totalHistoricalKwh),
+      totalPredictedSavingsKwh: Math.round(totalPredictedSavingsKwh),
+      totalActualKwh: Math.round(totalActualKwh),
+      totalSavingsKwh: Math.round(totalSavingsKwh),
+      achievementPercent: overallAchievement,
+      costSavings,
+    },
   });
 }));
 

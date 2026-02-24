@@ -160,3 +160,15 @@ export function getStageShortLabel(stage: string, lang: string = "fr"): string {
   if (!labels) return stage;
   return lang === "fr" ? labels.fr : labels.en;
 }
+
+// === BUDGET CATEGORIES (aligned with price breakdown) ===
+export const BUDGET_CATEGORIES = [
+  { key: "racking", labelFr: "Structure (racking)", labelEn: "Racking" },
+  { key: "panels", labelFr: "Panneaux solaires", labelEn: "Solar Panels" },
+  { key: "inverters", labelFr: "Onduleurs", labelEn: "Inverters" },
+  { key: "bos_electrical", labelFr: "Électrique (BOS)", labelEn: "Electrical (BOS)" },
+  { key: "labor", labelFr: "Main-d'œuvre", labelEn: "Labor" },
+  { key: "soft_costs", labelFr: "Coûts indirects", labelEn: "Soft Costs" },
+  { key: "permits", labelFr: "Permis", labelEn: "Permits" },
+  { key: "other", labelFr: "Autre", labelEn: "Other" },
+] as const;

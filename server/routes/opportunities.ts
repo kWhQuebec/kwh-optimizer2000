@@ -128,6 +128,46 @@ router.post("/api/opportunities/:id/stage", authMiddleware, requireStaff, asyncH
   if (!opportunity) {
     throw new NotFoundError("Opportunity");
   }
+
+  // Auto-capture baseline when entering construction or delivered stages
+  if (["won_in_construction", "won_delivered"].includes(stage) && opportunity.siteId) {
+    try {
+      const site = await storage.getSite(opportunity.siteId);
+      if (site && !site.baselineSnapshotDate) {
+        const history = (site.hqConsumptionHistory as any[]) || [];
+        if (history.length > 0) {
+          const sorted = [...history].sort((a: any, b: any) => (b.period || "").localeCompare(a.period || ""));
+          const last12 = sorted.slice(0, 12);
+          const monthlyProfile = last12.map((entry: any, idx: number) => ({
+            month: idx + 1,
+            kWh: entry.kWh || entry.kwh || 0,
+            cost: entry.amount || entry.cost || 0,
+            period: entry.period || entry.date || "",
+          }));
+          const annualKwh = monthlyProfile.reduce((s: number, m: any) => s + (m.kWh || 0), 0);
+          const annualCost = monthlyProfile.reduce((s: number, m: any) => s + (m.cost || 0), 0);
+          const peakDemand = Math.max(...history.map((e: any) => e.kW || e.kw || 0), 0);
+
+          await storage.updateSite(opportunity.siteId, {
+            baselineSnapshotDate: new Date(),
+            baselineAnnualConsumptionKwh: annualKwh,
+            baselineAnnualCostCad: annualCost,
+            baselinePeakDemandKw: peakDemand || null,
+            baselineMonthlyProfile: monthlyProfile,
+            ...(stage === "won_delivered" && !site.operationsStartDate ? { operationsStartDate: new Date() } : {}),
+          });
+          log.info(`Auto-captured baseline for site ${opportunity.siteId}: ${annualKwh} kWh/yr`);
+        }
+      }
+      // Set operationsStartDate if won_delivered and not already set
+      if (stage === "won_delivered" && site && !site.operationsStartDate) {
+        await storage.updateSite(opportunity.siteId, { operationsStartDate: new Date() });
+      }
+    } catch (err) {
+      log.error(`Failed to auto-capture baseline for site ${opportunity.siteId}:`, err);
+    }
+  }
+
   res.json(opportunity);
 }));
 

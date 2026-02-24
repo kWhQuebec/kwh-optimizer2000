@@ -51,6 +51,7 @@ import type {
   SiteContent, InsertSiteContent,
   SystemSettings,
   NewsArticle, InsertNewsArticle,
+  ProjectBudget, InsertProjectBudget,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -529,6 +530,12 @@ export interface IStorage {
   updateNewsArticle(id: string, updates: Partial<NewsArticle>): Promise<NewsArticle | undefined>;
   deleteNewsArticle(id: string): Promise<boolean>;
   incrementNewsViewCount(id: string): Promise<void>;
+
+  // Project Budgets (Phase 1 — Close the Loop)
+  getProjectBudgets(siteId: string): Promise<ProjectBudget[]>;
+  createProjectBudget(budget: InsertProjectBudget): Promise<ProjectBudget>;
+  updateProjectBudget(id: string, data: Partial<ProjectBudget>): Promise<ProjectBudget | undefined>;
+  deleteProjectBudget(id: string): Promise<boolean>;
 }
 
 

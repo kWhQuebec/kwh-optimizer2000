@@ -297,10 +297,18 @@ export const sites = pgTable("sites", {
   estimatedAnnualConsumptionKwh: real("estimated_annual_consumption_kwh"), // Client-reported annual consumption
   quickInfoCompletedAt: timestamp("quick_info_completed_at"), // When Step 1 form was completed
   
+  // Baseline & Operations (Phase 1 — Close the Loop)
+  baselineSnapshotDate: timestamp("baseline_snapshot_date"),
+  baselineAnnualConsumptionKwh: real("baseline_annual_consumption_kwh"),
+  baselineAnnualCostCad: real("baseline_annual_cost_cad"),
+  baselinePeakDemandKw: real("baseline_peak_demand_kw"),
+  baselineMonthlyProfile: jsonb("baseline_monthly_profile"), // [{month: 1, kWh: 5000, cost: 350}, ...]
+  operationsStartDate: timestamp("operations_start_date"),
+
   // Archive status
   isArchived: boolean("is_archived").notNull().default(false),
   archivedAt: timestamp("archived_at"),
-  
+
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => [
@@ -3231,3 +3239,32 @@ export const insertNewsArticleSchema = createInsertSchema(newsArticles).omit({
 
 export type NewsArticle = typeof newsArticles.$inferSelect;
 export type InsertNewsArticle = z.infer<typeof insertNewsArticleSchema>;
+
+// ========================================
+// Project Budgets (Phase 1 — Close the Loop)
+// ========================================
+
+export const projectBudgets = pgTable("project_budgets", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  siteId: varchar("site_id").notNull().references(() => sites.id, { onDelete: "cascade" }),
+  category: text("category").notNull(), // racking | panels | inverters | bos_electrical | labor | soft_costs | permits | other
+  description: text("description"),
+  originalAmount: real("original_amount").default(0),   // From price breakdown / construction estimate
+  revisedAmount: real("revised_amount").default(0),     // Adjusted after change orders or scope updates
+  committedAmount: real("committed_amount").default(0), // From signed POs / construction agreement
+  actualAmount: real("actual_amount").default(0),       // From invoices / actual spend
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("project_budgets_site_id_idx").on(table.siteId),
+]);
+
+export const insertProjectBudgetSchema = createInsertSchema(projectBudgets).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type ProjectBudget = typeof projectBudgets.$inferSelect;
+export type InsertProjectBudget = z.infer<typeof insertProjectBudgetSchema>;

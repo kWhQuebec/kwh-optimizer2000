@@ -200,12 +200,16 @@ const TASK_DETECTORS: Record<string, TaskDetector> = {
     opportunityStage === "won_delivered",
   s5_configure_monitoring: () => false,
 
-  // ── Step 6: Opération ── (mostly future — needs O&M tracking)
-  s6_check_dashboard: () => false,
+  // ── Step 6: Opération ── (Phase 1 — Close the Loop)
+  s6_check_dashboard: ({ site }) => !!site?.operationsStartDate,
   s6_share_linkedin: () => false,
   s6_refer_contact: () => false,
   s6_nps_survey: () => false,
-  s6_90day_report: () => false,
+  s6_90day_report: ({ site }) => {
+    if (!site?.operationsStartDate) return false;
+    const daysSinceOps = (Date.now() - new Date(site.operationsStartDate).getTime()) / (1000 * 60 * 60 * 24);
+    return daysSinceOps >= 90 && !!site.baselineSnapshotDate;
+  },
   s6_request_testimonial: () => false,
   s6_qualify_referral: () => false,
   s6_document_portfolio: () => false,

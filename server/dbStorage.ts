@@ -23,6 +23,7 @@ import * as benchmarkRepo from "./repositories/benchmarkRepo";
 import * as siteMeterRepo from "./repositories/siteMeterRepo";
 import * as hqFetchJobRepo from "./repositories/hqFetchJobRepo";
 import * as newsArticleRepo from "./repositories/newsArticleRepo";
+import * as budgetRepo from "./repositories/budgetRepo";
 
 export class DatabaseStorage implements IStorage {
   async initializeDefaultData(): Promise<void> {
@@ -390,4 +391,10 @@ export class DatabaseStorage implements IStorage {
   updateNewsArticle = newsArticleRepo.updateNewsArticle;
   deleteNewsArticle = newsArticleRepo.deleteNewsArticle;
   incrementNewsViewCount = newsArticleRepo.incrementNewsViewCount;
+
+  // Project Budgets
+  getProjectBudgets = budgetRepo.getProjectBudgets;
+  createProjectBudget = budgetRepo.createProjectBudget;
+  updateProjectBudget = budgetRepo.updateProjectBudget;
+  deleteProjectBudget = budgetRepo.deleteProjectBudget;
 }

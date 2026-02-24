@@ -87,6 +87,7 @@ import { DownloadReportButton } from "./components/DownloadReportButton";
 import { ScenarioComparison } from "./components/ScenarioComparison";
 import { AnalysisResults } from "./components/AnalysisResults";
 import { BenchmarkTab } from "./components/BenchmarkTab";
+import { OperationsTab } from "./components/OperationsTab";
 import { QuickInfoForm } from "./components/QuickInfoForm";
 import type { SiteWithDetails, QuickPotentialResult } from "./types";
 import { formatNumber, getTariffRates } from "./utils";
@@ -2671,19 +2672,12 @@ export default function SiteDetailPage() {
 
         {isStaff && (
           <TabsContent value="operations" className="space-y-6">
-            <Card>
-              <CardContent className="py-16 text-center">
-                <Sun className="w-12 h-12 text-muted-foreground/50 mx-auto mb-4" />
-                <h3 className="text-lg font-medium mb-1">
-                  {language === "fr" ? "Opérations & Maintenance" : "Operations & Maintenance"}
-                </h3>
-                <p className="text-muted-foreground max-w-md mx-auto">
-                  {language === "fr"
-                    ? "Le suivi des opérations et de la maintenance sera disponible prochainement."
-                    : "Operations and maintenance tracking will be available soon."}
-                </p>
-              </CardContent>
-            </Card>
+            <OperationsTab
+              siteId={id!}
+              site={site}
+              latestSimulation={latestSimulation}
+              language={language}
+            />
           </TabsContent>
         )}
       </Tabs>

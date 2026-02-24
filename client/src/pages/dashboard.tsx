@@ -120,6 +120,13 @@ interface PipelineStats {
     runAnalysis: number;
     total: number;
   };
+  deliveredOpportunities?: Array<{
+    id: string;
+    name: string;
+    clientName: string | null;
+    pvSizeKW?: number;
+    estimatedValue?: number | null;
+  }>;
 }
 
 interface VirtualPowerPlant {
@@ -859,6 +866,105 @@ function SignedProjectsBreakdown({ stats, language, isLoading }: { stats?: Pipel
 }
 
 // ============================================
+// POST-DELIVERY KPIs — "Post-livraison"
+// Projects delivered and in operation
+// ============================================
+
+function PostDeliveryKPIs({ stats, language, isLoading }: { stats?: PipelineStats; language: 'fr' | 'en'; isLoading: boolean }) {
+  const getStageData = (stageKey: string) => {
+    if (!stats?.stageBreakdown) return { count: 0, totalValue: 0 };
+    return stats.stageBreakdown.find(s => s.stage === stageKey) || { count: 0, totalValue: 0 };
+  };
+
+  const deliveredData = getStageData('won_delivered');
+  const projectCount = deliveredData.count;
+
+  // Calculate totals from delivered opportunities
+  let totalCapacityKW = 0;
+  let totalSavings = 0;
+
+  if (stats?.deliveredOpportunities && stats.deliveredOpportunities.length > 0) {
+    stats.deliveredOpportunities.forEach(opp => {
+      if (opp.pvSizeKW) totalCapacityKW += opp.pvSizeKW;
+      if (opp.estimatedValue) totalSavings += opp.estimatedValue;
+    });
+  } else if (deliveredData.totalValue) {
+    totalSavings = deliveredData.totalValue;
+  }
+
+  // CO2 avoided: capacity (MW) * 1150 (kWh/kW/year) * 0.0005 (tonnes CO2 per kWh)
+  const capacityMW = totalCapacityKW / 1000;
+  const co2Avoided = capacityMW * 1150 * 0.0005;
+
+  const kpis = [
+    {
+      label: language === 'fr' ? 'Capacité installée' : 'Installed Capacity',
+      value: formatCapacity(capacityMW),
+      icon: Sun,
+      color: BRAND.gold,
+    },
+    {
+      label: language === 'fr' ? 'Projets livrés' : 'Projects Delivered',
+      value: `${projectCount}`,
+      sub: language === 'fr' ? 'systèmes actifs' : 'active systems',
+      icon: CheckCircle2,
+      color: BRAND.green,
+    },
+    {
+      label: language === 'fr' ? 'Économies estimées' : 'Estimated Savings',
+      value: formatCompactCurrency(totalSavings),
+      icon: DollarSign,
+      color: BRAND.blue,
+    },
+    {
+      label: language === 'fr' ? 'CO₂ évité' : 'CO₂ Avoided',
+      value: `${Math.round(co2Avoided)} t`,
+      sub: language === 'fr' ? 'par an' : 'per year',
+      icon: Leaf,
+      color: BRAND.green,
+    },
+  ];
+
+  if (projectCount === 0) return null;
+
+  return (
+    <div>
+      <div className="flex items-center gap-2.5 mb-4">
+        <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${BRAND.green}15` }}>
+          <Package className="w-4 h-4" style={{ color: BRAND.green }} />
+        </div>
+        <h2 className="text-base font-extrabold uppercase tracking-wide" style={{ color: BRAND.darkBlue }}>
+          {language === 'fr' ? 'Post-livraison' : 'Post-Delivery'}
+        </h2>
+      </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {kpis.map((kpi, i) => (
+          <Card key={i} className="border-l-[3px] overflow-hidden" style={{ borderLeftColor: kpi.color }}>
+            <CardContent className="p-3.5">
+              {isLoading ? (
+                <Skeleton className="h-14 w-full" />
+              ) : (
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: `${kpi.color}12` }}>
+                    <kpi.icon className="w-5 h-5" style={{ color: kpi.color }} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[11px] text-muted-foreground truncate font-medium">{kpi.label}</p>
+                    <p className="text-2xl font-extrabold font-mono" style={{ color: BRAND.darkBlue }}>{kpi.value}</p>
+                    {kpi.sub && <p className="text-[10px] text-muted-foreground truncate">{kpi.sub}</p>}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ============================================
 // OPPORTUNITY ROW
 // ============================================
 
@@ -1068,6 +1174,9 @@ export default function DashboardPage() {
           <div />
         )}
       </div>
+
+      {/* Section 6: Post-Delivery KPIs */}
+      <PostDeliveryKPIs stats={stats} language={language as 'fr' | 'en'} isLoading={isLoading} />
     </div>
   );
 }
