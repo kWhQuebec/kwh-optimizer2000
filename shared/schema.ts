@@ -292,6 +292,7 @@ export const sites = pgTable("sites", {
   
   // Quick Info Collection (Step 1 form data)
   numFloors: integer("num_floors"),
+  buildingHeightFt: real("building_height_ft"), // Building height in feet (relevant for warehouses: 14', 20', 40', 50'+)
   estimatedMonthlyBill: real("estimated_monthly_bill"), // Client-reported monthly HQ bill ($)
   estimatedAnnualConsumptionKwh: real("estimated_annual_consumption_kwh"), // Client-reported annual consumption
   quickInfoCompletedAt: timestamp("quick_info_completed_at"), // When Step 1 form was completed
