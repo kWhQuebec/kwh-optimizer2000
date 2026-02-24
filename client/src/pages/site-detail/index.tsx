@@ -26,7 +26,6 @@ import {
   AlertTriangle,
   Sun,
   Layers,
-  Sparkles,
   XCircle,
   Scale,
   Grid3X3,
@@ -109,7 +108,7 @@ export default function SiteDetailPage() {
   const [selectedSimulationId, setSelectedSimulationId] = useState<string | null>(null);
   const pendingNewSimulationIdRef = useRef<string | null>(null);
   const autoAnalysisTriggeredRef = useRef(false);
-  const [bifacialDialogOpen, setBifacialDialogOpen] = useState(false);
+  // Bifacial is always enabled for Quebec (snow albedo makes it worthwhile on any roof)
   const [isRoofDrawingModalOpen, setIsRoofDrawingModalOpen] = useState(false);
   const [isGeocodingAddress, setIsGeocodingAddress] = useState(false);
   const [pendingModalOpen, setPendingModalOpen] = useState(false);
@@ -451,17 +450,6 @@ export default function SiteDetailPage() {
   };
 
 
-  // Bifacial response mutation
-  const bifacialResponseMutation = useMutation({
-    mutationFn: async (accepted: boolean) => {
-      return apiRequest("POST", `/api/sites/${id}/bifacial-response`, { accepted });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/sites", id] });
-      setBifacialDialogOpen(false);
-    },
-  });
-
   // Mutation to save roof polygons
   const saveRoofPolygonsMutation = useMutation({
     mutationFn: async (polygons: InsertRoofPolygon[]) => {
@@ -606,15 +594,7 @@ export default function SiteDetailPage() {
     }
   };
 
-  // Show bifacial dialog when white membrane detected and not yet prompted
-  useEffect(() => {
-    if (site &&
-        (site.roofColorType === "white_membrane" || site.roofColorType === "light") &&
-        !site.bifacialAnalysisPrompted &&
-        site.roofEstimateStatus === "success") {
-      setBifacialDialogOpen(true);
-    }
-  }, [site]);
+  // Bifacial is always enabled — no dialog needed (Quebec snow albedo)
 
   // Fetch full simulation data (with heavy JSON columns) for a specific simulation
   const fetchFullSimulation = useCallback(async (simulationId: string) => {
@@ -2683,40 +2663,7 @@ export default function SiteDetailPage() {
       </Tabs>
       )}
 
-      {/* Bifacial PV Detection Dialog */}
-      <Dialog open={bifacialDialogOpen} onOpenChange={setBifacialDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Sun className="w-5 h-5 text-yellow-500" />
-              {t("bifacial.detected.title")}
-            </DialogTitle>
-            <DialogDescription className="space-y-3">
-              <p>{t("bifacial.detected.description")}</p>
-              <p className="font-medium text-foreground">{t("bifacial.detected.question")}</p>
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="flex gap-2 sm:gap-0">
-            <Button
-              variant="outline"
-              onClick={() => bifacialResponseMutation.mutate(false)}
-              disabled={bifacialResponseMutation.isPending}
-              data-testid="button-bifacial-decline"
-            >
-              {t("bifacial.detected.decline")}
-            </Button>
-            <Button
-              onClick={() => bifacialResponseMutation.mutate(true)}
-              disabled={bifacialResponseMutation.isPending}
-              className="gap-2"
-              data-testid="button-bifacial-accept"
-            >
-              <Sparkles className="w-4 h-4" />
-              {t("bifacial.detected.accept")}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Bifacial always enabled — dialog removed */}
 
       {isPortalAccessDialogOpen && site?.client && (
         <GrantPortalAccessDialog

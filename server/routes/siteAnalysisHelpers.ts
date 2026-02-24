@@ -924,7 +924,7 @@ export async function runAutoAnalysisForSite(siteId: string): Promise<void> {
 
   const baseAssumptions = {
     ...getDefaultAnalysisAssumptions(),
-    bifacialEnabled: (site as any).bifacialEnabled ?? false
+    bifacialEnabled: (site as any).bifacialEnabled ?? true
   };
 
   const yieldStrategy = resolveYieldStrategyFromAnalysis(

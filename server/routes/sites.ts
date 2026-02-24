@@ -772,7 +772,7 @@ router.post("/:siteId/quick-potential", authMiddleware, requireStaff, asyncHandl
 
   // Use resolveYieldStrategy() as SINGLE source of truth for yield
   // This ensures consistency with detailed analysis (same bifacial boost, Google data, etc.)
-  const bifacialEnabled = assumptions?.bifacialEnabled ?? site.bifacialAnalysisAccepted ?? false;
+  const bifacialEnabled = assumptions?.bifacialEnabled ?? site.bifacialAnalysisAccepted ?? true;
   const roofDetails = site.roofAreaAutoDetails as { yearlyEnergyDcKwh?: number; maxSunshineHoursPerYear?: number } | null;
   const googleData: { googleProductionEstimate?: { yearlyEnergyAcKwh: number; systemSizeKw: number }; maxSunshineHoursPerYear?: number } | undefined =
     (roofDetails?.yearlyEnergyDcKwh && site.kbKwDc) || roofDetails?.maxSunshineHoursPerYear
@@ -961,7 +961,7 @@ router.post("/:siteId/run-potential-analysis", authMiddleware, requireStaff, asy
   const baseAssumptions = {
     ...getDefaultAnalysisAssumptions(),
     ...assumptions,
-    bifacialEnabled: assumptions?.bifacialEnabled ?? site.bifacialAnalysisAccepted ?? false
+    bifacialEnabled: assumptions?.bifacialEnabled ?? site.bifacialAnalysisAccepted ?? true
   };
 
   const yieldStrategy = resolveYieldStrategy(
