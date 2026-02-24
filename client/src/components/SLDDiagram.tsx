@@ -295,43 +295,351 @@ function WireLabel({ x1, y1, x2, y2, label }: {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// CARTOUCHE (TITLE BLOCK) — Professional engineering drawing border
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const CARTOUCHE_RIGHT_PANEL_W = 280;
+const CARTOUCHE_BOTTOM_H = 70;
+const FONT = "Inter, system-ui, sans-serif";
+const BRAND_BLUE = "#003DA6";
+const DARK = "#1e293b";
+
+interface SLDCartoucheProps {
+  rightPanelX: number;
+  rightPanelWidth: number;
+  topY: number;
+  bottomStripY: number;
+  totalWidth: number;
+  totalHeight: number;
+  config: SLDElectricalConfig;
+  arrays: SLDArrayInfo[];
+  inverterLayout?: SLDInverterAssignment[] | null;
+  microLayout?: SLDMicroInverterGroup[] | null;
+  language: "fr" | "en";
+}
+
+function SLDCartouche({
+  rightPanelX, rightPanelWidth, topY, bottomStripY,
+  totalWidth, totalHeight, config, arrays,
+  inverterLayout, microLayout, language
+}: SLDCartoucheProps) {
+  const fr = language === "fr";
+  const rpX = rightPanelX;
+  const rpW = rightPanelWidth;
+  const innerLeft = 4;
+  const innerTop = topY;
+  const innerRight = totalWidth - 4;
+  const innerBottom = totalHeight - 4;
+
+  const companyBlockH = 80;
+  const noteBlockH = 50;
+  const summaryBlockH = 140;
+  const legendBlockStartY = innerTop + companyBlockH + noteBlockH + summaryBlockH;
+  const legendBlockH = bottomStripY - legendBlockStartY;
+
+  const totalStrings = inverterLayout
+    ? inverterLayout.reduce((s, inv) => s + inv.strings.length, 0)
+    : 0;
+  const panelsPerString = inverterLayout && inverterLayout.length > 0 && inverterLayout[0].strings.length > 0
+    ? inverterLayout[0].strings[0].panelsInString
+    : MAX_PANELS_PER_STRING;
+
+  const invModelName = config.inverterType === "string"
+    ? (config.stringInverterModelName || DEFAULT_STRING_INV_NAME)
+    : (config.microInverterModelName || DEFAULT_MICRO_INV_NAME);
+
+  const invPower = config.inverterType === "string"
+    ? `${config.stringInverterPowerKW || DEFAULT_STRING_INV_KW} kW`
+    : `${config.microInverterPowerW || DEFAULT_MICRO_INV_W} W`;
+
+  const serviceV = config.serviceVoltage || 600;
+
+  const summaryRows = fr ? [
+    ["Modèle de module PV", "Jinko JKM660N-78HL4-BDV (660W)"],
+    ["Nombre total des modules PV", `${config.totalPanels || arrays.reduce((s, a) => s + a.panelCount, 0)}`],
+    ["Nombre des modules par chaîne", `${panelsPerString}`],
+    ["Nombre totale des chaînes", `${totalStrings || arrays.length}`],
+    ["Modèle d'onduleur", invModelName],
+    ["Puissance/Tension de l'onduleur", `${invPower} / ${serviceV}V`],
+    ["Puissance totale de la centrale", `${config.systemCapacityKW || 0} kWc`],
+  ] : [
+    ["PV Module Model", "Jinko JKM660N-78HL4-BDV (660W)"],
+    ["Total PV Modules", `${config.totalPanels || arrays.reduce((s, a) => s + a.panelCount, 0)}`],
+    ["Modules per String", `${panelsPerString}`],
+    ["Total Strings", `${totalStrings || arrays.length}`],
+    ["Inverter Model", invModelName],
+    ["Inverter Power/Voltage", `${invPower} / ${serviceV}V`],
+    ["Total Plant Capacity", `${config.systemCapacityKW || 0} kWp`],
+  ];
+
+  const bottomY = bottomStripY;
+  const bH = CARTOUCHE_BOTTOM_H;
+  const warnW = totalWidth * 0.35;
+  const revW = totalWidth * 0.18;
+  const siteW = totalWidth * 0.22;
+  const titleW = totalWidth - warnW - revW - siteW;
+
+  return (
+    <g>
+      <rect x={0} y={0} width={totalWidth} height={totalHeight} fill="none" stroke={DARK} strokeWidth={2} />
+      <rect x={4} y={4} width={totalWidth - 8} height={totalHeight - 8} fill="none" stroke={DARK} strokeWidth={0.5} />
+
+      <line x1={rpX} y1={innerTop} x2={rpX} y2={bottomStripY} stroke={DARK} strokeWidth={0.5} />
+      <line x1={innerLeft} y1={bottomStripY} x2={innerRight} y2={bottomStripY} stroke={DARK} strokeWidth={0.75} />
+
+      {/* ===== A. COMPANY BLOCK ===== */}
+      <line x1={rpX} y1={innerTop + companyBlockH} x2={innerRight} y2={innerTop + companyBlockH} stroke={DARK} strokeWidth={0.5} />
+      <text x={rpX + rpW / 2} y={innerTop + 28} textAnchor="middle" fontSize={16} fontWeight={700}
+        fill={BRAND_BLUE} fontFamily={FONT}>kWh Québec</text>
+      <text x={rpX + rpW / 2} y={innerTop + 46} textAnchor="middle" fontSize={8} fill="#64748b" fontFamily={FONT}>
+        Montréal, QC, Canada</text>
+      <text x={rpX + rpW / 2} y={innerTop + 58} textAnchor="middle" fontSize={8} fill="#64748b" fontFamily={FONT}>
+        info@kwhquebec.com</text>
+
+      {/* ===== B. NOTE BLOCK ===== */}
+      {(() => {
+        const noteY = innerTop + companyBlockH;
+        return (
+          <g>
+            <line x1={rpX} y1={noteY + noteBlockH} x2={innerRight} y2={noteY + noteBlockH} stroke={DARK} strokeWidth={0.5} />
+            <text x={rpX + 10} y={noteY + 16} fontSize={9} fontWeight={700} fill={DARK} fontFamily={FONT}>NOTE</text>
+            <line x1={rpX + 10} y1={noteY + 19} x2={rpX + 42} y2={noteY + 19} stroke={DARK} strokeWidth={0.5} />
+            <text x={rpX + 10} y={noteY + 32} fontSize={7.5} fill="#64748b" fontFamily={FONT}>
+              {fr ? "Ce document est un document type et" : "This document is a typical drawing and"}
+            </text>
+            <text x={rpX + 10} y={noteY + 42} fontSize={7.5} fill="#64748b" fontFamily={FONT}>
+              {fr ? "non pas pour la construction." : "not for construction."}
+            </text>
+          </g>
+        );
+      })()}
+
+      {/* ===== C. SYSTEM SUMMARY TABLE ===== */}
+      {(() => {
+        const tableY = innerTop + companyBlockH + noteBlockH;
+        const headerH = 18;
+        const rowH = 17;
+        const labelW = rpW * 0.55;
+        return (
+          <g>
+            <rect x={rpX} y={tableY} width={rpW} height={headerH} fill={DARK} />
+            <text x={rpX + rpW / 2} y={tableY + 12} textAnchor="middle" fontSize={8} fontWeight={700}
+              fill="white" fontFamily={FONT}>
+              {fr ? "TABLEAU RÉCAPITULATIF DU SYSTÈME" : "SYSTEM SUMMARY TABLE"}
+            </text>
+            {summaryRows.map((row, i) => {
+              const ry = tableY + headerH + i * rowH;
+              const bgFill = i % 2 === 0 ? "#f8fafc" : "white";
+              return (
+                <g key={i}>
+                  <rect x={rpX} y={ry} width={rpW} height={rowH} fill={bgFill} />
+                  <line x1={rpX + labelW} y1={ry} x2={rpX + labelW} y2={ry + rowH} stroke="#e2e8f0" strokeWidth={0.5} />
+                  <line x1={rpX} y1={ry + rowH} x2={rpX + rpW} y2={ry + rowH} stroke="#e2e8f0" strokeWidth={0.5} />
+                  <text x={rpX + 6} y={ry + rowH / 2 + 1} fontSize={7.5} fill="#334155" fontFamily={FONT}
+                    dominantBaseline="middle">{row[0]}</text>
+                  <text x={rpX + labelW + 6} y={ry + rowH / 2 + 1} fontSize={7.5} fill="#0f172a" fontWeight={600}
+                    fontFamily={FONT} dominantBaseline="middle">{row[1]}</text>
+                </g>
+              );
+            })}
+            <line x1={rpX} y1={tableY + headerH + summaryRows.length * rowH}
+              x2={innerRight} y2={tableY + headerH + summaryRows.length * rowH} stroke={DARK} strokeWidth={0.5} />
+          </g>
+        );
+      })()}
+
+      {/* ===== D. LEGEND BLOCK ===== */}
+      {(() => {
+        const legY = legendBlockStartY;
+        const headerH = 18;
+        const entryH = 20;
+        const colW = rpW / 2;
+        const legendEntries = fr ? [
+          { col: 0, row: 0, label: "COURANT CONTINU (DC)", type: "dc" },
+          { col: 0, row: 1, label: "COURANT ALTERNATIF (AC)", type: "ac" },
+          { col: 0, row: 2, label: "MODULE PV", type: "pv" },
+          { col: 0, row: 3, label: "ONDULEUR (DC/AC)", type: "inv" },
+          { col: 1, row: 0, label: "COMPTEUR", type: "meter" },
+          { col: 1, row: 1, label: "PANNEAU PRINCIPAL", type: "panel" },
+          { col: 1, row: 2, label: "MISE À LA TERRE", type: "ground" },
+          { col: 1, row: 3, label: "DISJONCTEUR / SECTIONNEUR", type: "breaker" },
+        ] : [
+          { col: 0, row: 0, label: "DIRECT CURRENT (DC)", type: "dc" },
+          { col: 0, row: 1, label: "ALTERNATING CURRENT (AC)", type: "ac" },
+          { col: 0, row: 2, label: "PV MODULE", type: "pv" },
+          { col: 0, row: 3, label: "INVERTER (DC/AC)", type: "inv" },
+          { col: 1, row: 0, label: "METER", type: "meter" },
+          { col: 1, row: 1, label: "MAIN PANEL", type: "panel" },
+          { col: 1, row: 2, label: "GROUNDING", type: "ground" },
+          { col: 1, row: 3, label: "BREAKER / DISCONNECT", type: "breaker" },
+        ];
+
+        return (
+          <g>
+            <rect x={rpX} y={legY} width={rpW} height={headerH} fill={DARK} />
+            <text x={rpX + rpW / 2} y={legY + 12} textAnchor="middle" fontSize={8} fontWeight={700}
+              fill="white" fontFamily={FONT}>
+              {fr ? "LÉGENDE" : "LEGEND"}
+            </text>
+            {legendEntries.map((entry, i) => {
+              const ex = rpX + entry.col * colW + 8;
+              const ey = legY + headerH + entry.row * entryH + entryH / 2;
+              return (
+                <g key={i}>
+                  {entry.type === "dc" && (
+                    <>
+                      <line x1={ex} y1={ey} x2={ex + 20} y2={ey} stroke="#dc2626" strokeWidth={2} />
+                      <line x1={ex} y1={ey - 2} x2={ex + 20} y2={ey - 2} stroke="#dc2626" strokeWidth={0.5} />
+                      <line x1={ex} y1={ey + 2} x2={ex + 20} y2={ey + 2} stroke="#dc2626" strokeWidth={0.5} />
+                    </>
+                  )}
+                  {entry.type === "ac" && (
+                    <line x1={ex} y1={ey} x2={ex + 20} y2={ey} stroke="#2563eb" strokeWidth={1.5} />
+                  )}
+                  {entry.type === "pv" && (
+                    <rect x={ex} y={ey - 5} width={20} height={10} rx={2} fill="#fef3c7" stroke="#d97706" strokeWidth={1} />
+                  )}
+                  {entry.type === "inv" && (
+                    <rect x={ex} y={ey - 5} width={20} height={10} rx={2} fill="#dcfce7" stroke="#16a34a" strokeWidth={1} />
+                  )}
+                  {entry.type === "meter" && (
+                    <circle cx={ex + 10} cy={ey} r={6} fill="#f0fdf4" stroke="#16a34a" strokeWidth={1} />
+                  )}
+                  {entry.type === "panel" && (
+                    <rect x={ex} y={ey - 5} width={20} height={10} rx={2} fill="#f1f5f9" stroke="#334155" strokeWidth={1} />
+                  )}
+                  {entry.type === "ground" && (
+                    <>
+                      <line x1={ex + 10} y1={ey - 5} x2={ex + 10} y2={ey} stroke="#475569" strokeWidth={1} />
+                      <line x1={ex + 4} y1={ey} x2={ex + 16} y2={ey} stroke="#475569" strokeWidth={1} />
+                      <line x1={ex + 6} y1={ey + 3} x2={ex + 14} y2={ey + 3} stroke="#475569" strokeWidth={1} />
+                      <line x1={ex + 8} y1={ey + 6} x2={ex + 12} y2={ey + 6} stroke="#475569" strokeWidth={1} />
+                    </>
+                  )}
+                  {entry.type === "breaker" && (
+                    <rect x={ex} y={ey - 5} width={20} height={10} rx={2} fill="#fef9c3" stroke="#ca8a04" strokeWidth={1} />
+                  )}
+                  <text x={ex + 26} y={ey + 1} fontSize={7} fill="#334155" fontFamily={FONT}
+                    dominantBaseline="middle">{entry.label}</text>
+                </g>
+              );
+            })}
+          </g>
+        );
+      })()}
+
+      {/* ===== BOTTOM CARTOUCHE STRIP ===== */}
+      {(() => {
+        const bY = bottomY;
+        const warnX = innerLeft;
+        const revX = warnX + warnW;
+        const siteX = revX + revW;
+        const titleX = siteX + siteW;
+
+        return (
+          <g>
+            <line x1={revX} y1={bY} x2={revX} y2={innerBottom} stroke={DARK} strokeWidth={0.5} />
+            <line x1={siteX} y1={bY} x2={siteX} y2={innerBottom} stroke={DARK} strokeWidth={0.5} />
+            <line x1={titleX} y1={bY} x2={titleX} y2={innerBottom} stroke={DARK} strokeWidth={0.5} />
+
+            {/* 1. Warning text */}
+            <text x={warnX + warnW / 2} y={bY + bH / 2 - 4} textAnchor="middle" fontSize={8} fontWeight={700}
+              fill="#dc2626" fontFamily={FONT}>
+              {fr ? "CONCEPTION PRÉLIMINAIRE" : "PRELIMINARY DESIGN"}
+            </text>
+            <text x={warnX + warnW / 2} y={bY + bH / 2 + 10} textAnchor="middle" fontSize={8} fontWeight={700}
+              fill="#dc2626" fontFamily={FONT}>
+              {fr ? "PAS POUR LA CONSTRUCTION" : "NOT FOR CONSTRUCTION"}
+            </text>
+
+            {/* 2. Revision table */}
+            <text x={revX + revW / 2} y={bY + 12} textAnchor="middle" fontSize={7} fontWeight={700}
+              fill={DARK} fontFamily={FONT}>
+              {fr ? "RÉVISIONS" : "REVISIONS"}
+            </text>
+            <line x1={revX + 4} y1={bY + 16} x2={revX + revW - 4} y2={bY + 16} stroke="#e2e8f0" strokeWidth={0.5} />
+            <text x={revX + 8} y={bY + 26} fontSize={6.5} fill="#64748b" fontFamily={FONT}>
+              {fr ? "Rév." : "Rev."}</text>
+            <text x={revX + 30} y={bY + 26} fontSize={6.5} fill="#64748b" fontFamily={FONT}>Date</text>
+            <text x={revX + 70} y={bY + 26} fontSize={6.5} fill="#64748b" fontFamily={FONT}>Description</text>
+            <line x1={revX + 4} y1={bY + 30} x2={revX + revW - 4} y2={bY + 30} stroke="#e2e8f0" strokeWidth={0.5} />
+            <text x={revX + 8} y={bY + 42} fontSize={6.5} fill="#0f172a" fontFamily={FONT}>0</text>
+            <text x={revX + 30} y={bY + 42} fontSize={6.5} fill="#0f172a" fontFamily={FONT}>2026-02-24</text>
+            <text x={revX + 70} y={bY + 42} fontSize={6.5} fill="#0f172a" fontFamily={FONT}>
+              {fr ? "Émission initiale" : "Initial issue"}</text>
+
+            {/* 3. Company + Site info */}
+            <text x={siteX + siteW / 2} y={bY + 22} textAnchor="middle" fontSize={10} fontWeight={700}
+              fill={BRAND_BLUE} fontFamily={FONT}>kWh Québec</text>
+            <text x={siteX + siteW / 2} y={bY + 36} textAnchor="middle" fontSize={7} fill="#64748b" fontFamily={FONT}>
+              {config.siteAddress || config.siteName || ""}</text>
+            <text x={siteX + siteW / 2} y={bY + 48} textAnchor="middle" fontSize={7} fill="#64748b" fontFamily={FONT}>
+              {config.systemCapacityKW ? `${config.systemCapacityKW} kWc` : ""}</text>
+
+            {/* 4. Drawing title + number */}
+            <text x={titleX + titleW / 2} y={bY + 18} textAnchor="middle" fontSize={8.5} fontWeight={700}
+              fill={DARK} fontFamily={FONT}>
+              {fr ? "SCHÉMA UNIFILAIRE TYPIQUE" : "TYPICAL SINGLE LINE DIAGRAM"}
+            </text>
+            <text x={titleX + titleW / 2} y={bY + 30} textAnchor="middle" fontSize={8} fontWeight={600}
+              fill={DARK} fontFamily={FONT}>
+              {fr ? "POUR LA CENTRALE PV" : "FOR PV PLANT"}
+            </text>
+            <line x1={titleX + 6} y1={bY + 38} x2={titleX + titleW - 6} y2={bY + 38} stroke="#e2e8f0" strokeWidth={0.5} />
+            <text x={titleX + titleW / 2 - 30} y={bY + 52} textAnchor="middle" fontSize={7} fill="#64748b" fontFamily={FONT}>
+              SLD-001</text>
+            <text x={titleX + titleW / 2 + 10} y={bY + 52} textAnchor="middle" fontSize={7} fill="#64748b" fontFamily={FONT}>
+              {fr ? "Rév. 0" : "Rev. 0"}</text>
+            <text x={titleX + titleW / 2 + 40} y={bY + 52} textAnchor="middle" fontSize={7} fill="#64748b" fontFamily={FONT}>
+              1/1</text>
+          </g>
+        );
+      })()}
+    </g>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // STRING INVERTER SLD RENDERER
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function StringInverterSLD({
   inverters,
   config,
+  arrays,
   language = "fr"
 }: {
   inverters: SLDInverterAssignment[];
   config: SLDElectricalConfig;
+  arrays: SLDArrayInfo[];
   language: "fr" | "en";
 }) {
   const fr = language === "fr";
 
-  // Layout: LEFT → RIGHT flow
-  // [PV Arrays] → [Combiner Boxes] → [Inverters] → [AC Disconnect] → [Meter] → [Main Panel] → [Grid]
-
-  // Calculate vertical space needed
   const maxStringsPerInv = Math.max(...inverters.map(inv => inv.strings.length), 1);
   const totalInverters = inverters.length;
   const invBlockH = Math.max(INV_BOX_H + 10, maxStringsPerInv * (STRING_BOX_H + 8) + 20);
-  const totalH = totalInverters * invBlockH + SVG_MARGIN * 2 + 80; // +80 for title/legend
 
-  // Column positions (X)
-  const colPV = SVG_MARGIN;
+  const colPV = SVG_MARGIN + 10;
   const colCombiner = colPV + STRING_BOX_W + COL_GAP + 20;
   const colInverter = colCombiner + COMBINER_W + COL_GAP;
   const colACDisconnect = colInverter + INV_BOX_W + COL_GAP;
   const colMeter = colACDisconnect + ELEMENT_W + COL_GAP;
   const colMainPanel = colMeter + METER_R * 2 + COL_GAP + 20;
   const colGrid = colMainPanel + ELEMENT_W + COL_GAP;
-  const totalW = colGrid + ELEMENT_W + SVG_MARGIN;
+  const diagramW = colGrid + ELEMENT_W + SVG_MARGIN;
 
-  const titleY = 20;
-  const startY = titleY + 50;
+  const rightPanelW = CARTOUCHE_RIGHT_PANEL_W;
+  const totalW = diagramW + rightPanelW + 20;
+  const diagramContentH = totalInverters * invBlockH + SVG_MARGIN * 2 + 50;
+  const minH = 500;
+  const bottomStripH = CARTOUCHE_BOTTOM_H;
+  const totalH = Math.max(diagramContentH, minH) + bottomStripH + 20;
+  const bottomStripY = totalH - bottomStripH - 10;
+  const rightPanelX = diagramW + 10;
 
-  // Service info
+  const startY = 30;
+
   const serviceV = config.serviceVoltage || 600;
   const serviceA = config.serviceAmperage || 400;
   const mainBreakerA = config.mainBreakerA || 200;
@@ -343,16 +651,6 @@ function StringInverterSLD({
       style={{ maxWidth: totalW, background: "white" }}
       xmlns="http://www.w3.org/2000/svg"
     >
-      {/* Title block */}
-      <text x={totalW / 2} y={titleY} textAnchor="middle" fontSize={14} fontWeight={700}
-        fill="#0f172a" fontFamily="Inter, system-ui, sans-serif">
-        {fr ? "SCHÉMA UNIFILAIRE — SYSTÈME PHOTOVOLTAÏQUE" : "SINGLE LINE DIAGRAM — PHOTOVOLTAIC SYSTEM"}
-      </text>
-      <text x={totalW / 2} y={titleY + 16} textAnchor="middle" fontSize={9} fill="#64748b"
-        fontFamily="Inter, system-ui, sans-serif">
-        {config.siteName || ""} — {config.systemCapacityKW ? `${config.systemCapacityKW} kWc` : ""} — {config.totalPanels || 0} {fr ? "panneaux" : "panels"} Jinko 660W
-      </text>
-
       {/* Column headers */}
       <SLDLabel x={colPV + STRING_BOX_W / 2} y={startY - 12} text={fr ? "STRINGS PV" : "PV STRINGS"} fontSize={8} color="#475569" />
       <SLDLabel x={colCombiner + COMBINER_W / 2} y={startY - 12} text={fr ? "BOÎTE COMB." : "COMBINER"} fontSize={8} color="#475569" />
@@ -550,15 +848,19 @@ function StringInverterSLD({
         );
       })()}
 
-      {/* Legend */}
-      <g transform={`translate(${SVG_MARGIN}, ${totalH - 30})`}>
-        <SLDLine x1={0} y1={0} x2={20} y2={0} color="#dc2626" />
-        <SLDLabel x={25} y={0} text="DC" fontSize={7} color="#dc2626" anchor="start" />
-        <SLDLine x1={60} y1={0} x2={80} y2={0} color="#2563eb" />
-        <SLDLabel x={85} y={0} text="AC" fontSize={7} color="#2563eb" anchor="start" />
-        <SLDLabel x={130} y={0} text={`Jinko JKM660N — Voc=${PANEL_VOC}V — Isc=${PANEL_ISC}A — Vmp=${PANEL_VMP}V`}
-          fontSize={7} color="#94a3b8" anchor="start" />
-      </g>
+      {/* Cartouche */}
+      <SLDCartouche
+        rightPanelX={rightPanelX}
+        rightPanelWidth={rightPanelW}
+        topY={4}
+        bottomStripY={bottomStripY}
+        totalWidth={totalW}
+        totalHeight={totalH}
+        config={config}
+        arrays={arrays}
+        inverterLayout={inverters}
+        language={language}
+      />
     </svg>
   );
 }
@@ -570,26 +872,36 @@ function StringInverterSLD({
 function MicroInverterSLD({
   groups,
   config,
+  arrays,
   language = "fr"
 }: {
   groups: SLDMicroInverterGroup[];
   config: SLDElectricalConfig;
+  arrays: SLDArrayInfo[];
   language: "fr" | "en";
 }) {
   const fr = language === "fr";
 
   const blockH = 70;
   const totalGroups = groups.length;
-  const startY = 60;
-  const totalH = startY + totalGroups * blockH + 80;
+  const startY = 30;
 
-  const colPV = SVG_MARGIN;
+  const colPV = SVG_MARGIN + 10;
   const colMicro = colPV + ARRAY_BOX_W + COL_GAP;
   const colBranch = colMicro + INV_BOX_W + COL_GAP;
   const colMeter = colBranch + ELEMENT_W + COL_GAP;
   const colMainPanel = colMeter + METER_R * 2 + COL_GAP + 20;
   const colGrid = colMainPanel + ELEMENT_W + COL_GAP;
-  const totalW = colGrid + ELEMENT_W + SVG_MARGIN;
+  const diagramW = colGrid + ELEMENT_W + SVG_MARGIN;
+
+  const rightPanelW = CARTOUCHE_RIGHT_PANEL_W;
+  const totalW = diagramW + rightPanelW + 20;
+  const diagramContentH = startY + totalGroups * blockH + 50;
+  const minH = 500;
+  const bottomStripH = CARTOUCHE_BOTTOM_H;
+  const totalH = Math.max(diagramContentH, minH) + bottomStripH + 20;
+  const bottomStripY = totalH - bottomStripH - 10;
+  const rightPanelX = diagramW + 10;
 
   const microName = config.microInverterModelName || DEFAULT_MICRO_INV_NAME;
   const microW = config.microInverterPowerW || DEFAULT_MICRO_INV_W;
@@ -604,16 +916,6 @@ function MicroInverterSLD({
       style={{ maxWidth: totalW, background: "white" }}
       xmlns="http://www.w3.org/2000/svg"
     >
-      {/* Title */}
-      <text x={totalW / 2} y={20} textAnchor="middle" fontSize={14} fontWeight={700}
-        fill="#0f172a" fontFamily="Inter, system-ui, sans-serif">
-        {fr ? "SCHÉMA UNIFILAIRE — MICRO-ONDULEURS" : "SINGLE LINE DIAGRAM — MICROINVERTERS"}
-      </text>
-      <text x={totalW / 2} y={36} textAnchor="middle" fontSize={9} fill="#64748b"
-        fontFamily="Inter, system-ui, sans-serif">
-        {config.siteName || ""} — {config.systemCapacityKW ? `${config.systemCapacityKW} kWc` : ""} — {microName} ({microW}W)
-      </text>
-
       {/* Column headers */}
       <SLDLabel x={colPV + ARRAY_BOX_W / 2} y={startY - 12} text={fr ? "ARRAY PV" : "PV ARRAY"} fontSize={8} color="#475569" />
       <SLDLabel x={colMicro + INV_BOX_W / 2} y={startY - 12} text={fr ? "MICRO-ONDULEURS" : "MICROINVERTERS"} fontSize={8} color="#475569" />
@@ -725,15 +1027,19 @@ function MicroInverterSLD({
         );
       })()}
 
-      {/* Legend */}
-      <g transform={`translate(${SVG_MARGIN}, ${totalH - 30})`}>
-        <SLDLine x1={0} y1={0} x2={20} y2={0} color="#dc2626" />
-        <SLDLabel x={25} y={0} text="DC" fontSize={7} color="#dc2626" anchor="start" />
-        <SLDLine x1={60} y1={0} x2={80} y2={0} color="#2563eb" />
-        <SLDLabel x={85} y={0} text="AC" fontSize={7} color="#2563eb" anchor="start" />
-        <SLDLabel x={130} y={0} text={`Jinko JKM660N — ${DEFAULT_MICRO_INV_NAME} (${DEFAULT_MICRO_INV_W}W)`}
-          fontSize={7} color="#94a3b8" anchor="start" />
-      </g>
+      {/* Cartouche */}
+      <SLDCartouche
+        rightPanelX={rightPanelX}
+        rightPanelWidth={rightPanelW}
+        topY={4}
+        bottomStripY={bottomStripY}
+        totalWidth={totalW}
+        totalHeight={totalH}
+        config={config}
+        arrays={arrays}
+        microLayout={groups}
+        language={language}
+      />
     </svg>
   );
 }
@@ -807,6 +1113,7 @@ export default function SLDDiagram({ arrays, config, language = "fr", width, hei
         <StringInverterSLD
           inverters={inverterLayout}
           config={config}
+          arrays={arrays}
           language={language}
         />
       )}
@@ -814,6 +1121,7 @@ export default function SLDDiagram({ arrays, config, language = "fr", width, hei
         <MicroInverterSLD
           groups={microLayout}
           config={config}
+          arrays={arrays}
           language={language}
         />
       )}
