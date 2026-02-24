@@ -301,7 +301,8 @@ router.patch("/api/portfolio-sites/:id", authMiddleware, requireStaff, asyncHand
     overrideNpv,
     overrideIrr,
     overrideAnnualSavings,
-    notes
+    notes,
+    financialModel
   } = req.body;
 
   const updated = await storage.updatePortfolioSite(id, {
@@ -312,6 +313,7 @@ router.patch("/api/portfolio-sites/:id", authMiddleware, requireStaff, asyncHand
     overrideIrr: overrideIrr !== undefined ? overrideIrr : undefined,
     overrideAnnualSavings: overrideAnnualSavings !== undefined ? overrideAnnualSavings : undefined,
     notes: notes !== undefined ? notes : undefined,
+    financialModel: financialModel !== undefined ? financialModel : undefined,
   });
 
   if (!updated) {

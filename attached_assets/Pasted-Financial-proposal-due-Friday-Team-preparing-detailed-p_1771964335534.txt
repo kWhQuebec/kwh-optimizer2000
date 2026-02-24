@@ -1,0 +1,108 @@
+Financial proposal due Friday: Team preparing detailed package covering costs, assumptions, and terms for the Dream project.
+
+Global proposal format established: Covers 23 sites with site-specific pricing; considers volume discounts and client modeling needs.
+
+Procurement risk identified: 40-80 megawatt threshold affects direct orders; reliance on existing vendors mitigates cost risks.
+
+Data collection ongoing: 26 sites assessed; 3 sites don't meet criteria; inputs are being finalized for the proposal.
+
+Automation tools in development: Automatic creation of solar layouts and SLDs aims to enhance design speed and accuracy.
+
+Community engagement seen positively: Early discussions with local authorities diminish risks, despite low turnout at sessions.
+
+
+Notes
+Financial Proposal Preparation
+The team is focused on creating a detailed financial package for the Dream project proposal, with a firm deadline by Friday.
+
+Comprehensive financial model summary required for the proposal covering DC size, AC size, first-year degradation, availability, and useful life (01:45)
+
+Highlighted data in yellow and blue from the model must be included; other data is internal only
+Project costs must detail installed cost, municipal fees, and specify Dream’s covered costs
+A major repair cost assumption needs to be developed for future use
+Terms and conditions will include deposit requirements on equipment to maintain a net-zero cash flow
+Proposal format and site pricing structure decided to accommodate client financial modeling needs (05:41)
+
+Proposal will be a single global document covering all 23 sites with pricing broken down per site
+Presentation flexibility discussed, such as grouping multiple sites per page to balance detail and readability
+Pricing strategy must consider volume discounts and panel procurement thresholds
+Panel procurement volume threshold risks outlined around the 40-80 megawatt range impacting direct ordering leverage (06:12)
+
+Below threshold, sourcing would shift to third parties, potentially increasing costs
+Existing vendor relationships with Chen provide some flexibility on minimum orders
+Team must stay vigilant on volume to maintain cost effectiveness
+Data and inputs gathering status reported with some site data ready and ongoing efforts to finalize all inputs before Friday (07:01)
+
+Current spreadsheet includes 26 sites, with 3 sites failing technical criteria
+James is chasing inputs and corrections, such as errors in Single Line Diagrams (SLD)
+Marc-André will duplicate and adapt the model for all sites based on available data
+Technical Visualization and Design Automation
+Efforts are underway to automate solar panel layout visualization and improve technical planning efficiency.
+
+Automatic SLD creation in progress to generate solar panel arrays and layouts across all sites (15:51)
+
+Marc-André is building tools to visualize panel arrays and create Single Line Diagrams automatically
+This automation aims to speed up site design and improve accuracy with less manual work
+The tool remains a work in progress but is already functional for some sites
+Equipment sizing and design parameters clarified supporting consistent system specifications (16:21)
+
+Siemens inverter sizes of 125 kW, 155 kW, and 375 kW identified as standard options
+Panel model identified as Jinko 660, with some gaps noted in the model data
+James suggested incorporating sizing input to allow automated calculations in future iterations
+Updated equipment pricing and packages available for integration into design and cost models (17:35)
+
+Siemens equipment packages uploaded with current pricing
+These enable accurate cost estimation aligned with technical design
+Marc-André is positioned to update tools accordingly for proposal preparation
+Stakeholder Engagement and Regulatory Considerations
+Proactive communication with local authorities and regulatory bodies is helping to de-risk the project and avoid delays.
+
+Community and municipal engagement viewed as a major positive despite low attendance at some sessions (09:01)
+
+Early conversations with city and fire department reduce risk of unexpected objections
+James emphasized this advance dialogue as a “huge win” for project smoothness
+Smaller cities like Vaudreuil are involved, with Montreal having more prior solar experience
+Airport proximity and regulatory impact assessed with favorable initial findings (10:12)
+
+Panels near airports require Transport Canada approval only if cranes are used in installation
+Existing installations near airports used as precedent for approval confidence
+Safety measures and clean site management reported rigorously followed during prior builds
+Site-specific logistical notes shared reflecting operational discipline and risk awareness (11:54)
+
+Staging and fencing practices ensure compliance and safety near critical infrastructure
+Team demonstrated strong site management, reducing potential operational disruptions
+Project Management and Coordination
+The team is balancing tight deadlines with data collection challenges while maintaining clear communication and support.
+
+Deadline set for proposal package submission by Friday driving current workload intensity (07:01)
+
+James is actively chasing inputs and correcting data errors to meet the timeline
+Marc-André committed to building out deliverables with ongoing updates to James
+Collaborative workflow established combining data sharing, tool development, and regular check-ins (14:27)
+
+Use of SharePoint for file sharing with clear file naming conventions (e.g., Dream financial model)
+Plans for joint review sessions next week to finalize details and address outstanding issues
+James offered full availability to support progress and push deliverables forward
+Workload and resource awareness acknowledged with focus on prioritizing critical tasks (14:41)
+
+Both speakers expressed readiness to adapt schedules to meet project needs
+Emphasis on avoiding delays despite competing priorities like community sessions
+Communication tone reflects strong teamwork and mutual support to maintain momentum (18:12)
+
+Positive rapport evident, helping sustain motivation under pressure
+Clear ownership of tasks with openness to help and feedback
+
+Action items
+James Pagonis
+Provide detailed assumptions and costs (installed cost, municipal fees, project cost components) from the financial model to Marc-André for inclusion in the proposal document (01:45)
+Send final inputs and relevant scope of work documents (solar and O&M) from the client to Marc-André as soon as received (03:34)
+Share the Excel model file location and ensure Marc-André has access to the highlighted version for work on the proposal (13:12)
+Continue chasing pending inputs from stakeholders to finalize financial model details for all sites (08:43)
+Provide input on deposit terms and contract language to include in the proposal (04:26)
+Support Marc-André as needed in proposal preparation until Friday deadline (17:58)
+Marc-André La Barre
+Use the shared Excel model as a template to build out the financial and proposal document for all 23 sites, ensuring the inclusion of only relevant highlighted data (07:32)
+Develop the covering page and detailed pricing presentation per site or consolidated proposal as discussed, adapting format to client needs (04:35)
+Incorporate equipment data, inverter sizes, and Siemens pricing into proposals based on updated files provided (16:12)
+Continue work on automation tools for solar panel visualization, array design, and automatic SLD generation (14:27)
+Keep James updated on progress and raise any required clarifications before Friday (13:48)

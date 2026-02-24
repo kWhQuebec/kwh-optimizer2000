@@ -1759,12 +1759,6 @@ function buildFitScorePage(
       <h3>${t("Facteurs d'&eacute;valuation", "Evaluation Factors")}</h3>
       ${factorRows}
     </div>
-    <div class="section">
-      <h3>${t("D&eacute;tail par facteur", "Factor Details")}</h3>
-      <ul class="bullet-list" style="font-size: 9pt;">
-        ${assessmentItems}
-      </ul>
-    </div>
     <div class="info-box" style="background: ${fitResult.color}; border-radius: 3mm; padding: 6mm;">
       <p style="margin: 0; color: white; font-size: 11pt; font-weight: 600; text-align: center;">
         ${verdictLabel} &mdash; ${pct}/100

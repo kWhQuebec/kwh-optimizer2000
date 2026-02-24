@@ -786,8 +786,78 @@ export const portfolioSites = pgTable("portfolio_sites", {
   overrideIrr: real("override_irr"), // Stored as decimal (e.g., 0.15 for 15%)
   overrideAnnualSavings: real("override_annual_savings"),
   
+  financialModel: jsonb("financial_model"),
+  
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+export interface SiteFinancialModel {
+  projectSpecs: {
+    projectSizeDcKw: number | null;
+    projectSizeAcKw: number | null;
+    yieldKwhPerKwp: number | null;
+    firstYearKwh: number | null;
+    degradationPct: number | null;
+    availabilityPct: number | null;
+    usefulLifeYears: number | null;
+  };
+  projectCosts: {
+    installCostPerW: number | null;
+    constructionCosts: number | null;
+    municipalFees: number | null;
+    interconnectionCost: number | null;
+    developmentFees: number | null;
+    totalProjectCost: number | null;
+    allInCosts: number | null;
+    projectCostPerW: number | null;
+  };
+  revenue: {
+    ppaRate: number | null;
+    ppaEscalator: number | null;
+    ppaLengthYears: number | null;
+    tailRate: number | null;
+  };
+  operatingCosts: {
+    landLease: number | null;
+    municipalIncentives: number | null;
+    propertyTaxes: number | null;
+    insurance: number | null;
+    omRatePerKw: number | null;
+    omCost: number | null;
+    variableOpCostPerKw: number | null;
+    variableOpCost: number | null;
+    totalOperationsCostYr1: number | null;
+    inflationRate: number | null;
+    majorRepairsYear: number | null;
+    equipmentReservePerW: number | null;
+    equipmentReserve: number | null;
+  };
+  financing: {
+    financingEnabled: boolean;
+    debtPercent: number | null;
+    debtAmount: number | null;
+    debtTerm: number | null;
+    interestRate: number | null;
+    feePct: number | null;
+    transactionFees: number | null;
+    dscrTarget: number | null;
+    equity: number | null;
+  };
+  itc: {
+    itcEligible: boolean;
+    itcRate: number | null;
+    eligibleCostsAssumption: number | null;
+    eligibleCosts: number | null;
+    nonEligibleCosts: number | null;
+    potentialItcRebate: number | null;
+    hqItcClawbackRate: number | null;
+    hqItcClawbackAmount: number | null;
+    effectiveItcRebate: number | null;
+  };
+  results: {
+    pretaxIrr: number | null;
+  };
+}
 
 // Blog Articles - SEO content marketing
 export const blogArticles = pgTable("blog_articles", {
