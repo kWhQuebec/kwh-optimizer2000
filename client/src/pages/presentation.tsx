@@ -2325,10 +2325,6 @@ function CredibilitySlide({ language }: { language: string }) {
     desc: lang === 'fr' ? v.descFr : v.descEn,
   }));
 
-  const benefitsData = language === 'fr'
-    ? ["Licence RBQ", "Financement flexible", "Garantie 25 ans", "Partout au Québec"]
-    : ["RBQ Licensed", "Flexible Financing", "25-Year Warranty", "Across Quebec"];
-
   return (
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] px-6 md:px-8">
       <div className="max-w-5xl w-full text-center">
@@ -2347,18 +2343,12 @@ function CredibilitySlide({ language }: { language: string }) {
 
         <p className="text-base md:text-lg mb-8 max-w-3xl mx-auto" style={{ color: '#4B5563' }}>{credDesc}</p>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
           {valuesData.map((v, i) => (
             <div key={i} className="rounded-xl px-5 py-4 text-center" style={{ backgroundColor: '#F7F9FC' }}>
               <p className="font-bold text-base mb-1" style={{ color: BRAND_COLORS.primaryBlue }}>{v.label}</p>
               <p className="text-xs" style={{ color: '#6B7280' }}>{v.desc}</p>
             </div>
-          ))}
-        </div>
-
-        <div className="flex items-center justify-center gap-3 flex-wrap mb-10">
-          {benefitsData.map((b, i) => (
-            <span key={i} className="text-sm px-4 py-2 rounded-md" style={{ border: '1px solid #E5E7EB', color: '#6B7280' }}>{b}</span>
           ))}
         </div>
 
