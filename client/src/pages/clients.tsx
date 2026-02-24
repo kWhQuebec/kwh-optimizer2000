@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Link } from "wouter";
-import { Plus, Users, Mail, Phone, MapPin, Building2, MoreHorizontal, Pencil, Trash2, KeyRound, Send, Loader2, ChevronDown, ChevronLeft, ChevronRight, FileSignature, X, ArrowUpDown, LayoutGrid, List } from "lucide-react";
+import { Plus, Users, Mail, Phone, MapPin, Building2, MoreHorizontal, Pencil, Trash2, KeyRound, Send, Loader2, ChevronDown, ChevronLeft, ChevronRight, FileSignature, X, ArrowUpDown, LayoutGrid, List, Eye } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
@@ -173,7 +173,7 @@ function SendHqProcurationDialog({
 }
 
 function ClientCard({ client, onEdit, onDelete, onGrantAccess, onSendHqProcuration, isSelected, onToggleSelect }: { client: ClientWithSites; onEdit: () => void; onDelete: () => void; onGrantAccess: () => void; onSendHqProcuration: () => void; isSelected?: boolean; onToggleSelect?: (id: string) => void }) {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
 
   return (
     <Card className={`hover-elevate ${isSelected ? 'ring-2 ring-primary' : ''}`}>
@@ -239,6 +239,12 @@ function ClientCard({ client, onEdit, onDelete, onGrantAccess, onSendHqProcurati
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              <DropdownMenuItem asChild>
+                <Link href={`/app/clients/${client.id}/portal-preview`}>
+                  <Eye className="w-4 h-4 mr-2" />
+                  {t("clients.viewAsClient") || (language === "fr" ? "Voir comme client" : "View as client")}
+                </Link>
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={onGrantAccess}>
                 <KeyRound className="w-4 h-4 mr-2" />
                 {t("clients.grantPortalAccess")}
@@ -810,6 +816,12 @@ export default function ClientsPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                        <DropdownMenuItem asChild>
+                          <Link href={`/app/clients/${client.id}/portal-preview`}>
+                            <Eye className="w-4 h-4 mr-2" />
+                            {language === "fr" ? "Voir comme client" : "View as client"}
+                          </Link>
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => setPortalAccessClient(client)}>
                           <KeyRound className="w-4 h-4 mr-2" />
                           {t("clients.grantPortalAccess")}

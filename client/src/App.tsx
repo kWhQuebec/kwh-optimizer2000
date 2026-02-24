@@ -1,4 +1,4 @@
-import { Switch, Route, useLocation, Redirect } from "wouter";
+import { Switch, Route, useLocation, useParams, Redirect } from "wouter";
 import { Suspense, lazy, useEffect } from "react";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -79,6 +79,11 @@ const AdminNewsPage = lazy(() => import("@/pages/admin-news"));
 const NouvelleDetailPage = lazy(() => import("@/pages/nouvelle-detail"));
 
 import NouvellesPage from "@/pages/nouvelles";
+
+function PortalPreviewRoute() {
+  const params = useParams<{ clientId: string }>();
+  return <ClientPortalPage previewClientId={params.clientId} />;
+}
 
 function PageLoader() {
   return (
@@ -274,6 +279,18 @@ function AppRoutes() {
           <StaffRoute>
             <AppLayout>
               <ClientsPage />
+            </AppLayout>
+          </StaffRoute>
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/app/clients/:clientId/portal-preview">
+        <ProtectedRoute>
+          <StaffRoute>
+            <AppLayout>
+              <Suspense fallback={<PageLoader />}>
+                <PortalPreviewRoute />
+              </Suspense>
             </AppLayout>
           </StaffRoute>
         </ProtectedRoute>

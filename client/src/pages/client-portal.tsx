@@ -18,7 +18,9 @@ import {
   Phone,
   DollarSign,
   Zap,
-  AlertCircle
+  AlertCircle,
+  Eye,
+  ArrowLeft
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -79,13 +81,26 @@ function SiteWorkflowProgress({ site, language }: { site: SiteWithClient; langua
   );
 }
 
-export default function ClientPortalPage() {
+export default function ClientPortalPage({ previewClientId }: { previewClientId?: string }) {
   const { t, language } = useI18n();
   const { user } = useAuth();
 
-  const { data: sites = [], isLoading } = useQuery<SiteWithClient[]>({
+  const { data: allSites = [], isLoading } = useQuery<SiteWithClient[]>({
     queryKey: ["/api/sites"],
   });
+
+  const { data: previewClientData } = useQuery<{ id: string; name: string }>({
+    queryKey: ["/api/clients", previewClientId],
+    enabled: !!previewClientId,
+  });
+
+  const sites = previewClientId
+    ? allSites.filter(s => s.clientId === previewClientId)
+    : allSites;
+
+  const previewClientName = previewClientId
+    ? (previewClientData?.name || sites[0]?.client?.name || "Client")
+    : null;
 
   const getAnalysisStatus = (site: SiteWithClient) => {
     if (!site.analysisAvailable) {
@@ -169,14 +184,31 @@ export default function ClientPortalPage() {
 
   return (
     <div className="space-y-6">
+      {previewClientId && (
+        <div className="flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 px-4 py-3" data-testid="banner-preview-mode">
+          <Eye className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
+          <p className="text-sm text-amber-800 dark:text-amber-200 flex-1">
+            {language === "fr"
+              ? `Mode prévisualisation — Vous voyez le portail tel que ${previewClientName} le verra.`
+              : `Preview mode — You are viewing the portal as ${previewClientName} would see it.`}
+          </p>
+          <Link href="/app/clients">
+            <Button variant="outline" size="sm" className="gap-1.5 shrink-0" data-testid="button-back-from-preview">
+              <ArrowLeft className="w-3.5 h-3.5" />
+              {language === "fr" ? "Retour" : "Back"}
+            </Button>
+          </Link>
+        </div>
+      )}
+
       {/* Welcome Header */}
       <div className="space-y-2">
         <h1 className="text-2xl font-bold" data-testid="text-portal-title">
-          {t("portal.welcome") || "Welcome"}, {user?.name ? user.name.split(" ")[0] : user?.email} !
+          {t("portal.welcome") || "Welcome"}, {previewClientId ? previewClientName : (user?.name ? user.name.split(" ")[0] : user?.email)} !
         </h1>
         <p className="text-muted-foreground">
-          {user?.clientName && (
-            <span className="font-medium">{user.clientName} - </span>
+          {(previewClientId ? previewClientName : user?.clientName) && (
+            <span className="font-medium">{previewClientId ? previewClientName : user?.clientName} - </span>
           )}
           {t("portal.subtitle") || "View your solar analysis reports and site information"}
         </p>
