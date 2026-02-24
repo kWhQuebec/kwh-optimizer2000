@@ -55,7 +55,6 @@ router.get("/api/simulation-runs/:id/full", authMiddleware, asyncHandler(async (
 router.get("/api/simulation-runs/:id/report-pdf", authMiddleware, asyncHandler(async (req: AuthRequest, res) => {
   const lang = (req.query.lang as string) === "en" ? "en" : "fr";
   const opt = (req.query.opt as string) || 'npv';
-  const useV2 = req.query.v !== "1";
   const docData = await prepareDocumentData(req.params.id, storage);
 
   if (req.userRole === "client" && req.userClientId) {
@@ -81,43 +80,21 @@ router.get("/api/simulation-runs/:id/report-pdf", authMiddleware, asyncHandler(a
 
   const optimizedSimulation = applyOptimalScenario(docData.simulation, opt as any);
 
-  if (useV2) {
-    const { generateProfessionalPDFv2 } = await import("../services/pdfGeneratorV2");
-    const simData = {
-      ...optimizedSimulation,
-      roofPolygons: docData.roofPolygons,
-      roofVisualizationBuffer: docData.roofVisualizationBuffer,
-      catalogEquipment: docData.catalogEquipment,
-      constructionTimeline: docData.constructionTimeline,
-      isSynthetic: docData.isSynthetic,
-    };
-
-    const pdfBuffer = await generateProfessionalPDFv2(simData as any, lang);
-
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `attachment; filename="etude-solaire-stockage-${docData.simulation.site.name.replace(/\s+/g, '-')}.pdf"`);
-    res.send(pdfBuffer);
-    return;
-  }
-
-  const doc = new PDFDocument({ size: "LETTER", margin: 50 });
-
-  res.setHeader("Content-Type", "application/pdf");
-  res.setHeader("Content-Disposition", `attachment; filename="etude-solaire-stockage-${docData.simulation.site.name.replace(/\s+/g, '-')}.pdf"`);
-
-  doc.pipe(res);
-
-  const simulationWithRoof = {
+  const { generateProfessionalPDFv2 } = await import("../services/pdfGeneratorV2");
+  const simData = {
     ...optimizedSimulation,
     roofPolygons: docData.roofPolygons,
     roofVisualizationBuffer: docData.roofVisualizationBuffer,
+    catalogEquipment: docData.catalogEquipment,
+    constructionTimeline: docData.constructionTimeline,
     isSynthetic: docData.isSynthetic,
   };
 
-  const { generateProfessionalPDF } = await import("../pdf");
-  generateProfessionalPDF(doc, simulationWithRoof, lang, docData.siteSimulations);
+  const pdfBuffer = await generateProfessionalPDFv2(simData as any, lang);
 
-  doc.end();
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader("Content-Disposition", `attachment; filename="etude-solaire-stockage-${docData.simulation.site.name.replace(/\s+/g, '-')}.pdf"`);
+  res.send(pdfBuffer);
 }));
 
 router.get("/api/simulation-runs/:id/executive-summary-pdf", authMiddleware, asyncHandler(async (req: AuthRequest, res) => {

@@ -3,8 +3,9 @@ import * as path from "path";
 import * as fs from "fs";
 import type { DocumentSimulationData } from "../documentDataProvider";
 import { createLogger } from "../lib/logger";
-import { getWhySolarNow, getEquipmentTechnicalSummary, getExclusions, getEquipment, getBatteryEquipment, getTimeline } from "@shared/brandContent";
+import { getWhySolarNow, getEquipmentTechnicalSummary, getExclusions, getEquipment, getBatteryEquipment, getTimeline, getAllStats, getValues, getCredibilityBenefits, getDeliveryAssurance, getDeliveryPartners, getWarrantyRoadmap } from "@shared/brandContent";
 import { computeAcquisitionCashflows, type CumulativePoint } from "./acquisitionCashflows";
+import { computeFitScore, type FitScoreInput } from "@shared/fitScore";
 
 const log = createLogger("PDFv2");
 
@@ -65,11 +66,6 @@ export async function generateProfessionalPDFv2(
   const coverImagePath = path.join(process.cwd(), "attached_assets", "kWh__Quebec_Brand_Guideline_1764967501349.jpg");
   const coverImageBase64 = loadImageAsBase64(coverImagePath);
 
-  const scaleCleantechLogoBase64 = loadImageAsBase64(path.join(process.cwd(), "attached_assets", "scale-cleantech-color_small-VSYW5GJE_1771188382228.webp"));
-  const hydroQuebecLogoBase64 = loadImageAsBase64(path.join(process.cwd(), "attached_assets", "Screenshot_2026-02-15_at_3.45.19_PM_1771188469569.png"));
-  const dreamIndustrialLogoBase64 = loadImageAsBase64(path.join(process.cwd(), "attached_assets", "Screenshot_2026-02-15_at_3.48.30_PM_1771188521355.png"));
-  const labspaceLogoBase64 = loadImageAsBase64(path.join(process.cwd(), "attached_assets", "Logo_full_black_1771188620610.png"));
-
   simulation.annualCostBefore = simulation.annualCostBefore || 0;
   simulation.annualCostAfter = simulation.annualCostAfter || 0;
   simulation.incentivesHQSolar = simulation.incentivesHQSolar || 0;
@@ -111,7 +107,6 @@ export async function generateProfessionalPDFv2(
 
   pages.push(buildCoverPage(simulation, t, logoBase64, coverImageBase64, lang, isSyntheticData));
   nextPage();
-  pages.push(buildAboutPage(simulation, t, nextPage(), { scaleCleantechLogoBase64, hydroQuebecLogoBase64, dreamIndustrialLogoBase64, labspaceLogoBase64 }));
 
   pages.push(buildWhySolarNowPage(t, lang, nextPage()));
   pages.push(buildProjectSnapshotPage(simulation, t, totalProductionKWh, roofImageBase64, nextPage(), isSyntheticData));
@@ -129,8 +124,11 @@ export async function generateProfessionalPDFv2(
   pages.push(buildFinancialProjectionsPage(simulation, t, totalProductionKWh, nextPage()));
 
   pages.push(buildEquipmentPage(simulation, t, lang, nextPage()));
+  pages.push(buildDeliveryAssurancePage(t, lang, nextPage()));
+  pages.push(buildFitScorePage(simulation, t, lang, nextPage()));
   pages.push(buildAssumptionsPage(simulation, t, lang, isSyntheticData, nextPage()));
   pages.push(buildNextStepsPage(simulation, t, isSyntheticData, nextPage()));
+  pages.push(buildCredibilityPage(t, lang, nextPage()));
 
   const watermarkLabel = t("\u00c9TUDE PR\u00c9LIMINAIRE", "PRELIMINARY STUDY");
   const bodyClass = isSyntheticData ? ' class="synthetic"' : '';
@@ -304,6 +302,19 @@ body.synthetic .page:not(.cover-page)::after {
   font-size: 9pt; color: #92400E; line-height: 1.5;
 }
 .synthetic-banner strong { color: #B45309; }
+.partner-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3mm; margin-bottom: 4mm; }
+.partner-card { background: #f3f4f6; border: 1px solid #E5E7EB; border-radius: 2mm; padding: 3mm; text-align: center; }
+.warranty-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3mm; margin-bottom: 4mm; }
+.warranty-card { background: #f3f4f6; border: 1px solid #E5E7EB; border-radius: 2mm; padding: 3mm; text-align: center; }
+.warranty-card.final { background: #003DA6; border: none; color: white; }
+.score-circle { width: 40mm; height: 40mm; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; margin: 0 auto; }
+.factor-row { display: flex; align-items: center; gap: 3mm; margin-bottom: 2mm; }
+.factor-label { width: 35mm; font-size: 9pt; font-weight: 500; color: #4a5568; }
+.factor-bar { flex: 1; height: 5mm; background: #e5e7eb; border-radius: 2mm; overflow: hidden; }
+.factor-bar-fill { height: 100%; border-radius: 2mm; }
+.factor-value { width: 15mm; text-align: right; font-size: 8pt; color: #6b7280; }
+.factor-score { width: 12mm; text-align: right; font-size: 9pt; font-weight: 700; color: #003DA6; }
+.cert-badge { display: inline-block; background: rgba(0,61,166,0.08); color: #003DA6; font-size: 7pt; padding: 1px 4px; border-radius: 8px; margin: 1px; }
 @media print {
   .page { page-break-after: always; page-break-inside: avoid; }
   .page:last-child { page-break-after: auto; }
@@ -370,109 +381,6 @@ function buildCoverPage(
   </div>`;
 }
 
-function buildAboutPage(
-  _sim: DocumentSimulationData,
-  t: (fr: string, en: string) => string,
-  pageNum: number,
-  partnerLogos?: { scaleCleantechLogoBase64?: string | null; hydroQuebecLogoBase64?: string | null; dreamIndustrialLogoBase64?: string | null; labspaceLogoBase64?: string | null }
-): string {
-  const svgIcon = (svg: string, color: string) =>
-    `<div class="pillar-icon" style="background: ${color}15; display: flex; align-items: center; justify-content: center;">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${svg}</svg>
-    </div>`;
-
-  const iconSimplicity = `<path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/>`;
-  const iconReliability = `<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>`;
-  const iconLongevity = `<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>`;
-  const iconPride = `<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" x2="4" y1="22" y2="15"/>`;
-
-  return `
-  <div class="page">
-    <h2>${t("Qui sommes-nous", "About Us")}</h2>
-    <p class="subtitle">${t("Votre partenaire solaire cl&eacute; en main au Qu&eacute;bec", "Your turnkey solar partner in Qu&eacute;bec")}</p>
-    <p style="margin-bottom: 6mm;">
-      <strong>kWh Qu&eacute;bec</strong> ${t(
-        "con&ccedil;oit, installe et entretient des syst&egrave;mes solaires et de stockage d'&eacute;nergie pour les b&acirc;timents commerciaux et industriels. De l'analyse initiale &agrave; la mise en service,",
-        "designs, installs and maintains solar and energy storage systems for commercial and industrial buildings. From initial analysis to commissioning,"
-      )}
-      <strong>${t("on s'occupe de tout.", "we take care of everything.")}</strong>
-    </p>
-    <div class="metrics-grid-4" style="margin-bottom: 6mm;">
-      <div class="metric-card metric-highlight">
-        <span class="metric-value" style="font-size: 20pt;">120+ MW</span>
-        <span class="metric-label">${t("Install&eacute;s", "Installed")}</span>
-      </div>
-      <div class="metric-card">
-        <span class="metric-value" style="font-size: 20pt;">25+</span>
-        <span class="metric-label">${t("Projets compl&eacute;t&eacute;s", "Completed Projects")}</span>
-      </div>
-      <div class="metric-card">
-        <span class="metric-value" style="font-size: 20pt;">15+ ${t("ans", "yrs")}</span>
-        <span class="metric-label">${t("Exp&eacute;rience", "Experience")}</span>
-      </div>
-      <div class="metric-card metric-accent">
-        <span class="metric-value" style="font-size: 20pt;">100%</span>
-        <span class="metric-label">${t("Cl&eacute; en main", "Turnkey")}</span>
-      </div>
-    </div>
-    <div class="section">
-      <h3>${t("Notre approche", "Our Approach")}</h3>
-      <div class="metrics-grid-4">
-        <div class="pillar-card">
-          ${svgIcon(iconSimplicity, "#FFB005")}
-          <div class="pillar-title">${t("Simplicit&eacute;", "Simplicity")}</div>
-          <p class="pillar-desc">${t("Un seul interlocuteur de A &agrave; Z. Z&eacute;ro complexit&eacute; pour vous.", "One point of contact from A to Z. Zero complexity for you.")}</p>
-        </div>
-        <div class="pillar-card">
-          ${svgIcon(iconReliability, "#003DA6")}
-          <div class="pillar-title">${t("Fiabilit&eacute;", "Reliability")}</div>
-          <p class="pillar-desc">${t("&Eacute;quipements certifi&eacute;s, entrepreneur licenci&eacute; RBQ.", "Certified equipment, RBQ licensed contractor.")}</p>
-        </div>
-        <div class="pillar-card">
-          ${svgIcon(iconLongevity, "#16a34a")}
-          <div class="pillar-title">${t("Long&eacute;vit&eacute;", "Longevity")}</div>
-          <p class="pillar-desc">${t("Syst&egrave;mes con&ccedil;us pour 25+ ans de performance garantie.", "Systems designed for 25+ years of guaranteed performance.")}</p>
-        </div>
-        <div class="pillar-card">
-          ${svgIcon(iconPride, "#DC2626")}
-          <div class="pillar-title">${t("Fiert&eacute;", "Pride")}</div>
-          <p class="pillar-desc">${t("Entreprise qu&eacute;b&eacute;coise. Contribution &agrave; la transition &eacute;nerg&eacute;tique locale.", "Quebec company. Contributing to the local energy transition.")}</p>
-        </div>
-      </div>
-    </div>
-    <div class="section">
-      <h3>${t("Pourquoi kWh Qu&eacute;bec", "Why kWh Qu&eacute;bec")}</h3>
-      <p style="text-align: center; font-size: 9pt; color: #4a5568; margin-bottom: 3mm;">${t("Notre &eacute;quipe accompagne les entreprises partout au Canada dans leurs projets d'&eacute;nergie renouvelable depuis 2011. En tant que Qu&eacute;b&eacute;cois, nous sommes fiers de vous offrir des solutions solaires maintenant rentables ici au Qu&eacute;bec.", "Our team has been supporting businesses across Canada in renewable energy projects since 2011. As Quebecers, we're proud to offer solar solutions that are now profitable here in Quebec.")}</p>
-      <div class="logo-grid">
-        <div class="logo-item" style="font-size: 10pt; font-weight: 700; color: #003DA6;">15+ ${t("ans", "yrs")}</div>
-        <div class="logo-item" style="font-size: 10pt; font-weight: 700; color: #003DA6;">120 MW</div>
-        <div class="logo-item" style="font-size: 10pt; font-weight: 700; color: #003DA6;">25+ ${t("projets C&amp;I", "C&amp;I projects")}</div>
-        <div class="logo-item" style="font-size: 10pt; font-weight: 700; color: #003DA6;">${t("Licence RBQ", "RBQ Licensed")}</div>
-      </div>
-    </div>
-    <div class="two-column">
-      <div class="info-box">
-        <h3 style="color: var(--primary); margin-bottom: 2mm; font-size: 11pt;">${t("Certifications", "Certifications")}</h3>
-        <ul class="bullet-list" style="font-size: 9pt;">
-          <li>${t("Licence RBQ 1.3 &mdash; Entrepreneur g&eacute;n&eacute;ral", "RBQ License 1.3 &mdash; General Contractor")}</li>
-          <li>CNESST</li>
-          <li>CCQ</li>
-          <li>${t("Assurances 5 M$", "$5M Insurance Coverage")}</li>
-        </ul>
-      </div>
-      <div class="info-box">
-        <h3 style="color: var(--primary); margin-bottom: 2mm; font-size: 11pt;">${t("Nos services", "Our Services")}</h3>
-        <ul class="bullet-list" style="font-size: 9pt;">
-          <li>${t("Analyse & Design", "Analysis & Design")}</li>
-          <li>${t("Ing&eacute;nierie", "Engineering")}</li>
-          <li>Construction</li>
-          <li>${t("Op&eacute;ration & Maintenance", "Operation & Maintenance")}</li>
-        </ul>
-      </div>
-    </div>
-    ${footerHtml(t, pageNum)}
-  </div>`;
-}
 
 function buildWhySolarNowPage(
   t: (fr: string, en: string) => string,
@@ -1328,8 +1236,7 @@ function buildEquipmentPage(
     manufacturer: eq.manufacturer,
     warranty: eq.warranty,
     spec: eq.specs || "",
-    weight: eq.weightKg ? `${eq.weightKg} kg` : "—",
-    dimensions: eq.dimensionsMm ? `${eq.dimensionsMm} mm` : "—",
+    certifications: eq.certifications || [],
     category: iconCodeToCategory[eq.iconCode] || eq.iconCode,
   }));
 
@@ -1340,8 +1247,7 @@ function buildEquipmentPage(
       manufacturer: battEq.manufacturer,
       warranty: battEq.warranty,
       spec: battEq.specs || "",
-      weight: battEq.weightKg ? `${battEq.weightKg} kg` : "—",
-      dimensions: battEq.dimensionsMm ? `${battEq.dimensionsMm} mm` : "—",
+      certifications: battEq.certifications || [],
       category: iconCodeToCategory[battEq.iconCode] || battEq.iconCode,
     });
   }
@@ -1360,19 +1266,23 @@ function buildEquipmentPage(
         <th>${t("Composant", "Component")}</th>
         <th>${t("Fabricant", "Manufacturer")}</th>
         <th>${t("Sp&eacute;cification", "Specification")}</th>
-        <th>${t("Poids", "Weight")}</th>
-        <th>${t("Dimensions", "Dimensions")}</th>
+        <th>Certifications</th>
         <th>${t("Garantie", "Warranty")}</th>
       </tr>
-      ${equipment.map(eq => `
+      ${equipment.map(eq => {
+        const certs = (eq as any).certifications;
+        const certHtml = certs && certs.length > 0
+          ? certs.map((c: string) => `<span class="cert-badge">${c}</span>`).join("")
+          : "&mdash;";
+        return `
       <tr>
         <td><strong>${eq.name}</strong></td>
         <td>${eq.manufacturer}</td>
         <td>${eq.spec}</td>
-        <td>${(eq as any).weight || "—"}</td>
-        <td>${(eq as any).dimensions || "—"}</td>
+        <td>${certHtml}</td>
         <td>${eq.warranty}</td>
-      </tr>`).join("")}
+      </tr>`;
+      }).join("")}
     </table>
     <div class="two-column" style="margin-top: 4mm;">
       <div class="section">
@@ -1660,6 +1570,207 @@ function buildNextStepsPage(
       ${faqHtml}
     </div>
     ${ctaHtml}
+    ${footerHtml(t, pageNum)}
+  </div>`;
+}
+
+function buildDeliveryAssurancePage(
+  t: (fr: string, en: string) => string,
+  lang: "fr" | "en",
+  pageNum: number
+): string {
+  const milestones = getDeliveryAssurance(lang);
+  const partners = getDeliveryPartners(lang);
+  const warranty = getWarrantyRoadmap(lang);
+
+  const milestonesRows = milestones.map(m =>
+    `<tr>
+      <td><strong>${m.phase}</strong></td>
+      <td>${m.duration}</td>
+      <td>${m.deliverables}</td>
+      <td>${m.qaCheckpoint}</td>
+    </tr>`
+  ).join("");
+
+  const partnerCards = partners.map(p =>
+    `<div class="partner-card">
+      <p style="font-size: 8pt; font-weight: 700; color: #003DA6; margin: 0 0 1mm 0;">${p.role}</p>
+      <p style="font-size: 9pt; font-weight: 600; margin: 0 0 1mm 0;">${p.name}</p>
+      <p style="font-size: 7pt; color: #6b7280; margin: 0;">${p.qualification}</p>
+    </div>`
+  ).join("");
+
+  const warrantyCards = warranty.map((w, i) => {
+    const isFinal = i === warranty.length - 1;
+    const cls = isFinal ? "warranty-card final" : "warranty-card";
+    const periodStyle = isFinal ? "font-size: 10pt; font-weight: 700; color: #FFB005; margin: 0 0 2mm 0;" : "font-size: 10pt; font-weight: 700; color: #003DA6; margin: 0 0 2mm 0;";
+    const itemStyle = isFinal ? "font-size: 8pt; color: rgba(255,255,255,0.9); margin: 0;" : "font-size: 8pt; color: #4a5568; margin: 0;";
+    return `<div class="${cls}">
+      <p style="${periodStyle}">${w.period}</p>
+      <p style="${itemStyle}">${w.items}</p>
+    </div>`;
+  }).join("");
+
+  return `
+  <div class="page">
+    <h2>${t("Assurance de livraison", "Project Delivery Assurance")}</h2>
+    <table class="data-table">
+      <tr>
+        <th>Phase</th>
+        <th>${t("Dur&eacute;e", "Duration")}</th>
+        <th>${t("Livrables", "Deliverables")}</th>
+        <th>${t("Point de contr&ocirc;le QA", "QA Checkpoint")}</th>
+      </tr>
+      ${milestonesRows}
+    </table>
+    <div class="section">
+      <h3>${t("&Eacute;QUIPE DE LIVRAISON", "DELIVERY TEAM")}</h3>
+      <div class="partner-grid">
+        ${partnerCards}
+      </div>
+    </div>
+    <div class="section">
+      <h3>${t("PLAN DE SUPPORT ET GARANTIES", "WARRANTY &amp; SUPPORT ROADMAP")}</h3>
+      <div class="warranty-grid">
+        ${warrantyCards}
+      </div>
+    </div>
+    <div class="info-box" style="background: #FFF8E1; border-left: 4px solid var(--accent); border-radius: 0;">
+      <p style="font-size: 9pt; margin: 0;">
+        <strong>${t("INTERCONNEXION Hydro-Qu&eacute;bec", "INTERCONNECTION Hydro-Qu&eacute;bec")}</strong> &mdash;
+        ${t(
+          "kWh g&egrave;re le processus complet. D&eacute;lai typique: 8-16 semaines. Risque faible pour syst&egrave;mes &lt; 1 MW.",
+          "kWh manages the complete process. Typical delay: 8-16 weeks. Low risk for systems &lt; 1 MW."
+        )}
+      </p>
+    </div>
+    ${footerHtml(t, pageNum)}
+  </div>`;
+}
+
+function buildFitScorePage(
+  sim: DocumentSimulationData,
+  t: (fr: string, en: string) => string,
+  lang: "fr" | "en",
+  pageNum: number
+): string {
+  const fitResult = computeFitScore({
+    simplePaybackYears: sim.simplePaybackYears || null,
+    irr25: (sim as any).irr25 || null,
+    annualSavings: sim.annualSavings || null,
+    annualCostBefore: sim.annualCostBefore || null,
+    selfSufficiencyPercent: sim.selfSufficiencyPercent || null,
+    capexNet: sim.capexNet || null,
+  });
+
+  const verdictLabel = lang === "fr" ? fitResult.labelFr : fitResult.labelEn;
+  const pct = Math.round(fitResult.score);
+
+  const factorRows = fitResult.factors.map(f => {
+    const label = lang === "fr" ? f.labelFr : f.labelEn;
+    const barPct = f.maxScore > 0 ? Math.round((f.score / f.maxScore) * 100) : 0;
+    return `
+    <div class="factor-row">
+      <div class="factor-label">${label}</div>
+      <div class="factor-bar">
+        <div class="factor-bar-fill" style="width: ${barPct}%; background: ${f.barColor};"></div>
+      </div>
+      <div class="factor-value">${f.displayValue}</div>
+      <div class="factor-score">${f.score}/${f.maxScore}</div>
+    </div>`;
+  }).join("");
+
+  const assessmentItems = fitResult.factors.map(f => {
+    const assessment = lang === "fr" ? f.assessmentFr : f.assessmentEn;
+    return `<li style="font-size: 8.5pt; padding: 1mm 0;">${assessment}</li>`;
+  }).join("");
+
+  return `
+  <div class="page">
+    <h2>${t("&Eacute;valuation de faisabilit&eacute;", "Feasibility Assessment")}</h2>
+    <p class="subtitle">${t("Score de compatibilit&eacute; solaire de votre projet", "Solar compatibility score for your project")}</p>
+    <div style="text-align: center; margin: 8mm 0;">
+      <div class="score-circle" style="border: 4px solid ${fitResult.color};">
+        <span style="font-size: 28pt; font-weight: 700; color: ${fitResult.color};">${pct}</span>
+        <span style="font-size: 10pt; color: #6b7280;">/100</span>
+      </div>
+      <p style="font-size: 14pt; font-weight: 600; color: ${fitResult.color}; margin-top: 4mm;">${verdictLabel}</p>
+    </div>
+    <div class="section">
+      <h3>${t("Facteurs d'&eacute;valuation", "Evaluation Factors")}</h3>
+      ${factorRows}
+    </div>
+    <div class="section">
+      <h3>${t("D&eacute;tail par facteur", "Factor Details")}</h3>
+      <ul class="bullet-list" style="font-size: 9pt;">
+        ${assessmentItems}
+      </ul>
+    </div>
+    <div class="info-box" style="background: ${fitResult.color}; border-radius: 3mm; padding: 6mm;">
+      <p style="margin: 0; color: white; font-size: 11pt; font-weight: 600; text-align: center;">
+        ${verdictLabel} &mdash; ${pct}/100
+      </p>
+    </div>
+    ${footerHtml(t, pageNum)}
+  </div>`;
+}
+
+function buildCredibilityPage(
+  t: (fr: string, en: string) => string,
+  lang: "fr" | "en",
+  pageNum: number
+): string {
+  const stats = getAllStats(lang);
+  const values = getValues(lang);
+  const benefits = getCredibilityBenefits(lang);
+
+  const statsHtml = stats.map(s =>
+    `<div class="metric-card">
+      <span class="metric-value" style="font-size: 20pt;">${s.value}</span>
+      <span class="metric-label">${s.label}</span>
+    </div>`
+  ).join("");
+
+  const valuesHtml = values.map(v =>
+    `<div class="pillar-card">
+      <div class="pillar-title">${v.label}</div>
+      <p class="pillar-desc">${v.description}</p>
+    </div>`
+  ).join("");
+
+  const benefitsHtml = benefits.map(b =>
+    `<li style="font-size: 9pt; padding: 1.5mm 0;">${b}</li>`
+  ).join("");
+
+  return `
+  <div class="page">
+    <h2>${t("Pourquoi kWh Qu&eacute;bec", "Why kWh Qu&eacute;bec")}</h2>
+    <p class="subtitle">${t("Votre partenaire solaire cl&eacute; en main au Qu&eacute;bec", "Your turnkey solar partner in Qu&eacute;bec")}</p>
+    <div class="metrics-grid-4" style="margin-bottom: 6mm;">
+      ${statsHtml}
+    </div>
+    <div class="section">
+      <h3>${t("Nos valeurs", "Our Values")}</h3>
+      <div class="metrics-grid-4">
+        ${valuesHtml}
+      </div>
+    </div>
+    <div class="section">
+      <h3>${t("Pourquoi nous choisir", "Why Choose Us")}</h3>
+      <div class="info-box">
+        <ul class="bullet-list">
+          ${benefitsHtml}
+        </ul>
+      </div>
+    </div>
+    <div class="cta-box">
+      <h3>${t("Pr&ecirc;t &agrave; passer &agrave; l'&eacute;nergie solaire?", "Ready to switch to solar energy?")}</h3>
+      <p>${t("Contactez-nous pour d&eacute;marrer votre projet", "Contact us to start your project")}</p>
+      <p style="font-size: 14pt; margin-top: 5mm;">
+        <strong>info@kwh.quebec</strong> &nbsp;|&nbsp; <strong>514-427-8871</strong>
+      </p>
+      <p style="font-size: 10pt; margin-top: 3mm; opacity: 0.8;">kwh.quebec</p>
+    </div>
     ${footerHtml(t, pageNum)}
   </div>`;
 }
