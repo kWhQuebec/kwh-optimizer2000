@@ -440,7 +440,7 @@ export default function SiteDetailPage() {
             "Content-Type": "application/json",
             ...(tkn ? { Authorization: `Bearer ${tkn}` } : {})
           },
-          body: JSON.stringify({ imageData }),
+          body: JSON.stringify({ imageDataUrl: imageData }),
         });
         if (!resp.ok) console.warn("Failed to save roof visualization before download");
       }
@@ -480,6 +480,7 @@ export default function SiteDetailPage() {
         setCustomAssumptions(prev => ({ ...prev, roofAreaSqFt: totalAreaSqFt }));
       }
       setIsRoofDrawingModalOpen(false);
+      setTimeout(() => { captureAndSaveVisualization(); }, 1500);
     },
     onError: (error) => {
       console.error("Error saving roof polygons:", error);
@@ -1931,6 +1932,7 @@ export default function SiteDetailPage() {
                       kbKwDc: newKw
                     }).then(() => {
                       queryClient.invalidateQueries({ queryKey: ['/api/sites', id] });
+                      setTimeout(() => { captureAndSaveVisualization(); }, 1500);
                     }).catch(err => console.error('Failed to save roof capacity:', err));
                   }
                 }

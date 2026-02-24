@@ -3,7 +3,7 @@ import * as path from "path";
 import * as fs from "fs";
 import type { DocumentSimulationData } from "../documentDataProvider";
 import { createLogger } from "../lib/logger";
-import { getWhySolarNow, getEquipmentTechnicalSummary, getExclusions, getEquipment, getBatteryEquipment, getTimeline, getAllStats, getValues, getCredibilityBenefits, getDeliveryAssurance, getDeliveryPartners, getWarrantyRoadmap } from "@shared/brandContent";
+import { getWhySolarNow, getEquipmentTechnicalSummary, getExclusions, getEquipment, getBatteryEquipment, getTimeline, getCredibilityDescription, getDeliveryAssurance, getDeliveryPartners, getWarrantyRoadmap } from "@shared/brandContent";
 import { computeAcquisitionCashflows, type CumulativePoint } from "./acquisitionCashflows";
 import { computeFitScore, type FitScoreInput } from "@shared/fitScore";
 
@@ -635,11 +635,11 @@ function buildNetInvestmentPage(
       <h3>${t("D&eacute;tail des incitatifs", "Incentives Breakdown")}</h3>
       <table class="data-table">
         <tr><th>${t("&Eacute;l&eacute;ment", "Item")}</th><th style="text-align: right;">${t("Montant", "Amount")}</th></tr>
-        <tr><td>${t("Co&ucirc;t du syst&egrave;me (installation compl&egrave;te cl&eacute; en main)", "System cost (complete turnkey installation)")}</td><td class="number">${cur(sim.capexGross)}</td></tr>
-        <tr><td>${t("Cr&eacute;dit d'imp&ocirc;t &agrave; l'investissement f&eacute;d&eacute;ral (ITC)", "Federal Investment Tax Credit (ITC)")}</td><td class="number" style="color: #16a34a;">-${cur(sim.incentivesFederal)}</td></tr>
-        <tr><td>${t("Incitatif Hydro-Qu&eacute;bec autoproduction", "Hydro-Qu&eacute;bec Self-Production Incentive")}${sim.incentivesHQSolar > 0 && sim.incentivesHQBattery > 0 ? ` (${t("Solaire", "Solar")}: ${cur(sim.incentivesHQSolar)}, ${t("Batterie", "Battery")}: ${cur(sim.incentivesHQBattery)})` : ""}</td><td class="number" style="color: #FFB005;">-${cur(sim.incentivesHQ)}</td></tr>
-        ${sim.taxShield > 0 ? `<tr><td>${t("Bouclier fiscal (amortissement acc&eacute;l&eacute;r&eacute;)", "Tax shield (accelerated depreciation)")}</td><td class="number" style="color: #16a34a;">-${cur(sim.taxShield)}</td></tr>` : ""}
-        <tr class="total-row"><td><strong>${t("INVESTISSEMENT NET", "NET INVESTMENT")}</strong></td><td class="number"><strong>${cur(sim.capexNet)}</strong></td></tr>
+        <tr><td><span style="color: #6B7280; margin-right: 4px;">&#9679;</span>${t("Co&ucirc;t du syst&egrave;me (installation compl&egrave;te cl&eacute; en main)", "System cost (complete turnkey installation)")}</td><td class="number">${cur(sim.capexGross)}</td></tr>
+        <tr><td><span style="color: #3B82F6; margin-right: 4px;">&#9679;</span>${t("Cr&eacute;dit d'imp&ocirc;t &agrave; l'investissement f&eacute;d&eacute;ral (ITC)", "Federal Investment Tax Credit (ITC)")}</td><td class="number" style="color: #3B82F6;">-${cur(sim.incentivesFederal)}</td></tr>
+        <tr><td><span style="color: #FFB005; margin-right: 4px;">&#9679;</span>${t("Incitatif Hydro-Qu&eacute;bec autoproduction", "Hydro-Qu&eacute;bec Self-Production Incentive")}${sim.incentivesHQSolar > 0 && sim.incentivesHQBattery > 0 ? ` (${t("Solaire", "Solar")}: ${cur(sim.incentivesHQSolar)}, ${t("Batterie", "Battery")}: ${cur(sim.incentivesHQBattery)})` : ""}</td><td class="number" style="color: #FFB005;">-${cur(sim.incentivesHQ)}</td></tr>
+        ${sim.taxShield > 0 ? `<tr><td><span style="color: #3B82F6; margin-right: 4px;">&#9679;</span>${t("Bouclier fiscal (amortissement acc&eacute;l&eacute;r&eacute;)", "Tax shield (accelerated depreciation)")}</td><td class="number" style="color: #3B82F6;">-${cur(sim.taxShield)}</td></tr>` : ""}
+        <tr class="total-row"><td><span style="color: #003DA6; margin-right: 4px;">&#9679;</span><strong>${t("INVESTISSEMENT NET", "NET INVESTMENT")}</strong></td><td class="number" style="color: #003DA6;"><strong>${cur(sim.capexNet)}</strong></td></tr>
       </table>
     </div>
     <div class="info-box" style="background: #FFF8E1; border-left: 4px solid var(--accent); border-radius: 0;">
@@ -1720,48 +1720,55 @@ function buildCredibilityPage(
   lang: "fr" | "en",
   pageNum: number
 ): string {
-  const stats = getAllStats(lang);
-  const values = getValues(lang);
-  const benefits = getCredibilityBenefits(lang);
+  const description = getCredibilityDescription(lang);
 
-  const statsHtml = stats.map(s =>
-    `<div class="metric-card">
-      <span class="metric-value" style="font-size: 20pt;">${s.value}</span>
-      <span class="metric-label">${s.label}</span>
+  const iconSvgs: Record<string, string> = {
+    simplicite: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#003DA6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`,
+    fiabilite: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#003DA6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
+    longevite: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#003DA6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>`,
+    fierte: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#003DA6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>`,
+  };
+
+  const valueItems = [
+    { id: "simplicite", label: t("Simplicit&eacute;", "Simplicity"), desc: t("Un seul interlocuteur de A &agrave; Z. Z&eacute;ro complexit&eacute; pour vous.", "One point of contact from A to Z. Zero complexity for you.") },
+    { id: "fiabilite", label: t("Fiabilit&eacute;", "Reliability"), desc: t("&Eacute;quipements certifi&eacute;s, entrepreneur licenci&eacute; RBQ.", "Certified equipment, RBQ licensed contractor.") },
+    { id: "longevite", label: t("Long&eacute;vit&eacute;", "Longevity"), desc: t("Syst&egrave;mes con&ccedil;us pour 25+ ans de performance garantie.", "Systems designed for 25+ years of guaranteed performance.") },
+    { id: "fierte", label: t("Fiert&eacute;", "Pride"), desc: t("Entreprise qu&eacute;b&eacute;coise. Contribution &agrave; la transition &eacute;nerg&eacute;tique locale.", "Quebec company. Contributing to the local energy transition.") },
+  ];
+
+  const valuesHtml = valueItems.map(v =>
+    `<div style="text-align: center; padding: 4mm; border: 1px solid #e5e7eb; border-radius: 3mm; flex: 1;">
+      <div style="width: 36px; height: 36px; border-radius: 50%; background: rgba(0, 61, 166, 0.1); display: flex; align-items: center; justify-content: center; margin: 0 auto 3mm auto;">
+        ${iconSvgs[v.id]}
+      </div>
+      <div style="font-weight: 600; font-size: 10pt; margin-bottom: 2mm;">${v.label}</div>
+      <p style="font-size: 8pt; color: #6b7280; margin: 0;">${v.desc}</p>
     </div>`
   ).join("");
 
-  const valuesHtml = values.map(v =>
-    `<div class="pillar-card">
-      <div class="pillar-title">${v.label}</div>
-      <p class="pillar-desc">${v.description}</p>
-    </div>`
-  ).join("");
+  const statItems = [
+    { value: "15+", line1: t("ans", "years"), line2: t("d'exp&eacute;rience", "experience") },
+    { value: "120", line1: "MW", line2: t("install&eacute;s", "installed") },
+    { value: "25+", line1: t("projets", "projects"), line2: "C&amp;I" },
+  ];
 
-  const benefitsHtml = benefits.map(b =>
-    `<li style="font-size: 9pt; padding: 1.5mm 0;">${b}</li>`
+  const statsHtml = statItems.map(s =>
+    `<div style="text-align: center; padding: 5mm 4mm; border: 1px solid #e5e7eb; border-radius: 3mm; flex: 1;">
+      <div style="font-size: 24pt; font-weight: 700; color: #003DA6;">${s.value}</div>
+      <div style="font-size: 10pt; font-weight: 600;">${s.line1}</div>
+      <div style="font-size: 8pt; color: #6b7280;">${s.line2}</div>
+    </div>`
   ).join("");
 
   return `
   <div class="page">
-    <h2>${t("Pourquoi kWh Qu&eacute;bec", "Why kWh Qu&eacute;bec")}</h2>
-    <p class="subtitle">${t("Votre partenaire solaire cl&eacute; en main au Qu&eacute;bec", "Your turnkey solar partner in Qu&eacute;bec")}</p>
-    <div class="metrics-grid-4" style="margin-bottom: 6mm;">
+    <h2>${t("Pourquoi kWh Qu&eacute;bec?", "Why kWh Qu&eacute;bec?")}</h2>
+    <p class="subtitle" style="font-size: 9pt; line-height: 1.5; max-width: 90%;">${description.replace(/'/g, "&rsquo;").replace(/é/g, "&eacute;").replace(/è/g, "&egrave;").replace(/ê/g, "&ecirc;").replace(/à/g, "&agrave;").replace(/ç/g, "&ccedil;")}</p>
+    <div style="display: flex; gap: 4mm; margin: 6mm 0;">
+      ${valuesHtml}
+    </div>
+    <div style="display: flex; gap: 4mm; margin: 6mm 0;">
       ${statsHtml}
-    </div>
-    <div class="section">
-      <h3>${t("Nos valeurs", "Our Values")}</h3>
-      <div class="metrics-grid-4">
-        ${valuesHtml}
-      </div>
-    </div>
-    <div class="section">
-      <h3>${t("Pourquoi nous choisir", "Why Choose Us")}</h3>
-      <div class="info-box">
-        <ul class="bullet-list">
-          ${benefitsHtml}
-        </ul>
-      </div>
     </div>
     <div class="cta-box">
       <h3>${t("Pr&ecirc;t &agrave; passer &agrave; l'&eacute;nergie solaire?", "Ready to switch to solar energy?")}</h3>
