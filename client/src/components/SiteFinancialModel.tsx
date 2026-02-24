@@ -297,7 +297,7 @@ function MasterAgreementHeader({ language, numSites }: MasterAgreementHeaderProp
             <p className="text-sm font-semibold">kWh Québec</p>
           </div>
           <div className="p-3 rounded-lg bg-muted/50 border">
-            <p className="text-xs text-muted-foreground mb-1">{t("Partenaire technologique", "Technology Partner")}</p>
+            <p className="text-xs text-muted-foreground mb-1">{t("Consultant RFP", "RFP Consultant")}</p>
             <p className="text-sm font-semibold">ScaleClean Tech</p>
           </div>
         </div>
