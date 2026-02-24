@@ -452,9 +452,68 @@ function buildProjectSnapshotPage(
   const co2Trees = Math.round((co2Total25yr * 1000) / 21.77);
   const co2Cars = Math.round((co2Total25yr / 4.6));
 
+  const roofPolygons = sim.roofPolygons || [];
+  const totalRoofAreaSqM = roofPolygons.reduce((s, p) => s + (p.areaSqM || 0), 0);
+  const zoneCount = roofPolygons.filter(p => !p.label || !p.label.toLowerCase().includes("contrainte")).length;
+  const constraintPolygons = roofPolygons.filter(p => p.label && p.label.toLowerCase().includes("contrainte"));
+  const constraintAreaSqM = constraintPolygons.reduce((s, p) => s + (p.areaSqM || 0), 0);
+  const capacityKW = sim.pvSizeKW || 0;
+  const siteName = sim.site.name || "";
+  const siteAddress = sim.site.address || "";
+
+  const hasOverlayData = totalRoofAreaSqM > 0 || capacityKW > 0;
+
+  const legendHtml = hasOverlayData ? `
+    <div style="position: absolute; top: 8px; left: 8px; display: flex; flex-direction: column; gap: 4px; z-index: 2;">
+      <div style="display: flex; align-items: center; gap: 4px; background: rgba(0,0,0,0.55); border-radius: 3px; padding: 2px 6px;">
+        <div style="width: 8px; height: 8px; background: #3b82f6; border-radius: 1px;"></div>
+        <span style="color: white; font-size: 7pt;">${t("Panneaux solaires", "Solar panels")}</span>
+      </div>
+      ${zoneCount > 0 ? `<div style="display: flex; align-items: center; gap: 4px; background: rgba(0,0,0,0.55); border-radius: 3px; padding: 2px 6px;">
+        <div style="width: 8px; height: 8px; border: 1.5px solid #22c55e; border-radius: 1px;"></div>
+        <span style="color: white; font-size: 7pt;">${zoneCount} ${t("zones unifi&eacute;es", "unified zones")}</span>
+      </div>` : ""}
+      ${constraintPolygons.length > 0 ? `<div style="display: flex; align-items: center; gap: 4px; background: rgba(0,0,0,0.55); border-radius: 3px; padding: 2px 6px;">
+        <div style="width: 8px; height: 8px; background: #f97316; border-radius: 1px;"></div>
+        <span style="color: white; font-size: 7pt;">${t("Contraintes", "Constraints")}</span>
+      </div>` : ""}
+    </div>
+  ` : "";
+
+  const badgesHtml = hasOverlayData ? `
+    <div style="position: absolute; bottom: 40px; right: 8px; display: flex; gap: 6px; z-index: 2;">
+      ${totalRoofAreaSqM > 0 ? `<div style="background: #16a34a; color: white; border-radius: 3px; padding: 3px 8px; font-size: 7pt; font-weight: 600; display: flex; align-items: center; gap: 3px;">
+        &#9651; ${fmt(Math.round(totalRoofAreaSqM))} m&sup2; ${t("net utilisable", "net usable")}
+      </div>` : ""}
+      ${constraintAreaSqM > 0 ? `<div style="background: #dc2626; color: white; border-radius: 3px; padding: 3px 8px; font-size: 7pt; font-weight: 600; display: flex; align-items: center; gap: 3px;">
+        &#9650; -${fmt(Math.round(constraintAreaSqM))} m&sup2; ${t("contraintes", "constraints")}
+      </div>` : ""}
+      ${capacityKW > 0 ? `<div style="background: #003DA6; color: white; border-radius: 3px; padding: 3px 8px; font-size: 7pt; font-weight: 600; display: flex; align-items: center; gap: 3px;">
+        &#9889; ${fmt(capacityKW)} kWc
+      </div>` : ""}
+    </div>
+  ` : "";
+
+  const siteInfoOverlay = (siteName || siteAddress) ? `
+    <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 60%, transparent 100%); padding: 16px 12px 8px; z-index: 1; border-radius: 0 0 2mm 2mm;">
+      ${siteName ? `<div style="color: white; font-size: 12pt; font-weight: 700; line-height: 1.2;">${siteName}</div>` : ""}
+      ${siteAddress ? `<div style="color: rgba(255,255,255,0.85); font-size: 8pt; margin-top: 2px;">${siteAddress}</div>` : ""}
+    </div>
+  ` : "";
+
   const satelliteHtml = roofImageBase64
-    ? `<img src="${roofImageBase64}" style="width: 100%; height: 70mm; object-fit: cover; border-radius: 2mm;" />`
-    : `<div style="height: 70mm; background: linear-gradient(135deg, #ccdcf0 0%, #a3bfe0 100%); border-radius: 2mm; display: flex; align-items: center; justify-content: center; color: #003DA6; font-weight: 600;">${t("[Image satellite Google Solar API]", "[Google Solar API Satellite Image]")}</div>`;
+    ? `<div style="position: relative; width: 100%; height: 75mm; border-radius: 2mm; overflow: hidden;">
+        <img src="${roofImageBase64}" style="width: 100%; height: 100%; object-fit: cover;" />
+        ${legendHtml}
+        ${badgesHtml}
+        ${siteInfoOverlay}
+      </div>`
+    : `<div style="position: relative; height: 75mm; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); border-radius: 2mm; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+        <div style="text-align: center; color: rgba(255,255,255,0.6); font-size: 9pt;">${t("Image satellite non disponible", "Satellite image unavailable")}</div>
+        ${legendHtml}
+        ${badgesHtml}
+        ${siteInfoOverlay}
+      </div>`;
 
   return `
   <div class="page">

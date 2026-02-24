@@ -605,10 +605,10 @@ export const BRAND_CONTENT = {
     {
       roleFr: "Installation électrique",
       roleEn: "Electrical Installation",
-      nameFr: "Équipe certifiée kWh",
-      nameEn: "kWh Certified Team",
-      qualificationFr: "CCQ | CNESST | Licence C",
-      qualificationEn: "CCQ | CNESST | Class C License",
+      nameFr: "Sélectronix",
+      nameEn: "Sélectronix",
+      qualificationFr: "CCQ, CNESST & CMEQ",
+      qualificationEn: "CCQ, CNESST & CMEQ",
     },
     {
       roleFr: "Monitoring & O&M",
