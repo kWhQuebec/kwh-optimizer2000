@@ -144,20 +144,6 @@ export default function SiteDetailPage() {
   // SLD inverter type toggle
   const [sldInverterType, setSldInverterType] = useState<"string" | "micro">("string");
 
-  // Restore geometryCapacity from DB when state is null but DB has saved values
-  // This ensures SLD and other consumers get data even when RoofVisualization hasn't rendered yet
-  useEffect(() => {
-    if (geometryCapacity) return; // Already have live data
-    if (!site?.kbKwDc || !site?.kbPanelCount) return; // Nothing saved in DB
-    setGeometryCapacity({
-      maxCapacityKW: site.kbKwDc,
-      panelCount: site.kbPanelCount,
-      realisticCapacityKW: Math.round(site.kbKwDc * 0.9),
-      constraintAreaSqM: 0, // Not persisted, not critical for SLD
-      // arrays not available from DB restore — will be populated when RoofVisualization renders
-    });
-  }, [site?.kbKwDc, site?.kbPanelCount, geometryCapacity]);
-
   // Visualization capture function ref for PDF generation
   const visualizationCaptureRef = useRef<(() => Promise<string | null>) | null>(null);
 
@@ -171,6 +157,20 @@ export default function SiteDetailPage() {
     refetchOnWindowFocus: true,
     refetchOnMount: "always",
   });
+
+  // Restore geometryCapacity from DB when state is null but DB has saved values
+  // This ensures SLD and other consumers get data even when RoofVisualization hasn't rendered yet
+  useEffect(() => {
+    if (geometryCapacity) return; // Already have live data
+    if (!site?.kbKwDc || !site?.kbPanelCount) return; // Nothing saved in DB
+    setGeometryCapacity({
+      maxCapacityKW: site.kbKwDc,
+      panelCount: site.kbPanelCount,
+      realisticCapacityKW: Math.round(site.kbKwDc * 0.9),
+      constraintAreaSqM: 0, // Not persisted, not critical for SLD
+      // arrays not available from DB restore — will be populated when RoofVisualization renders
+    });
+  }, [site?.kbKwDc, site?.kbPanelCount, geometryCapacity]);
 
   // Query to fetch existing roof polygons
   const { data: roofPolygons = [], isSuccess: roofPolygonsLoaded } = useQuery<RoofPolygon[]>({
