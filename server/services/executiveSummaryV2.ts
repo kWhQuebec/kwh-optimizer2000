@@ -3,6 +3,7 @@ import * as path from "path";
 import * as fs from "fs";
 import type { DocumentSimulationData } from "../documentDataProvider";
 import { createLogger } from "../lib/logger";
+import { computeFitScore } from "@shared/fitScore";
 
 const log = createLogger("ExecSummaryV2");
 
@@ -69,6 +70,16 @@ export async function generateExecutiveSummaryV2(
   simulation.irr25 = simulation.irr25 || 0;
   simulation.lcoe = simulation.lcoe || 0;
   simulation.co2AvoidedTonnesPerYear = simulation.co2AvoidedTonnesPerYear || 0;
+
+  const fitResult = computeFitScore({
+    simplePaybackYears: simulation.simplePaybackYears || null,
+    irr25: simulation.irr25 || null,
+    annualSavings: simulation.annualSavings || null,
+    annualCostBefore: simulation.annualCostBefore || null,
+    selfSufficiencyPercent: simulation.selfSufficiencyPercent || null,
+    capexNet: simulation.capexNet || null,
+  });
+  const fitLabel = lang === "fr" ? fitResult.labelFr : fitResult.labelEn;
 
   const hasHourlyProfile = !!(simulation.hourlyProfile && simulation.hourlyProfile.length > 0);
   const isSyntheticData = typeof simulation.isSynthetic === "boolean" ? simulation.isSynthetic : !hasHourlyProfile;
@@ -256,6 +267,23 @@ ${getStyles()}
     <div class="metric-card env-card">
       <span class="metric-value" style="color: #16a34a;">${fmt(co2Over25)}</span>
       <span class="metric-label">${t("tonnes CO&#8322; sur 25 ans", "tonnes CO&#8322; over 25 yrs")}</span>
+    </div>
+  </div>
+
+  <!-- FIT SCORE -->
+  <h3>${t("POTENTIEL SOLAIRE", "SOLAR POTENTIAL")}</h3>
+  <div style="display: flex; align-items: center; gap: 5mm; padding: 3mm 4mm; border-radius: 2mm; border: 0.5pt solid ${fitResult.color}22; background: ${fitResult.color}08;">
+    <div style="width: 14mm; height: 14mm; border-radius: 50%; border: 2pt solid ${fitResult.color}; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+      <span style="font-size: 12pt; font-weight: 700; color: ${fitResult.color};">${fitResult.score}</span>
+    </div>
+    <div style="flex: 1;">
+      <div style="font-weight: 600; font-size: 9pt; color: ${fitResult.color}; margin-bottom: 1mm;">${fitLabel} &mdash; ${fitResult.score}/100</div>
+      <div style="display: flex; gap: 3mm; flex-wrap: wrap;">
+        ${fitResult.factors.map(f => {
+          const label = lang === "fr" ? f.labelFr : f.labelEn;
+          return '<span style="font-size: 7pt; color: #666;"><span style="display:inline-block; width:6px; height:6px; border-radius:50%; background:' + f.barColor + '; margin-right:1mm;"></span>' + label + ': ' + f.displayValue + '</span>';
+        }).join('')}
+      </div>
     </div>
   </div>
 

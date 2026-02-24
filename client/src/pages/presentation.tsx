@@ -2266,7 +2266,7 @@ function FitScoreSlide({ simulation, language }: { simulation: SimulationRun | n
       <div className="max-w-5xl w-full">
         <SlideTitle>{t("Évaluation de faisabilité", "Feasibility Assessment")}</SlideTitle>
 
-        <div className="flex flex-col md:flex-row gap-8 items-center md:items-start mb-8">
+        <div className="flex flex-col md:flex-row gap-8 items-stretch md:items-start mb-12">
           {/* Score gauge */}
           <div className="flex-shrink-0 text-center">
             <div
@@ -2289,7 +2289,7 @@ function FitScoreSlide({ simulation, language }: { simulation: SimulationRun | n
                 const pct = f.max > 0 ? (f.score / f.max) * 100 : 0;
                 return (
                   <div key={i} className="flex items-center gap-3">
-                    <span className="w-32 md:w-40 text-sm font-medium text-gray-700">{f.label}</span>
+                    <span className="min-w-[10rem] md:min-w-[11rem] text-sm font-medium text-gray-700">{f.label}</span>
                     <div className="flex-1 h-5 bg-gray-200 rounded-full overflow-hidden">
                       <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: f.barColor }} />
                     </div>
@@ -2303,7 +2303,7 @@ function FitScoreSlide({ simulation, language }: { simulation: SimulationRun | n
         </div>
 
         {/* Verdict */}
-        <div className="rounded-xl p-5" style={{ backgroundColor: fitResult.color }}>
+        <div className="rounded-xl p-5 mt-8" style={{ backgroundColor: fitResult.color }}>
           <p className="font-bold text-white text-sm mb-1">{t("VERDICT", "VERDICT")}</p>
           <p className="text-white text-sm">{verdictText}</p>
         </div>

@@ -1529,7 +1529,7 @@ export default function SiteDetailPage() {
             "design-agreement": { fr: "Mandat", en: "Mandate" },
             "site-visit": { fr: "Validation technique", en: "Technical Validation" },
             "epc-proposal": { fr: "Proposition EPC", en: "EPC Proposal" },
-            "plans-specs": { fr: "Plans & devis (SLD)", en: "Plans & Specs (SLD)" },
+            "plans-specs": { fr: "Plans & devis", en: "Plans & Specs" },
             "permits": { fr: "Permis et installation", en: "Permits & Installation" },
             "operations": { fr: "O&M", en: "O&M" },
           };
@@ -2462,45 +2462,6 @@ export default function SiteDetailPage() {
               siteLng={site.longitude}
               designAgreementStatus={designAgreement?.status}
             />
-          </TabsContent>
-        )}
-
-        {isStaff && (
-          <TabsContent value="design-agreement" className="space-y-6">
-            <DesignAgreementSection siteId={site.id} />
-          </TabsContent>
-        )}
-
-        {isStaff && (
-          <TabsContent value="activities" className="space-y-6">
-            <ActivityFeed
-              siteId={site.id}
-              clientId={site.clientId}
-            />
-          </TabsContent>
-        )}
-
-        {isStaff && (
-          <TabsContent value="epc-proposal" className="space-y-6">
-            <Card>
-              <CardContent className="py-16 text-center">
-                <FileText className="w-12 h-12 text-muted-foreground/50 mx-auto mb-4" />
-                <h3 className="text-lg font-medium mb-1">
-                  {language === "fr" ? "Proposition EPC" : "EPC Proposal"}
-                </h3>
-                <p className="text-muted-foreground max-w-md mx-auto">
-                  {language === "fr"
-                    ? "La gestion des propositions EPC sera disponible prochainement."
-                    : "EPC proposal management will be available soon."}
-                </p>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        )}
-
-        {isStaff && (
-          <TabsContent value="plans-specs" className="space-y-6">
-            {/* SLD — Single Line Diagram */}
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -2560,7 +2521,6 @@ export default function SiteDetailPage() {
                         const svgEl = container.querySelector('svg');
                         if (!svgEl) return;
 
-                        // Convert SVG to canvas then to PDF-ready image
                         const serializer = new XMLSerializer();
                         const svgStr = serializer.serializeToString(svgEl);
                         const svgBlob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
@@ -2569,7 +2529,7 @@ export default function SiteDetailPage() {
                         const img = new Image();
                         img.onload = () => {
                           const canvas = document.createElement('canvas');
-                          const scale = 2; // 2× for print quality
+                          const scale = 2;
                           canvas.width = img.naturalWidth * scale;
                           canvas.height = img.naturalHeight * scale;
                           const ctx = canvas.getContext('2d');
@@ -2635,6 +2595,57 @@ export default function SiteDetailPage() {
                     </p>
                   </div>
                 )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
+
+        {isStaff && (
+          <TabsContent value="design-agreement" className="space-y-6">
+            <DesignAgreementSection siteId={site.id} />
+          </TabsContent>
+        )}
+
+        {isStaff && (
+          <TabsContent value="activities" className="space-y-6">
+            <ActivityFeed
+              siteId={site.id}
+              clientId={site.clientId}
+            />
+          </TabsContent>
+        )}
+
+        {isStaff && (
+          <TabsContent value="epc-proposal" className="space-y-6">
+            <Card>
+              <CardContent className="py-16 text-center">
+                <FileText className="w-12 h-12 text-muted-foreground/50 mx-auto mb-4" />
+                <h3 className="text-lg font-medium mb-1">
+                  {language === "fr" ? "Proposition EPC" : "EPC Proposal"}
+                </h3>
+                <p className="text-muted-foreground max-w-md mx-auto">
+                  {language === "fr"
+                    ? "La gestion des propositions EPC sera disponible prochainement."
+                    : "EPC proposal management will be available soon."}
+                </p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
+
+        {isStaff && (
+          <TabsContent value="plans-specs" className="space-y-6">
+            <Card>
+              <CardContent className="py-16 text-center">
+                <FileText className="w-12 h-12 text-muted-foreground/50 mx-auto mb-4" />
+                <h3 className="text-lg font-medium mb-1">
+                  {language === "fr" ? "Plans & devis" : "Plans & Specs"}
+                </h3>
+                <p className="text-muted-foreground max-w-md mx-auto">
+                  {language === "fr"
+                    ? "La gestion des plans et devis sera disponible prochainement."
+                    : "Plans & specs management will be available soon."}
+                </p>
               </CardContent>
             </Card>
           </TabsContent>

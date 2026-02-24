@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Slider } from "@/components/ui/slider";
-import { Home, Sun, Zap, Maximize2, Layers, AlertTriangle, RefreshCw, PencilRuler } from "lucide-react";
+import { Home, Sun, Zap, Maximize2, Layers, AlertTriangle, RefreshCw, PencilRuler, ChevronDown } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
 import type { RoofPolygon } from "@shared/schema";
@@ -1023,6 +1023,7 @@ export function RoofVisualization({
   const [panelArrays, setPanelArrays] = useState<ArrayInfo[]>([]); // Panel arrays (numbered 1, 2, 3...)
   const [panelOrientationAngle, setPanelOrientationAngle] = useState(0); // Radians
   const [orientationSource, setOrientationSource] = useState<string>("default");
+  const [arraysExpanded, setArraysExpanded] = useState(false);
   
   // Dual orientation comparison state
   const [buildingAlignedPanels, setBuildingAlignedPanels] = useState<PanelPosition[]>([]);
@@ -2247,7 +2248,11 @@ export function RoofVisualization({
             {/* Panel Arrays Detail Panel */}
             {visiblePanelArrays.length > 1 && (
               <div className="mt-3 p-3 bg-teal-50 dark:bg-teal-950/30 rounded-lg border border-teal-200 dark:border-teal-800" data-testid="arrays-panel">
-                <div className="flex items-center gap-2 mb-2">
+                <button
+                  onClick={() => setArraysExpanded(!arraysExpanded)}
+                  className="flex items-center gap-2 w-full text-left"
+                  data-testid="btn-toggle-arrays"
+                >
                   <Layers className="w-4 h-4 text-teal-600" />
                   <span className="text-sm font-medium text-teal-800 dark:text-teal-300">
                     {language === "fr" ? "Sections de panneaux" : "Panel Arrays"}
@@ -2255,26 +2260,29 @@ export function RoofVisualization({
                   <span className="text-xs text-teal-600 dark:text-teal-400">
                     ({language === "fr" ? "séparées par corridors de feu" : "separated by fire corridors"})
                   </span>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
-                  {visiblePanelArrays.map((array) => (
-                    <div 
-                      key={array.id} 
-                      className="bg-white dark:bg-teal-900/50 rounded px-2 py-1 border border-teal-200 dark:border-teal-700"
-                      data-testid={`array-${array.id}`}
-                    >
-                      <div className="font-medium text-sm text-teal-800 dark:text-teal-200">
-                        Array {array.id}
+                  <ChevronDown className={`w-4 h-4 ml-auto text-teal-600 transition-transform ${arraysExpanded ? 'rotate-180' : ''}`} />
+                </button>
+                {arraysExpanded && (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 mt-2">
+                    {visiblePanelArrays.map((array) => (
+                      <div 
+                        key={array.id} 
+                        className="bg-white dark:bg-teal-900/50 rounded px-2 py-1 border border-teal-200 dark:border-teal-700"
+                        data-testid={`array-${array.id}`}
+                      >
+                        <div className="font-medium text-sm text-teal-800 dark:text-teal-200">
+                          Array {array.id}
+                        </div>
+                        <div className="text-xs text-teal-600 dark:text-teal-400">
+                          {array.panelCount} {language === "fr" ? "pan." : "pan."} • {array.capacityKW} kWc
+                        </div>
+                        <div className="text-xs text-teal-500 dark:text-teal-500">
+                          {array.rows}×{array.columns}
+                        </div>
                       </div>
-                      <div className="text-xs text-teal-600 dark:text-teal-400">
-                        {array.panelCount} {language === "fr" ? "pan." : "pan."} • {array.capacityKW} kWc
-                      </div>
-                      <div className="text-xs text-teal-500 dark:text-teal-500">
-                        {array.rows}×{array.columns}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
             
