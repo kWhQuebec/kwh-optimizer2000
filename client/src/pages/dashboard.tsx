@@ -699,6 +699,141 @@ function CommandCenter({ stats, language, isLoading }: { stats?: PipelineStats; 
 }
 
 // ============================================
+// QUALIFICATION SUMMARY CARD
+// Lead qualification status & blockers
+// ============================================
+
+interface QualificationSummaryData {
+  byStatus: { hot: number; warm: number; nurture: number; cold: number; disqualified: number; pending: number };
+  byColor: { green: number; yellow: number; red: number; unscored: number };
+  topBlockers: Array<{
+    type: string;
+    description: string;
+    count: number;
+  }>;
+  yellowLeads: Array<{
+    id: string;
+    name: string;
+    email: string;
+    blockerCount: number;
+    score: number;
+  }>;
+  total: number;
+  scored: number;
+}
+
+function QualificationSummaryCard({ language, isLoading }: { language: 'fr' | 'en'; isLoading: boolean }) {
+  const { data: qualData, isLoading: qualLoading } = useQuery<QualificationSummaryData>({
+    queryKey: ["/api/leads/qualification-summary"],
+  });
+
+  const loading = isLoading || qualLoading;
+
+  const statusBadges = [
+    {
+      label: language === 'fr' ? 'Hot' : 'Hot',
+      value: qualData?.byStatus.hot || 0,
+      bgColor: '#EF4444', // red
+    },
+    {
+      label: language === 'fr' ? 'Warm' : 'Warm',
+      value: qualData?.byStatus.warm || 0,
+      bgColor: '#F97316', // orange
+    },
+    {
+      label: language === 'fr' ? 'Nurture' : 'Nurture',
+      value: qualData?.byStatus.nurture || 0,
+      bgColor: '#FBBF24', // yellow/amber
+    },
+    {
+      label: language === 'fr' ? 'Cold' : 'Cold',
+      value: qualData?.byStatus.cold || 0,
+      bgColor: '#3B82F6', // blue
+    },
+  ];
+
+  const yellowLeadsCount = qualData?.byColor.yellow || 0;
+  const yellowLeadsLabel = language === 'fr'
+    ? `${yellowLeadsCount} lead${yellowLeadsCount !== 1 ? 's' : ''} à qualifier`
+    : `${yellowLeadsCount} lead${yellowLeadsCount !== 1 ? 's' : ''} to qualify`;
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between gap-4 pb-3">
+        <CardTitle className="text-base font-extrabold" style={{ color: BRAND.darkBlue }}>
+          {language === 'fr' ? 'Qualification des leads' : 'Lead Qualification'}
+        </CardTitle>
+        <Target className="w-4 h-4" style={{ color: BRAND.blue }} />
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {loading ? (
+          <div className="space-y-4">
+            <Skeleton className="h-12 w-full" />
+            <Skeleton className="h-20 w-full" />
+            <Skeleton className="h-16 w-full" />
+          </div>
+        ) : (
+          <>
+            {/* Status Badges Row */}
+            <div className="grid grid-cols-4 gap-2">
+              {statusBadges.map((badge, i) => (
+                <div
+                  key={i}
+                  className="flex flex-col items-center justify-center p-3 rounded-lg text-white"
+                  style={{ backgroundColor: badge.bgColor }}
+                >
+                  <p className="text-2xl font-extrabold font-mono">{badge.value}</p>
+                  <p className="text-xs font-semibold mt-1 text-center">{badge.label}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Top Blockers */}
+            {qualData?.topBlockers && qualData.topBlockers.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
+                  {language === 'fr' ? 'Principaux blocages' : 'Top Blockers'}
+                </p>
+                <div className="space-y-1.5">
+                  {qualData.topBlockers.slice(0, 5).map((blocker, i) => (
+                    <div key={i} className="flex items-center justify-between p-2 rounded-lg bg-muted/50 text-sm">
+                      <span className="truncate flex-1">{blocker.description}</span>
+                      <Badge variant="secondary" className="ml-2 shrink-0">
+                        {blocker.count}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Yellow Leads Link */}
+            {yellowLeadsCount > 0 && (
+              <div className="pt-2 border-t">
+                <Link href="/app/leads?filter=yellow">
+                  <Button variant="outline" size="sm" className="w-full gap-2">
+                    <span>{yellowLeadsLabel}</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Button>
+                </Link>
+              </div>
+            )}
+
+            {/* Empty state */}
+            {(!qualData?.topBlockers || qualData.topBlockers.length === 0) && yellowLeadsCount === 0 && (
+              <div className="text-center py-4 text-muted-foreground">
+                <CheckCircle2 className="w-6 h-6 mx-auto mb-2 text-green-500" />
+                <p className="text-sm font-semibold">{language === 'fr' ? 'Aucun problème détecté' : 'No issues detected'}</p>
+              </div>
+            )}
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ============================================
 // OUTPUT KPIs — "Les résultats"
 // Brand gold accent on left border
 // ============================================
@@ -1131,6 +1266,9 @@ export default function DashboardPage() {
           <div className="w-0.5 h-4 rounded-full" style={{ background: `linear-gradient(to bottom, ${BRAND.gold}, ${BRAND.green})` }} />
         </div>
       </div>
+
+      {/* Section 3b: Qualification Summary — Lead readiness metrics */}
+      <QualificationSummaryCard language={language as 'fr' | 'en'} isLoading={isLoading} />
 
       {/* Section 4: Output KPIs */}
       <OutputKPIs stats={stats} vpp={vpp} language={language as 'fr' | 'en'} isLoading={isLoading} vppLoading={vppLoading} />

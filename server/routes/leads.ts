@@ -1894,4 +1894,76 @@ router.patch("/api/leads/:id/business-context", authMiddleware, requireStaff, as
   res.json({ success: true, data: updatedLead });
 }));
 
+// ==================== QUALIFICATION SUMMARY ====================
+
+router.get("/api/leads/qualification-summary", authMiddleware, requireStaff, asyncHandler(async (req: AuthRequest, res) => {
+  const leads = await storage.getLeads();
+
+  const summary = {
+    byStatus: { hot: 0, warm: 0, nurture: 0, cold: 0, disqualified: 0, pending: 0 },
+    byColor: { green: 0, yellow: 0, red: 0, unscored: 0 },
+    topBlockers: [] as { type: string; description: string; count: number }[],
+    yellowLeads: [] as { id: string; name: string; email: string; blockerCount: number; score: number | null }[],
+    total: leads.length,
+    scored: 0,
+  };
+
+  const blockerCounts = new Map<string, { description: string; count: number }>();
+
+  for (const lead of leads) {
+    // Count by qualification status
+    const status = (lead as any).qualificationStatus as string | null;
+    if (status && status in summary.byStatus) {
+      (summary.byStatus as any)[status]++;
+      summary.scored++;
+    } else {
+      summary.byStatus.pending++;
+    }
+
+    // Count by lead color
+    const color = (lead as any).leadColor as string | null;
+    if (color && color in summary.byColor) {
+      (summary.byColor as any)[color]++;
+    } else {
+      summary.byColor.unscored++;
+    }
+
+    // Collect blockers
+    const blockers = (lead as any).qualificationBlockers as any[] | null;
+    if (blockers && Array.isArray(blockers)) {
+      for (const blocker of blockers) {
+        const key = blocker.type || "unknown";
+        const existing = blockerCounts.get(key);
+        if (existing) {
+          existing.count++;
+        } else {
+          blockerCounts.set(key, { description: blocker.description || key, count: 1 });
+        }
+      }
+    }
+
+    // Collect yellow leads for actionable list
+    if (color === "yellow") {
+      summary.yellowLeads.push({
+        id: lead.id,
+        name: (lead as any).companyName || (lead as any).contactName || lead.email || "Sans nom",
+        email: lead.email || "",
+        blockerCount: blockers?.length || 0,
+        score: (lead as any).qualificationScore || null,
+      });
+    }
+  }
+
+  // Sort blockers by count descending, take top 5
+  summary.topBlockers = Array.from(blockerCounts.entries())
+    .map(([type, { description, count }]) => ({ type, description, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5);
+
+  // Sort yellow leads by blocker count (most actionable first)
+  summary.yellowLeads.sort((a, b) => a.blockerCount - b.blockerCount);
+
+  res.json(summary);
+}));
+
 export default router;

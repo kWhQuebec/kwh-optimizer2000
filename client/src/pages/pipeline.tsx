@@ -47,6 +47,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import type { Opportunity, User as UserType, Client, Site, Lead } from "@shared/schema";
 import { QualificationForm } from "@/components/qualification";
+import { QualificationPanel } from "@/components/qualification/QualificationPanel";
 import { NurtureStatusPanel } from "@/components/nurture-status-panel";
 import { MissionMap } from "@/components/MissionMap";
 
@@ -1936,6 +1937,9 @@ export default function PipelinePage() {
                     <TabsTrigger value="stakeholders" className="text-xs px-2.5 py-1.5" data-testid="tab-edit-stakeholders">
                       {language === "fr" ? "Parties prenantes" : "Stakeholders"}
                     </TabsTrigger>
+                    <TabsTrigger value="qualification" className="text-xs px-2.5 py-1.5" data-testid="tab-edit-qualification">
+                      {language === "fr" ? "Qualification" : "Qualification"}
+                    </TabsTrigger>
                     <TabsTrigger value="nurturing" className="text-xs px-2.5 py-1.5" data-testid="tab-edit-nurturing">
                       Nurturing
                     </TabsTrigger>
@@ -2247,6 +2251,28 @@ export default function PipelinePage() {
                         ? "Les contacts clés seront ajoutés prochainement" 
                         : "Key contacts coming soon"}
                     </div>
+                  </TabsContent>
+
+                  <TabsContent value="qualification" className="mt-4" data-testid="tabcontent-edit-qualification">
+                    {(selectedOpportunity as any)?.leadId ? (
+                      <QualificationPanel
+                        leadId={(selectedOpportunity as any).leadId}
+                        language={language}
+                        onOpenForm={() => {
+                          const lead = (selectedOpportunity as any)?.lead;
+                          if (lead) {
+                            setSelectedLeadForQualification(lead as any);
+                            setIsQualificationOpen(true);
+                          }
+                        }}
+                      />
+                    ) : (
+                      <p className="text-sm text-muted-foreground text-center py-6">
+                        {language === "fr"
+                          ? "Cette opportunité n'est pas liée à un prospect."
+                          : "This opportunity is not linked to a lead."}
+                      </p>
+                    )}
                   </TabsContent>
 
                   <TabsContent value="nurturing" className="mt-4" data-testid="tabcontent-edit-nurturing">

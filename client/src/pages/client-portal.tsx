@@ -21,7 +21,8 @@ import {
   AlertCircle,
   Eye,
   ArrowLeft,
-  X
+  X,
+  CheckSquare
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -107,19 +108,117 @@ export default function ClientPortalPage({ previewClientId }: { previewClientId?
 
   const getAnalysisStatus = (site: SiteWithClient) => {
     if (!site.analysisAvailable) {
-      return { 
-        status: "pending", 
+      return {
+        status: "pending",
         label: t("portal.analysisPending") || "Analysis Pending",
         icon: Clock,
         variant: "secondary" as const
       };
     }
-    return { 
-      status: "complete", 
+    return {
+      status: "complete",
       label: t("portal.analysisComplete") || "Analysis Complete",
       icon: CheckCircle2,
       variant: "default" as const
     };
+  };
+
+  interface ChecklistItem {
+    key: string;
+    label: { fr: string; en: string };
+    status: "complete" | "pending" | "blocking";
+  }
+
+  const getQualificationChecklist = (site: SiteWithClient, language: string): ChecklistItem[] => {
+    const items: ChecklistItem[] = [
+      {
+        key: "bill",
+        label: {
+          fr: "Facture HQ fournie",
+          en: "HQ Bill Provided"
+        },
+        status: (site.hqBillPath || (site as any).hqConsumptionHistory) ? "complete" : "pending"
+      },
+      {
+        key: "roof",
+        label: {
+          fr: "État du toit confirmé",
+          en: "Roof Condition Confirmed"
+        },
+        status: (site as any).roofCondition && (site as any).roofCondition !== "unknown" ? "complete" : (site as any).roofCondition === "unknown" ? "pending" : "pending"
+      },
+      {
+        key: "decision",
+        label: {
+          fr: "Décideur identifié",
+          en: "Decision Maker Identified"
+        },
+        status: (site as any).decisionAuthority && (site as any).decisionAuthority !== "unknown" ? "complete" : "pending"
+      },
+      {
+        key: "budget",
+        label: {
+          fr: "Budget confirmé",
+          en: "Budget Confirmed"
+        },
+        status: (site as any).budgetReadiness && (site as any).budgetReadiness !== "unknown" ? "complete" : "pending"
+      }
+    ];
+
+    return items;
+  };
+
+  interface QualificationChecklistProps {
+    items: ChecklistItem[];
+    language: string;
+  }
+
+  const QualificationChecklist = ({ items, language }: QualificationChecklistProps) => {
+    const completed = items.filter(i => i.status === "complete").length;
+    const total = items.length;
+    const progressPercent = (completed / total) * 100;
+
+    return (
+      <div className="space-y-3">
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <h4 className="text-sm font-semibold flex items-center gap-2">
+              <CheckSquare className="w-4 h-4" />
+              {language === "fr" ? "Pour avancer votre projet" : "To advance your project"}
+            </h4>
+            <span className="text-xs font-medium text-muted-foreground">
+              {completed}/{total}
+            </span>
+          </div>
+          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+            <div
+              className="bg-green-500 h-1.5 rounded-full transition-all"
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+        </div>
+        <ul className="space-y-2 text-sm">
+          {items.map(item => {
+            const StatusIcon = item.status === "complete" ? (
+              <span className="text-green-600">✅</span>
+            ) : item.status === "pending" ? (
+              <span className="text-amber-600">⚠️</span>
+            ) : (
+              <span className="text-red-600">❌</span>
+            );
+
+            return (
+              <li key={item.key} className="flex items-start gap-2">
+                <div className="pt-0.5">{StatusIcon}</div>
+                <span className="text-muted-foreground">
+                  {language === "fr" ? item.label.fr : item.label.en}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    );
   };
 
   // Normalize sites data with defensive defaults for missing relations
@@ -387,7 +486,17 @@ export default function ClientPortalPage({ previewClientId }: { previewClientId?
                     <SiteWorkflowProgress site={site} language={language} />
 
                     <Separator />
-                    
+
+                    {/* Qualification Checklist */}
+                    {(() => {
+                      const checklist = getQualificationChecklist(site, language);
+                      return (
+                        <QualificationChecklist items={checklist} language={language} />
+                      );
+                    })()}
+
+                    <Separator />
+
                     {/* Quick Stats */}
                     {site.analysisAvailable && (
                       <div className="grid grid-cols-2 gap-3 text-sm">
