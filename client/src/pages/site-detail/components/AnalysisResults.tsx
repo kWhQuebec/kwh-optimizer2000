@@ -1614,7 +1614,7 @@ export function AnalysisResults({
                 data-testid="button-cta-create-design"
               >
                 <FileSignature className="w-5 h-5" />
-                {language === "fr" ? "Créer le mandat de conception" : "Create Design Mandate"}
+                {language === "fr" ? "Voir le mandat de conception" : "View Design Mandate"}
               </Button>
               <Button variant="outline" size="lg" className="gap-2" data-testid="button-cta-contact">
                 <Phone className="w-5 h-5" />

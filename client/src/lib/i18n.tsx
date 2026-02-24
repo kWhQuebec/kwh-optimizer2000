@@ -728,6 +728,7 @@ const translations: Translations = {
   "designAgreement.subtitle": { fr: "Première étape payante vers votre projet solaire", en: "First paid step toward your solar project" },
   "designAgreement.generate": { fr: "Générer l'entente", en: "Generate Agreement" },
   "designAgreement.generateDescription": { fr: "Forfait fixe de 2 500 $ + taxes, créditable à 100% sur votre contrat EPC si vous procédez avec kWh Québec.", en: "Fixed fee of $2,500 + taxes, 100% creditable toward your EPC contract if you proceed with kWh Québec." },
+  "designAgreement.preparing": { fr: "Préparation de l'entente…", en: "Preparing agreement…" },
   "designAgreement.fixedFee": { fr: "Forfait conception préliminaire", en: "Preliminary design fee" },
   "designAgreement.status": { fr: "Statut", en: "Status" },
   "designAgreement.status.draft": { fr: "Brouillon", en: "Draft" },
