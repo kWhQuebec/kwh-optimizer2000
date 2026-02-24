@@ -410,10 +410,12 @@ function applyProfessionalLayoutFilters(panels: PanelPosition[]): PanelPosition[
           const distFromBottom = rect.endRow - r;
           const minEdgeDist = Math.min(distFromLeft, distFromRight, distFromTop, distFromBottom);
 
-          // Rectangle size bonus (0-300): larger blocks = higher priority
-          const sizeBonus = Math.min(rect.area / 50, 1) * 300;
-          // Interior bonus (0-200): center panels kept when slider reduces count
-          const interiorBonus = Math.min(minEdgeDist / 3, 1) * 200;
+          // DOMINANT rectangle bonus — must outweigh base priority (0-10500)
+          // so that the slider fills/empties whole rectangles as units.
+          // Rectangle size bonus (0-15000): larger blocks filled first
+          const sizeBonus = Math.min(rect.area / 100, 1) * 15000;
+          // Interior bonus (0-5000): edge panels drop first when slider reduces
+          const interiorBonus = Math.min(minEdgeDist / 3, 1) * 5000;
 
           p.priority = (p.priority || 0) + Math.round(sizeBonus + interiorBonus);
         }
@@ -2047,16 +2049,9 @@ export function RoofVisualization({
     panelPolygonsRef.current.forEach(p => p.setMap(null));
     panelPolygonsRef.current = [];
 
-    const slicedPanels = allPanelPositions.slice(0, panelsToShow);
-    const renderRowCounts = new Map<string, number>();
-    for (const p of slicedPanels) {
-      const key = `${p.polygonId}:${p.rowIndex}`;
-      renderRowCounts.set(key, (renderRowCounts.get(key) || 0) + 1);
-    }
-    const panelsToRender = slicedPanels.filter(p => {
-      const key = `${p.polygonId}:${p.rowIndex}`;
-      return (renderRowCounts.get(key) || 0) >= 3;
-    });
+    // Panels are already filtered to clean rectangles by applyProfessionalLayoutFilters().
+    // No additional row-count filter needed — it would break rectangle edges.
+    const panelsToRender = allPanelPositions.slice(0, panelsToShow);
 
     for (let i = 0; i < panelsToRender.length; i++) {
       const panel = panelsToRender[i];
