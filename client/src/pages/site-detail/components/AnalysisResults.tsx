@@ -79,7 +79,8 @@ export function AnalysisResults({
   optimizationTarget = 'npv',
   onOptimizationTargetChange,
   onOpenRoofDrawing,
-  onCompareScenarios
+  onCompareScenarios,
+  onGeometryUpdate
 }: {
   simulation: SimulationRun;
   site: SiteWithDetails;
@@ -90,6 +91,7 @@ export function AnalysisResults({
   onOptimizationTargetChange?: (target: 'npv' | 'irr' | 'selfSufficiency') => void;
   onOpenRoofDrawing?: () => void;
   onCompareScenarios?: () => void;
+  onGeometryUpdate?: (data: { maxCapacityKW: number; panelCount: number; realisticCapacityKW: number; constraintAreaSqM: number; arrays?: any[] }) => void;
 }) {
   const { t, language } = useI18n();
   const [showBreakdown, setShowBreakdown] = useState(true);
@@ -759,6 +761,8 @@ export function AnalysisResults({
                     queryClient.invalidateQueries({ queryKey: ['/api/sites', site.id] });
                   }).catch(err => console.error('Failed to save roof capacity:', err));
                 }
+                // Propagate full geometry data (including arrays) to parent for SLD
+                onGeometryUpdate?.(data);
               }
               visualizationCaptureRef.current = null;
             }}

@@ -3,6 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useParams, Link, useLocation } from "wouter";
 import {
   ArrowLeft,
+  ArrowRight,
   Building2,
   MapPin,
   Upload,
@@ -74,6 +75,7 @@ import { ActivityFeed } from "@/components/activity-feed";
 import { RoofDrawingModal } from "@/components/RoofDrawingModal";
 import { RoofVisualization } from "@/components/RoofVisualization";
 import SLDDiagram, { type SLDArrayInfo, type SLDElectricalConfig } from "@/components/SLDDiagram";
+import ClientWizard from "@/components/ClientWizard";
 import { GrantPortalAccessDialog } from "@/components/grant-portal-access-dialog";
 
 import { FileUploadZone } from "./components/FileUploadZone";
@@ -141,6 +143,20 @@ export default function SiteDetailPage() {
 
   // SLD inverter type toggle
   const [sldInverterType, setSldInverterType] = useState<"string" | "micro">("string");
+
+  // Restore geometryCapacity from DB when state is null but DB has saved values
+  // This ensures SLD and other consumers get data even when RoofVisualization hasn't rendered yet
+  useEffect(() => {
+    if (geometryCapacity) return; // Already have live data
+    if (!site?.kbKwDc || !site?.kbPanelCount) return; // Nothing saved in DB
+    setGeometryCapacity({
+      maxCapacityKW: site.kbKwDc,
+      panelCount: site.kbPanelCount,
+      realisticCapacityKW: Math.round(site.kbKwDc * 0.9),
+      constraintAreaSqM: 0, // Not persisted, not critical for SLD
+      // arrays not available from DB restore — will be populated when RoofVisualization renders
+    });
+  }, [site?.kbKwDc, site?.kbPanelCount, geometryCapacity]);
 
   // Visualization capture function ref for PDF generation
   const visualizationCaptureRef = useRef<(() => Promise<string | null>) | null>(null);
@@ -1434,7 +1450,21 @@ export default function SiteDetailPage() {
         </Collapsible>
       )}
 
-      {/* Process Tabs with workflow stepper */}
+      {/* Client Wizard — guided sequential experience */}
+      {isClient && (
+        <ClientWizard
+          site={site}
+          quickPotential={quickPotential}
+          latestSimulation={latestSimulation}
+          designAgreement={designAgreement}
+          opportunityStage={opportunityStage}
+          onNavigateToTab={setActiveTab}
+          language={language as "fr" | "en"}
+        />
+      )}
+
+      {/* Process Tabs with workflow stepper (Staff/AM view) */}
+      {!isClient && (
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <div role="presentation">
           <WorkflowStepper
@@ -1448,6 +1478,43 @@ export default function SiteDetailPage() {
             compact={false}
           />
         </div>
+
+        {/* Next action banner for AM */}
+        {(() => {
+          const actions: { label: string; tab: string; priority: number }[] = [];
+          const fr = language === "fr";
+
+          // Check what needs to be done based on project state
+          if (!site?.buildingType || !site?.roofType) {
+            actions.push({ label: fr ? "Compléter les informations du bâtiment" : "Complete building information", tab: "quick-analysis", priority: 1 });
+          }
+          if (!site?.meterFiles?.length && !site?.annualConsumptionKwh) {
+            actions.push({ label: fr ? "Importer les données de consommation" : "Import consumption data", tab: "consumption", priority: 2 });
+          } else if (site?.meterFiles?.length > 0 && !latestSimulation) {
+            actions.push({ label: fr ? "Lancer la validation économique" : "Run economic validation", tab: "analysis", priority: 3 });
+          }
+          if (latestSimulation && !designAgreement) {
+            actions.push({ label: fr ? "Préparer et envoyer le mandat" : "Prepare and send mandate", tab: "design-agreement", priority: 4 });
+          }
+          if (designAgreement?.status === "sent") {
+            actions.push({ label: fr ? "Relancer le client pour signature du mandat" : "Follow up on mandate signature", tab: "design-agreement", priority: 5 });
+          }
+
+          if (actions.length === 0) return null;
+          const action = actions.sort((a, b) => a.priority - b.priority)[0];
+
+          return (
+            <div
+              className="flex items-center gap-3 px-4 py-2.5 bg-primary/5 border border-primary/20 rounded-lg cursor-pointer hover:bg-primary/10 transition-colors"
+              onClick={() => setActiveTab(action.tab)}
+            >
+              <ArrowRight className="w-4 h-4 text-primary flex-shrink-0" />
+              <span className="text-sm font-medium text-primary">
+                {fr ? "Prochaine action" : "Next action"}: {action.label}
+              </span>
+            </div>
+          );
+        })()}
 
         {/* Sub-navigation for workflow steps with multiple tabs */}
         {(() => {
@@ -2269,6 +2336,7 @@ export default function SiteDetailPage() {
                 onOptimizationTargetChange={setOptimizationTarget}
                 onOpenRoofDrawing={() => setIsRoofDrawingModalOpen(true)}
                 onCompareScenarios={(site.simulationRuns?.length ?? 0) > 1 ? () => setActiveTab("compare") : undefined}
+                onGeometryUpdate={(data) => setGeometryCapacity(data)}
               />
               {isStaff && latestSimulation && (
                 <Collapsible>
@@ -2595,6 +2663,7 @@ export default function SiteDetailPage() {
           </TabsContent>
         )}
       </Tabs>
+      )}
 
       {/* Bifacial PV Detection Dialog */}
       <Dialog open={bifacialDialogOpen} onOpenChange={setBifacialDialogOpen}>

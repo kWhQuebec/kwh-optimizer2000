@@ -163,20 +163,22 @@ const TASK_DETECTORS: Record<string, TaskDetector> = {
   },
   s3_calibrate_cashflow: () => false,
 
-  // ── Step 4: Ingénierie & design final ──
-  s4_receive_epc: ({ opportunityStage }) => {
+  // ── Step 3 (suite): Proposition EPC ──
+  s3_receive_epc: ({ opportunityStage }) => {
     const epcStages = ["epc_proposal_sent", "negotiation", "won_to_be_delivered", "won_in_construction", "won_delivered"];
     return epcStages.includes(opportunityStage);
   },
-  s4_compare_scenarios: ({ site }) =>
+  s3_compare_scenarios: ({ site }) =>
     (site?.simulationRuns?.length ?? 0) >= 3,
+  s3_generate_scenarios: ({ site }) =>
+    (site?.simulationRuns?.length ?? 0) >= 3,
+
+  // ── Step 4: Ingénierie & design final ──
   s4_review_engineering: () => false, // Needs activity log — future
   s4_approve_design: ({ opportunityStage }) => {
     const approvedStages = ["won_to_be_delivered", "won_in_construction", "won_delivered"];
     return approvedStages.includes(opportunityStage);
   },
-  s4_generate_scenarios: ({ site }) =>
-    (site?.simulationRuns?.length ?? 0) >= 3,
   s4_coordinate_engineering: () => false, // Needs engineering report tracking — future
   s4_prepare_amendment: ({ site }) =>
     site?.engineeringOutcome === "amendment",

@@ -142,8 +142,8 @@ export const WORKFLOW_STEPS: WorkflowStepDef[] = [
     gateFr: "Entente EPC signée",
     gateEn: "EPC agreement signed",
     isHardBlock: true,
-    tabs: ["site-visit"],
-    maxPoints: 500,
+    tabs: ["site-visit", "epc-proposal"],
+    maxPoints: 750,
   },
   {
     id: "engineering",
@@ -159,8 +159,8 @@ export const WORKFLOW_STEPS: WorkflowStepDef[] = [
     gateFr: "Permis obtenus, plans approuvés, budget confirmé",
     gateEn: "Permits obtained, plans approved, budget confirmed",
     isHardBlock: true,
-    tabs: ["epc-proposal", "plans-specs"],
-    maxPoints: 1000,
+    tabs: ["plans-specs"],
+    maxPoints: 800,
   },
   {
     id: "construction",
@@ -228,12 +228,14 @@ export const WORKFLOW_TASKS: WorkflowTaskDef[] = [
   { key: "s3_import_vc0", stepNum: 3, assignedTo: "account_manager", titleFr: "Importer VC0 dans la plateforme", titleEn: "Import VC0 into platform", points: 50, optional: false },
   { key: "s3_calibrate_cashflow", stepNum: 3, assignedTo: "account_manager", titleFr: "Calibrer CashflowEngine avec VC0", titleEn: "Calibrate CashflowEngine with VC0", points: 50, optional: false },
 
+  // ── Step 3 (suite): Proposition EPC (fait partie de la validation technique) ──
+  { key: "s3_receive_epc", stepNum: 3, assignedTo: "client", titleFr: "Recevoir la proposition EPC complète", titleEn: "Receive complete EPC proposal", points: 50, optional: false },
+  { key: "s3_compare_scenarios", stepNum: 3, assignedTo: "client", titleFr: "Comparer les scénarios financiers", titleEn: "Compare financial scenarios", points: 100, optional: true },
+  { key: "s3_generate_scenarios", stepNum: 3, assignedTo: "account_manager", titleFr: "Générer proposition 3 scénarios", titleEn: "Generate 3-scenario proposal", points: 100, optional: false },
+
   // ── Step 4: Ingénierie & design final ──
-  { key: "s4_receive_epc", stepNum: 4, assignedTo: "client", titleFr: "Recevoir la proposition EPC complète", titleEn: "Receive complete EPC proposal", points: 50, optional: false },
-  { key: "s4_compare_scenarios", stepNum: 4, assignedTo: "client", titleFr: "Comparer les scénarios financiers", titleEn: "Compare financial scenarios", points: 100, optional: true },
   { key: "s4_review_engineering", stepNum: 4, assignedTo: "client", titleFr: "Reviewer le rapport d'ingénierie", titleEn: "Review engineering report", points: 100, optional: false },
   { key: "s4_approve_design", stepNum: 4, assignedTo: "client", titleFr: "Approuver le design final ou avenant", titleEn: "Approve final design or amendment", points: 250, optional: false },
-  { key: "s4_generate_scenarios", stepNum: 4, assignedTo: "account_manager", titleFr: "Générer proposition 3 scénarios", titleEn: "Generate 3-scenario proposal", points: 100, optional: false },
   { key: "s4_coordinate_engineering", stepNum: 4, assignedTo: "account_manager", titleFr: "Coordonner rapport d'ingénieur", titleEn: "Coordinate engineering report", points: 100, optional: false },
   { key: "s4_prepare_amendment", stepNum: 4, assignedTo: "account_manager", titleFr: "Préparer avenant si requis", titleEn: "Prepare amendment if required", points: 100, optional: true },
   { key: "s4_final_go", stepNum: 4, assignedTo: "account_manager", titleFr: "Obtenir GO final + permis confirmés", titleEn: "Obtain final GO + permits confirmed", points: 250, optional: false },
