@@ -42,7 +42,8 @@ import {
   Send,
   Mail,
   Gauge,
-  FileSpreadsheet
+  FileSpreadsheet,
+  X
 } from "lucide-react";
 import type { AnalysisAssumptions, SimulationRun, RoofPolygon, InsertRoofPolygon } from "@shared/schema";
 import { defaultAnalysisAssumptions } from "@shared/schema";
@@ -109,6 +110,7 @@ export default function SiteDetailPage() {
   const [isGeocodingAddress, setIsGeocodingAddress] = useState(false);
   const [pendingModalOpen, setPendingModalOpen] = useState(false);
   const [optimizationTarget, setOptimizationTarget] = useState<'npv' | 'irr' | 'selfSufficiency'>('npv');
+  const [syntheticBannerDismissed, setSyntheticBannerDismissed] = useState(false);
   const [isTransitioningSimulation, setIsTransitioningSimulation] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -1846,10 +1848,10 @@ export default function SiteDetailPage() {
         </TabsContent>
 
         <TabsContent value="consumption" className="space-y-6">
-          {site.meterFiles?.some((f: any) => f.isSynthetic) && (
+          {site.meterFiles?.some((f: any) => f.isSynthetic) && !syntheticBannerDismissed && (
             <div data-testid="banner-synthetic-consumption" className="flex items-start gap-3 rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-700 p-4">
               <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-              <div>
+              <div className="flex-1">
                 <p className="font-medium text-amber-800 dark:text-amber-300">
                   {language === "fr" ? "Données synthétiques" : "Synthetic data"}
                 </p>
@@ -1859,6 +1861,14 @@ export default function SiteDetailPage() {
                     : "This site uses a synthetic consumption profile for demonstration purposes. Analysis results are indicative and do not reflect actual building consumption."}
                 </p>
               </div>
+              <button
+                onClick={() => setSyntheticBannerDismissed(true)}
+                className="shrink-0 p-0.5 rounded hover-elevate text-amber-600 dark:text-amber-400"
+                data-testid="button-dismiss-synthetic-banner"
+                aria-label="Dismiss"
+              >
+                <X className="h-4 w-4" />
+              </button>
             </div>
           )}
           {(site.meterFiles?.length ?? 0) > 0 && !site.roofAreaValidated && isStaff && (

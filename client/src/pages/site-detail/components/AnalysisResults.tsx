@@ -4,7 +4,7 @@ import {
   Sun, Shield, Car, Award, Sparkles, MousePointerClick, Plus, FileSignature,
   TreePine, Phone, ArrowRight, Star, AlertTriangle, CheckCircle2, CreditCard,
   Home, Calculator, Info, Settings, Loader2, Clock, Quote, Wrench, ListChecks, Users,
-  Building2, CheckCircle, ChevronRight, Scale
+  Building2, CheckCircle, ChevronRight, Scale, X
 } from "lucide-react";
 import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -94,6 +94,7 @@ export function AnalysisResults({
   const { t, language } = useI18n();
   const [showBreakdown, setShowBreakdown] = useState(true);
   const [showIncentives, setShowIncentives] = useState(true);
+  const [syntheticWarningDismissed, setSyntheticWarningDismissed] = useState(false);
   const [variantDialogOpen, setVariantDialogOpen] = useState(false);
   const [variantPreset, setVariantPreset] = useState<VariantPreset | null>(null);
   const [showExtendedLifeAnalysis, setShowExtendedLifeAnalysis] = useState(false);
@@ -466,10 +467,10 @@ export function AnalysisResults({
   return (
     <div className="space-y-6">
 
-      {site?.meterFiles?.some((f: any) => f.isSynthetic) && (
+      {site?.meterFiles?.some((f: any) => f.isSynthetic) && !syntheticWarningDismissed && (
         <div className="flex items-start gap-3 rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-700 p-4">
           <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-          <div>
+          <div className="flex-1">
             <p className="font-medium text-amber-800 dark:text-amber-300">
               {language === "fr" ? "Résultats basés sur un profil synthétique" : "Results based on synthetic profile"}
             </p>
@@ -479,6 +480,14 @@ export function AnalysisResults({
                 : "This analysis uses synthetic consumption data. Financial and technical results are indicative and will be recalculated with actual client data."}
             </p>
           </div>
+          <button
+            onClick={() => setSyntheticWarningDismissed(true)}
+            className="shrink-0 p-0.5 rounded hover-elevate text-amber-600 dark:text-amber-400"
+            data-testid="button-dismiss-synthetic-warning"
+            aria-label="Dismiss"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
       )}
 
