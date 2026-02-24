@@ -497,11 +497,53 @@ export function getRoofVisualizationUrl(
   
   const width = options?.width || 800;
   const height = options?.height || 600;
-  const zoom = options?.zoom || 18;
   
   const MAX_URL_LENGTH = 8192;
+
+  let centerLat = location.latitude;
+  let centerLng = location.longitude;
+  let zoom = options?.zoom || 18;
+
+  const allCoords: { lat: number; lng: number }[] = [];
+  roofPolygons.forEach(p => {
+    if (p.coordinates && p.coordinates.length >= 3) {
+      p.coordinates.forEach(([lng, lat]) => {
+        allCoords.push({ lat, lng });
+      });
+    }
+  });
+
+  if (allCoords.length > 0) {
+    const sumLat = allCoords.reduce((s, c) => s + c.lat, 0);
+    const sumLng = allCoords.reduce((s, c) => s + c.lng, 0);
+    centerLat = sumLat / allCoords.length;
+    centerLng = sumLng / allCoords.length;
+
+    const minLat = Math.min(...allCoords.map(c => c.lat));
+    const maxLat = Math.max(...allCoords.map(c => c.lat));
+    const minLng = Math.min(...allCoords.map(c => c.lng));
+    const maxLng = Math.max(...allCoords.map(c => c.lng));
+
+    const latSpan = maxLat - minLat;
+    const lngSpan = maxLng - minLng;
+    const paddedLatSpan = latSpan * 1.4;
+    const paddedLngSpan = lngSpan * 1.4;
+
+    if (paddedLatSpan > 0 || paddedLngSpan > 0) {
+      const WORLD_DIM = 256 * 2;
+      const latZoom = paddedLatSpan > 0
+        ? Math.floor(Math.log2((180 * height) / (paddedLatSpan * WORLD_DIM)))
+        : 20;
+      const lngZoom = paddedLngSpan > 0
+        ? Math.floor(Math.log2((360 * width) / (paddedLngSpan * WORLD_DIM)))
+        : 20;
+      const autoZoom = Math.min(latZoom, lngZoom, 20);
+      zoom = Math.max(autoZoom, 15);
+      log.info(`getRoofVisualizationUrl: Auto-zoom ${zoom} (latSpan=${latSpan.toFixed(6)}, lngSpan=${lngSpan.toFixed(6)}, centroid=${centerLat.toFixed(6)},${centerLng.toFixed(6)})`);
+    }
+  }
   
-  let baseUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${location.latitude},${location.longitude}&zoom=${zoom}&size=${width}x${height}&scale=2&maptype=satellite`;
+  let baseUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${centerLat},${centerLng}&zoom=${zoom}&size=${width}x${height}&scale=2&maptype=satellite`;
   
   let polygonParams = "";
   

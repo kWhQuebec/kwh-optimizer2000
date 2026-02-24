@@ -252,9 +252,9 @@ p { margin-bottom: 3mm; color: var(--dark); }
 .info-box { background: var(--light-gray); border-radius: 3mm; padding: 5mm; margin: 4mm 0; }
 .info-box.highlight { background: var(--primary); color: white; }
 .info-box.accent { background: var(--accent); color: var(--dark); }
-.bullet-list { list-style: none; padding-left: 0; }
-.bullet-list li { padding: 2mm 0 2mm 6mm; position: relative; }
-.bullet-list li::before { content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: 3mm; height: 3mm; background: var(--accent); border-radius: 1px; }
+.bullet-list { list-style: none; padding-left: 0; margin-left: 0; }
+.bullet-list li { padding: 2mm 0 2mm 9mm; position: relative; }
+.bullet-list li::before { content: ''; position: absolute; left: 1mm; top: 50%; transform: translateY(-50%); width: 3mm; height: 3mm; background: var(--accent); border-radius: 1px; }
 .pillar-card { background: white; border: 2px solid var(--light-gray); border-radius: 3mm; padding: 5mm; text-align: center; }
 .pillar-icon { width: 28px; height: 28px; margin: 0 auto 2mm auto; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
 .pillar-title { font-size: 11pt; font-weight: 700; color: var(--primary); margin-bottom: 2mm; }
