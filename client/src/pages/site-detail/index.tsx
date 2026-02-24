@@ -73,6 +73,7 @@ import { DesignAgreementSection } from "@/components/design-agreement-section";
 import { ActivityFeed } from "@/components/activity-feed";
 import { RoofDrawingModal } from "@/components/RoofDrawingModal";
 import { RoofVisualization } from "@/components/RoofVisualization";
+import SLDDiagram, { type SLDArrayInfo, type SLDElectricalConfig } from "@/components/SLDDiagram";
 import { GrantPortalAccessDialog } from "@/components/grant-portal-access-dialog";
 
 import { FileUploadZone } from "./components/FileUploadZone";
@@ -135,7 +136,11 @@ export default function SiteDetailPage() {
     panelCount: number;
     realisticCapacityKW: number;
     constraintAreaSqM: number;
+    arrays?: SLDArrayInfo[];
   } | null>(null);
+
+  // SLD inverter type toggle
+  const [sldInverterType, setSldInverterType] = useState<"string" | "micro">("string");
 
   // Visualization capture function ref for PDF generation
   const visualizationCaptureRef = useRef<(() => Promise<string | null>) | null>(null);
@@ -2383,17 +2388,131 @@ export default function SiteDetailPage() {
 
         {isStaff && (
           <TabsContent value="plans-specs" className="space-y-6">
+            {/* SLD — Single Line Diagram */}
             <Card>
-              <CardContent className="py-16 text-center">
-                <PenTool className="w-12 h-12 text-muted-foreground/50 mx-auto mb-4" />
-                <h3 className="text-lg font-medium mb-1">
-                  {language === "fr" ? "Plans & devis" : "Plans & Specs"}
-                </h3>
-                <p className="text-muted-foreground max-w-md mx-auto">
-                  {language === "fr"
-                    ? "La gestion des plans et devis sera disponible prochainement."
-                    : "Plans and specifications management will be available soon."}
-                </p>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Zap className="w-4 h-4" />
+                      {language === "fr" ? "Schéma unifilaire (SLD)" : "Single Line Diagram (SLD)"}
+                    </CardTitle>
+                    <CardDescription>
+                      {language === "fr"
+                        ? "Généré automatiquement à partir du layout modulaire"
+                        : "Auto-generated from the modular array layout"}
+                    </CardDescription>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Select value={sldInverterType} onValueChange={(v: "string" | "micro") => setSldInverterType(v)}>
+                      <SelectTrigger className="w-[200px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="string">
+                          {language === "fr" ? "Onduleur string (centralisé)" : "String inverter (central)"}
+                        </SelectItem>
+                        <SelectItem value="micro">
+                          {language === "fr" ? "Micro-onduleurs" : "Microinverters"}
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const container = document.querySelector('.sld-diagram-container');
+                        if (!container) return;
+                        const svgEl = container.querySelector('svg');
+                        if (!svgEl) return;
+                        const serializer = new XMLSerializer();
+                        const svgStr = serializer.serializeToString(svgEl);
+                        const blob = new Blob([svgStr], { type: 'image/svg+xml' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `SLD_${site?.address?.replace(/[^a-zA-Z0-9]/g, '_') || 'system'}.svg`;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                      }}
+                    >
+                      <Download className="w-4 h-4 mr-1" />
+                      SVG
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={async () => {
+                        const container = document.querySelector('.sld-diagram-container');
+                        if (!container) return;
+                        const svgEl = container.querySelector('svg');
+                        if (!svgEl) return;
+
+                        // Convert SVG to canvas then to PDF-ready image
+                        const serializer = new XMLSerializer();
+                        const svgStr = serializer.serializeToString(svgEl);
+                        const svgBlob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
+                        const svgUrl = URL.createObjectURL(svgBlob);
+
+                        const img = new Image();
+                        img.onload = () => {
+                          const canvas = document.createElement('canvas');
+                          const scale = 2; // 2× for print quality
+                          canvas.width = img.naturalWidth * scale;
+                          canvas.height = img.naturalHeight * scale;
+                          const ctx = canvas.getContext('2d');
+                          if (!ctx) return;
+                          ctx.fillStyle = 'white';
+                          ctx.fillRect(0, 0, canvas.width, canvas.height);
+                          ctx.scale(scale, scale);
+                          ctx.drawImage(img, 0, 0);
+
+                          canvas.toBlob((blob) => {
+                            if (!blob) return;
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = `SLD_${site?.address?.replace(/[^a-zA-Z0-9]/g, '_') || 'system'}.png`;
+                            a.click();
+                            URL.revokeObjectURL(url);
+                          }, 'image/png');
+                          URL.revokeObjectURL(svgUrl);
+                        };
+                        img.src = svgUrl;
+                      }}
+                    >
+                      <Download className="w-4 h-4 mr-1" />
+                      PNG
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {geometryCapacity?.arrays && geometryCapacity.arrays.length > 0 ? (
+                  <SLDDiagram
+                    arrays={geometryCapacity.arrays}
+                    config={{
+                      inverterType: sldInverterType,
+                      siteName: site?.name || site?.client?.name || "",
+                      siteAddress: site?.address || "",
+                      systemCapacityKW: geometryCapacity.maxCapacityKW,
+                      totalPanels: geometryCapacity.panelCount,
+                      serviceVoltage: sldInverterType === "string" ? 600 : 240,
+                      serviceAmperage: sldInverterType === "string" ? 400 : 200,
+                      mainBreakerA: sldInverterType === "string" ? 200 : 200,
+                    }}
+                    language={language as "fr" | "en"}
+                  />
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <PenTool className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                    <p>
+                      {language === "fr"
+                        ? "Configurez d'abord le système PV dans l'onglet Analyse pour générer le SLD."
+                        : "Configure the PV system in the Analysis tab first to generate the SLD."}
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
