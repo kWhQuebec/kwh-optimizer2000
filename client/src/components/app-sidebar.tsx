@@ -50,12 +50,15 @@ import { useAuth } from "@/lib/auth";
 import sidebarLogoFr from "@assets/solaire_fr-removebg-preview_1767985380511.png";
 import sidebarLogoEn from "@assets/solaire_en-removebg-preview_1767985380510.png";
 
-export function AppSidebar() {
+export function AppSidebar({ forceClientView, previewClientName }: { forceClientView?: boolean; previewClientName?: string } = {}) {
   const { t, language } = useI18n();
-  const { user, logout, isStaff, isClient, isAdmin } = useAuth();
+  const { user, logout, isStaff: rawIsStaff, isClient: rawIsClient, isAdmin } = useAuth();
   const [location] = useLocation();
   const isMobile = useIsMobile();
   const currentLogo = language === "fr" ? sidebarLogoFr : sidebarLogoEn;
+
+  const isStaff = forceClientView ? false : rawIsStaff;
+  const isClient = forceClientView ? true : rawIsClient;
 
   // Dashboard - always visible (not in a collapsible section)
   const dashboardItems = [
@@ -483,20 +486,22 @@ export function AppSidebar() {
           <div className="flex items-center gap-2 min-w-0">
             <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center shrink-0">
               <span className="text-sm font-medium">
-                {(user?.name || user?.email)?.charAt(0).toUpperCase() || "U"}
+                {forceClientView
+                  ? (previewClientName?.charAt(0).toUpperCase() || "C")
+                  : ((user?.name || user?.email)?.charAt(0).toUpperCase() || "U")}
               </span>
             </div>
             <div className="min-w-0">
               <div className="text-sm font-medium truncate">
-                {user?.name || user?.email || "User"}
+                {forceClientView ? (previewClientName || "Client") : (user?.name || user?.email || "User")}
               </div>
               <div className="flex items-center gap-1">
                 <Badge variant={roleBadge.variant} className="text-[10px] h-4 px-1">
                   {roleBadge.label}
                 </Badge>
-                {user?.clientName && (
+                {(forceClientView ? previewClientName : user?.clientName) && (
                   <span className="text-xs text-muted-foreground truncate">
-                    {user.clientName}
+                    {forceClientView ? previewClientName : user?.clientName}
                   </span>
                 )}
               </div>

@@ -20,7 +20,8 @@ import {
   Zap,
   AlertCircle,
   Eye,
-  ArrowLeft
+  ArrowLeft,
+  X
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -192,12 +193,10 @@ export default function ClientPortalPage({ previewClientId }: { previewClientId?
               ? `Mode prévisualisation — Vous voyez le portail tel que ${previewClientName} le verra.`
               : `Preview mode — You are viewing the portal as ${previewClientName} would see it.`}
           </p>
-          <Link href="/app/clients">
-            <Button variant="outline" size="sm" className="gap-1.5 shrink-0" data-testid="button-back-from-preview">
-              <ArrowLeft className="w-3.5 h-3.5" />
-              {language === "fr" ? "Retour" : "Back"}
-            </Button>
-          </Link>
+          <Button variant="outline" size="sm" className="gap-1.5 shrink-0" data-testid="button-close-preview" onClick={() => { try { window.close(); } catch(e) {} setTimeout(() => { window.location.href = "/app/clients"; }, 100); }}>
+            <X className="w-3.5 h-3.5" />
+            {language === "fr" ? "Fermer" : "Close"}
+          </Button>
         </div>
       )}
 

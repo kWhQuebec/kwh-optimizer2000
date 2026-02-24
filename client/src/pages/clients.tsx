@@ -240,10 +240,10 @@ function ClientCard({ client, onEdit, onDelete, onGrantAccess, onSendHqProcurati
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem asChild>
-                <Link href={`/app/clients/${client.id}/portal-preview`}>
+                <a href={`/app/clients/${client.id}/portal-preview`} target="_blank" rel="noopener noreferrer">
                   <Eye className="w-4 h-4 mr-2" />
-                  {t("clients.viewAsClient") || (language === "fr" ? "Voir comme client" : "View as client")}
-                </Link>
+                  {language === "fr" ? "Voir comme client" : "View as client"}
+                </a>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={onGrantAccess}>
                 <KeyRound className="w-4 h-4 mr-2" />
@@ -817,10 +817,10 @@ export default function ClientsPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem asChild>
-                          <Link href={`/app/clients/${client.id}/portal-preview`}>
+                          <a href={`/app/clients/${client.id}/portal-preview`} target="_blank" rel="noopener noreferrer">
                             <Eye className="w-4 h-4 mr-2" />
                             {language === "fr" ? "Voir comme client" : "View as client"}
-                          </Link>
+                          </a>
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => setPortalAccessClient(client)}>
                           <KeyRound className="w-4 h-4 mr-2" />

@@ -1,7 +1,7 @@
 import { Switch, Route, useLocation, useParams, Redirect } from "wouter";
 import { Suspense, lazy, useEffect } from "react";
 import { queryClient } from "./lib/queryClient";
-import { QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
@@ -82,7 +82,45 @@ import NouvellesPage from "@/pages/nouvelles";
 
 function PortalPreviewRoute() {
   const params = useParams<{ clientId: string }>();
-  return <ClientPortalPage previewClientId={params.clientId} />;
+  const { language } = useI18n();
+  const { data: clientData } = useQuery<{ id: string; name: string }>({
+    queryKey: ["/api/clients", params.clientId],
+    enabled: !!params.clientId,
+  });
+  const previewClientName = clientData?.name || "Client";
+
+  const style = {
+    "--sidebar-width": "16rem",
+    "--sidebar-width-icon": "3.5rem",
+  };
+
+  return (
+    <>
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:p-4 focus:bg-background focus:text-foreground focus:border">
+        {language === "fr" ? "Aller au contenu principal" : "Skip to main content"}
+      </a>
+      <SidebarProvider style={style as React.CSSProperties}>
+        <div className="flex h-screen w-full">
+          <AppSidebar forceClientView previewClientName={previewClientName} />
+          <div className="flex flex-col flex-1 min-w-0">
+            <header className="flex items-center justify-between gap-4 px-4 h-14 border-b shrink-0" aria-label="Top bar">
+              <SidebarTrigger data-testid="button-sidebar-toggle" />
+              <div className="flex-1" />
+              <div className="flex items-center gap-2">
+                <LanguageToggle />
+                <ThemeToggle />
+              </div>
+            </header>
+            <main id="main-content" className="flex-1 overflow-auto p-6 pb-24">
+              <Suspense fallback={<PageLoader />}>
+                <ClientPortalPage previewClientId={params.clientId} />
+              </Suspense>
+            </main>
+          </div>
+        </div>
+      </SidebarProvider>
+    </>
+  );
 }
 
 function PageLoader() {
@@ -287,11 +325,7 @@ function AppRoutes() {
       <Route path="/app/clients/:clientId/portal-preview">
         <ProtectedRoute>
           <StaffRoute>
-            <AppLayout>
-              <Suspense fallback={<PageLoader />}>
-                <PortalPreviewRoute />
-              </Suspense>
-            </AppLayout>
+            <PortalPreviewRoute />
           </StaffRoute>
         </ProtectedRoute>
       </Route>
