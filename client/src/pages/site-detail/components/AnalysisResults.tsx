@@ -670,17 +670,17 @@ export function AnalysisResults({
         </CardHeader>
         <CardContent>
           <div className="grid sm:grid-cols-4 gap-6">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+            <div className="flex items-start gap-3 min-w-0">
+              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
                 <Sun className="w-6 h-6 text-primary" />
               </div>
-              <div>
+              <div className="min-w-0">
                 <p className="text-sm text-muted-foreground">{language === "fr" ? "Panneaux solaires" : "Solar Panels"}</p>
                 <p className="text-2xl font-bold font-mono text-primary" data-testid="text-pv-size">{formatSmartPower(cappedPvSizeKW, language)}</p>
                 {cappedPvSizeKW > 1000 && (
-                  <Badge variant="destructive" className="mt-1 text-xs flex items-center gap-1">
-                    <AlertTriangle className="w-3 h-3" />
-                    {language === "fr" ? "Dépasse 1 MW (limite Hydro-Québec)" : "Exceeds 1 MW (Hydro-Québec limit)"}
+                  <Badge variant="destructive" className="mt-1 text-xs inline-flex items-center gap-1">
+                    <AlertTriangle className="w-3 h-3 shrink-0" />
+                    <span className="truncate">{language === "fr" ? "Dépasse 1 MW (limite HQ)" : "Exceeds 1 MW (HQ limit)"}</span>
                   </Badge>
                 )}
               </div>
