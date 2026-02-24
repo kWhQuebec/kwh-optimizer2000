@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -87,11 +87,38 @@ const siteFormSchema = z.object({
 
 type SiteFormValues = z.infer<typeof siteFormSchema>;
 
+function StreetViewThumbnail({ address, city, siteId }: { address?: string | null; city?: string | null; siteId: string }) {
+  const [imgError, setImgError] = useState(false);
+  const fullAddress = [address, city, "QC, Canada"].filter(Boolean).join(", ");
+  const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+  const hasLocation = !!(address || city);
+
+  if (!hasLocation || !apiKey || imgError) {
+    return (
+      <div className="w-full h-36 bg-muted/50 flex items-center justify-center">
+        <Building2 className="w-10 h-10 text-muted-foreground/30" />
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={`https://maps.googleapis.com/maps/api/streetview?size=600x300&location=${encodeURIComponent(fullAddress)}&key=${apiKey}`}
+      alt={fullAddress}
+      className="w-full h-36 object-cover"
+      onError={() => setImgError(true)}
+      loading="lazy"
+      data-testid={`img-streetview-thumbnail-${siteId}`}
+    />
+  );
+}
+
 function SiteCard({ site, onEdit, onDelete, onArchive, isSelected, onToggleSelect }: { site: SiteListItem; onEdit: () => void; onDelete: () => void; onArchive: () => void; isSelected?: boolean; onToggleSelect?: (id: string) => void }) {
   const { t, language } = useI18n();
 
   return (
-    <Card className={`hover-elevate ${site.isArchived ? 'opacity-60' : ''} ${isSelected ? 'ring-2 ring-primary' : ''}`}>
+    <Card className={`overflow-hidden ${site.isArchived ? 'opacity-60' : ''} ${isSelected ? 'ring-2 ring-primary' : ''}`}>
+      <StreetViewThumbnail address={site.address} city={site.city} siteId={site.id} />
       <CardContent className="p-6">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-3 min-w-0 flex-1">
@@ -105,9 +132,6 @@ function SiteCard({ site, onEdit, onDelete, onArchive, isSelected, onToggleSelec
                   />
                 </div>
               )}
-              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                <Building2 className="w-5 h-5 text-primary" />
-              </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <h3 className="font-semibold truncate">{site.name}</h3>
