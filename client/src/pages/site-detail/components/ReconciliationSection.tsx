@@ -88,9 +88,9 @@ const formatNumber = (value: number, language: "fr" | "en"): string => {
 };
 
 const formatCurrency = (value: number, language: "fr" | "en"): string => {
-  const formatter = new Intl.NumberFormat(language === "fr" ? "fr-FR" : "en-US", {
+  const formatter = new Intl.NumberFormat(language === "fr" ? "fr-CA" : "en-CA", {
     style: "currency",
-    currency: language === "fr" ? "EUR" : "USD",
+    currency: "CAD",
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   });
@@ -103,7 +103,9 @@ export const ReconciliationSection = ({ siteId, language }: ReconciliationSectio
   const { data, isLoading, isError } = useQuery<ReconciliationData>({
     queryKey: ["reconciliation", siteId],
     queryFn: async () => {
-      const response = await fetch(`/api/sites/${siteId}/reconciliation`);
+      const response = await fetch(`/api/sites/${siteId}/reconciliation`, {
+        credentials: "include",
+      });
       if (!response.ok) throw new Error("Failed to fetch reconciliation data");
       return response.json();
     },

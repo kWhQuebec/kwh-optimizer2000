@@ -144,7 +144,9 @@ export function BaselineView({ siteId, language }: BaselineViewProps) {
   const { data: baselineData, isLoading: baselineLoading } = useQuery<BaselineData>({
     queryKey: ['baseline', siteId],
     queryFn: async () => {
-      const res = await fetch(`/api/sites/${siteId}/baseline`);
+      const res = await fetch(`/api/sites/${siteId}/baseline`, {
+        credentials: 'include',
+      });
       if (!res.ok) throw new Error('Failed to fetch baseline');
       return res.json();
     },
@@ -154,7 +156,9 @@ export function BaselineView({ siteId, language }: BaselineViewProps) {
     useQuery<ReconciliationData>({
       queryKey: ['reconciliation', siteId],
       queryFn: async () => {
-        const res = await fetch(`/api/sites/${siteId}/reconciliation`);
+        const res = await fetch(`/api/sites/${siteId}/reconciliation`, {
+          credentials: 'include',
+        });
         if (!res.ok) throw new Error('Failed to fetch reconciliation');
         return res.json();
       },
@@ -165,6 +169,7 @@ export function BaselineView({ siteId, language }: BaselineViewProps) {
     try {
       const res = await fetch(`/api/sites/${siteId}/baseline/snapshot`, {
         method: 'POST',
+        credentials: 'include',
       });
       if (!res.ok) throw new Error('Failed to capture baseline');
       window.location.reload();

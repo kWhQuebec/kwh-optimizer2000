@@ -1862,7 +1862,22 @@ router.get("/:siteId/budgets", authMiddleware, asyncHandler(async (req: AuthRequ
     ? Math.round((summary.totalActual / summary.totalRevised) * 100)
     : 0;
 
-  res.json({ siteId: req.params.siteId, budgets, summary });
+  // Map field names for frontend compatibility
+  const mappedBudgets = budgets.map(b => ({
+    id: b.id,
+    siteId: b.siteId,
+    category: b.category,
+    description: b.description,
+    original: b.originalAmount || 0,
+    revised: b.revisedAmount || 0,
+    committed: b.committedAmount || 0,
+    actual: b.actualAmount || 0,
+    notes: b.notes,
+    createdAt: b.createdAt,
+    updatedAt: b.updatedAt,
+  }));
+
+  res.json({ siteId: req.params.siteId, budgets: mappedBudgets, summary });
 }));
 
 router.post("/:siteId/budgets", authMiddleware, requireStaff, asyncHandler(async (req: AuthRequest, res) => {
@@ -1929,7 +1944,18 @@ router.post("/:siteId/budgets/initialize", authMiddleware, requireStaff, asyncHa
 }));
 
 router.put("/:siteId/budgets/:budgetId", authMiddleware, requireStaff, asyncHandler(async (req: AuthRequest, res) => {
-  const updated = await storage.updateProjectBudget(req.params.budgetId, req.body);
+  // Map short field names from frontend to DB column names
+  const fieldMap: Record<string, string> = {
+    original: "originalAmount",
+    revised: "revisedAmount",
+    committed: "committedAmount",
+    actual: "actualAmount",
+  };
+  const mapped: Record<string, any> = {};
+  for (const [key, value] of Object.entries(req.body)) {
+    mapped[fieldMap[key] || key] = value;
+  }
+  const updated = await storage.updateProjectBudget(req.params.budgetId, mapped);
   if (!updated) throw new NotFoundError("Budget item");
   res.json(updated);
 }));
