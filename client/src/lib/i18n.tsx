@@ -297,6 +297,8 @@ const translations: Translations = {
   "bifacial.roofType.light": { fr: "Toit clair", en: "Light roof" },
   "bifacial.roofType.dark": { fr: "Toit foncé", en: "Dark roof" },
   "bifacial.roofType.gravel": { fr: "Gravier", en: "Gravel" },
+  "bifacial.roofType.shingle": { fr: "Bardeau", en: "Shingle" },
+  "bifacial.roofType.metal": { fr: "Tôle / métal", en: "Metal" },
   "bifacial.roofType.unknown": { fr: "Inconnu", en: "Unknown" },
 
   // Analysis Results

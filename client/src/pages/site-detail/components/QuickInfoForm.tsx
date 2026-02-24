@@ -15,6 +15,8 @@ import {
   Upload,
   ArrowRight,
   CheckCircle2,
+  ArrowUpDown,
+  Grip,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,7 +24,6 @@ import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { SiteWithDetails } from "../types";
 
@@ -43,21 +44,27 @@ const BUILDING_TYPES = [
   { value: "other", labelFr: "Autre", labelEn: "Other", Icon: HelpCircle },
 ];
 
-const ROOF_TYPES = [
-  { value: "flat", labelFr: "Plate", labelEn: "Flat", Icon: Layers, colorType: null },
-  { value: "inclined", labelFr: "Inclin\u00e9e", labelEn: "Inclined", Icon: Mountain, colorType: null },
-  { value: "white_membrane", labelFr: "Membrane blanche", labelEn: "White membrane", Icon: CircleDot, colorType: "white_membrane" },
-  { value: "gravel", labelFr: "Gravier", labelEn: "Gravel", Icon: Droplets, colorType: "gravel" },
+const ROOF_SHAPES = [
+  { value: "flat", labelFr: "Toit plat", labelEn: "Flat roof", Icon: Layers },
+  { value: "inclined", labelFr: "Toit incliné", labelEn: "Inclined roof", Icon: Mountain },
+];
+
+const ROOF_COVERINGS = [
+  { value: "white_membrane", labelFr: "Membrane blanche", labelEn: "White membrane", Icon: CircleDot },
+  { value: "gravel", labelFr: "Gravier", labelEn: "Gravel", Icon: Droplets },
+  { value: "shingle", labelFr: "Bardeau", labelEn: "Shingle", Icon: Grip },
+  { value: "metal", labelFr: "Tôle / métal", labelEn: "Metal", Icon: Layers },
 ];
 
 const FLOOR_OPTIONS = [1, 2, 3, 4, 5];
+const HEIGHT_OPTIONS = [14, 20, 30, 40, 50];
 
 export function QuickInfoForm({ site, language, onSaved, onGoToNextStep }: QuickInfoFormProps) {
   const fr = language === "fr";
 
   const [buildingType, setBuildingType] = useState<string | null>(site.buildingType || null);
-  const [roofType, setRoofType] = useState<string | null>(site.roofType || null);
-  const [roofColorType, setRoofColorType] = useState<string | null>(site.roofColorType || null);
+  const [roofShape, setRoofShape] = useState<string | null>(site.roofType || null);
+  const [roofCovering, setRoofCovering] = useState<string | null>(site.roofColorType || null);
   const [useMetric, setUseMetric] = useState(true);
   const [roofAreaSqM, setRoofAreaSqM] = useState<number>(site.roofAreaSqM || 2000);
   const [estimatedMonthlyBill, setEstimatedMonthlyBill] = useState<number>(site.estimatedMonthlyBill || 2000);
@@ -65,6 +72,9 @@ export function QuickInfoForm({ site, language, onSaved, onGoToNextStep }: Quick
     site.estimatedAnnualConsumptionKwh ? String(Math.round(site.estimatedAnnualConsumptionKwh)) : ""
   );
   const [numFloors, setNumFloors] = useState<number | null>(site.numFloors || null);
+  const [buildingHeightFt, setBuildingHeightFt] = useState<string>(
+    site.buildingHeightFt ? String(Math.round(site.buildingHeightFt)) : ""
+  );
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
 
   const pendingChangesRef = useRef<Record<string, unknown>>({});
@@ -132,14 +142,16 @@ export function QuickInfoForm({ site, language, onSaved, onGoToNextStep }: Quick
     scheduleAutoSave({ buildingType: value });
   };
 
-  const handleRoofType = (value: string, colorType: string | null) => {
-    setRoofType(value);
-    const updates: Record<string, unknown> = { roofType: value };
-    if (colorType) {
-      setRoofColorType(colorType);
-      updates.roofColorType = colorType;
-    }
-    scheduleAutoSave(updates);
+  const handleRoofShape = (value: string) => {
+    const newVal = roofShape === value ? null : value;
+    setRoofShape(newVal);
+    scheduleAutoSave({ roofType: newVal });
+  };
+
+  const handleRoofCovering = (value: string) => {
+    const newVal = roofCovering === value ? null : value;
+    setRoofCovering(newVal);
+    scheduleAutoSave({ roofColorType: newVal });
   };
 
   const handleRoofAreaChange = (valueSqM: number) => {
@@ -189,8 +201,30 @@ export function QuickInfoForm({ site, language, onSaved, onGoToNextStep }: Quick
   };
 
   const handleNumFloors = (value: number) => {
-    setNumFloors(value);
-    scheduleAutoSave({ numFloors: value });
+    const newVal = numFloors === value ? null : value;
+    setNumFloors(newVal);
+    scheduleAutoSave({ numFloors: newVal });
+  };
+
+  const handleHeightQuickPick = (value: number) => {
+    const currentNum = buildingHeightFt ? parseInt(buildingHeightFt, 10) : null;
+    if (currentNum === value) {
+      setBuildingHeightFt("");
+      scheduleAutoSave({ buildingHeightFt: null });
+    } else {
+      setBuildingHeightFt(String(value));
+      scheduleAutoSave({ buildingHeightFt: value });
+    }
+  };
+
+  const handleHeightInput = (val: string) => {
+    setBuildingHeightFt(val);
+    const num = parseInt(val, 10);
+    if (val === "") {
+      scheduleAutoSave({ buildingHeightFt: null });
+    } else if (!isNaN(num) && num > 0) {
+      scheduleAutoSave({ buildingHeightFt: num });
+    }
   };
 
   const displayArea = useMetric ? roofAreaSqM : Math.round(roofAreaSqM * SQ_M_TO_SQ_FT);
@@ -200,6 +234,8 @@ export function QuickInfoForm({ site, language, onSaved, onGoToNextStep }: Quick
   const conversionText = useMetric
     ? `= ${Math.round(roofAreaSqM * SQ_M_TO_SQ_FT).toLocaleString()} pi\u00b2`
     : `= ${roofAreaSqM.toLocaleString()} m\u00b2`;
+
+  const heightNum = buildingHeightFt ? parseInt(buildingHeightFt, 10) : null;
 
   return (
     <div className="space-y-6">
@@ -237,23 +273,41 @@ export function QuickInfoForm({ site, language, onSaved, onGoToNextStep }: Quick
       <div>
         <Label className="flex items-center gap-2 mb-3 text-base font-medium">
           <Layers className="w-4 h-4" />
-          {fr ? "Type de toiture" : "Roof type"}
+          {fr ? "Forme de toiture" : "Roof shape"}
         </Label>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {ROOF_TYPES.map((rt) => (
-            <Card
-              key={rt.value}
-              className={`cursor-pointer toggle-elevate ${roofType === rt.value ? "toggle-elevated border-primary" : ""}`}
-              onClick={() => handleRoofType(rt.value, rt.colorType)}
-              data-testid={`card-roof-type-${rt.value}`}
+        <div className="flex items-center gap-2 flex-wrap">
+          {ROOF_SHAPES.map((rs) => (
+            <Button
+              key={rs.value}
+              variant="outline"
+              className={`toggle-elevate gap-2 ${roofShape === rs.value ? "toggle-elevated border-primary" : ""}`}
+              onClick={() => handleRoofShape(rs.value)}
+              data-testid={`button-roof-shape-${rs.value}`}
             >
-              <CardContent className="flex flex-col items-center justify-center gap-2 p-4">
-                <rt.Icon className="w-6 h-6" />
-                <span className="text-sm font-medium text-center">
-                  {fr ? rt.labelFr : rt.labelEn}
-                </span>
-              </CardContent>
-            </Card>
+              <rs.Icon className="w-4 h-4" />
+              {fr ? rs.labelFr : rs.labelEn}
+            </Button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <Label className="flex items-center gap-2 mb-3 text-base font-medium">
+          <CircleDot className="w-4 h-4" />
+          {fr ? "Rev\u00eatement de toiture" : "Roof covering"}
+        </Label>
+        <div className="flex items-center gap-2 flex-wrap">
+          {ROOF_COVERINGS.map((rc) => (
+            <Button
+              key={rc.value}
+              variant="outline"
+              className={`toggle-elevate gap-2 ${roofCovering === rc.value ? "toggle-elevated border-primary" : ""}`}
+              onClick={() => handleRoofCovering(rc.value)}
+              data-testid={`button-roof-covering-${rc.value}`}
+            >
+              <rc.Icon className="w-4 h-4" />
+              {fr ? rc.labelFr : rc.labelEn}
+            </Button>
           ))}
         </div>
       </div>
@@ -343,23 +397,56 @@ export function QuickInfoForm({ site, language, onSaved, onGoToNextStep }: Quick
         </p>
       </div>
 
-      <div>
-        <Label className="flex items-center gap-2 mb-3 text-base font-medium">
-          <LayoutGrid className="w-4 h-4" />
-          {fr ? "Nombre d'\u00e9tages" : "Number of floors"}
-        </Label>
-        <div className="flex items-center gap-2 flex-wrap">
-          {FLOOR_OPTIONS.map((n) => (
-            <Button
-              key={n}
-              variant="outline"
-              className={`toggle-elevate ${numFloors === n ? "toggle-elevated border-primary" : ""}`}
-              onClick={() => handleNumFloors(n)}
-              data-testid={`button-floors-${n}`}
-            >
-              {n === 5 ? "5+" : n}
-            </Button>
-          ))}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <Label className="flex items-center gap-2 mb-3 text-base font-medium">
+            <LayoutGrid className="w-4 h-4" />
+            {fr ? "Nombre d'\u00e9tages" : "Number of floors"}
+          </Label>
+          <div className="flex items-center gap-2 flex-wrap">
+            {FLOOR_OPTIONS.map((n) => (
+              <Button
+                key={n}
+                variant="outline"
+                className={`toggle-elevate ${numFloors === n ? "toggle-elevated border-primary" : ""}`}
+                onClick={() => handleNumFloors(n)}
+                data-testid={`button-floors-${n}`}
+              >
+                {n === 5 ? "5+" : n}
+              </Button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <Label className="flex items-center gap-2 mb-3 text-base font-medium">
+            <ArrowUpDown className="w-4 h-4" />
+            {fr ? "Hauteur du b\u00e2timent" : "Building height"}
+          </Label>
+          <div className="flex items-center gap-2 flex-wrap mb-2">
+            {HEIGHT_OPTIONS.map((h) => (
+              <Button
+                key={h}
+                variant="outline"
+                className={`toggle-elevate ${heightNum === h ? "toggle-elevated border-primary" : ""}`}
+                onClick={() => handleHeightQuickPick(h)}
+                data-testid={`button-height-${h}`}
+              >
+                {h}'
+              </Button>
+            ))}
+          </div>
+          <div className="flex items-center gap-2">
+            <Input
+              type="number"
+              value={buildingHeightFt}
+              onChange={(e) => handleHeightInput(e.target.value)}
+              placeholder={fr ? "Autre" : "Other"}
+              className="w-24"
+              data-testid="input-building-height"
+            />
+            <span className="text-sm text-muted-foreground">{fr ? "pieds" : "feet"}</span>
+          </div>
         </div>
       </div>
 

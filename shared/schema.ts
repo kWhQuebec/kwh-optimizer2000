@@ -2803,7 +2803,7 @@ export function getAllRackingConfigs(): RackingConfig[] {
  * Roof color types for bifacial panel recommendations
  * White/light roofs reflect more sunlight = higher boost from bifacial panels
  */
-export type RoofColorType = 'white_membrane' | 'light' | 'dark' | 'gravel' | 'unknown';
+export type RoofColorType = 'white_membrane' | 'light' | 'dark' | 'gravel' | 'shingle' | 'metal' | 'unknown';
 
 export interface BifacialConfig {
   boost: number;           // Multiplier (1.0 = no boost, 1.15 = 15% boost)
@@ -2852,6 +2852,28 @@ export function getBifacialConfigFromRoofColor(roofColorType: RoofColorType | st
         reason: {
           fr: 'Gravier détecté (albédo ~30%) - Bifacial optionnel (+5%)',
           en: 'Gravel detected (albedo ~30%) - Bifacial optional (+5%)'
+        }
+      };
+    case 'shingle':
+      return {
+        boost: 1.00,
+        boostPercent: 0,
+        albedo: 0.15,
+        recommended: false,
+        reason: {
+          fr: 'Bardeau détecté (albédo ~15%) - Panneaux standards recommandés',
+          en: 'Shingle detected (albedo ~15%) - Standard panels recommended'
+        }
+      };
+    case 'metal':
+      return {
+        boost: 1.08,
+        boostPercent: 8,
+        albedo: 0.45,
+        recommended: false,
+        reason: {
+          fr: 'Tôle/métal détecté (albédo ~45%) - Bifacial optionnel (+8%)',
+          en: 'Metal roof detected (albedo ~45%) - Bifacial optional (+8%)'
         }
       };
     case 'dark':
