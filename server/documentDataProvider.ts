@@ -208,19 +208,6 @@ export async function prepareDocumentData(simulationId: string, storage: IStorag
 
   const MIN_VALID_IMAGE_SIZE = 10 * 1024;
 
-  function isLikelyGreyImage(buf: Buffer): boolean {
-    if (buf.length < 100) return true;
-    const header = buf.slice(0, 8);
-    const isPng = header[0] === 0x89 && header[1] === 0x50 && header[2] === 0x4e && header[3] === 0x47;
-    if (isPng && buf.length < 20 * 1024) {
-      const unique = new Set(buf.slice(Math.max(0, buf.length - 2000)));
-      if (unique.size < 30) {
-        return true;
-      }
-    }
-    return false;
-  }
-
   async function fetchImageWithRedirects(url: string): Promise<Buffer> {
     const mod = url.startsWith("https") ? await import("https") : await import("http");
     return new Promise<Buffer>((resolve, reject) => {
@@ -241,43 +228,9 @@ export async function prepareDocumentData(simulationId: string, storage: IStorag
     });
   }
 
-  if (simulation.site.roofVisualizationImageUrl) {
-    try {
-      const imgUrl = simulation.site.roofVisualizationImageUrl;
-      if (imgUrl.startsWith("data:image/")) {
-        const base64Data = imgUrl.split(",")[1];
-        if (base64Data) {
-          const buf = Buffer.from(base64Data, "base64");
-          if (buf.length < MIN_VALID_IMAGE_SIZE) {
-            log.warn(`Stored roof image data URL too small (${buf.length} bytes < ${MIN_VALID_IMAGE_SIZE}), likely a failed html2canvas capture — skipping`);
-          } else if (isLikelyGreyImage(buf)) {
-            log.warn(`Stored roof image data URL appears to be a grey/uniform capture (${buf.length} bytes) — skipping`);
-          } else {
-            roofVisualizationBuffer = buf;
-            log.info(`Stored roof image data URL accepted: ${buf.length} bytes`);
-          }
-        } else {
-          log.warn("Stored roof image data URL has no base64 payload — skipping");
-        }
-      } else if (imgUrl.startsWith("http")) {
-        const buf = await fetchImageWithRedirects(imgUrl);
-        if (buf.length < MIN_VALID_IMAGE_SIZE) {
-          log.warn(`Stored roof image from URL too small (${buf.length} bytes) — skipping`);
-        } else if (isLikelyGreyImage(buf)) {
-          log.warn(`Stored roof image from URL appears to be a grey/uniform capture (${buf.length} bytes) — skipping`);
-        } else {
-          roofVisualizationBuffer = buf;
-          log.info(`Stored roof image from URL accepted: ${buf.length} bytes`);
-        }
-      }
-    } catch (fallbackError) {
-      log.error("Failed to fetch stored roof visualization image:", fallbackError);
-    }
-  }
-
-  if (!roofVisualizationBuffer && simulation.site.latitude && simulation.site.longitude) {
+  if (simulation.site.latitude && simulation.site.longitude) {
     const hasPolygons = roofPolygonsRaw.length > 0;
-    log.info(`No valid stored roof image — falling back to Google Static Maps API (${hasPolygons ? `with ${roofPolygonsRaw.length} polygon overlays` : "plain satellite view, no polygons"})`);
+    log.info(`Fetching satellite image via Google Static Maps API (${hasPolygons ? `with ${roofPolygonsRaw.length} polygon overlays` : "plain satellite view"})`);
     try {
       const { getRoofVisualizationUrl } = await import("./googleSolarService");
       const roofImageUrl = getRoofVisualizationUrl(
@@ -291,13 +244,47 @@ export async function prepareDocumentData(simulationId: string, storage: IStorag
       );
 
       if (roofImageUrl) {
-        roofVisualizationBuffer = await fetchImageWithRedirects(roofImageUrl);
-        log.info(`Google Static Maps roof image fetched: ${roofVisualizationBuffer.length} bytes`);
+        const buf = await fetchImageWithRedirects(roofImageUrl);
+        if (buf.length >= MIN_VALID_IMAGE_SIZE) {
+          roofVisualizationBuffer = buf;
+          log.info(`Google Static Maps roof image fetched: ${buf.length} bytes`);
+        } else {
+          log.warn(`Google Static Maps image too small (${buf.length} bytes) — skipping`);
+        }
       } else {
         log.warn("getRoofVisualizationUrl returned null — Google API key may not be configured");
       }
     } catch (imgError) {
       log.error("Failed to fetch Google Static Maps roof visualization:", imgError);
+    }
+  }
+
+  if (!roofVisualizationBuffer && simulation.site.roofVisualizationImageUrl) {
+    log.info("Google Static Maps unavailable — trying stored html2canvas capture as fallback");
+    try {
+      const imgUrl = simulation.site.roofVisualizationImageUrl;
+      if (imgUrl.startsWith("data:image/")) {
+        const base64Data = imgUrl.split(",")[1];
+        if (base64Data) {
+          const buf = Buffer.from(base64Data, "base64");
+          if (buf.length >= MIN_VALID_IMAGE_SIZE) {
+            roofVisualizationBuffer = buf;
+            log.info(`Stored roof image data URL accepted as fallback: ${buf.length} bytes`);
+          } else {
+            log.warn(`Stored roof image data URL too small (${buf.length} bytes) — skipping`);
+          }
+        }
+      } else if (imgUrl.startsWith("http")) {
+        const buf = await fetchImageWithRedirects(imgUrl);
+        if (buf.length >= MIN_VALID_IMAGE_SIZE) {
+          roofVisualizationBuffer = buf;
+          log.info(`Stored roof image from URL accepted as fallback: ${buf.length} bytes`);
+        } else {
+          log.warn(`Stored roof image from URL too small (${buf.length} bytes) — skipping`);
+        }
+      }
+    } catch (fallbackError) {
+      log.error("Failed to fetch stored roof visualization image:", fallbackError);
     }
   }
 
