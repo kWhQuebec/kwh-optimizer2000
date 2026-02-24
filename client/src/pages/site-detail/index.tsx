@@ -1449,6 +1449,47 @@ export default function SiteDetailPage() {
           />
         </div>
 
+        {/* Sub-navigation for workflow steps with multiple tabs */}
+        {(() => {
+          const currentStep = getStepForTab(activeTab);
+          if (!currentStep || currentStep.tabs.length <= 1) return null;
+
+          const tabLabels: Record<string, { fr: string; en: string }> = {
+            "quick-analysis": { fr: "Analyse rapide", en: "Quick Analysis" },
+            "consumption": { fr: "Données de consommation", en: "Consumption Data" },
+            "analysis": { fr: "Validation économique", en: "Economic Validation" },
+            "design-agreement": { fr: "Mandat", en: "Mandate" },
+            "site-visit": { fr: "Validation technique", en: "Technical Validation" },
+            "epc-proposal": { fr: "Proposition EPC", en: "EPC Proposal" },
+            "plans-specs": { fr: "Plans & devis (SLD)", en: "Plans & Specs (SLD)" },
+            "permits": { fr: "Permis et installation", en: "Permits & Installation" },
+            "operations": { fr: "O&M", en: "O&M" },
+          };
+
+          return (
+            <div className="flex items-center gap-1 px-1 py-1 bg-muted/50 rounded-lg w-fit">
+              {currentStep.tabs.map((tab) => {
+                const label = tabLabels[tab];
+                if (!label) return null;
+                const isActive = activeTab === tab;
+                return (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
+                      isActive
+                        ? "bg-background text-foreground shadow-sm font-medium"
+                        : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+                    }`}
+                  >
+                    {language === "fr" ? label.fr : label.en}
+                  </button>
+                );
+              })}
+            </div>
+          );
+        })()}
+
         <TabsList className="sr-only">
           <TabsTrigger value="quick-analysis">{language === "fr" ? "Analyse rapide" : "Quick Analysis"}</TabsTrigger>
           <TabsTrigger value="consumption">{t("site.consumption")}</TabsTrigger>
