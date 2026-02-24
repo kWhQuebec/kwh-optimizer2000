@@ -2161,9 +2161,9 @@ export function RoofVisualization({
               <span>Max</span>
             </div>
             {recommendedMarkerLeft && (
-              <div className="relative h-4 mt-0.5">
-                <span
-                  className="absolute text-[10px] text-primary font-medium whitespace-nowrap"
+              <div className="relative h-6 mt-0.5">
+                <div
+                  className="absolute flex flex-col items-center"
                   style={{
                     left: recommendedMarkerLeft,
                     transform: "translateX(-50%)",
@@ -2171,8 +2171,11 @@ export function RoofVisualization({
                   }}
                   data-testid="slider-recommended-label"
                 >
-                  {language === "fr" ? "▲ Recommandé" : "▲ Recommended"}
-                </span>
+                  <span className="text-[10px] text-primary leading-none">▲</span>
+                  <span className="text-[10px] text-primary font-medium whitespace-nowrap leading-tight">
+                    {language === "fr" ? "Recommandé" : "Recommended"}
+                  </span>
+                </div>
               </div>
             )}
           </div>
