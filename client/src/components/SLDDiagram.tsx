@@ -490,72 +490,78 @@ function SLDCartouche({
                 <g key={i}>
                   {entry.type === "dc" && (
                     <>
-                      <line x1={ex} y1={ey-2} x2={ex+20} y2={ey-2} stroke="#dc2626" strokeWidth={1.5} />
-                      <line x1={ex} y1={ey+2} x2={ex+5} y2={ey+2} stroke="#dc2626" strokeWidth={1.5} />
-                      <line x1={ex+8} y1={ey+2} x2={ex+13} y2={ey+2} stroke="#dc2626" strokeWidth={1.5} />
-                      <line x1={ex+16} y1={ey+2} x2={ex+20} y2={ey+2} stroke="#dc2626" strokeWidth={1.5} />
+                      <line x1={ex} y1={ey-3} x2={ex+20} y2={ey-3} stroke="#dc2626" strokeWidth={1.8} />
+                      <line x1={ex+2} y1={ey+1} x2={ex+7} y2={ey+1} stroke="#dc2626" strokeWidth={1.8} />
+                      <line x1={ex+9} y1={ey+1} x2={ex+14} y2={ey+1} stroke="#dc2626" strokeWidth={1.8} />
+                      <line x1={ex+16} y1={ey+1} x2={ex+20} y2={ey+1} stroke="#dc2626" strokeWidth={1.8} />
                     </>
                   )}
                   {entry.type === "ac" && (
-                    <path d={`M${ex},${ey} Q${ex+5},${ey-6} ${ex+10},${ey} Q${ex+15},${ey+6} ${ex+20},${ey}`} fill="none" stroke="#2563eb" strokeWidth={1.5} />
+                    <path d={`M${ex},${ey} C${ex+3},${ey-7} ${ex+7},${ey-7} ${ex+10},${ey} C${ex+13},${ey+7} ${ex+17},${ey+7} ${ex+20},${ey}`} fill="none" stroke="#2563eb" strokeWidth={1.8} />
                   )}
                   {entry.type === "pv" && (
                     <g>
-                      <circle cx={ex+10} cy={ey} r={7} fill="none" stroke="#d97706" strokeWidth={1} />
-                      <line x1={ex+7} y1={ey+3} x2={ex+13} y2={ey-3} stroke="#d97706" strokeWidth={1} />
-                      <line x1={ex+13} y1={ey-3} x2={ex+11} y2={ey-1} stroke="#d97706" strokeWidth={1} />
-                      <line x1={ex+2} y1={ey-5} x2={ex+5} y2={ey-3} stroke="#d97706" strokeWidth={0.8} />
-                      <line x1={ex+1} y1={ey-2} x2={ex+4} y2={ey} stroke="#d97706" strokeWidth={0.8} />
+                      <rect x={ex+1} y={ey-7} width={18} height={14} fill="none" stroke="#d97706" strokeWidth={1.2} rx={1} />
+                      <line x1={ex+5} y1={ey+5} x2={ex+15} y2={ey-5} stroke="#d97706" strokeWidth={1.2} />
+                      <polygon points={`${ex+13},${ey-5} ${ex+15},${ey-5} ${ex+15},${ey-3}`} fill="#d97706" stroke="none" />
+                      <line x1={ex-2} y1={ey-4} x2={ex+3} y2={ey-2} stroke="#d97706" strokeWidth={0.9} />
+                      <polygon points={`${ex+2},${ey-3} ${ex+3},${ey-2} ${ex+1},${ey-1}`} fill="#d97706" stroke="none" />
+                      <line x1={ex-2} y1={ey} x2={ex+3} y2={ey+2} stroke="#d97706" strokeWidth={0.9} />
+                      <polygon points={`${ex+2},${ey+1} ${ex+3},${ey+2} ${ex+1},${ey+3}`} fill="#d97706" stroke="none" />
                     </g>
                   )}
                   {entry.type === "inv" && (
                     <g>
-                      <rect x={ex} y={ey-6} width={20} height={12} fill="none" stroke="#16a34a" strokeWidth={1} />
-                      <polygon points={`${ex+4},${ey+4} ${ex+10},${ey-4} ${ex+16},${ey+4}`} fill="none" stroke="#16a34a" strokeWidth={0.8} />
-                      <text x={ex+3} y={ey+5} fontSize={4} fill="#16a34a" fontFamily={FONT}>~</text>
-                      <text x={ex+14} y={ey-2} fontSize={4} fill="#16a34a" fontFamily={FONT}>=</text>
+                      <rect x={ex+1} y={ey-7} width={18} height={14} fill="none" stroke="#16a34a" strokeWidth={1.2} rx={1} />
+                      <polygon points={`${ex+5},${ey+5} ${ex+10},${ey-5} ${ex+15},${ey+5}`} fill="none" stroke="#16a34a" strokeWidth={1} />
                     </g>
                   )}
                   {entry.type === "meter" && (
                     <g>
-                      <circle cx={ex+10} cy={ey} r={7} fill="none" stroke="#16a34a" strokeWidth={1} />
-                      <text x={ex+10} y={ey+1} textAnchor="middle" dominantBaseline="middle" fontSize={5} fill="#16a34a" fontFamily={FONT} fontWeight={600}>kWh</text>
+                      <circle cx={ex+10} cy={ey} r={8} fill="none" stroke="#16a34a" strokeWidth={1.2} />
+                      <text x={ex+10} y={ey+1} textAnchor="middle" dominantBaseline="middle" fontSize={5.5} fill="#16a34a" fontFamily={FONT} fontWeight={700}>kWh</text>
                     </g>
                   )}
                   {entry.type === "panel" && (
                     <g>
-                      <rect x={ex} y={ey-6} width={20} height={12} fill="none" stroke="#334155" strokeWidth={1.2} />
-                      <line x1={ex+5} y1={ey-4} x2={ex+5} y2={ey+4} stroke="#334155" strokeWidth={0.8} />
-                      <line x1={ex+10} y1={ey-4} x2={ex+10} y2={ey+4} stroke="#334155" strokeWidth={0.8} />
-                      <line x1={ex+15} y1={ey-4} x2={ex+15} y2={ey+4} stroke="#334155" strokeWidth={0.8} />
+                      <rect x={ex+1} y={ey-7} width={18} height={14} fill="none" stroke="#334155" strokeWidth={1.2} rx={1} />
+                      <line x1={ex+5} y1={ey-5} x2={ex+5} y2={ey+5} stroke="#334155" strokeWidth={1} />
+                      <line x1={ex+10} y1={ey-5} x2={ex+10} y2={ey+5} stroke="#334155" strokeWidth={1} />
+                      <line x1={ex+15} y1={ey-5} x2={ex+15} y2={ey+5} stroke="#334155" strokeWidth={1} />
                     </g>
                   )}
                   {entry.type === "ground" && (
-                    <>
-                      <line x1={ex + 10} y1={ey - 5} x2={ex + 10} y2={ey} stroke="#475569" strokeWidth={1} />
-                      <line x1={ex + 4} y1={ey} x2={ex + 16} y2={ey} stroke="#475569" strokeWidth={1} />
-                      <line x1={ex + 6} y1={ey + 3} x2={ex + 14} y2={ey + 3} stroke="#475569" strokeWidth={1} />
-                      <line x1={ex + 8} y1={ey + 6} x2={ex + 12} y2={ey + 6} stroke="#475569" strokeWidth={1} />
-                    </>
+                    <g>
+                      <line x1={ex+10} y1={ey-7} x2={ex+10} y2={ey-2} stroke="#475569" strokeWidth={1.2} />
+                      <line x1={ex+3} y1={ey-2} x2={ex+17} y2={ey-2} stroke="#475569" strokeWidth={1.5} />
+                      <line x1={ex+5} y1={ey+1} x2={ex+15} y2={ey+1} stroke="#475569" strokeWidth={1.3} />
+                      <line x1={ex+7} y1={ey+4} x2={ex+13} y2={ey+4} stroke="#475569" strokeWidth={1.1} />
+                      <line x1={ex+9} y1={ey+7} x2={ex+11} y2={ey+7} stroke="#475569" strokeWidth={0.9} />
+                    </g>
                   )}
                   {entry.type === "breaker" && (
                     <g>
-                      <circle cx={ex+3} cy={ey} r={2} fill="#ca8a04" stroke="#ca8a04" strokeWidth={0.5} />
-                      <line x1={ex+5} y1={ey} x2={ex+17} y2={ey-6} stroke="#ca8a04" strokeWidth={1.2} />
-                      <circle cx={ex+17} cy={ey} r={2} fill="none" stroke="#ca8a04" strokeWidth={0.5} />
+                      <line x1={ex} y1={ey} x2={ex+5} y2={ey} stroke="#475569" strokeWidth={1.2} />
+                      <circle cx={ex+6} cy={ey} r={1.5} fill="#475569" stroke="#475569" strokeWidth={0.5} />
+                      <line x1={ex+7.5} y1={ey} x2={ex+16} y2={ey-7} stroke="#475569" strokeWidth={1.5} />
+                      <circle cx={ex+17} cy={ey} r={1.5} fill="none" stroke="#475569" strokeWidth={1} />
+                      <line x1={ex+18.5} y1={ey} x2={ex+22} y2={ey} stroke="#475569" strokeWidth={1.2} />
                     </g>
                   )}
                   {entry.type === "transformer" && (
                     <g>
-                      <circle cx={ex+7} cy={ey} r={5} fill="none" stroke="#475569" strokeWidth={1} />
-                      <circle cx={ex+13} cy={ey} r={5} fill="none" stroke="#475569" strokeWidth={1} />
+                      <line x1={ex} y1={ey} x2={ex+4} y2={ey} stroke="#475569" strokeWidth={1.2} />
+                      <circle cx={ex+8} cy={ey} r={4.5} fill="none" stroke="#475569" strokeWidth={1.2} />
+                      <circle cx={ex+14} cy={ey} r={4.5} fill="none" stroke="#475569" strokeWidth={1.2} />
+                      <line x1={ex+18.5} y1={ey} x2={ex+22} y2={ey} stroke="#475569" strokeWidth={1.2} />
                     </g>
                   )}
                   {entry.type === "fuse" && (
                     <g>
-                      <line x1={ex} y1={ey} x2={ex+5} y2={ey} stroke="#475569" strokeWidth={1} />
-                      <rect x={ex+5} y={ey-3} width={10} height={6} fill="none" stroke="#475569" strokeWidth={1} rx={1} />
-                      <line x1={ex+15} y1={ey} x2={ex+20} y2={ey} stroke="#475569" strokeWidth={1} />
+                      <line x1={ex} y1={ey} x2={ex+5} y2={ey} stroke="#475569" strokeWidth={1.2} />
+                      <rect x={ex+5} y={ey-3} width={12} height={6} fill="none" stroke="#475569" strokeWidth={1.2} rx={3} />
+                      <line x1={ex+8} y1={ey} x2={ex+14} y2={ey} stroke="#475569" strokeWidth={0.8} />
+                      <line x1={ex+17} y1={ey} x2={ex+22} y2={ey} stroke="#475569" strokeWidth={1.2} />
                     </g>
                   )}
                   <text x={ex + 26} y={ey + 1} fontSize={7} fill="#334155" fontFamily={FONT}
