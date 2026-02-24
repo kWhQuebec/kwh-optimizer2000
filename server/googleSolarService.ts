@@ -486,9 +486,12 @@ export function getRoofVisualizationUrl(
     width?: number;
     height?: number;
     zoom?: number;
+    skipPolygons?: boolean;
   }
 ): string | null {
-  if (!getGoogleSolarApiKey()) {
+  const apiKey = getGoogleSolarApiKey();
+  if (!apiKey) {
+    log.warn("getRoofVisualizationUrl: No Google API key configured");
     return null;
   }
   
@@ -496,35 +499,42 @@ export function getRoofVisualizationUrl(
   const height = options?.height || 600;
   const zoom = options?.zoom || 18;
   
-  let url = `https://maps.googleapis.com/maps/api/staticmap?center=${location.latitude},${location.longitude}&zoom=${zoom}&size=${width}x${height}&scale=2&maptype=satellite`;
+  const MAX_URL_LENGTH = 8192;
   
-  // Add roof polygons as path overlays
-  roofPolygons.forEach((polygon) => {
-    if (!polygon.coordinates || polygon.coordinates.length < 3) return;
-    
-    // Determine if this is a constraint (orange) or solar polygon (blue)
-    const isConstraint = polygon.color === "#f97316" ||
-      (polygon.label?.toLowerCase().includes("constraint") ||
-       polygon.label?.toLowerCase().includes("contrainte") ||
-       polygon.label?.toLowerCase().includes("hvac") ||
-       polygon.label?.toLowerCase().includes("obstacle"));
-    
-    // Convert hex color to static maps format (0xRRGGBBAA)
-    // Blue for solar areas (high visibility), orange for constraints
-    // Use higher opacity (80 = 50%) for better visibility and thicker stroke
-    const fillColor = isConstraint ? "0xf9731680" : "0x0054A880";
-    const strokeColor = isConstraint ? "0xf97316" : "0x0054A8";
-    const strokeWeight = isConstraint ? 2 : 3;
-    
-    // Build path coordinates (lat,lng pairs)
-    const pathCoords = polygon.coordinates
-      .map(([lng, lat]) => `${lat},${lng}`)
-      .join("|");
-    
-    url += `&path=fillcolor:${fillColor}|color:${strokeColor}|weight:${strokeWeight}|${pathCoords}`;
-  });
+  let baseUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${location.latitude},${location.longitude}&zoom=${zoom}&size=${width}x${height}&scale=2&maptype=satellite`;
   
-  url += `&key=${getGoogleSolarApiKey()}`;
+  let polygonParams = "";
+  
+  if (!options?.skipPolygons) {
+    roofPolygons.forEach((polygon) => {
+      if (!polygon.coordinates || polygon.coordinates.length < 3) return;
+      
+      const isConstraint = polygon.color === "#f97316" ||
+        (polygon.label?.toLowerCase().includes("constraint") ||
+         polygon.label?.toLowerCase().includes("contrainte") ||
+         polygon.label?.toLowerCase().includes("hvac") ||
+         polygon.label?.toLowerCase().includes("obstacle"));
+      
+      const fillColor = isConstraint ? "0xf9731680" : "0x0054A880";
+      const strokeColor = isConstraint ? "0xf97316" : "0x0054A8";
+      const strokeWeight = isConstraint ? 2 : 3;
+      
+      const pathCoords = polygon.coordinates
+        .map(([lng, lat]) => `${lat},${lng}`)
+        .join("|");
+      
+      polygonParams += `&path=fillcolor:${fillColor}|color:${strokeColor}|weight:${strokeWeight}|${pathCoords}`;
+    });
+  }
+  
+  let url = baseUrl + polygonParams + `&key=${apiKey}`;
+  
+  if (url.length > MAX_URL_LENGTH && polygonParams.length > 0) {
+    log.warn(`Static Maps URL too long (${url.length} chars > ${MAX_URL_LENGTH}), dropping polygon overlays`);
+    url = baseUrl + `&key=${apiKey}`;
+  }
+  
+  log.info(`getRoofVisualizationUrl: Generated URL (${url.length} chars, ${roofPolygons.length} polygons, skipPolygons=${!!options?.skipPolygons})`);
   
   return url;
 }

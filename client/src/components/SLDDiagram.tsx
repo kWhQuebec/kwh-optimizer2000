@@ -11,7 +11,7 @@
  * - IEC/CSA compliant labeling, monochrome engineering style
  */
 
-import React, { useMemo, useRef, useCallback } from "react";
+import { useMemo, useRef, useCallback } from "react";
 import { KWH_LOGO_DATA_URI } from "./sld-logo-data";
 
 export interface SLDArrayInfo {

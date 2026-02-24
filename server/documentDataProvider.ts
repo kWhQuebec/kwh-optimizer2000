@@ -206,7 +206,40 @@ export async function prepareDocumentData(simulationId: string, storage: IStorag
 
   let roofVisualizationBuffer: Buffer | undefined;
 
-  const MIN_VALID_IMAGE_SIZE = 5 * 1024;
+  const MIN_VALID_IMAGE_SIZE = 10 * 1024;
+
+  function isLikelyGreyImage(buf: Buffer): boolean {
+    if (buf.length < 100) return true;
+    const header = buf.slice(0, 8);
+    const isPng = header[0] === 0x89 && header[1] === 0x50 && header[2] === 0x4e && header[3] === 0x47;
+    if (isPng && buf.length < 20 * 1024) {
+      const unique = new Set(buf.slice(Math.max(0, buf.length - 2000)));
+      if (unique.size < 30) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  async function fetchImageWithRedirects(url: string): Promise<Buffer> {
+    const mod = url.startsWith("https") ? await import("https") : await import("http");
+    return new Promise<Buffer>((resolve, reject) => {
+      const doGet = (fetchUrl: string, redirectsLeft: number) => {
+        mod.get(fetchUrl, (response: any) => {
+          if ((response.statusCode === 301 || response.statusCode === 302) && response.headers.location && redirectsLeft > 0) {
+            log.info(`Following redirect to: ${response.headers.location}`);
+            doGet(response.headers.location, redirectsLeft - 1);
+            return;
+          }
+          const chunks: Buffer[] = [];
+          response.on("data", (chunk: Buffer) => chunks.push(chunk));
+          response.on("end", () => resolve(Buffer.concat(chunks)));
+          response.on("error", reject);
+        }).on("error", reject);
+      };
+      doGet(url, 5);
+    });
+  }
 
   if (simulation.site.roofVisualizationImageUrl) {
     try {
@@ -215,37 +248,26 @@ export async function prepareDocumentData(simulationId: string, storage: IStorag
         const base64Data = imgUrl.split(",")[1];
         if (base64Data) {
           const buf = Buffer.from(base64Data, "base64");
-          if (buf.length >= MIN_VALID_IMAGE_SIZE) {
+          if (buf.length < MIN_VALID_IMAGE_SIZE) {
+            log.warn(`Stored roof image data URL too small (${buf.length} bytes < ${MIN_VALID_IMAGE_SIZE}), likely a failed html2canvas capture — skipping`);
+          } else if (isLikelyGreyImage(buf)) {
+            log.warn(`Stored roof image data URL appears to be a grey/uniform capture (${buf.length} bytes) — skipping`);
+          } else {
             roofVisualizationBuffer = buf;
             log.info(`Stored roof image data URL accepted: ${buf.length} bytes`);
-          } else {
-            log.warn(`Stored roof image data URL too small (${buf.length} bytes < ${MIN_VALID_IMAGE_SIZE}), likely a failed html2canvas capture — skipping`);
           }
         } else {
           log.warn("Stored roof image data URL has no base64 payload — skipping");
         }
       } else if (imgUrl.startsWith("http")) {
-        const mod = imgUrl.startsWith("https") ? await import("https") : await import("http");
-        const buf = await new Promise<Buffer>((resolve, reject) => {
-          const doGet = (url: string, redirectsLeft: number) => {
-            mod.get(url, (response: any) => {
-              if ((response.statusCode === 301 || response.statusCode === 302) && response.headers.location && redirectsLeft > 0) {
-                doGet(response.headers.location, redirectsLeft - 1);
-                return;
-              }
-              const chunks: Buffer[] = [];
-              response.on("data", (chunk: Buffer) => chunks.push(chunk));
-              response.on("end", () => resolve(Buffer.concat(chunks)));
-              response.on("error", reject);
-            }).on("error", reject);
-          };
-          doGet(imgUrl, 5);
-        });
-        if (buf.length >= MIN_VALID_IMAGE_SIZE) {
+        const buf = await fetchImageWithRedirects(imgUrl);
+        if (buf.length < MIN_VALID_IMAGE_SIZE) {
+          log.warn(`Stored roof image from URL too small (${buf.length} bytes) — skipping`);
+        } else if (isLikelyGreyImage(buf)) {
+          log.warn(`Stored roof image from URL appears to be a grey/uniform capture (${buf.length} bytes) — skipping`);
+        } else {
           roofVisualizationBuffer = buf;
           log.info(`Stored roof image from URL accepted: ${buf.length} bytes`);
-        } else {
-          log.warn(`Stored roof image from URL too small (${buf.length} bytes) — skipping`);
         }
       }
     } catch (fallbackError) {
@@ -253,39 +275,26 @@ export async function prepareDocumentData(simulationId: string, storage: IStorag
     }
   }
 
-  if (!roofVisualizationBuffer && roofPolygonsRaw.length > 0 && simulation.site.latitude && simulation.site.longitude) {
-    log.info("No valid stored roof image — falling back to Google Static Maps API with polygon overlays");
+  if (!roofVisualizationBuffer && simulation.site.latitude && simulation.site.longitude) {
+    const hasPolygons = roofPolygonsRaw.length > 0;
+    log.info(`No valid stored roof image — falling back to Google Static Maps API (${hasPolygons ? `with ${roofPolygonsRaw.length} polygon overlays` : "plain satellite view, no polygons"})`);
     try {
       const { getRoofVisualizationUrl } = await import("./googleSolarService");
       const roofImageUrl = getRoofVisualizationUrl(
         { latitude: simulation.site.latitude, longitude: simulation.site.longitude },
-        roofPolygonsRaw.map(p => ({
+        hasPolygons ? roofPolygonsRaw.map(p => ({
           coordinates: p.coordinates as [number, number][],
           color: p.color || "#3b82f6",
           label: p.label || undefined,
-        })),
-        { width: 640, height: 400, zoom: 18 }
+        })) : [],
+        { width: 640, height: 400, zoom: 18, skipPolygons: !hasPolygons }
       );
 
       if (roofImageUrl) {
-        const https = await import("https");
-        roofVisualizationBuffer = await new Promise<Buffer>((resolve, reject) => {
-          const doGet = (url: string, redirectsLeft: number) => {
-            https.get(url, (response) => {
-              if ((response.statusCode === 301 || response.statusCode === 302) && response.headers.location && redirectsLeft > 0) {
-                log.info(`Following redirect to: ${response.headers.location}`);
-                doGet(response.headers.location, redirectsLeft - 1);
-                return;
-              }
-              const chunks: Buffer[] = [];
-              response.on("data", (chunk: Buffer) => chunks.push(chunk));
-              response.on("end", () => resolve(Buffer.concat(chunks)));
-              response.on("error", reject);
-            }).on("error", reject);
-          };
-          doGet(roofImageUrl, 5);
-        });
+        roofVisualizationBuffer = await fetchImageWithRedirects(roofImageUrl);
         log.info(`Google Static Maps roof image fetched: ${roofVisualizationBuffer.length} bytes`);
+      } else {
+        log.warn("getRoofVisualizationUrl returned null — Google API key may not be configured");
       }
     } catch (imgError) {
       log.error("Failed to fetch Google Static Maps roof visualization:", imgError);
