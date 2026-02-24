@@ -363,13 +363,13 @@ export async function getTeamMetrics(accountManagerIds: string[]) {
 
   const totalDealsClosed = wonDeals.length;
   const conversionRate = teamOpps.length > 0
-    ? Math.round((totalDealsCloseds / teamOpps.length) * 100)
+    ? Math.round((totalDealsClosed / teamOpps.length) * 100)
     : 0;
 
   return {
     teamSize: accountManagerIds.length,
     totalOpportunities: teamOpps.length,
-    dealsWon: totalDealsCloses,
+    dealsWon: totalDealsClosed,
     dealsInConstruction: inProgressDeals.length,
     totalMWInstalled,
     conversionRate,
