@@ -88,6 +88,35 @@ interface ArrayInfo {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// MODULAR ARRAY PLACEMENT — Top-down approach
+// Instead of placing individual panels then filtering, we define standard
+// rectangular array modules and tile the roof with them.
+// Each module = N rows × M columns, identical and interchangeable.
+// ═══════════════════════════════════════════════════════════════════════════════
+
+interface ModulePlacement {
+  moduleId: number;         // Sequential ID (1, 2, 3...)
+  rows: number;             // Rows in this module
+  cols: number;             // Columns in this module
+  polygonId: string;        // Which roof polygon
+  originX: number;          // Module origin in rotated space (meters)
+  originY: number;
+  panels: PanelPosition[];  // Individual panels inside this module
+  capacityKW: number;       // cols × rows × PANEL_KW
+  priority: number;         // For slider ordering (larger + interior = higher)
+}
+
+// Module size candidate for auto-optimization
+interface ModuleSizeCandidate {
+  rows: number;
+  cols: number;
+  widthM: number;    // Physical width including gaps
+  depthM: number;    // Physical depth including row spacing
+  panelCount: number;
+  capacityKW: number;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // KB RACKING VALIDATED SPECIFICATIONS - Based on 18 real projects (~40 MW)
 // Product: AeroGrid 10° Landscape with Jinko 660W bifacial panels
 // Source: KB Racking engineering drawings & quotes (Oct-Dec 2025)
@@ -126,314 +155,328 @@ const BIFACIAL_GAIN_PERCENT = 0.08;       // ~8% additional yield for bifacial p
 const BALLAST_KG_PER_SQM = 30;            // Average ballast for Quebec wind zones (q50=0.40-0.44 kPa)
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// PROFESSIONAL LAYOUT FILTER — Rectangle-first approach
-// Instead of placing panels individually then trying to fix jagged edges,
-// this algorithm finds maximal rectangles in the valid grid, then only keeps
-// panels that belong to a rectangle large enough to be worth building.
-//
-// Algorithm:
-// 1. From the raw panel grid, build a 2D boolean occupancy map (row × col)
-// 2. Find all maximal rectangles using the histogram method (O(n) per row)
-// 3. Greedily select non-overlapping rectangles, largest first
-// 4. Only keep panels inside selected rectangles
-// 5. Apply priority scoring (interior panels > edge panels)
+// MODULAR ARRAY PLACEMENT ENGINE
+// Top-down approach: define standard module sizes, tile the roof with them.
+// Each module is a perfect rectangle by construction — no post-processing needed.
 // ═══════════════════════════════════════════════════════════════════════════════
 
-// ─── Professional Layout Filter: Connected Components → Inscribed Rectangles ───
-// Strategy: find connected islands of panels via BFS, then iteratively extract
-// the largest inscribed rectangle from each island. This guarantees clean
-// rectangular blocks with no staircase edges by construction.
-
-const MIN_RECT_COLS = 6;    // Min width: 6 panels (~15m) — one viable racking run
-const MIN_RECT_ROWS = 3;    // Min depth: 3 rows — structural minimum for ballasted
-const MIN_RECT_PANELS = 24; // Absolute minimum: ~16 kW block
-const MIN_COMPONENT_CELLS = 12; // Skip tiny islands before even trying rectangles
+// Module inter-spacing (gap between adjacent modules for maintenance access)
+const MODULE_GAP_M = 1.22; // IFC fire code: 1.22m (4 ft) between array sections
 
 /**
- * BFS flood-fill to find connected components (4-adjacent: up/down/left/right).
- * Returns array of components, each component is a list of {r, c} cells.
+ * Generate candidate module sizes to test for auto-optimization.
+ * Returns realistic commercial array dimensions sorted by panel count (largest first).
  */
-function findConnectedComponents(
-  occupancy: boolean[][],
-  numRows: number,
-  numCols: number
-): { r: number; c: number }[][] {
-  const visited: boolean[][] = [];
-  for (let r = 0; r < numRows; r++) {
-    visited.push(new Array(numCols).fill(false));
+function defineModuleCandidates(): ModuleSizeCandidate[] {
+  const panelPitchX = PANEL_WIDTH_M + PANEL_GAP_M; // 2.482m
+  const panelPitchY = KB_ROW_SPACING_M;             // 1.557m center-to-center
+
+  const candidates: ModuleSizeCandidate[] = [];
+  // Test realistic commercial sizes: rows 2-5, cols 4-16
+  const rowOptions = [2, 3, 4, 5];
+  const colOptions = [4, 6, 8, 10, 12, 14, 16];
+
+  for (const rows of rowOptions) {
+    for (const cols of colOptions) {
+      const widthM = cols * panelPitchX - PANEL_GAP_M; // No trailing gap
+      const depthM = (rows - 1) * panelPitchY + PANEL_HEIGHT_M; // Last row uses panel height
+      candidates.push({
+        rows,
+        cols,
+        widthM,
+        depthM,
+        panelCount: rows * cols,
+        capacityKW: Math.round(rows * cols * PANEL_KW * 100) / 100,
+      });
+    }
   }
 
-  const components: { r: number; c: number }[][] = [];
-  const dirs = [[0, 1], [0, -1], [1, 0], [-1, 0]];
+  // Sort by panel count descending (try largest first)
+  candidates.sort((a, b) => b.panelCount - a.panelCount);
+  return candidates;
+}
 
-  for (let r = 0; r < numRows; r++) {
-    for (let c = 0; c < numCols; c++) {
-      if (occupancy[r][c] && !visited[r][c]) {
-        // BFS from this cell
-        const component: { r: number; c: number }[] = [];
-        const queue: { r: number; c: number }[] = [{ r, c }];
-        visited[r][c] = true;
+/**
+ * Check if a module-sized rectangle fits at a given position on a roof polygon.
+ * Validates all 4 corners of the module (not individual panels) against:
+ * - Roof polygon containment with perimeter setback
+ * - Obstacle/constraint clearance
+ *
+ * Returns true if the module fits cleanly.
+ */
+function modulePositionIsValid(
+  moduleOriginX: number,
+  moduleOriginY: number,
+  moduleWidthM: number,
+  moduleDepthM: number,
+  cosPos: number,
+  sinPos: number,
+  localCentroid: { lat: number; lng: number },
+  metersPerDegreeLat: number,
+  localMetersPerDegreeLng: number,
+  originalPolygon: google.maps.Polygon,
+  coords: [number, number][],
+  expandedConstraintPolygons: google.maps.Polygon[]
+): boolean {
+  // Module corners in rotated space (with setback margin included)
+  const corners = [
+    { x: moduleOriginX, y: moduleOriginY },
+    { x: moduleOriginX + moduleWidthM, y: moduleOriginY },
+    { x: moduleOriginX + moduleWidthM, y: moduleOriginY + moduleDepthM },
+    { x: moduleOriginX, y: moduleOriginY + moduleDepthM },
+  ];
 
-        while (queue.length > 0) {
-          const cell = queue.shift()!;
-          component.push(cell);
+  // Convert all 4 corners to geographic coordinates
+  for (const corner of corners) {
+    const unrotatedX = corner.x * cosPos - corner.y * sinPos;
+    const unrotatedY = corner.x * sinPos + corner.y * cosPos;
+    const lat = localCentroid.lat + unrotatedY / metersPerDegreeLat;
+    const lng = localCentroid.lng + unrotatedX / localMetersPerDegreeLng;
 
-          for (const [dr, dc] of dirs) {
-            const nr = cell.r + dr;
-            const nc = cell.c + dc;
-            if (nr >= 0 && nr < numRows && nc >= 0 && nc < numCols &&
-                occupancy[nr][nc] && !visited[nr][nc]) {
-              visited[nr][nc] = true;
-              queue.push({ r: nr, c: nc });
+    // Check containment: corner must be inside polygon
+    const latLng = new google.maps.LatLng(lat, lng);
+    if (!google.maps.geometry.poly.containsLocation(latLng, originalPolygon)) {
+      return false;
+    }
+
+    // Check setback: corner must be at least PERIMETER_SETBACK_M from polygon edge
+    const dist = pointToPolygonDistance(lat, lng, coords, localCentroid.lat);
+    if (dist < PERIMETER_SETBACK_M) {
+      return false;
+    }
+
+    // Check constraints: corner must be outside all expanded obstacle zones
+    for (const constraint of expandedConstraintPolygons) {
+      if (google.maps.geometry.poly.containsLocation(latLng, constraint)) {
+        return false;
+      }
+    }
+  }
+
+  // Also check module center against constraints (catches obstacles fully inside module)
+  const centerX = moduleOriginX + moduleWidthM / 2;
+  const centerY = moduleOriginY + moduleDepthM / 2;
+  const unrotCX = centerX * cosPos - centerY * sinPos;
+  const unrotCY = centerX * sinPos + centerY * cosPos;
+  const centerLat = localCentroid.lat + unrotCY / metersPerDegreeLat;
+  const centerLng = localCentroid.lng + unrotCX / localMetersPerDegreeLng;
+  const centerLatLng = new google.maps.LatLng(centerLat, centerLng);
+
+  for (const constraint of expandedConstraintPolygons) {
+    if (google.maps.geometry.poly.containsLocation(centerLatLng, constraint)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/**
+ * Place modules of a given size on a single polygon.
+ * Returns array of valid module placements with their individual panels.
+ */
+function placeModulesOnPolygon(
+  moduleSize: ModuleSizeCandidate,
+  polygonId: string,
+  coords: [number, number][],
+  originalPolygon: google.maps.Polygon,
+  expandedConstraintPolygons: google.maps.Polygon[],
+  localCentroid: { lat: number; lng: number },
+  metersPerDegreeLat: number,
+  localMetersPerDegreeLng: number,
+  cos: number,
+  sin: number,
+  cosPos: number,
+  sinPos: number,
+  minXRot: number,
+  maxXRot: number,
+  minYRot: number,
+  maxYRot: number,
+  shadowZones: google.maps.Polygon[],
+): ModulePlacement[] {
+  const panelPitchX = PANEL_WIDTH_M + PANEL_GAP_M;
+  const panelPitchY = KB_ROW_SPACING_M;
+
+  // Module pitch = module size + inter-module gap
+  const modulePitchX = moduleSize.widthM + MODULE_GAP_M;
+  const modulePitchY = moduleSize.depthM + MODULE_GAP_M;
+
+  // Grid origin for modules (snap to module pitch)
+  const gridOriginX = Math.ceil(minXRot / modulePitchX) * modulePitchX;
+  const gridOriginY = Math.ceil(minYRot / modulePitchY) * modulePitchY;
+
+  const modules: ModulePlacement[] = [];
+  let moduleId = 1;
+
+  // Iterate module-sized slots across the polygon
+  for (let mx = gridOriginX; mx + moduleSize.widthM <= maxXRot; mx += modulePitchX) {
+    for (let my = gridOriginY; my + moduleSize.depthM <= maxYRot; my += modulePitchY) {
+      // Validate the entire module footprint
+      if (!modulePositionIsValid(
+        mx, my, moduleSize.widthM, moduleSize.depthM,
+        cosPos, sinPos,
+        localCentroid, metersPerDegreeLat, localMetersPerDegreeLng,
+        originalPolygon, coords, expandedConstraintPolygons
+      )) {
+        continue;
+      }
+
+      // Module is valid — generate individual panels inside it
+      const panels: PanelPosition[] = [];
+      for (let col = 0; col < moduleSize.cols; col++) {
+        for (let row = 0; row < moduleSize.rows; row++) {
+          const gridX = mx + col * panelPitchX;
+          const gridY = my + row * panelPitchY;
+
+          // Panel corners in rotated space
+          const panelCornersRotated = [
+            { x: gridX, y: gridY },
+            { x: gridX + PANEL_WIDTH_M, y: gridY },
+            { x: gridX + PANEL_WIDTH_M, y: gridY + PANEL_HEIGHT_M },
+            { x: gridX, y: gridY + PANEL_HEIGHT_M },
+          ];
+
+          // Convert to geographic coordinates
+          const panelCornersGeo = panelCornersRotated.map(corner => {
+            const unrotatedX = corner.x * cosPos - corner.y * sinPos;
+            const unrotatedY = corner.x * sinPos + corner.y * cosPos;
+            return {
+              lat: localCentroid.lat + unrotatedY / metersPerDegreeLat,
+              lng: localCentroid.lng + unrotatedX / localMetersPerDegreeLng,
+            };
+          });
+
+          const panelCenterLat = (panelCornersGeo[0].lat + panelCornersGeo[2].lat) / 2;
+          const panelCenterLng = (panelCornersGeo[0].lng + panelCornersGeo[2].lng) / 2;
+
+          // Shadow check for priority scoring
+          let shadowPenalty = 0;
+          const panelCenter = new google.maps.LatLng(panelCenterLat, panelCenterLng);
+          for (const shadowPoly of shadowZones) {
+            if (google.maps.geometry.poly.containsLocation(panelCenter, shadowPoly)) {
+              shadowPenalty = 1.0;
+              break;
             }
           }
-        }
 
-        components.push(component);
+          const distToEdge = pointToPolygonDistance(panelCenterLat, panelCenterLng, coords, localCentroid.lat);
+          const approxMaxEdgeDist = Math.min(maxXRot - minXRot, maxYRot - minYRot) / 2;
+          const edgeScore = approxMaxEdgeDist > 0 ? Math.min(1, distToEdge / approxMaxEdgeDist) : 0.5;
+
+          const qualityScore = Math.round(
+            (1 - shadowPenalty * 0.7) * 5000 +
+            edgeScore * 3000 +
+            2000
+          );
+
+          panels.push({
+            lat: panelCornersGeo[0].lat,
+            lng: panelCornersGeo[0].lng,
+            widthDeg: (panelCornersGeo[1].lng - panelCornersGeo[0].lng),
+            heightDeg: (panelCornersGeo[3].lat - panelCornersGeo[0].lat),
+            polygonId,
+            corners: panelCornersGeo,
+            rowIndex: row,
+            colIndex: col,
+            priority: qualityScore,
+            arrayId: moduleId,
+            gridX: gridX + PANEL_WIDTH_M / 2,
+            gridY: gridY + PANEL_HEIGHT_M / 2,
+          });
+        }
       }
+
+      // Module priority: distance from polygon centroid center (interior modules first)
+      const moduleCenterX = mx + moduleSize.widthM / 2;
+      const moduleCenterY = my + moduleSize.depthM / 2;
+      const roofCenterX = (minXRot + maxXRot) / 2;
+      const roofCenterY = (minYRot + maxYRot) / 2;
+      const distFromCenter = Math.sqrt(
+        (moduleCenterX - roofCenterX) ** 2 + (moduleCenterY - roofCenterY) ** 2
+      );
+      const maxDist = Math.sqrt(
+        ((maxXRot - minXRot) / 2) ** 2 + ((maxYRot - minYRot) / 2) ** 2
+      ) || 1;
+      // Interior modules get higher priority (20000 base, minus distance penalty)
+      const modulePriority = Math.round(20000 * (1 - distFromCenter / maxDist));
+
+      // Set all panels in this module to the same priority (module-level)
+      for (const p of panels) {
+        p.priority = modulePriority;
+      }
+
+      modules.push({
+        moduleId: moduleId++,
+        rows: moduleSize.rows,
+        cols: moduleSize.cols,
+        polygonId,
+        originX: mx,
+        originY: my,
+        panels,
+        capacityKW: Math.round(panels.length * PANEL_KW * 100) / 100,
+        priority: modulePriority,
+      });
     }
   }
 
-  return components;
+  return modules;
 }
 
 /**
- * Find the single largest rectangle inscribed in an occupancy grid.
- * Uses the classic histogram + stack algorithm but returns only THE biggest one.
+ * Auto-optimize module size: test multiple sizes and pick the one that
+ * maximizes total panel count across all polygons.
  */
-function findLargestInscribedRectangle(
-  occupancy: boolean[][],
-  numRows: number,
-  numCols: number
-): { startRow: number; startCol: number; endRow: number; endCol: number; area: number } | null {
-  // Build height histogram
-  const heights: number[][] = [];
-  for (let r = 0; r < numRows; r++) {
-    heights.push(new Array(numCols).fill(0));
-    for (let c = 0; c < numCols; c++) {
-      if (occupancy[r][c]) {
-        heights[r][c] = r > 0 ? heights[r - 1][c] + 1 : 1;
-      }
+function autoOptimizeModuleSize(
+  polygonData: {
+    polygonId: string;
+    coords: [number, number][];
+    originalPolygon: google.maps.Polygon;
+    localCentroid: { lat: number; lng: number };
+    localMetersPerDegreeLng: number;
+    minXRot: number; maxXRot: number;
+    minYRot: number; maxYRot: number;
+  }[],
+  expandedConstraintPolygons: google.maps.Polygon[],
+  metersPerDegreeLat: number,
+  cos: number, sin: number, cosPos: number, sinPos: number,
+  shadowZones: google.maps.Polygon[],
+): { bestSize: ModuleSizeCandidate; bestModules: ModulePlacement[]; allResults: { size: ModuleSizeCandidate; totalPanels: number; moduleCount: number }[] } {
+  const candidates = defineModuleCandidates();
+
+  let bestTotalPanels = 0;
+  let bestSize = candidates[0];
+  let bestModules: ModulePlacement[] = [];
+  const allResults: { size: ModuleSizeCandidate; totalPanels: number; moduleCount: number }[] = [];
+
+  for (const size of candidates) {
+    let totalPanels = 0;
+    let totalModules = 0;
+    const modules: ModulePlacement[] = [];
+
+    for (const poly of polygonData) {
+      const polyModules = placeModulesOnPolygon(
+        size, poly.polygonId, poly.coords, poly.originalPolygon,
+        expandedConstraintPolygons, poly.localCentroid,
+        metersPerDegreeLat, poly.localMetersPerDegreeLng,
+        cos, sin, cosPos, sinPos,
+        poly.minXRot, poly.maxXRot, poly.minYRot, poly.maxYRot,
+        shadowZones
+      );
+      totalPanels += polyModules.reduce((sum, m) => sum + m.panels.length, 0);
+      totalModules += polyModules.length;
+      modules.push(...polyModules);
+    }
+
+    allResults.push({ size, totalPanels, moduleCount: totalModules });
+
+    if (totalPanels > bestTotalPanels) {
+      bestTotalPanels = totalPanels;
+      bestSize = size;
+      bestModules = modules;
     }
   }
 
-  let best: { startRow: number; startCol: number; endRow: number; endCol: number; area: number } | null = null;
-
-  for (let r = 0; r < numRows; r++) {
-    const h = heights[r];
-    const stack: { col: number; height: number }[] = [];
-
-    for (let c = 0; c <= numCols; c++) {
-      const curHeight = c < numCols ? h[c] : 0;
-      let startCol = c;
-
-      while (stack.length > 0 && stack[stack.length - 1].height > curHeight) {
-        const top = stack.pop()!;
-        startCol = top.col;
-        const width = c - top.col;
-        const height = top.height;
-        const area = width * height;
-
-        if (width >= MIN_RECT_COLS && height >= MIN_RECT_ROWS && area >= MIN_RECT_PANELS) {
-          if (!best || area > best.area) {
-            best = {
-              startRow: r - height + 1,
-              startCol: top.col,
-              endRow: r,
-              endCol: c - 1,
-              area,
-            };
-          }
-        }
-      }
-
-      stack.push({ col: startCol, height: curHeight });
-    }
-  }
-
-  return best;
-}
-
-/**
- * Iteratively extract inscribed rectangles from a connected component.
- * 1. Find largest inscribed rectangle
- * 2. Mark those cells as consumed
- * 3. Repeat on the residual until no valid rectangle remains
- *
- * Returns all extracted rectangles for this component.
- */
-function extractRectanglesFromComponent(
-  componentCells: { r: number; c: number }[],
-  globalOccupancy: boolean[][],
-  numRows: number,
-  numCols: number,
-  maxIterations: number = 8
-): { startRow: number; startCol: number; endRow: number; endCol: number; area: number }[] {
-  // Work on a local copy so we can mark consumed cells
-  const localOcc: boolean[][] = [];
-  for (let r = 0; r < numRows; r++) {
-    localOcc.push(new Array(numCols).fill(false));
-  }
-  for (const cell of componentCells) {
-    localOcc[cell.r][cell.c] = true;
-  }
-
-  const rectangles: { startRow: number; startCol: number; endRow: number; endCol: number; area: number }[] = [];
-
-  for (let iter = 0; iter < maxIterations; iter++) {
-    const rect = findLargestInscribedRectangle(localOcc, numRows, numCols);
-    if (!rect) break;
-
-    rectangles.push(rect);
-
-    // Consume these cells so next iteration finds the next-largest rectangle
-    for (let r = rect.startRow; r <= rect.endRow; r++) {
-      for (let c = rect.startCol; c <= rect.endCol; c++) {
-        localOcc[r][c] = false;
-      }
-    }
-  }
-
-  return rectangles;
-}
-
-/**
- * Master function: Connected Components → Inscribed Rectangles filter.
- *
- * Algorithm:
- * 1. Build sparse occupancy grid per polygon (preserves physical gaps)
- * 2. Find connected components via BFS (isolates panel islands)
- * 3. For each component: iteratively extract largest inscribed rectangles
- * 4. Keep only panels inside extracted rectangles
- * 5. Apply priority scoring: larger blocks + interior panels get higher priority
- *
- * This eliminates staircases because each kept block is a perfect rectangle.
- */
-function applyProfessionalLayoutFilters(panels: PanelPosition[]): PanelPosition[] {
-  if (panels.length === 0) return panels;
-
-  const before = panels.length;
-
-  // Group by polygonId (each polygon has its own grid space)
-  const byPolygon = new Map<string, PanelPosition[]>();
-  for (const p of panels) {
-    const pid = p.polygonId;
-    if (!byPolygon.has(pid)) byPolygon.set(pid, []);
-    byPolygon.get(pid)!.push(p);
-  }
-
-  const kept: PanelPosition[] = [];
-  let totalRectangles = 0;
-
-  byPolygon.forEach((polyPanels, polygonId) => {
-    // Build SPARSE grid using original row/col indices
-    let minRow = Infinity, maxRow = -Infinity, minCol = Infinity, maxCol = -Infinity;
-    for (const p of polyPanels) {
-      const r = p.rowIndex ?? 0;
-      const c = p.colIndex ?? 0;
-      minRow = Math.min(minRow, r);
-      maxRow = Math.max(maxRow, r);
-      minCol = Math.min(minCol, c);
-      maxCol = Math.max(maxCol, c);
-    }
-
-    const numRows = maxRow - minRow + 1;
-    const numCols = maxCol - minCol + 1;
-
-    if (numRows * numCols > 500000) {
-      console.warn(`[LayoutFilter] Polygon ${polygonId.slice(0, 8)}: grid too large (${numRows}×${numCols}), skipping`);
-      for (const p of polyPanels) kept.push(p);
-      return;
-    }
-
-    // Build occupancy grid (offset to 0-based)
-    const occupancy: boolean[][] = [];
-    for (let r = 0; r < numRows; r++) {
-      occupancy.push(new Array(numCols).fill(false));
-    }
-
-    for (const p of polyPanels) {
-      const r = (p.rowIndex ?? 0) - minRow;
-      const c = (p.colIndex ?? 0) - minCol;
-      occupancy[r][c] = true;
-    }
-
-    // Step 1: Find connected components
-    const components = findConnectedComponents(occupancy, numRows, numCols);
-
-    // Step 2: For each component, iteratively extract inscribed rectangles
-    const allRects: { startRow: number; startCol: number; endRow: number; endCol: number; area: number }[] = [];
-
-    for (const comp of components) {
-      // Skip tiny islands — not worth analyzing
-      if (comp.length < MIN_COMPONENT_CELLS) continue;
-
-      const rects = extractRectanglesFromComponent(comp, occupancy, numRows, numCols);
-      for (const rect of rects) {
-        allRects.push(rect);
-      }
-    }
-
-    totalRectangles += allRects.length;
-
-    // Step 3: Build set of kept cells + rectangle ownership
-    const inRect = new Set<string>();
-    const cellToRect = new Map<string, number>();
-    for (let si = 0; si < allRects.length; si++) {
-      const rect = allRects[si];
-      for (let r = rect.startRow; r <= rect.endRow; r++) {
-        for (let c = rect.startCol; c <= rect.endCol; c++) {
-          if (occupancy[r][c]) {
-            const key = `${r}:${c}`;
-            inRect.add(key);
-            cellToRect.set(key, si);
-          }
-        }
-      }
-    }
-
-    // Step 4: Keep only panels inside rectangles + priority scoring
-    for (const p of polyPanels) {
-      const r = (p.rowIndex ?? 0) - minRow;
-      const c = (p.colIndex ?? 0) - minCol;
-      const key = `${r}:${c}`;
-
-      if (inRect.has(key)) {
-        const rectIdx = cellToRect.get(key);
-        if (rectIdx !== undefined) {
-          const rect = allRects[rectIdx];
-
-          // Distance from rectangle edge
-          const distFromLeft = c - rect.startCol;
-          const distFromRight = rect.endCol - c;
-          const distFromTop = r - rect.startRow;
-          const distFromBottom = rect.endRow - r;
-          const minEdgeDist = Math.min(distFromLeft, distFromRight, distFromTop, distFromBottom);
-
-          // DOMINANT rectangle bonus — must outweigh base priority (0-10500)
-          // so that the slider fills/empties whole rectangles as units.
-          // Rectangle size bonus (0-15000): larger blocks filled first
-          const sizeBonus = Math.min(rect.area / 100, 1) * 15000;
-          // Interior bonus (0-5000): edge panels drop first when slider reduces
-          const interiorBonus = Math.min(minEdgeDist / 3, 1) * 5000;
-
-          p.priority = (p.priority || 0) + Math.round(sizeBonus + interiorBonus);
-        }
-
-        kept.push(p);
-      }
-    }
-
-    const compSummary = components.map(c => c.length).sort((a, b) => b - a).slice(0, 5).join(', ');
-    console.log(`[LayoutFilter] Polygon ${polygonId.slice(0, 8)}: ${components.length} components (top sizes: ${compSummary}), ${allRects.length} rectangles, ${polyPanels.length} → ${inRect.size} panels`);
-  });
-
-  const removed = before - kept.length;
-  if (removed > 0) {
-    console.log(`[LayoutFilter] TOTAL: ${before} → ${kept.length} panels in ${totalRectangles} rectangles (removed ${removed}, ${(removed / before * 100).toFixed(1)}%)`);
-  }
-
-  return kept;
+  return { bestSize, bestModules, allResults };
 }
 
 // Calculate yield adjustment based on panel orientation deviation from true south
@@ -1010,73 +1053,74 @@ export function RoofVisualization({
     : Math.round((netUsableArea > 0 ? netUsableArea : (roofAreaSqFt ? roofAreaSqFt * 0.0929 : 1000)) * 0.85 * 0.187);
   const minCapacity = Math.round(maxCapacity * 0.1);
 
+  // Panels are grouped by module (arrayId). Detect module size from the data.
+  const modulePanelCount = useMemo(() => {
+    if (allPanelPositions.length === 0) return 1;
+    // Count panels in the first module (all modules have the same size)
+    const firstModuleId = allPanelPositions[0]?.arrayId;
+    if (firstModuleId === undefined) return 1;
+    let count = 0;
+    for (const p of allPanelPositions) {
+      if (p.arrayId === firstModuleId) count++;
+      else break; // Panels are ordered by module, so first non-match = done
+    }
+    return Math.max(1, count);
+  }, [allPanelPositions]);
+
+  const totalModuleCount = useMemo(() => {
+    return Math.max(1, Math.round(allPanelPositions.length / modulePanelCount));
+  }, [allPanelPositions.length, modulePanelCount]);
+
+  const moduleCapacityKW = Math.round(modulePanelCount * PANEL_KW * 100) / 100;
+
+  // Slider snaps to whole modules
   const panelsToShow = useMemo(() => {
     const targetPanels = Math.round(selectedCapacityKW / PANEL_KW);
-    return Math.min(targetPanels, allPanelPositions.length);
-  }, [selectedCapacityKW, allPanelPositions.length]);
+    // Snap to nearest whole module
+    const targetModules = Math.max(1, Math.round(targetPanels / modulePanelCount));
+    const cappedModules = Math.min(targetModules, totalModuleCount);
+    return cappedModules * modulePanelCount;
+  }, [selectedCapacityKW, allPanelPositions.length, modulePanelCount, totalModuleCount]);
 
+  // visiblePanelArrays: each module = 1 array (simple, no heuristic grouping needed)
   const visiblePanelArrays = useMemo(() => {
     const visiblePanels = allPanelPositions.slice(0, panelsToShow);
-    const rowNeighborCounts = new Map<string, number>();
+
+    // Group by arrayId (= moduleId)
+    const byModule = new Map<number, { panels: PanelPosition[]; polygonId: string }>();
     for (const p of visiblePanels) {
-      const key = `${p.polygonId}:${p.rowIndex}`;
-      rowNeighborCounts.set(key, (rowNeighborCounts.get(key) || 0) + 1);
-    }
-    const MIN_ROW_NEIGHBORS = 3;
-    const filteredPanels = visiblePanels.filter(p => {
-      const key = `${p.polygonId}:${p.rowIndex}`;
-      return (rowNeighborCounts.get(key) || 0) >= MIN_ROW_NEIGHBORS;
-    });
-    const MIN_ARRAY_PANELS = 6;
-    const arrayStats = new Map<string, { panels: PanelPosition[]; polygonId: string; localArrayId: number }>();
-    for (const panel of filteredPanels) {
-      if (panel.arrayId !== undefined) {
-        const compositeKey = `${panel.polygonId}:${panel.arrayId}`;
-        if (!arrayStats.has(compositeKey)) {
-          arrayStats.set(compositeKey, { panels: [], polygonId: panel.polygonId, localArrayId: panel.arrayId });
-        }
-        arrayStats.get(compositeKey)!.panels.push(panel);
+      const mid = p.arrayId ?? 0;
+      if (!byModule.has(mid)) {
+        byModule.set(mid, { panels: [], polygonId: p.polygonId });
       }
+      byModule.get(mid)!.panels.push(p);
     }
-    const sortedKeys = Array.from(arrayStats.keys()).sort((a, b) => {
-      const [polyA, idA] = a.split(':');
-      const [polyB, idB] = b.split(':');
-      if (polyA !== polyB) return polyA.localeCompare(polyB);
-      return parseInt(idA) - parseInt(idB);
-    });
+
     const arrays: ArrayInfo[] = [];
+    // Sort by module ID
+    const sortedModuleIds = Array.from(byModule.keys()).sort((a, b) => a - b);
+
     let arrayNumber = 1;
-    for (const key of sortedKeys) {
-      const { panels, polygonId } = arrayStats.get(key)!;
-      if (panels.length < MIN_ARRAY_PANELS) continue;
-      const rowIndices = panels.map(p => p.rowIndex).filter(r => r !== undefined) as number[];
-      const colIndices = panels.map(p => p.colIndex).filter(c => c !== undefined) as number[];
-      let rows = 1;
-      let columns = panels.length;
-      if (rowIndices.length > 0 && colIndices.length > 0) {
-        const minRow = Math.min(...rowIndices);
-        const maxRow = Math.max(...rowIndices);
-        const minCol = Math.min(...colIndices);
-        const maxCol = Math.max(...colIndices);
-        rows = maxRow - minRow + 1;
-        columns = maxCol - minCol + 1;
-        const gridSize = rows * columns;
-        const fillRate = panels.length / gridSize;
-        if (fillRate < 0.3) {
-          const sqrtPanels = Math.sqrt(panels.length);
-          rows = Math.ceil(sqrtPanels);
-          columns = Math.ceil(panels.length / rows);
-        }
-      }
+    for (const mid of sortedModuleIds) {
+      const { panels, polygonId } = byModule.get(mid)!;
+      if (panels.length === 0) continue;
+
+      // Get rows/cols from module structure
+      const rowIndices = panels.map(p => p.rowIndex ?? 0);
+      const colIndices = panels.map(p => p.colIndex ?? 0);
+      const rows = Math.max(...rowIndices) - Math.min(...rowIndices) + 1;
+      const columns = Math.max(...colIndices) - Math.min(...colIndices) + 1;
+
       arrays.push({
         id: arrayNumber++,
         panelCount: panels.length,
         rows,
         columns,
         capacityKW: Math.round(panels.length * PANEL_KW * 10) / 10,
-        polygonId
+        polygonId,
       });
     }
+
     return arrays;
   }, [allPanelPositions, panelsToShow]);
 
@@ -1193,12 +1237,7 @@ export function RoofVisualization({
     console.log(`[RoofVisualization] Expanded ${expandedConstraintPolygons.length} constraint polygons for 1.2m clearance`);
     
     const metersPerDegreeLat = 111320;
-    
-    const panelPitchX = PANEL_WIDTH_M + PANEL_GAP_M;
-    // KB_ROW_SPACING_M (1.557m) is already the center-to-center row pitch
-    // Do NOT add PANEL_HEIGHT_M - that was doubling the row spacing!
-    const panelPitchY = ROW_SPACING_M; // 1.557m center-to-center (KB validated)
-    
+
     const cos = Math.cos(-unifiedAxisAngle);
     const sin = Math.sin(-unifiedAxisAngle);
     const cosPos = Math.cos(unifiedAxisAngle);
@@ -1220,25 +1259,25 @@ export function RoofVisualization({
       console.log(`[RoofVisualization] Polygon ${ps.polygonId.slice(0,8)} score: ${ps.score.toFixed(1)} (area=${ps.areaScore.toFixed(0)}, exposure=${ps.exposureScore.toFixed(0)}, central=${ps.centralityScore.toFixed(0)}, south=${ps.southScore.toFixed(0)})`);
     }
     
-    // Step 2: Process each polygon separately with its own bbox but unified axis
-    const allPanels: PanelPosition[] = [];
-    let totalAccepted = 0;
-    let totalRejectedByRoof = 0;
-    let totalRejectedByConstraint = 0;
-    
+    // Step 2: Prepare polygon data for modular placement
+    const polygonData: {
+      polygonId: string;
+      coords: [number, number][];
+      originalPolygon: google.maps.Polygon;
+      localCentroid: { lat: number; lng: number };
+      localMetersPerDegreeLng: number;
+      minXRot: number; maxXRot: number;
+      minYRot: number; maxYRot: number;
+    }[] = [];
+
     for (const { polygon, id, coords } of solarPolygonData) {
-      // Each polygon uses its OWN centroid as coordinate origin — independent field segments
-      // This ensures each roof section has its own racking grid, like real EPC designs
       const localCentroid = computeCentroid(coords);
       const localMetersPerDegreeLng = 111320 * Math.cos(localCentroid.lat * Math.PI / 180);
-      
-      console.log(`[RoofVisualization] Polygon ${id.slice(0,8)}: using 4-corner distance validation (${PERIMETER_SETBACK_M}m setback from panel edge)`);
-      
-      // The original polygon for containment check
+
       const originalPath = coords.map(([lng, lat]) => ({ lat, lng }));
       const originalPolygon = new google.maps.Polygon({ paths: originalPath });
-      
-      // Compute THIS polygon's bounding box using its LOCAL centroid as origin
+
+      // Compute rotated bounding box
       let minXRot = Infinity, maxXRot = -Infinity, minYRot = Infinity, maxYRot = -Infinity;
       for (const [lng, lat] of coords) {
         const x = (lng - localCentroid.lng) * localMetersPerDegreeLng;
@@ -1250,431 +1289,75 @@ export function RoofVisualization({
         minYRot = Math.min(minYRot, ry);
         maxYRot = Math.max(maxYRot, ry);
       }
-      
-      // Add proportional margin for this polygon only
+
       const rawWidth = maxXRot - minXRot;
       const rawHeight = maxYRot - minYRot;
-      const maxDimension = Math.max(rawWidth, rawHeight);
-      const MARGIN_M = Math.max(50, maxDimension * 0.3);
-      
-      minXRot -= MARGIN_M;
-      maxXRot += MARGIN_M;
-      minYRot -= MARGIN_M;
-      maxYRot += MARGIN_M;
-      
-      // Each polygon gets its OWN grid origin — no global snapping
-      // This is how real EPC works: each roof section has independent racking
-      const gridOriginX = Math.floor(minXRot / panelPitchX) * panelPitchX;
-      const gridOriginY = Math.floor(minYRot / panelPitchY) * panelPitchY;
-      
-      // Generate grid positions for this polygon
-      const xPositions: number[] = [];
-      const yPositions: number[] = [];
-      
-      for (let x = gridOriginX; x + PANEL_WIDTH_M <= maxXRot; x += panelPitchX) {
-        if (x >= minXRot - panelPitchX) xPositions.push(x);
-      }
-      for (let y = gridOriginY; y + PANEL_HEIGHT_M <= maxYRot; y += panelPitchY) {
-        if (y >= minYRot - panelPitchY) yPositions.push(y);
-      }
-      
-      console.log(`[RoofVisualization] Polygon ${id.slice(0,8)}: bbox=${Math.round(rawWidth)}×${Math.round(rawHeight)}m, grid=${xPositions.length}×${yPositions.length}`);
-      
-      let accepted = 0;
-      let rejectedByRoof = 0;
-      let rejectedByConstraint = 0;
-      
-      // Iterate this polygon's grid
-      for (let colIdx = 0; colIdx < xPositions.length; colIdx++) {
-        for (let rowIdx = 0; rowIdx < yPositions.length; rowIdx++) {
-          const gridX = xPositions[colIdx];
-          const gridY = yPositions[rowIdx];
-          
-          // Panel corners in rotated space
-          const panelCornersRotated = [
-            { x: gridX, y: gridY },
-            { x: gridX + PANEL_WIDTH_M, y: gridY },
-            { x: gridX + PANEL_WIDTH_M, y: gridY + PANEL_HEIGHT_M },
-            { x: gridX, y: gridY + PANEL_HEIGHT_M }
-          ];
-          
-          // Convert back to geographic coordinates using LOCAL centroid
-          const panelCornersGeo = panelCornersRotated.map(corner => {
-            const unrotatedX = corner.x * cosPos - corner.y * sinPos;
-            const unrotatedY = corner.x * sinPos + corner.y * cosPos;
-            return {
-              lat: localCentroid.lat + unrotatedY / metersPerDegreeLat,
-              lng: localCentroid.lng + unrotatedX / localMetersPerDegreeLng
-            };
-          });
-          
-          // Panel center for validation
-          const panelCenterLat = (panelCornersGeo[0].lat + panelCornersGeo[2].lat) / 2;
-          const panelCenterLng = (panelCornersGeo[0].lng + panelCornersGeo[2].lng) / 2;
-          const panelCenter = new google.maps.LatLng(panelCenterLat, panelCenterLng);
-          
-          // Industry-standard inset polygon validation (Aurora Solar / HelioScope / PVsyst approach):
-          // All 4 physical corners of the panel must be inside the roof polygon AND
-          // at least PERIMETER_SETBACK_M from the roof boundary. This guarantees the
-          // physical EDGE of every panel respects the wind/fire setback — not just
-          // the panel center.
-          
-          // Step 1: Check if panel center is inside the ORIGINAL polygon (fast pre-filter)
-          if (!google.maps.geometry.poly.containsLocation(panelCenter, originalPolygon)) {
-            rejectedByRoof++;
-            continue;
-          }
-          
-          // Step 2: Check ALL 4 CORNERS are at least PERIMETER_SETBACK_M from polygon boundary
-          // This ensures the physical panel edge (not center) respects the setback
-          let cornerTooClose = false;
-          for (const corner of panelCornersGeo) {
-            const cornerDist = pointToPolygonDistance(corner.lat, corner.lng, coords, localCentroid.lat);
-            if (cornerDist < PERIMETER_SETBACK_M) {
-              cornerTooClose = true;
-              break;
-            }
-          }
-          if (cornerTooClose) {
-            rejectedByRoof++;
-            continue;
-          }
-          
-          // Check constraints (using expanded polygons for obstacle clearance)
-          // Same 4-corner validation: all panel corners must be outside expanded obstacle zones
-          let inConstraint = false;
-          for (const constraint of expandedConstraintPolygons) {
-            for (const corner of panelCornersGeo) {
-              const cornerLatLng = new google.maps.LatLng(corner.lat, corner.lng);
-              if (google.maps.geometry.poly.containsLocation(cornerLatLng, constraint)) {
-                inConstraint = true;
-                break;
-              }
-            }
-            if (inConstraint) break;
-          }
-          
-          if (inConstraint) {
-            rejectedByConstraint++;
-            continue;
-          }
-          
-          // Maintenance corridor check (IFC fire code for large roofs)
-          // Create corridors every 40m for firefighter access and maintenance
-          if (rawWidth > MAINTENANCE_CORRIDOR_SPACING_M || rawHeight > MAINTENANCE_CORRIDOR_SPACING_M) {
-            // Check if panel falls in a maintenance corridor
-            const panelCenterX = gridX + PANEL_WIDTH_M / 2;
-            const panelCenterY = gridY + PANEL_HEIGHT_M / 2;
-            
-            // Corridors run perpendicular to row direction, spaced every 40m
-            // Calculate distance from corridor center lines
-            const corridorSpacingWithGap = MAINTENANCE_CORRIDOR_SPACING_M + MAINTENANCE_CORRIDOR_WIDTH_M;
-            
-            // X-axis corridors (if width > 40m)
-            if (rawWidth > MAINTENANCE_CORRIDOR_SPACING_M) {
-              const distFromCorridorX = Math.abs(((panelCenterX - minXRot + MARGIN_M) % corridorSpacingWithGap) - corridorSpacingWithGap / 2);
-              if (distFromCorridorX < MAINTENANCE_CORRIDOR_WIDTH_M / 2 && 
-                  panelCenterX > minXRot + MARGIN_M + 20 && 
-                  panelCenterX < maxXRot - MARGIN_M - 20) {
-                rejectedByConstraint++;
-                continue;
-              }
-            }
-            
-            // Y-axis corridors (if height > 40m)
-            if (rawHeight > MAINTENANCE_CORRIDOR_SPACING_M) {
-              const distFromCorridorY = Math.abs(((panelCenterY - minYRot + MARGIN_M) % corridorSpacingWithGap) - corridorSpacingWithGap / 2);
-              if (distFromCorridorY < MAINTENANCE_CORRIDOR_WIDTH_M / 2 &&
-                  panelCenterY > minYRot + MARGIN_M + 20 &&
-                  panelCenterY < maxYRot - MARGIN_M - 20) {
-                rejectedByConstraint++;
-                continue;
-              }
-            }
-          }
-          
-          // Priority: obstacle shadow avoidance + edge distance + mild south tiebreaker
-          // At roof scale (tens of meters), south vs north irradiance difference is negligible.
-          // What matters is: avoid obstacle shadows, prefer interior positions (wind safety),
-          // and use south as a tiebreaker for same-quality positions.
-          const globalRowIdx = Math.round(gridY / panelPitchY);
-          const globalColIdx = Math.round(gridX / panelPitchX);
-          
-          const distToEdge = pointToPolygonDistance(panelCenterLat, panelCenterLng, coords, localCentroid.lat);
-          const approxMaxEdgeDist = Math.min(rawWidth, rawHeight) / 2;
-          const edgeScore = approxMaxEdgeDist > 0 ? Math.min(1, distToEdge / approxMaxEdgeDist) : 0.5;
+      console.log(`[RoofVisualization] Polygon ${id.slice(0,8)}: bbox=${Math.round(rawWidth)}×${Math.round(rawHeight)}m`);
 
-          let shadowPenalty = 0;
-          for (const shadowPoly of shadowZones) {
-            if (google.maps.geometry.poly.containsLocation(panelCenter, shadowPoly)) {
-              shadowPenalty = 1.0;
-              break;
-            }
-          }
-
-          const WIND_SETBACK_M = 2.5;
-          const windSetbackPenalty = distToEdge < WIND_SETBACK_M ? 0.4 * (1 - distToEdge / WIND_SETBACK_M) : 0;
-
-          // Main score: shadow-free + away from edges (0-10000 range, dominates)
-          const qualityScore = Math.round((1 - shadowPenalty * 0.7) * 5000 + edgeScore * 3000 + (1 - windSetbackPenalty) * 2000);
-          
-          // Tiebreaker: mild south preference within polygon (0-499 range)
-          // Uses row index relative to polygon grid — no division by near-zero values
-          // Only matters when two panels have similar quality scores
-          const rowRange = yPositions.length || 1;
-          const rowFraction = rowIdx / rowRange;
-          const southTiebreaker = Math.round((1 - rowFraction) * 499);
-          
-          const priority = qualityScore + southTiebreaker;
-          
-          // Calculate array ID based on fire corridor positions
-          // Arrays are numbered 1, 2, 3... like KB Racking
-          const panelCenterX = gridX + PANEL_WIDTH_M / 2;
-          const panelCenterY = gridY + PANEL_HEIGHT_M / 2;
-          const corridorSpacingWithGap = MAINTENANCE_CORRIDOR_SPACING_M + MAINTENANCE_CORRIDOR_WIDTH_M;
-          
-          // Calculate which array section this panel belongs to (row-major ordering)
-          const arrayColSection = Math.floor((panelCenterX - minXRot + MARGIN_M) / corridorSpacingWithGap);
-          const arrayRowSection = Math.floor((panelCenterY - minYRot + MARGIN_M) / corridorSpacingWithGap);
-          const numArrayCols = Math.ceil(rawWidth / corridorSpacingWithGap) || 1;
-          const arrayId = arrayRowSection * numArrayCols + arrayColSection + 1; // 1-based numbering
-          
-          allPanels.push({
-            lat: panelCornersGeo[0].lat,
-            lng: panelCornersGeo[0].lng,
-            widthDeg: metersToDegreesLng(PANEL_WIDTH_M, localCentroid.lat),
-            heightDeg: metersToDegreesLat(PANEL_HEIGHT_M),
-            polygonId: id,
-            corners: panelCornersGeo,
-            rowIndex: globalRowIdx,
-            colIndex: globalColIdx,
-            priority,
-            arrayId,
-            gridX: panelCenterX,
-            gridY: panelCenterY
-          });
-          
-          accepted++;
-        }
-      }
-      
-      totalAccepted += accepted;
-      totalRejectedByRoof += rejectedByRoof;
-      totalRejectedByConstraint += rejectedByConstraint;
-      
-      console.log(`[RoofVisualization] Polygon ${id.slice(0,8)}: ${accepted} panels accepted, ${rejectedByRoof} outside, ${rejectedByConstraint} constraints`);
-      
-      // Warn if polygon generated 0 panels
-      if (accepted === 0) {
-        console.warn(`[RoofVisualization] WARNING: Polygon ${id.slice(0,8)} generated 0 panels! Grid positions checked: ${xPositions.length * yPositions.length}, rejected by roof: ${rejectedByRoof}, rejected by constraints: ${rejectedByConstraint}`);
-      }
-    }
-    
-    console.log(`[RoofVisualization] UNIFIED TOTAL: ${totalAccepted} panels, ${totalRejectedByRoof} outside roof, ${totalRejectedByConstraint} in constraints`);
-    
-    const rowCounts = new Map<string, number>();
-    for (const panel of allPanels) {
-      const key = `${panel.polygonId}:${panel.rowIndex}`;
-      rowCounts.set(key, (rowCounts.get(key) || 0) + 1);
-    }
-    const maxRowCount = Math.max(...Array.from(rowCounts.values()), 1);
-    for (const panel of allPanels) {
-      const key = `${panel.polygonId}:${panel.rowIndex}`;
-      const count = rowCounts.get(key) || 0;
-      const rowDensityBonus = (count / maxRowCount) * 200;
-      panel.priority = (panel.priority || 0) + Math.round(rowDensityBonus);
+      polygonData.push({
+        polygonId: id,
+        coords,
+        originalPolygon,
+        localCentroid,
+        localMetersPerDegreeLng,
+        minXRot, maxXRot, minYRot, maxYRot,
+      });
     }
 
-    // ═══ Professional layout filtering: eliminate impractical placements ═══
-    // Layer 3: Rectangle quality scoring (boost panels in large rectangular blocks)
-    // Layer 1: Remove short runs (< 4 consecutive panels in a row)
-    // Layer 2: Remove orphan islands (< 8 connected panels)
-    const filteredPanels = applyProfessionalLayoutFilters(allPanels);
+    // Step 3: Auto-optimize module size across all polygons
+    const { bestSize, bestModules, allResults } = autoOptimizeModuleSize(
+      polygonData, expandedConstraintPolygons, metersPerDegreeLat,
+      cos, sin, cosPos, sinPos, shadowZones
+    );
 
-    return { panels: filteredPanels, orientationAngle: unifiedAxisAngle, orientationSource: orientationSourceLabel };
+    // Log optimization results
+    const topResults = allResults
+      .sort((a, b) => b.totalPanels - a.totalPanels)
+      .slice(0, 5);
+    console.log(`[RoofVisualization] Module auto-optimization results (top 5):`);
+    for (const r of topResults) {
+      console.log(`  ${r.size.rows}×${r.size.cols} (${r.size.panelCount} panels/module): ${r.moduleCount} modules = ${r.totalPanels} total panels = ${Math.round(r.totalPanels * PANEL_KW)} kW`);
+    }
+    console.log(`[RoofVisualization] BEST: ${bestSize.rows}×${bestSize.cols} module (${bestSize.capacityKW} kW/module), ${bestModules.length} modules, ${bestModules.reduce((s, m) => s + m.panels.length, 0)} panels total`);
+
+    // Step 4: Sort modules by priority (interior first) and assign sequential IDs
+    bestModules.sort((a, b) => b.priority - a.priority);
+    for (let i = 0; i < bestModules.length; i++) {
+      bestModules[i].moduleId = i + 1;
+      // Update arrayId on all panels to match module ID
+      for (const p of bestModules[i].panels) {
+        p.arrayId = i + 1;
+      }
+    }
+
+    // Step 5: Flatten modules into panel list (ordered by module priority)
+    const allPanels: PanelPosition[] = [];
+    for (const mod of bestModules) {
+      for (const p of mod.panels) {
+        allPanels.push(p);
+      }
+    }
+
+    console.log(`[RoofVisualization] MODULAR TOTAL: ${allPanels.length} panels in ${bestModules.length} modules (${bestSize.rows}×${bestSize.cols})`);
+
+    return { panels: allPanels, orientationAngle: unifiedAxisAngle, orientationSource: orientationSourceLabel };
   }, []);
 
-  // LEGACY: Single polygon version (kept for backward compatibility)
+  // LEGACY: Single polygon version — delegates to modular unified system
   const generatePanelPositions = useCallback((
     solarPolygon: google.maps.Polygon,
     constraintPolygons: google.maps.Polygon[],
     polygonId: string,
     coords: [number, number][]
   ): PanelPosition[] => {
-    const panels: PanelPosition[] = [];
-    
-    const centroid = computeCentroid(coords);
-    const orientationResult = computeHybridPanelOrientation(coords);
-    const axisAngle = orientationResult.angle;
-    
-    const metersPerDegreeLat = 111320;
-    const metersPerDegreeLng = 111320 * Math.cos(centroid.lat * Math.PI / 180);
-    
-    // Create inset polygon for 1.2m perimeter setback
-    const insetCoords = insetPolygonCoords(coords, PERIMETER_SETBACK_M, centroid.lat);
-    
-    let validationPolygon: google.maps.Polygon;
-    if (insetCoords) {
-      const insetPath = insetCoords.map(([lng, lat]) => ({ lat, lng }));
-      validationPolygon = new google.maps.Polygon({ paths: insetPath });
-    } else {
-      validationPolygon = solarPolygon;
-    }
-    
-    // ===== ROBUST APPROACH: Polygon vertices → Rotated bbox + fixed margin =====
-    // Step 1: Convert ALL polygon vertices to rotated meter space
-    const cos = Math.cos(-axisAngle);
-    const sin = Math.sin(-axisAngle);
-    
-    let minXRot = Infinity, maxXRot = -Infinity, minYRot = Infinity, maxYRot = -Infinity;
-    for (const [lng, lat] of coords) {
-      const x = (lng - centroid.lng) * metersPerDegreeLng;
-      const y = (lat - centroid.lat) * metersPerDegreeLat;
-      const rx = x * cos - y * sin;
-      const ry = x * sin + y * cos;
-      minXRot = Math.min(minXRot, rx);
-      maxXRot = Math.max(maxXRot, rx);
-      minYRot = Math.min(minYRot, ry);
-      maxYRot = Math.max(maxYRot, ry);
-    }
-    
-    // Step 2: Add PROPORTIONAL margin to guarantee all corners are covered
-    // For skewed polygons, rotated bbox vertices can miss corners - use 50% of max dimension
-    const rawWidth = maxXRot - minXRot;
-    const rawHeight = maxYRot - minYRot;
-    const maxDimension = Math.max(rawWidth, rawHeight);
-    const MARGIN_M = Math.max(100, maxDimension * 0.5); // At least 100m, or 50% of max dimension
-    console.log(`[RoofVisualization] Polygon ${polygonId.slice(0,8)}: raw bbox=${Math.round(rawWidth)}×${Math.round(rawHeight)}m, margin=${Math.round(MARGIN_M)}m`);
-    minXRot -= MARGIN_M;
-    maxXRot += MARGIN_M;
-    minYRot -= MARGIN_M;
-    maxYRot += MARGIN_M;
-    
-    const bboxWidth = maxXRot - minXRot;
-    const bboxHeight = maxYRot - minYRot;
-    
-    if (bboxWidth < PANEL_WIDTH_M || bboxHeight < PANEL_HEIGHT_M) {
-      console.log(`[RoofVisualization] Polygon ${polygonId.slice(0,8)} too small for panels`);
-      return panels;
-    }
-    
-    // Step 3: Generate grid in ROTATED space (correct spacing)
-    const panelPitchX = PANEL_WIDTH_M + PANEL_GAP_M;
-    // KB_ROW_SPACING_M (1.557m) is already the center-to-center row pitch
-    const panelPitchY = ROW_SPACING_M; // 1.557m center-to-center (KB validated)
-    
-    const xPositions: number[] = [];
-    const yPositions: number[] = [];
-    
-    for (let x = minXRot; x + PANEL_WIDTH_M <= maxXRot; x += panelPitchX) {
-      xPositions.push(x);
-    }
-    for (let y = minYRot; y + PANEL_HEIGHT_M <= maxYRot; y += panelPitchY) {
-      yPositions.push(y);
-    }
-    
-    console.log(`[RoofVisualization] Polygon ${polygonId.slice(0,8)}: rotated bbox=${Math.round(bboxWidth)}×${Math.round(bboxHeight)}m, axis=${(axisAngle * 180 / Math.PI).toFixed(1)}°`);
-    console.log(`[RoofVisualization] Grid: ${xPositions.length} cols × ${yPositions.length} rows = ${xPositions.length * yPositions.length} potential positions`);
-    
-    let accepted = 0;
-    let rejectedByRoof = 0;
-    let rejectedByConstraint = 0;
-    
-    const cosPos = Math.cos(axisAngle);
-    const sinPos = Math.sin(axisAngle);
-    
-    // Step 4: For each grid position, create panel and validate
-    for (let colIdx = 0; colIdx < xPositions.length; colIdx++) {
-      for (let rowIdx = 0; rowIdx < yPositions.length; rowIdx++) {
-        const gridX = xPositions[colIdx];
-        const gridY = yPositions[rowIdx];
-        
-        // Panel corners in rotated space
-        const panelCornersRotated = [
-          { x: gridX, y: gridY },
-          { x: gridX + PANEL_WIDTH_M, y: gridY },
-          { x: gridX + PANEL_WIDTH_M, y: gridY + PANEL_HEIGHT_M },
-          { x: gridX, y: gridY + PANEL_HEIGHT_M }
-        ];
-        
-        // Convert back to geographic coordinates
-        const panelCornersGeo = panelCornersRotated.map(corner => {
-          const unrotatedX = corner.x * cosPos - corner.y * sinPos;
-          const unrotatedY = corner.x * sinPos + corner.y * cosPos;
-          return {
-            lat: centroid.lat + unrotatedY / metersPerDegreeLat,
-            lng: centroid.lng + unrotatedX / metersPerDegreeLng
-          };
-        });
-        
-        // Panel center for validation
-        const panelCenterLat = (panelCornersGeo[0].lat + panelCornersGeo[2].lat) / 2;
-        const panelCenterLng = (panelCornersGeo[0].lng + panelCornersGeo[2].lng) / 2;
-        const panelCenter = new google.maps.LatLng(panelCenterLat, panelCenterLng);
-        
-        // Industry-standard: all 4 corners must be inside inset polygon
-        // This ensures panel EDGES (not just center) respect the setback
-        let allCornersInside = true;
-        for (const corner of panelCornersGeo) {
-          const cornerLatLng = new google.maps.LatLng(corner.lat, corner.lng);
-          if (!google.maps.geometry.poly.containsLocation(cornerLatLng, validationPolygon)) {
-            allCornersInside = false;
-            break;
-          }
-        }
-        if (!allCornersInside) {
-          rejectedByRoof++;
-          continue;
-        }
-        
-        // Check constraints — all 4 corners must be outside obstacle zones
-        let inConstraint = false;
-        for (const constraint of constraintPolygons) {
-          for (const corner of panelCornersGeo) {
-            const cornerLatLng = new google.maps.LatLng(corner.lat, corner.lng);
-            if (google.maps.geometry.poly.containsLocation(cornerLatLng, constraint)) {
-              inConstraint = true;
-              break;
-            }
-          }
-          if (inConstraint) break;
-        }
-        
-        if (inConstraint) {
-          rejectedByConstraint++;
-          continue;
-        }
-        
-        const centerColIdx = (xPositions.length - 1) / 2;
-        const maxColDist = Math.max(centerColIdx, xPositions.length - 1 - centerColIdx) || 1;
-        const colDistNorm = Math.abs(colIdx - centerColIdx) / maxColDist;
-        
-        const southScore = (centroid.lat - panelCenterLat) / ((maxYRot - minYRot) / metersPerDegreeLat || 1);
-        const southScoreNorm = Math.max(0, Math.min(1, 0.5 + southScore * 0.5));
-        
-        const priority = Math.round(southScoreNorm * 1000000 + (1 - colDistNorm) * 1000);
-        
-        panels.push({
-          lat: panelCornersGeo[0].lat,
-          lng: panelCornersGeo[0].lng,
-          widthDeg: metersToDegreesLng(PANEL_WIDTH_M, centroid.lat),
-          heightDeg: metersToDegreesLat(PANEL_HEIGHT_M),
-          polygonId,
-          corners: panelCornersGeo,
-          rowIndex: rowIdx,
-          colIndex: colIdx,
-          priority
-        });
-        
-        accepted++;
-      }
-    }
-    
-    console.log(`[RoofVisualization] Polygon ${polygonId.slice(0,8)}: ${accepted} panels accepted, ${rejectedByRoof} outside roof, ${rejectedByConstraint} in constraints`);
-
-    // Apply professional layout filters (same as unified version)
-    return applyProfessionalLayoutFilters(panels);
-  }, []);
+    // Delegate to unified modular system with single polygon
+    const result = generateUnifiedPanelPositions(
+      [{ polygon: solarPolygon, id: polygonId, coords }],
+      constraintPolygons,
+      [coords]
+    );
+    return result.panels;
+  }, [generateUnifiedPanelPositions]);
 
   // Sort panels with SEQUENTIAL POLYGON FILLING (realistic EPC approach)
   // Fill the largest/easiest polygon first (most panels = most open area),
@@ -2449,7 +2132,7 @@ export function RoofVisualization({
             </div>
             <div className="flex items-center gap-3">
               <Badge variant="outline" className="font-mono" data-testid="panel-count-badge">
-                {formatNumber(panelsToShow, language)} {language === "fr" ? "panneaux" : "panels"}
+                {Math.round(panelsToShow / modulePanelCount)} {language === "fr" ? "modules" : "modules"} ({formatNumber(panelsToShow, language)} {language === "fr" ? "pan." : "pan."})
               </Badge>
               <Badge className="bg-primary text-primary-foreground font-mono" data-testid="capacity-badge">
                 {formatNumber(displayedCapacityKW, language)} kWc
@@ -2461,12 +2144,15 @@ export function RoofVisualization({
             <Slider
               value={[selectedCapacityKW]}
               onValueChange={(values) => {
-                setSelectedCapacityKW(values[0]);
+                // Snap to nearest module boundary
+                const rawKW = values[0];
+                const snappedKW = Math.round(rawKW / moduleCapacityKW) * moduleCapacityKW;
+                setSelectedCapacityKW(Math.max(moduleCapacityKW, snappedKW));
                 setHasUserAdjusted(true);
               }}
               min={minCapacity}
               max={maxCapacity}
-              step={10}
+              step={Math.round(moduleCapacityKW)}
               className="w-full"
               data-testid="capacity-slider"
             />
