@@ -296,6 +296,177 @@ function WireLabel({ x1, y1, x2, y2, label }: {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// IEC/IEEE ELECTRICAL SYMBOL COMPONENTS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function IECInverter({ cx, cy, size = 40, label, sublabel }: {
+  cx: number; cy: number; size?: number; label?: string; sublabel?: string;
+}) {
+  const s = size;
+  const hs = s / 2;
+  return (
+    <g>
+      <rect x={cx - hs} y={cy - hs} width={s} height={s} fill="white" stroke="#16a34a" strokeWidth={1.8} rx={2} />
+      <polygon points={`${cx - hs*0.5},${cy + hs*0.45} ${cx},${cy - hs*0.45} ${cx + hs*0.5},${cy + hs*0.45}`} fill="none" stroke="#16a34a" strokeWidth={1.2} />
+      <text x={cx - hs*0.35} y={cy + hs*0.7} fontSize={s*0.2} fill="#16a34a" fontFamily="Inter, system-ui, sans-serif">~</text>
+      <text x={cx + hs*0.2} y={cy - hs*0.3} fontSize={s*0.18} fill="#16a34a" fontFamily="Inter, system-ui, sans-serif">=</text>
+      {label && <text x={cx} y={cy + hs + 12} textAnchor="middle" fontSize={8} fontWeight={600} fill="#1e293b" fontFamily="Inter, system-ui, sans-serif">{label}</text>}
+      {sublabel && <text x={cx} y={cy + hs + 22} textAnchor="middle" fontSize={7} fill="#64748b" fontFamily="Inter, system-ui, sans-serif">{sublabel}</text>}
+    </g>
+  );
+}
+
+function IECMeter({ cx, cy, r = 20, label, sublabel }: {
+  cx: number; cy: number; r?: number; label?: string; sublabel?: string;
+}) {
+  return (
+    <g>
+      <circle cx={cx} cy={cy} r={r} fill="white" stroke="#16a34a" strokeWidth={1.8} />
+      <text x={cx} y={cy + 1} textAnchor="middle" dominantBaseline="middle" fontSize={r * 0.55} fontWeight={700} fill="#16a34a" fontFamily="Inter, system-ui, sans-serif">kWh</text>
+      {label && <text x={cx} y={cy + r + 12} textAnchor="middle" fontSize={8} fontWeight={600} fill="#1e293b" fontFamily="Inter, system-ui, sans-serif">{label}</text>}
+      {sublabel && <text x={cx} y={cy + r + 22} textAnchor="middle" fontSize={7} fill="#64748b" fontFamily="Inter, system-ui, sans-serif">{sublabel}</text>}
+    </g>
+  );
+}
+
+function IECBreaker({ x, cy, width = 30, label, sublabel }: {
+  x: number; cy: number; width?: number; label?: string; sublabel?: string;
+}) {
+  const dotR = 3;
+  const x1 = x + dotR;
+  const x2 = x + width - dotR;
+  return (
+    <g>
+      <line x1={x} y1={cy} x2={x1 - dotR} y2={cy} stroke="#475569" strokeWidth={1.5} />
+      <circle cx={x1} cy={cy} r={dotR} fill="#475569" />
+      <line x1={x1 + dotR} y1={cy} x2={x2} y2={cy - 12} stroke="#475569" strokeWidth={2} />
+      <circle cx={x2} cy={cy} r={dotR} fill="none" stroke="#475569" strokeWidth={1.5} />
+      <line x1={x2 + dotR} y1={cy} x2={x + width} y2={cy} stroke="#475569" strokeWidth={1.5} />
+      {label && <text x={x + width / 2} y={cy + 18} textAnchor="middle" fontSize={8} fontWeight={600} fill="#1e293b" fontFamily="Inter, system-ui, sans-serif">{label}</text>}
+      {sublabel && <text x={x + width / 2} y={cy + 28} textAnchor="middle" fontSize={7} fill="#64748b" fontFamily="Inter, system-ui, sans-serif">{sublabel}</text>}
+    </g>
+  );
+}
+
+function IECFuse({ x, cy, width = 24 }: {
+  x: number; cy: number; width?: number;
+}) {
+  const capW = width * 0.5;
+  const capH = 8;
+  const capX = x + (width - capW) / 2;
+  return (
+    <g>
+      <line x1={x} y1={cy} x2={capX} y2={cy} stroke="#475569" strokeWidth={1.2} />
+      <rect x={capX} y={cy - capH/2} width={capW} height={capH} fill="none" stroke="#475569" strokeWidth={1.2} rx={capH/2} />
+      <line x1={capX + capW} y1={cy} x2={x + width} y2={cy} stroke="#475569" strokeWidth={1.2} />
+    </g>
+  );
+}
+
+function IECTransformer({ cx, cy, size = 30, label, sublabel }: {
+  cx: number; cy: number; size?: number; label?: string; sublabel?: string;
+}) {
+  const r = size * 0.35;
+  const offset = r * 0.7;
+  return (
+    <g>
+      <line x1={cx - size/2} y1={cy} x2={cx - offset - r} y2={cy} stroke="#475569" strokeWidth={1.5} />
+      <circle cx={cx - offset} cy={cy} r={r} fill="white" stroke="#475569" strokeWidth={1.5} />
+      <circle cx={cx + offset} cy={cy} r={r} fill="white" stroke="#475569" strokeWidth={1.5} />
+      <line x1={cx + offset + r} y1={cy} x2={cx + size/2} y2={cy} stroke="#475569" strokeWidth={1.5} />
+      {label && <text x={cx} y={cy + r + 14} textAnchor="middle" fontSize={8} fontWeight={600} fill="#1e293b" fontFamily="Inter, system-ui, sans-serif">{label}</text>}
+      {sublabel && <text x={cx} y={cy + r + 24} textAnchor="middle" fontSize={7} fill="#64748b" fontFamily="Inter, system-ui, sans-serif">{sublabel}</text>}
+    </g>
+  );
+}
+
+function IECGround({ cx, topY, label }: {
+  cx: number; topY: number; label?: string;
+}) {
+  return (
+    <g>
+      <line x1={cx} y1={topY} x2={cx} y2={topY + 8} stroke="#475569" strokeWidth={1.5} />
+      <line x1={cx - 10} y1={topY + 8} x2={cx + 10} y2={topY + 8} stroke="#475569" strokeWidth={1.8} />
+      <line x1={cx - 6} y1={topY + 12} x2={cx + 6} y2={topY + 12} stroke="#475569" strokeWidth={1.5} />
+      <line x1={cx - 3} y1={topY + 16} x2={cx + 3} y2={topY + 16} stroke="#475569" strokeWidth={1.2} />
+      {label && <text x={cx + 14} y={topY + 12} fontSize={7} fill="#475569" fontFamily="Inter, system-ui, sans-serif" dominantBaseline="middle">{label}</text>}
+    </g>
+  );
+}
+
+function IECMainPanel({ x, y, w = 70, h = 50, label, sublabel }: {
+  x: number; y: number; w?: number; h?: number; label?: string; sublabel?: string;
+}) {
+  return (
+    <g>
+      <rect x={x} y={y} width={w} height={h} fill="white" stroke="#334155" strokeWidth={2} rx={2} />
+      <line x1={x + w*0.25} y1={y + 6} x2={x + w*0.25} y2={y + h - 6} stroke="#334155" strokeWidth={1.5} />
+      <line x1={x + w*0.5} y1={y + 6} x2={x + w*0.5} y2={y + h - 6} stroke="#334155" strokeWidth={1.5} />
+      <line x1={x + w*0.75} y1={y + 6} x2={x + w*0.75} y2={y + h - 6} stroke="#334155" strokeWidth={1.5} />
+      {label && <text x={x + w/2} y={y + h + 12} textAnchor="middle" fontSize={8} fontWeight={600} fill="#1e293b" fontFamily="Inter, system-ui, sans-serif">{label}</text>}
+      {sublabel && <text x={x + w/2} y={y + h + 22} textAnchor="middle" fontSize={7} fill="#64748b" fontFamily="Inter, system-ui, sans-serif">{sublabel}</text>}
+    </g>
+  );
+}
+
+function IECGrid({ cx, cy, size = 40, label, sublabel }: {
+  cx: number; cy: number; size?: number; label?: string; sublabel?: string;
+}) {
+  const hs = size / 2;
+  return (
+    <g>
+      <rect x={cx - hs} y={cy - hs} width={size} height={size} fill="white" stroke="#1e293b" strokeWidth={2} rx={2} />
+      <path d={`M${cx - hs*0.6},${cy} C${cx - hs*0.3},${cy - hs*0.5} ${cx},${cy - hs*0.5} ${cx},${cy} C${cx},${cy + hs*0.5} ${cx + hs*0.3},${cy + hs*0.5} ${cx + hs*0.6},${cy}`} fill="none" stroke="#1e293b" strokeWidth={1.5} />
+      {label && <text x={cx} y={cy + hs + 12} textAnchor="middle" fontSize={8} fontWeight={700} fill="#1e293b" fontFamily="Inter, system-ui, sans-serif">{label}</text>}
+      {sublabel && <text x={cx} y={cy + hs + 22} textAnchor="middle" fontSize={7} fill="#64748b" fontFamily="Inter, system-ui, sans-serif">{sublabel}</text>}
+    </g>
+  );
+}
+
+function IECPVString({ x, y, w = 80, h = 30, label, sublabel }: {
+  x: number; y: number; w?: number; h?: number; label?: string; sublabel?: string;
+}) {
+  const cx = x + w/2;
+  const cy = y + h/2;
+  return (
+    <g>
+      <rect x={x} y={y} width={w} height={h} fill="white" stroke="#d97706" strokeWidth={1.5} rx={2} />
+      <line x1={x + w*0.3} y1={y + h*0.8} x2={x + w*0.7} y2={y + h*0.2} stroke="#d97706" strokeWidth={1.2} />
+      <polygon points={`${x+w*0.65},${y+h*0.2} ${x+w*0.7},${y+h*0.2} ${x+w*0.7},${y+h*0.3}`} fill="#d97706" />
+      <line x1={x - 4} y1={y + h*0.2} x2={x + w*0.15} y2={y + h*0.35} stroke="#d97706" strokeWidth={0.8} />
+      <polygon points={`${x+w*0.12},${y+h*0.3} ${x+w*0.15},${y+h*0.35} ${x+w*0.1},${y+h*0.42}`} fill="#d97706" />
+      <line x1={x - 4} y1={y + h*0.45} x2={x + w*0.15} y2={y + h*0.6} stroke="#d97706" strokeWidth={0.8} />
+      <polygon points={`${x+w*0.12},${y+h*0.55} ${x+w*0.15},${y+h*0.6} ${x+w*0.1},${y+h*0.67}`} fill="#d97706" />
+      {label && <text x={cx} y={cy - 1} textAnchor="middle" dominantBaseline="middle" fontSize={8} fontWeight={600} fill="#92400e" fontFamily="Inter, system-ui, sans-serif">{label}</text>}
+      {sublabel && <text x={cx} y={cy + 10} textAnchor="middle" dominantBaseline="middle" fontSize={7} fill="#b45309" fontFamily="Inter, system-ui, sans-serif">{sublabel}</text>}
+    </g>
+  );
+}
+
+function IECCombinerBox({ x, y, w = 80, h = 36, label, sublabel, stringCount = 1 }: {
+  x: number; y: number; w?: number; h?: number; label?: string; sublabel?: string; stringCount?: number;
+}) {
+  const fuseCount = Math.min(stringCount, 4);
+  const fuseSpacing = w / (fuseCount + 1);
+  return (
+    <g>
+      <rect x={x} y={y} width={w} height={h} fill="white" stroke="#0284c7" strokeWidth={1.5} strokeDasharray="4 2" rx={2} />
+      {Array.from({ length: fuseCount }).map((_, fi) => {
+        const fx = x + fuseSpacing * (fi + 1) - 6;
+        const fy = y + h / 2;
+        return (
+          <g key={fi}>
+            <rect x={fx} y={fy - 3} width={12} height={6} fill="none" stroke="#0284c7" strokeWidth={1} rx={3} />
+          </g>
+        );
+      })}
+      {label && <text x={x + w/2} y={y + h + 12} textAnchor="middle" fontSize={8} fontWeight={600} fill="#1e293b" fontFamily="Inter, system-ui, sans-serif">{label}</text>}
+      {sublabel && <text x={x + w/2} y={y + h + 22} textAnchor="middle" fontSize={7} fill="#64748b" fontFamily="Inter, system-ui, sans-serif">{sublabel}</text>}
+    </g>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // CARTOUCHE (TITLE BLOCK) — Professional engineering drawing border
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -457,7 +628,7 @@ function SLDCartouche({
           { col: 0, row: 1, label: "COURANT ALTERNATIF (AC)", type: "ac" },
           { col: 0, row: 2, label: "MODULE PV", type: "pv" },
           { col: 0, row: 3, label: "ONDULEUR (DC/AC)", type: "inv" },
-          { col: 0, row: 4, label: "TRANSFORMATEUR", type: "transformer" },
+          { col: 0, row: 4, label: "BOÎTE DE COMBINAISON", type: "combiner" },
           { col: 1, row: 0, label: "COMPTEUR", type: "meter" },
           { col: 1, row: 1, label: "PANNEAU PRINCIPAL", type: "panel" },
           { col: 1, row: 2, label: "MISE À LA TERRE", type: "ground" },
@@ -468,7 +639,7 @@ function SLDCartouche({
           { col: 0, row: 1, label: "ALTERNATING CURRENT (AC)", type: "ac" },
           { col: 0, row: 2, label: "PV MODULE", type: "pv" },
           { col: 0, row: 3, label: "INVERTER (DC/AC)", type: "inv" },
-          { col: 0, row: 4, label: "TRANSFORMER", type: "transformer" },
+          { col: 0, row: 4, label: "COMBINER BOX", type: "combiner" },
           { col: 1, row: 0, label: "METER", type: "meter" },
           { col: 1, row: 1, label: "MAIN PANEL", type: "panel" },
           { col: 1, row: 2, label: "GROUNDING", type: "ground" },
@@ -548,12 +719,11 @@ function SLDCartouche({
                       <line x1={ex+18.5} y1={ey} x2={ex+22} y2={ey} stroke="#475569" strokeWidth={1.2} />
                     </g>
                   )}
-                  {entry.type === "transformer" && (
+                  {entry.type === "combiner" && (
                     <g>
-                      <line x1={ex} y1={ey} x2={ex+4} y2={ey} stroke="#475569" strokeWidth={1.2} />
-                      <circle cx={ex+8} cy={ey} r={4.5} fill="none" stroke="#475569" strokeWidth={1.2} />
-                      <circle cx={ex+14} cy={ey} r={4.5} fill="none" stroke="#475569" strokeWidth={1.2} />
-                      <line x1={ex+18.5} y1={ey} x2={ex+22} y2={ey} stroke="#475569" strokeWidth={1.2} />
+                      <rect x={ex+1} y={ey-7} width={18} height={14} fill="none" stroke="#0284c7" strokeWidth={1.2} strokeDasharray="3 1.5" rx={1} />
+                      <rect x={ex+4} y={ey-2} width={5} height={4} fill="none" stroke="#0284c7" strokeWidth={0.8} rx={2} />
+                      <rect x={ex+11} y={ey-2} width={5} height={4} fill="none" stroke="#0284c7" strokeWidth={0.8} rx={2} />
                     </g>
                   )}
                   {entry.type === "fuse" && (
@@ -669,14 +839,20 @@ function StringInverterSLD({
   const gapBlockH = hiddenCount > 0 ? 50 : 0;
   const displayCount = displayInverters.length;
 
+  const IEC_INV_SIZE = 44;
+  const IEC_BREAKER_W = 36;
+  const IEC_PANEL_W = 70;
+  const IEC_PANEL_H = 50;
+  const IEC_GRID_SIZE = 44;
+
   const colPV = SVG_MARGIN + 10;
   const colCombiner = colPV + STRING_BOX_W + COL_GAP + 20;
   const colInverter = colCombiner + COMBINER_W + COL_GAP;
-  const colACDisconnect = colInverter + INV_BOX_W + COL_GAP;
-  const colMeter = colACDisconnect + ELEMENT_W + COL_GAP;
+  const colACDisconnect = colInverter + IEC_INV_SIZE + COL_GAP;
+  const colMeter = colACDisconnect + IEC_BREAKER_W + COL_GAP + 20;
   const colMainPanel = colMeter + METER_R * 2 + COL_GAP + 20;
-  const colGrid = colMainPanel + ELEMENT_W + COL_GAP;
-  const diagramW = colGrid + ELEMENT_W + SVG_MARGIN;
+  const colGrid = colMainPanel + IEC_PANEL_W + COL_GAP;
+  const diagramW = colGrid + IEC_GRID_SIZE + SVG_MARGIN;
 
   const rightPanelW = CARTOUCHE_RIGHT_PANEL_W;
   const totalW = diagramW + rightPanelW + 20;
@@ -701,6 +877,8 @@ function StringInverterSLD({
 
   const gapY = startY + invBlockH;
 
+  const invCenterX = colInverter + IEC_INV_SIZE / 2;
+
   return (
     <svg
       viewBox={`0 0 ${totalW} ${totalH}`}
@@ -710,8 +888,8 @@ function StringInverterSLD({
     >
       <SLDLabel x={colPV + STRING_BOX_W / 2} y={startY - 12} text={fr ? "STRINGS PV" : "PV STRINGS"} fontSize={8} color="#475569" />
       <SLDLabel x={colCombiner + COMBINER_W / 2} y={startY - 12} text={fr ? "BOÎTE COMB." : "COMBINER"} fontSize={8} color="#475569" />
-      <SLDLabel x={colInverter + INV_BOX_W / 2} y={startY - 12} text={fr ? "ONDULEUR" : "INVERTER"} fontSize={8} color="#475569" />
-      <SLDLabel x={colACDisconnect + ELEMENT_W / 2} y={startY - 12} text={fr ? "SECTIONNEUR AC" : "AC DISCONNECT"} fontSize={8} color="#475569" />
+      <SLDLabel x={invCenterX} y={startY - 12} text={fr ? "ONDULEUR" : "INVERTER"} fontSize={8} color="#475569" />
+      <SLDLabel x={colACDisconnect + IEC_BREAKER_W / 2} y={startY - 12} text={fr ? "SECT. AC" : "AC DISC."} fontSize={8} color="#475569" />
 
       {displayInverters.map((inv, dispIdx) => {
         const blockY = getBlockY(dispIdx);
@@ -733,11 +911,10 @@ function StringInverterSLD({
 
               return (
                 <g key={str.stringId}>
-                  <SLDBox
+                  <IECPVString
                     x={colPV} y={strY} w={STRING_BOX_W} h={STRING_BOX_H}
                     label={`${str.panelsInString}× PV`}
                     sublabel={`${str.vocString}V / ${str.iscString}A`}
-                    fill="#fef3c7" stroke="#d97706"
                   />
                   <SLDLine
                     x1={colPV + STRING_BOX_W} y1={strCenterY}
@@ -766,11 +943,11 @@ function StringInverterSLD({
               </g>
             )}
 
-            <SLDBox
+            <IECCombinerBox
               x={colCombiner} y={invCenterY - COMBINER_H / 2} w={COMBINER_W} h={COMBINER_H}
-              label={fr ? `Comb. #${inv.inverterId}` : `Comb. #${inv.inverterId}`}
+              label={`Comb. #${inv.inverterId}`}
               sublabel={`${inv.strings.length} str.`}
-              fill="#e0f2fe" stroke="#0284c7"
+              stringCount={inv.strings.length}
             />
 
             <SLDLine
@@ -784,30 +961,27 @@ function StringInverterSLD({
               label={`DC ${Math.round(inv.totalCapacityKW * 1000 / (serviceV || 600))}A`}
             />
 
-            <SLDBox
-              x={colInverter} y={invCenterY - INV_BOX_H / 2} w={INV_BOX_W} h={INV_BOX_H}
+            <IECInverter
+              cx={invCenterX} cy={invCenterY} size={IEC_INV_SIZE}
               label={`INV-${inv.inverterId}`}
               sublabel={`${inv.powerKW} kW | ${inv.totalPanels} pan.`}
-              fill="#dcfce7" stroke="#16a34a"
-              bold
             />
 
             <SLDLine
-              x1={colInverter + INV_BOX_W} y1={invCenterY}
+              x1={invCenterX + IEC_INV_SIZE / 2} y1={invCenterY}
               x2={colACDisconnect} y2={invCenterY}
               color="#2563eb"
             />
             <WireLabel
-              x1={colInverter + INV_BOX_W} y1={invCenterY}
+              x1={invCenterX + IEC_INV_SIZE / 2} y1={invCenterY}
               x2={colACDisconnect} y2={invCenterY}
               label="AC"
             />
 
-            <SLDBox
-              x={colACDisconnect} y={invCenterY - ELEMENT_H / 2} w={ELEMENT_W} h={ELEMENT_H}
-              label={fr ? `Sectionneur #${inv.inverterId}` : `Disconnect #${inv.inverterId}`}
+            <IECBreaker
+              x={colACDisconnect} cy={invCenterY} width={IEC_BREAKER_W}
+              label={fr ? `Sect. #${inv.inverterId}` : `Disc. #${inv.inverterId}`}
               sublabel={`${Math.round(inv.powerKW * 1000 / (serviceV || 600) * 1.25)}A`}
-              fill="#fef9c3" stroke="#ca8a04"
             />
 
             {inv.strings.length > 1 && (
@@ -823,20 +997,25 @@ function StringInverterSLD({
 
       {hiddenCount > 0 && (
         <g>
-          <text x={colInverter + INV_BOX_W / 2} y={gapY + 15} textAnchor="middle" fontSize={16} fill="#94a3b8" fontFamily={FONT}>{"⋮"}</text>
-          <text x={colInverter + INV_BOX_W / 2} y={gapY + 32} textAnchor="middle" fontSize={9} fill="#64748b" fontFamily={FONT}>
+          <text x={invCenterX} y={gapY + 15} textAnchor="middle" fontSize={16} fill="#94a3b8" fontFamily={FONT}>{"⋮"}</text>
+          <text x={invCenterX} y={gapY + 32} textAnchor="middle" fontSize={9} fill="#64748b" fontFamily={FONT}>
             {fr ? `× ${inverters.length} onduleurs identiques` : `× ${inverters.length} identical inverters`}
           </text>
-          <line x1={colPV} y1={gapY + 2} x2={colACDisconnect + ELEMENT_W} y2={gapY + 2} stroke="#e2e8f0" strokeWidth={0.5} strokeDasharray="4 3" />
-          <line x1={colPV} y1={gapY + gapBlockH - 2} x2={colACDisconnect + ELEMENT_W} y2={gapY + gapBlockH - 2} stroke="#e2e8f0" strokeWidth={0.5} strokeDasharray="4 3" />
+          <line x1={colPV} y1={gapY + 2} x2={colACDisconnect + IEC_BREAKER_W} y2={gapY + 2} stroke="#e2e8f0" strokeWidth={0.5} strokeDasharray="4 3" />
+          <line x1={colPV} y1={gapY + gapBlockH - 2} x2={colACDisconnect + IEC_BREAKER_W} y2={gapY + gapBlockH - 2} stroke="#e2e8f0" strokeWidth={0.5} strokeDasharray="4 3" />
         </g>
       )}
 
       {(() => {
-        const busX = colACDisconnect + ELEMENT_W + 20;
+        const busX = colACDisconnect + IEC_BREAKER_W + 20;
         const busTopY = getBlockY(0) + invBlockH / 2;
         const busBottomY = getBlockY(displayCount - 1) + invBlockH / 2;
         const busMidY = (busTopY + busBottomY) / 2;
+
+        const meterCx = colMeter + METER_R;
+        const panelX = colMainPanel;
+        const panelCx = panelX + IEC_PANEL_W / 2;
+        const gridCx = colGrid + IEC_GRID_SIZE / 2;
 
         return (
           <g>
@@ -848,7 +1027,7 @@ function StringInverterSLD({
               const cy = getBlockY(dispIdx) + invBlockH / 2;
               return (
                 <SLDLine key={_inv.inverterId}
-                  x1={colACDisconnect + ELEMENT_W} y1={cy}
+                  x1={colACDisconnect + IEC_BREAKER_W} y1={cy}
                   x2={busX} y2={cy}
                   color="#2563eb"
                 />
@@ -861,59 +1040,49 @@ function StringInverterSLD({
               </g>
             )}
 
-            <SLDLine x1={busX} y1={busMidY} x2={colMeter} y2={busMidY} color="#2563eb" />
-            <WireLabel x1={busX} y1={busMidY} x2={colMeter} y2={busMidY}
+            <SLDLine x1={busX} y1={busMidY} x2={meterCx - METER_R} y2={busMidY} color="#2563eb" />
+            <WireLabel x1={busX} y1={busMidY} x2={meterCx - METER_R} y2={busMidY}
               label={`${serviceV}V`} />
 
-            <SLDCircle
-              cx={colMeter + METER_R} cy={busMidY} r={METER_R}
-              label="kWh" sublabel={fr ? "Prod." : "Prod."}
-              fill="#f0fdf4" stroke="#16a34a"
+            <IECMeter
+              cx={meterCx} cy={busMidY} r={METER_R}
+              label={fr ? "Prod." : "Prod."}
             />
 
             <SLDLine
-              x1={colMeter + METER_R * 2} y1={busMidY}
-              x2={colMainPanel} y2={busMidY}
+              x1={meterCx + METER_R} y1={busMidY}
+              x2={panelX} y2={busMidY}
               color="#2563eb"
             />
 
-            <SLDBox
-              x={colMainPanel} y={busMidY - ELEMENT_H / 2} w={ELEMENT_W} h={ELEMENT_H}
+            <IECMainPanel
+              x={panelX} y={busMidY - IEC_PANEL_H / 2} w={IEC_PANEL_W} h={IEC_PANEL_H}
               label={fr ? "Panneau principal" : "Main Panel"}
               sublabel={`${mainBreakerA}A / ${serviceV}V`}
-              fill="#f1f5f9" stroke="#334155"
-              bold
             />
 
             <SLDLine
-              x1={colMainPanel + ELEMENT_W} y1={busMidY}
-              x2={colGrid} y2={busMidY}
+              x1={panelX + IEC_PANEL_W} y1={busMidY}
+              x2={gridCx - IEC_GRID_SIZE / 2} y2={busMidY}
               color="#475569"
             />
             <WireLabel
-              x1={colMainPanel + ELEMENT_W} y1={busMidY}
-              x2={colGrid} y2={busMidY}
+              x1={panelX + IEC_PANEL_W} y1={busMidY}
+              x2={gridCx - IEC_GRID_SIZE / 2} y2={busMidY}
               label={fr ? "Réseau HQ" : "Grid"}
             />
 
-            <SLDBox
-              x={colGrid} y={busMidY - ELEMENT_H / 2} w={ELEMENT_W} h={ELEMENT_H}
+            <IECGrid
+              cx={gridCx} cy={busMidY} size={IEC_GRID_SIZE}
               label={fr ? "RÉSEAU" : "GRID"}
               sublabel={`${serviceV}V / ${serviceA}A`}
-              fill="#e2e8f0" stroke="#1e293b"
-              bold
             />
 
-            <SLDLine x1={colMainPanel + ELEMENT_W / 2} y1={busMidY + ELEMENT_H / 2}
-              x2={colMainPanel + ELEMENT_W / 2} y2={busMidY + ELEMENT_H / 2 + 15} color="#475569" />
-            <SLDLine x1={colMainPanel + ELEMENT_W / 2 - 10} y1={busMidY + ELEMENT_H / 2 + 15}
-              x2={colMainPanel + ELEMENT_W / 2 + 10} y2={busMidY + ELEMENT_H / 2 + 15} color="#475569" />
-            <SLDLine x1={colMainPanel + ELEMENT_W / 2 - 6} y1={busMidY + ELEMENT_H / 2 + 19}
-              x2={colMainPanel + ELEMENT_W / 2 + 6} y2={busMidY + ELEMENT_H / 2 + 19} color="#475569" />
-            <SLDLine x1={colMainPanel + ELEMENT_W / 2 - 2} y1={busMidY + ELEMENT_H / 2 + 23}
-              x2={colMainPanel + ELEMENT_W / 2 + 2} y2={busMidY + ELEMENT_H / 2 + 23} color="#475569" />
-            <SLDLabel x={colMainPanel + ELEMENT_W / 2 + 15} y={busMidY + ELEMENT_H / 2 + 19}
-              text="GND" fontSize={7} color="#475569" anchor="start" />
+            <IECGround
+              cx={panelCx}
+              topY={busMidY + IEC_PANEL_H / 2}
+              label="GND"
+            />
           </g>
         );
       })()}
@@ -960,13 +1129,19 @@ function MicroInverterSLD({
   const gapBlockH = hiddenGroupCount > 0 ? 50 : 0;
   const displayCount = displayGroups.length;
 
+  const MICRO_IEC_INV_SIZE = 44;
+  const MICRO_IEC_BREAKER_W = 36;
+  const MICRO_IEC_PANEL_W = 70;
+  const MICRO_IEC_PANEL_H = 50;
+  const MICRO_IEC_GRID_SIZE = 44;
+
   const colPV = SVG_MARGIN + 10;
   const colMicro = colPV + ARRAY_BOX_W + COL_GAP;
-  const colBranch = colMicro + INV_BOX_W + COL_GAP;
-  const colMeter = colBranch + ELEMENT_W + COL_GAP;
+  const colBranch = colMicro + MICRO_IEC_INV_SIZE + COL_GAP;
+  const colMeter = colBranch + MICRO_IEC_BREAKER_W + COL_GAP + 20;
   const colMainPanel = colMeter + METER_R * 2 + COL_GAP + 20;
-  const colGrid = colMainPanel + ELEMENT_W + COL_GAP;
-  const diagramW = colGrid + ELEMENT_W + SVG_MARGIN;
+  const colGrid = colMainPanel + MICRO_IEC_PANEL_W + COL_GAP;
+  const diagramW = colGrid + MICRO_IEC_GRID_SIZE + SVG_MARGIN;
 
   const rightPanelW = CARTOUCHE_RIGHT_PANEL_W;
   const totalW = diagramW + rightPanelW + 20;
@@ -990,6 +1165,8 @@ function MicroInverterSLD({
 
   const gapY = startY + blockH;
 
+  const microInvCenterX = colMicro + MICRO_IEC_INV_SIZE / 2;
+
   return (
     <svg
       viewBox={`0 0 ${totalW} ${totalH}`}
@@ -998,8 +1175,8 @@ function MicroInverterSLD({
       xmlns="http://www.w3.org/2000/svg"
     >
       <SLDLabel x={colPV + ARRAY_BOX_W / 2} y={startY - 12} text={fr ? "ARRAY PV" : "PV ARRAY"} fontSize={8} color="#475569" />
-      <SLDLabel x={colMicro + INV_BOX_W / 2} y={startY - 12} text={fr ? "MICRO-ONDULEURS" : "MICROINVERTERS"} fontSize={8} color="#475569" />
-      <SLDLabel x={colBranch + ELEMENT_W / 2} y={startY - 12} text={fr ? "CIRCUIT BRANCHE" : "BRANCH CIRCUIT"} fontSize={8} color="#475569" />
+      <SLDLabel x={microInvCenterX} y={startY - 12} text={fr ? "MICRO-ONDULEURS" : "MICROINVERTERS"} fontSize={8} color="#475569" />
+      <SLDLabel x={colBranch + MICRO_IEC_BREAKER_W / 2} y={startY - 12} text={fr ? "DISJONCTEUR" : "BREAKER"} fontSize={8} color="#475569" />
 
       {displayGroups.map((grp, dispIdx) => {
         const baseY = getGroupY(dispIdx);
@@ -1007,32 +1184,28 @@ function MicroInverterSLD({
 
         return (
           <g key={grp.arrayId}>
-            <SLDBox
+            <IECPVString
               x={colPV} y={cy - ARRAY_BOX_H / 2} w={ARRAY_BOX_W} h={ARRAY_BOX_H}
               label={`Array #${grp.arrayId}`}
               sublabel={`${grp.panelCount} pan. / ${grp.capacityKW} kW`}
-              fill="#fef3c7" stroke="#d97706"
             />
 
             <SLDLine x1={colPV + ARRAY_BOX_W} y1={cy} x2={colMicro} y2={cy} color="#dc2626" />
             <WireLabel x1={colPV + ARRAY_BOX_W} y1={cy} x2={colMicro} y2={cy} label="DC 1:1" />
 
-            <SLDBox
-              x={colMicro} y={cy - INV_BOX_H / 2} w={INV_BOX_W} h={INV_BOX_H}
+            <IECInverter
+              cx={microInvCenterX} cy={cy} size={MICRO_IEC_INV_SIZE}
               label={`${grp.panelCount}× μINV`}
               sublabel={`${microW}W ${fr ? "chaque" : "each"}`}
-              fill="#dcfce7" stroke="#16a34a"
-              bold
             />
 
-            <SLDLine x1={colMicro + INV_BOX_W} y1={cy} x2={colBranch} y2={cy} color="#2563eb" />
-            <WireLabel x1={colMicro + INV_BOX_W} y1={cy} x2={colBranch} y2={cy} label="AC Bus" />
+            <SLDLine x1={microInvCenterX + MICRO_IEC_INV_SIZE / 2} y1={cy} x2={colBranch} y2={cy} color="#2563eb" />
+            <WireLabel x1={microInvCenterX + MICRO_IEC_INV_SIZE / 2} y1={cy} x2={colBranch} y2={cy} label="AC Bus" />
 
-            <SLDBox
-              x={colBranch} y={cy - ELEMENT_H / 2} w={ELEMENT_W} h={ELEMENT_H}
+            <IECBreaker
+              x={colBranch} cy={cy} width={MICRO_IEC_BREAKER_W}
               label={fr ? `Disj. #${grp.arrayId}` : `Brkr #${grp.arrayId}`}
               sublabel={`${Math.ceil(grp.acBranchCircuitA)}A`}
-              fill="#fef9c3" stroke="#ca8a04"
             />
           </g>
         );
@@ -1040,20 +1213,25 @@ function MicroInverterSLD({
 
       {hiddenGroupCount > 0 && (
         <g>
-          <text x={colMicro + INV_BOX_W / 2} y={gapY + 15} textAnchor="middle" fontSize={16} fill="#94a3b8" fontFamily={FONT}>{"⋮"}</text>
-          <text x={colMicro + INV_BOX_W / 2} y={gapY + 32} textAnchor="middle" fontSize={9} fill="#64748b" fontFamily={FONT}>
+          <text x={microInvCenterX} y={gapY + 15} textAnchor="middle" fontSize={16} fill="#94a3b8" fontFamily={FONT}>{"⋮"}</text>
+          <text x={microInvCenterX} y={gapY + 32} textAnchor="middle" fontSize={9} fill="#64748b" fontFamily={FONT}>
             {fr ? `× ${groups.length} groupes identiques` : `× ${groups.length} identical groups`}
           </text>
-          <line x1={colPV} y1={gapY + 2} x2={colBranch + ELEMENT_W} y2={gapY + 2} stroke="#e2e8f0" strokeWidth={0.5} strokeDasharray="4 3" />
-          <line x1={colPV} y1={gapY + gapBlockH - 2} x2={colBranch + ELEMENT_W} y2={gapY + gapBlockH - 2} stroke="#e2e8f0" strokeWidth={0.5} strokeDasharray="4 3" />
+          <line x1={colPV} y1={gapY + 2} x2={colBranch + MICRO_IEC_BREAKER_W} y2={gapY + 2} stroke="#e2e8f0" strokeWidth={0.5} strokeDasharray="4 3" />
+          <line x1={colPV} y1={gapY + gapBlockH - 2} x2={colBranch + MICRO_IEC_BREAKER_W} y2={gapY + gapBlockH - 2} stroke="#e2e8f0" strokeWidth={0.5} strokeDasharray="4 3" />
         </g>
       )}
 
       {(() => {
-        const busX = colBranch + ELEMENT_W + 20;
+        const busX = colBranch + MICRO_IEC_BREAKER_W + 20;
         const busTopY = getGroupY(0) + blockH / 2;
         const busBottomY = getGroupY(displayCount - 1) + blockH / 2;
         const busMidY = (busTopY + busBottomY) / 2;
+
+        const meterCx = colMeter + METER_R;
+        const panelX = colMainPanel;
+        const panelCx = panelX + MICRO_IEC_PANEL_W / 2;
+        const gridCx = colGrid + MICRO_IEC_GRID_SIZE / 2;
 
         return (
           <g>
@@ -1065,7 +1243,7 @@ function MicroInverterSLD({
               const cy = getGroupY(dispIdx) + blockH / 2;
               return (
                 <SLDLine key={grp.arrayId}
-                  x1={colBranch + ELEMENT_W} y1={cy} x2={busX} y2={cy} color="#2563eb"
+                  x1={colBranch + MICRO_IEC_BREAKER_W} y1={cy} x2={busX} y2={cy} color="#2563eb"
                 />
               );
             })}
@@ -1074,44 +1252,34 @@ function MicroInverterSLD({
               <line x1={busX} y1={gapY + 5} x2={busX} y2={gapY + gapBlockH - 5} stroke="#2563eb" strokeWidth={1.5} strokeDasharray="4 3" />
             )}
 
-            <SLDLine x1={busX} y1={busMidY} x2={colMeter} y2={busMidY} color="#2563eb" />
+            <SLDLine x1={busX} y1={busMidY} x2={meterCx - METER_R} y2={busMidY} color="#2563eb" />
 
-            <SLDCircle
-              cx={colMeter + METER_R} cy={busMidY} r={METER_R}
-              label="kWh" sublabel={fr ? "Prod." : "Prod."}
-              fill="#f0fdf4" stroke="#16a34a"
+            <IECMeter
+              cx={meterCx} cy={busMidY} r={METER_R}
+              label={fr ? "Prod." : "Prod."}
             />
 
-            <SLDLine x1={colMeter + METER_R * 2} y1={busMidY} x2={colMainPanel} y2={busMidY} color="#2563eb" />
+            <SLDLine x1={meterCx + METER_R} y1={busMidY} x2={panelX} y2={busMidY} color="#2563eb" />
 
-            <SLDBox
-              x={colMainPanel} y={busMidY - ELEMENT_H / 2} w={ELEMENT_W} h={ELEMENT_H}
+            <IECMainPanel
+              x={panelX} y={busMidY - MICRO_IEC_PANEL_H / 2} w={MICRO_IEC_PANEL_W} h={MICRO_IEC_PANEL_H}
               label={fr ? "Panneau principal" : "Main Panel"}
               sublabel={`${mainBreakerA}A / ${serviceV}V`}
-              fill="#f1f5f9" stroke="#334155"
-              bold
             />
 
-            <SLDLine x1={colMainPanel + ELEMENT_W} y1={busMidY} x2={colGrid} y2={busMidY} color="#475569" />
+            <SLDLine x1={panelX + MICRO_IEC_PANEL_W} y1={busMidY} x2={gridCx - MICRO_IEC_GRID_SIZE / 2} y2={busMidY} color="#475569" />
 
-            <SLDBox
-              x={colGrid} y={busMidY - ELEMENT_H / 2} w={ELEMENT_W} h={ELEMENT_H}
+            <IECGrid
+              cx={gridCx} cy={busMidY} size={MICRO_IEC_GRID_SIZE}
               label={fr ? "RÉSEAU" : "GRID"}
               sublabel={`${serviceV}V / ${serviceA}A`}
-              fill="#e2e8f0" stroke="#1e293b"
-              bold
             />
 
-            <SLDLine x1={colMainPanel + ELEMENT_W / 2} y1={busMidY + ELEMENT_H / 2}
-              x2={colMainPanel + ELEMENT_W / 2} y2={busMidY + ELEMENT_H / 2 + 15} color="#475569" />
-            <SLDLine x1={colMainPanel + ELEMENT_W / 2 - 10} y1={busMidY + ELEMENT_H / 2 + 15}
-              x2={colMainPanel + ELEMENT_W / 2 + 10} y2={busMidY + ELEMENT_H / 2 + 15} color="#475569" />
-            <SLDLine x1={colMainPanel + ELEMENT_W / 2 - 6} y1={busMidY + ELEMENT_H / 2 + 19}
-              x2={colMainPanel + ELEMENT_W / 2 + 6} y2={busMidY + ELEMENT_H / 2 + 19} color="#475569" />
-            <SLDLine x1={colMainPanel + ELEMENT_W / 2 - 2} y1={busMidY + ELEMENT_H / 2 + 23}
-              x2={colMainPanel + ELEMENT_W / 2 + 2} y2={busMidY + ELEMENT_H / 2 + 23} color="#475569" />
-            <SLDLabel x={colMainPanel + ELEMENT_W / 2 + 15} y={busMidY + ELEMENT_H / 2 + 19}
-              text="GND" fontSize={7} color="#475569" anchor="start" />
+            <IECGround
+              cx={panelCx}
+              topY={busMidY + MICRO_IEC_PANEL_H / 2}
+              label="GND"
+            />
           </g>
         );
       })()}
