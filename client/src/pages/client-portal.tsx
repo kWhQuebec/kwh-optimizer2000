@@ -86,8 +86,12 @@ export default function ClientPortalPage({ previewClientId }: { previewClientId?
   const { t, language } = useI18n();
   const { user } = useAuth();
 
+  const portalUrl = previewClientId
+    ? `/api/sites/portal-dashboard?clientId=${previewClientId}`
+    : "/api/sites/portal-dashboard";
+
   const { data: allSites = [], isLoading } = useQuery<SiteWithClient[]>({
-    queryKey: ["/api/sites"],
+    queryKey: [portalUrl],
   });
 
   const { data: previewClientData } = useQuery<{ id: string; name: string }>({
@@ -95,9 +99,7 @@ export default function ClientPortalPage({ previewClientId }: { previewClientId?
     enabled: !!previewClientId,
   });
 
-  const sites = previewClientId
-    ? allSites.filter(s => s.clientId === previewClientId)
-    : allSites;
+  const sites = allSites;
 
   const previewClientName = previewClientId
     ? (previewClientData?.name || sites[0]?.client?.name || "Client")

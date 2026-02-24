@@ -59,6 +59,68 @@ export async function getSitesMinimal(): Promise<Array<{ id: string; name: strin
   }).from(sites);
 }
 
+export async function getSitesForPortalDashboard(clientId?: string) {
+  const siteColumns = {
+    id: sites.id,
+    name: sites.name,
+    address: sites.address,
+    city: sites.city,
+    province: sites.province,
+    clientId: sites.clientId,
+    analysisAvailable: sites.analysisAvailable,
+    roofAreaSqM: sites.roofAreaSqM,
+    roofAreaAutoSqM: sites.roofAreaAutoSqM,
+    isArchived: sites.isArchived,
+  };
+
+  const siteRows = clientId
+    ? await db.select(siteColumns).from(sites).where(eq(sites.clientId, clientId))
+    : await db.select(siteColumns).from(sites);
+
+  if (siteRows.length === 0) return [];
+
+  const siteIds = siteRows.map(s => s.id);
+
+  const clientIds = Array.from(new Set(siteRows.map(s => s.clientId)));
+  const clientRows = await db.select({ id: clients.id, name: clients.name }).from(clients).where(inArray(clients.id, clientIds));
+  const clientMap = new Map(clientRows.map(c => [c.id, c]));
+
+  const simRows = await db.select({
+    id: simulationRuns.id,
+    siteId: simulationRuns.siteId,
+    pvSizeKW: simulationRuns.pvSizeKW,
+    savingsYear1: simulationRuns.savingsYear1,
+    simplePaybackYears: simulationRuns.simplePaybackYears,
+    npv25: simulationRuns.npv25,
+    irr25: simulationRuns.irr25,
+    co2AvoidedTonnesPerYear: simulationRuns.co2AvoidedTonnesPerYear,
+    createdAt: simulationRuns.createdAt,
+  }).from(simulationRuns).where(inArray(simulationRuns.siteId, siteIds)).orderBy(simulationRuns.createdAt);
+
+  const simMap = new Map<string, typeof simRows>();
+  for (const sim of simRows) {
+    if (!simMap.has(sim.siteId)) simMap.set(sim.siteId, []);
+    simMap.get(sim.siteId)!.push(sim);
+  }
+
+  const daRows = await db.select({
+    id: designAgreements.id,
+    siteId: designAgreements.siteId,
+    status: designAgreements.status,
+    publicToken: designAgreements.publicToken,
+    depositPaidAt: designAgreements.depositPaidAt,
+  }).from(designAgreements).where(inArray(designAgreements.siteId, siteIds));
+
+  const daMap = new Map(daRows.map(da => [da.siteId, da]));
+
+  return siteRows.map(site => ({
+    ...site,
+    client: clientMap.get(site.clientId) || null,
+    simulationRuns: simMap.get(site.id) || [],
+    designAgreement: daMap.get(site.id) || null,
+  }));
+}
+
 export async function getSitesForWorkQueue(): Promise<Array<{
   id: string;
   name: string;

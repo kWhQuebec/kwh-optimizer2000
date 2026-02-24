@@ -38,7 +38,7 @@ import { estimateConstructionCost, getSiteVisitCompleteness } from "../pricing-e
 import { asyncHandler, NotFoundError, BadRequestError, ForbiddenError, ConflictError, ValidationError } from "../middleware/errorHandler";
 import { sendHqProcurationEmail } from "../emailService";
 import { autoAdvanceStage } from "../repositories/pipelineRepo";
-import { propagateTariffToSite } from "../repositories/siteRepo";
+import { propagateTariffToSite, getSitesForPortalDashboard } from "../repositories/siteRepo";
 import { createLogger } from "../lib/logger";
 
 const log = createLogger("Sites");
@@ -256,6 +256,17 @@ router.get("/minimal", authMiddleware, asyncHandler(async (req: AuthRequest, res
   } else {
     res.json(sites);
   }
+}));
+
+router.get("/portal-dashboard", authMiddleware, asyncHandler(async (req: AuthRequest, res) => {
+  const { clientId } = req.query;
+  const isStaff = req.userRole === "admin" || req.userRole === "analyst";
+  const filterClientId = isStaff
+    ? (typeof clientId === "string" ? clientId : undefined)
+    : (req.userClientId || undefined);
+
+  const sites = await getSitesForPortalDashboard(filterClientId);
+  res.json(sites.filter(s => !s.isArchived));
 }));
 
 router.get("/:id", authMiddleware, asyncHandler(async (req: AuthRequest, res) => {
