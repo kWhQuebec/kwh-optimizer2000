@@ -1002,6 +1002,7 @@ export function RoofVisualization({
   const { language } = useI18n();
   const { toast } = useToast();
   const sectionRef = useRef<HTMLDivElement>(null);
+  const mapAreaRef = useRef<HTMLDivElement>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
   const sliderContainerRef = useRef<HTMLDivElement>(null);
@@ -1899,7 +1900,7 @@ export function RoofVisualization({
   }, [mapRef, roofPolygons, allPanelPositions, panelsToShow, siteName, language, toast]);
 
   const captureVisualization = useCallback(async (): Promise<string | null> => {
-    const target = sectionRef.current;
+    const target = mapAreaRef.current;
     if (!target) return null;
     
     try {
@@ -1908,8 +1909,7 @@ export function RoofVisualization({
       const hideSelectors = [
         '[data-testid="button-export-image"]',
         '[data-testid="button-fullscreen"]',
-        '[data-testid="capacity-slider"]',
-        '.slider-markers',
+        '[data-testid="button-open-roof-drawing"]',
       ];
       const hidden: HTMLElement[] = [];
       hideSelectors.forEach(sel => {
@@ -1964,7 +1964,7 @@ export function RoofVisualization({
 
   return (
     <div ref={sectionRef} className="relative rounded-xl overflow-hidden" data-testid="roof-visualization">
-      <div className="relative w-full h-72 md:h-96">
+      <div ref={mapAreaRef} className="relative w-full h-72 md:h-96">
         <div ref={mapContainerRef} className="absolute inset-0" />
         
         {isLoading && (
