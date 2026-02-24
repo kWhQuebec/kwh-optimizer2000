@@ -240,7 +240,7 @@ export async function prepareDocumentData(simulationId: string, storage: IStorag
           color: p.color || "#3b82f6",
           label: p.label || undefined,
         })) : [],
-        { width: 640, height: 400, zoom: 18, skipPolygons: !hasPolygons }
+        { width: 800, height: 500, zoom: 18, skipPolygons: !hasPolygons }
       );
 
       if (roofImageUrl) {

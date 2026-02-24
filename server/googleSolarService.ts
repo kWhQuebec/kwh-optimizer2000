@@ -526,8 +526,8 @@ export function getRoofVisualizationUrl(
 
     const latSpan = maxLat - minLat;
     const lngSpan = maxLng - minLng;
-    const paddedLatSpan = latSpan * 1.4;
-    const paddedLngSpan = lngSpan * 1.4;
+    const paddedLatSpan = latSpan * 1.15;
+    const paddedLngSpan = lngSpan * 1.15;
 
     if (paddedLatSpan > 0 || paddedLngSpan > 0) {
       const WORLD_DIM = 256 * 2;
@@ -545,34 +545,79 @@ export function getRoofVisualizationUrl(
   
   let baseUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${centerLat},${centerLng}&zoom=${zoom}&size=${width}x${height}&scale=2&maptype=satellite`;
   
-  let polygonParams = "";
-  
+  function buildPolygonParam(coords: [number, number][], fillColor: string, strokeColor: string, strokeWeight: number, precision: number): string {
+    const pathCoords = coords
+      .map(([lng, lat]) => `${lat.toFixed(precision)},${lng.toFixed(precision)}`)
+      .join("|");
+    return `&path=fillcolor:${fillColor}|color:${strokeColor}|weight:${strokeWeight}|${pathCoords}`;
+  }
+
+  function thinCoords(coords: [number, number][], factor: number): [number, number][] {
+    if (coords.length <= 4) return coords;
+    const step = Math.max(1, Math.floor(factor));
+    const thinned: [number, number][] = [];
+    for (let i = 0; i < coords.length; i++) {
+      if (i % step === 0 || i === coords.length - 1) thinned.push(coords[i]);
+    }
+    if (thinned.length < 3 && coords.length >= 3) return [coords[0], coords[Math.floor(coords.length / 2)], coords[coords.length - 1]];
+    return thinned;
+  }
+
+  type PolyInfo = { coordinates: [number, number][]; fillColor: string; strokeColor: string; strokeWeight: number; isConstraint: boolean };
+  const polyInfos: PolyInfo[] = [];
+
   if (!options?.skipPolygons) {
     roofPolygons.forEach((polygon) => {
       if (!polygon.coordinates || polygon.coordinates.length < 3) return;
-      
       const isConstraint = polygon.color === "#f97316" ||
         (polygon.label?.toLowerCase().includes("constraint") ||
          polygon.label?.toLowerCase().includes("contrainte") ||
          polygon.label?.toLowerCase().includes("hvac") ||
          polygon.label?.toLowerCase().includes("obstacle"));
-      
-      const fillColor = isConstraint ? "0xf9731680" : "0x0054A880";
-      const strokeColor = isConstraint ? "0xf97316" : "0x0054A8";
-      const strokeWeight = isConstraint ? 2 : 3;
-      
-      const pathCoords = polygon.coordinates
-        .map(([lng, lat]) => `${lat},${lng}`)
-        .join("|");
-      
-      polygonParams += `&path=fillcolor:${fillColor}|color:${strokeColor}|weight:${strokeWeight}|${pathCoords}`;
+      polyInfos.push({
+        coordinates: polygon.coordinates,
+        fillColor: isConstraint ? "0xf9731680" : "0x0054A880",
+        strokeColor: isConstraint ? "0xf97316" : "0x0054A8",
+        strokeWeight: isConstraint ? 2 : 3,
+        isConstraint,
+      });
     });
   }
-  
-  let url = baseUrl + polygonParams + `&key=${apiKey}`;
-  
-  if (url.length > MAX_URL_LENGTH && polygonParams.length > 0) {
-    log.warn(`Static Maps URL too long (${url.length} chars > ${MAX_URL_LENGTH}), dropping polygon overlays`);
+
+  let polygonParams = "";
+  let url = baseUrl;
+
+  if (polyInfos.length > 0) {
+    const strategies: { precision: number; thin: number; label: string }[] = [
+      { precision: 6, thin: 1, label: "full precision" },
+      { precision: 5, thin: 1, label: "5-digit precision" },
+      { precision: 5, thin: 2, label: "5-digit + thin 2x" },
+      { precision: 4, thin: 2, label: "4-digit + thin 2x" },
+      { precision: 4, thin: 3, label: "4-digit + thin 3x" },
+    ];
+
+    let fitted = false;
+    for (const strat of strategies) {
+      let params = "";
+      for (const pi of polyInfos) {
+        const coords = strat.thin > 1 ? thinCoords(pi.coordinates, strat.thin) : pi.coordinates;
+        params += buildPolygonParam(coords, pi.fillColor, pi.strokeColor, pi.strokeWeight, strat.precision);
+      }
+      const candidate = baseUrl + params + `&key=${apiKey}`;
+      if (candidate.length <= MAX_URL_LENGTH) {
+        polygonParams = params;
+        url = candidate;
+        log.info(`Static Maps URL fits with strategy "${strat.label}": ${candidate.length} chars, ${polyInfos.length} polygons`);
+        fitted = true;
+        break;
+      }
+    }
+
+    if (!fitted) {
+      log.warn(`Static Maps URL too long even after simplification (${polyInfos.length} polygons), dropping polygon overlays`);
+      url = baseUrl + `&key=${apiKey}`;
+    }
+  } else {
     url = baseUrl + `&key=${apiKey}`;
   }
   
