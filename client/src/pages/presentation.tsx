@@ -1193,7 +1193,7 @@ function WaterfallSlide({ simulation, language }: { simulation: SimulationRun | 
                           }}
                         />
                       </div>
-                      <p className="text-xs text-center mt-2 leading-tight" style={{ color: '#6B7280' }}>{bar.label}</p>
+                      <p className="text-xs text-center mt-2 leading-tight" style={{ color: '#6B7280', height: '2.5em', display: 'flex', alignItems: 'flex-start', justifyContent: 'center' }}>{bar.label}</p>
                     </div>
                   );
                 })}
