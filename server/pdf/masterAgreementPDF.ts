@@ -374,17 +374,6 @@ function drawSection4(ctx: PDFContext, data: MasterAgreementData) {
   doc.text(paybackYears.toFixed(1), margin + 350, y, { align: "right", width: 150 });
   y += 20;
 
-  doc.fontSize(11).fillColor(COLORS.blue).font("Helvetica-Bold");
-  doc.text(t("Notes Importantes", "Important Notes"), margin, y);
-  y += 20;
-
-  doc.fontSize(9).fillColor(COLORS.darkGray).font("Helvetica");
-  const noteText = t(
-    "Les taux de PPA et l'IRR seront définis lors des négociations commerciales avec les parties prenantes.",
-    "PPA rates and IRR will be determined during commercial negotiations with stakeholders."
-  );
-  doc.text(noteText, margin, y, { width: contentWidth });
-
   // Footer
   y = pageHeight - 50;
   doc.fontSize(8).fillColor(COLORS.lightGray);
@@ -614,7 +603,7 @@ function drawAnnexASite(ctx: PDFContext, site: MasterAgreementSiteData, siteInde
     [t("Rendement (kWh/kWp)", "Yield (kWh/kWp)"), formatSmartEnergy(fm.projectSpecs.yieldKwhPerKwp, ctx.lang, "Wh")],
     [t("Prod. an 1 (kWh)", "Year 1 Production (kWh)"), formatSmartEnergy(fm.projectSpecs.firstYearKwh, ctx.lang)],
     [t("Dégradation (%/an)", "Degradation (%/yr)"), formatPercent(fm.projectSpecs.degradationPct)],
-    [t("Disponibilité (%)", "Availability (%)"), formatPercent(fm.projectSpecs.availabilityPct)],
+    [t("Hypothèse de disponibilité (%)", "Availability Assumption (%)"), formatPercent(fm.projectSpecs.availabilityPct)],
     [t("Durée de vie utile (ans)", "Useful Life (years)"), String(fm.projectSpecs.usefulLifeYears || "—")],
   ];
 
