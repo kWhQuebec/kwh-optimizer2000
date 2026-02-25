@@ -1792,13 +1792,31 @@ router.get("/:id/copy-roof-from-address", authMiddleware, asyncHandler(async (re
     .orderBy(desc(sitesTable.updatedAt));
 
   if (siblingPolygons.length === 0) {
-    res.json({ copied: false });
+    if (req.query.preview === "true") {
+      res.json({ available: false });
+    } else {
+      res.json({ copied: false });
+    }
     return;
   }
 
   const sourceSiteId = siblingPolygons[0].siteId;
 
   const sourcePolygons = siblingPolygons.filter(p => p.siteId === sourceSiteId);
+
+  // Preview mode: return info without creating polygons
+  if (req.query.preview === "true") {
+    const sourceSite = await storage.getSite(sourceSiteId);
+    const totalAreaSqM = sourcePolygons.reduce((sum, p) => sum + (p.areaSqM || 0), 0);
+    res.json({
+      available: true,
+      sourceId: sourceSiteId,
+      sourceName: sourceSite?.name || sourceSiteId,
+      polygonCount: sourcePolygons.length,
+      totalAreaSqM: Math.round(totalAreaSqM),
+    });
+    return;
+  }
 
   for (const polygon of sourcePolygons) {
     await storage.createRoofPolygon({

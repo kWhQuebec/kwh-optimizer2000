@@ -756,12 +756,20 @@ export function AnalysisResults({
                 const savedKw = site.kbKwDc;
                 const newKw = Math.round(data.maxCapacityKW);
                 if (!savedKw || Math.abs(savedKw - newKw) > 1) {
-                  apiRequest("PATCH", `/api/sites/${site.id}`, {
-                    kbPanelCount: data.panelCount,
-                    kbKwDc: newKw
-                  }).then(() => {
-                    queryClient.invalidateQueries({ queryKey: ['/api/sites', site.id] });
-                  }).catch(err => console.error('Failed to save roof capacity:', err));
+                  // Guard: never auto-overwrite if new value is < 50% of saved value
+                  if (savedKw && newKw < savedKw * 0.5) {
+                    console.warn(
+                      `[RoofVisualization] Skipping auto-save: new kbKwDc (${newKw} kW) is less than 50% of saved value (${savedKw} kW). ` +
+                      `This likely indicates incorrect polygons. User must redraw roof manually.`
+                    );
+                  } else {
+                    apiRequest("PATCH", `/api/sites/${site.id}`, {
+                      kbPanelCount: data.panelCount,
+                      kbKwDc: newKw
+                    }).then(() => {
+                      queryClient.invalidateQueries({ queryKey: ['/api/sites', site.id] });
+                    }).catch(err => console.error('Failed to save roof capacity:', err));
+                  }
                 }
                 // Propagate full geometry data (including arrays) to parent for SLD
                 onGeometryUpdate?.(data);

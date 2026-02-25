@@ -179,26 +179,33 @@ export default function SiteDetailPage() {
   });
 
   const roofCopyAttemptedRef = useRef<string | null>(null);
+  const [roofCopyOffer, setRoofCopyOffer] = useState<{
+    sourceId: string;
+    sourceName: string;
+    polygonCount: number;
+    totalAreaSqM: number;
+  } | null>(null);
+  const [isRoofCopying, setIsRoofCopying] = useState(false);
+
   useEffect(() => {
     if (!site || !id || !roofPolygonsLoaded) return;
     if (roofPolygons.length > 0) return;
     if (roofCopyAttemptedRef.current === id) return;
     roofCopyAttemptedRef.current = id;
 
-    apiRequest<{ copied: boolean; sourceId?: string; polygonCount?: number }>(
-      "GET", `/api/sites/${id}/copy-roof-from-address`
+    apiRequest<{ available: boolean; sourceId?: string; sourceName?: string; polygonCount?: number; totalAreaSqM?: number }>(
+      "GET", `/api/sites/${id}/copy-roof-from-address?preview=true`
     ).then((result) => {
-      if (result.copied) {
-        queryClient.invalidateQueries({ queryKey: ['/api/sites', id, 'roof-polygons'] });
-        queryClient.invalidateQueries({ queryKey: ['/api/sites', id] });
-        toast({
-          title: language === "fr"
-            ? "Dessin de toit copié d'un autre site à la même adresse"
-            : "Roof drawing copied from another site at the same address",
+      if (result.available && result.sourceId) {
+        setRoofCopyOffer({
+          sourceId: result.sourceId,
+          sourceName: result.sourceName || result.sourceId,
+          polygonCount: result.polygonCount || 0,
+          totalAreaSqM: result.totalAreaSqM || 0,
         });
       }
     }).catch(() => {});
-  }, [site, id, roofPolygonsLoaded, roofPolygons.length, language, toast]);
+  }, [site, id, roofPolygonsLoaded, roofPolygons.length]);
 
   // Fetch design agreement status for the site
   const { data: designAgreement } = useQuery<{ id: string; status: string } | null>({
@@ -1207,6 +1214,58 @@ export default function SiteDetailPage() {
               {deleteSiteMutation.isPending
                 ? (language === "fr" ? "Suppression..." : "Deleting...")
                 : (language === "fr" ? "Confirmer la suppression" : "Confirm Delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Roof Copy Confirmation Dialog */}
+      <AlertDialog open={roofCopyOffer !== null} onOpenChange={(open) => { if (!open) setRoofCopyOffer(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {language === "fr" ? "Copier le dessin de toiture?" : "Copy roof drawing?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {language === "fr"
+                ? `Un site frère (${roofCopyOffer?.sourceName}) à cette adresse a ${roofCopyOffer?.polygonCount} polygone(s) (${roofCopyOffer?.totalAreaSqM} m²). Voulez-vous copier ce dessin de toiture?`
+                : `A sibling site (${roofCopyOffer?.sourceName}) at this address has ${roofCopyOffer?.polygonCount} polygon(s) (${roofCopyOffer?.totalAreaSqM} m²). Copy this roof drawing?`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>
+              {language === "fr" ? "Non, dessiner manuellement" : "No, draw manually"}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={isRoofCopying}
+              onClick={() => {
+                setIsRoofCopying(true);
+                apiRequest<{ copied: boolean }>(
+                  "GET", `/api/sites/${id}/copy-roof-from-address`
+                ).then((result) => {
+                  if (result.copied) {
+                    queryClient.invalidateQueries({ queryKey: ['/api/sites', id, 'roof-polygons'] });
+                    queryClient.invalidateQueries({ queryKey: ['/api/sites', id] });
+                    toast({
+                      title: language === "fr"
+                        ? "Dessin de toit copié avec succès"
+                        : "Roof drawing copied successfully",
+                    });
+                  }
+                }).catch(() => {
+                  toast({
+                    title: language === "fr" ? "Erreur lors de la copie" : "Error copying roof drawing",
+                    variant: "destructive",
+                  });
+                }).finally(() => {
+                  setIsRoofCopying(false);
+                  setRoofCopyOffer(null);
+                });
+              }}
+            >
+              {isRoofCopying
+                ? (language === "fr" ? "Copie en cours..." : "Copying...")
+                : (language === "fr" ? "Oui, copier" : "Yes, copy")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
