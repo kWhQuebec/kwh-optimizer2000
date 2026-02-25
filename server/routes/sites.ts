@@ -1812,14 +1812,6 @@ router.get("/:id/copy-roof-from-address", authMiddleware, asyncHandler(async (re
     });
   }
 
-  const sourceSite = await storage.getSite(sourceSiteId);
-  if (sourceSite && (sourceSite.kbKwDc || sourceSite.kbPanelCount)) {
-    await storage.updateSite(req.params.id, {
-      kbKwDc: sourceSite.kbKwDc,
-      kbPanelCount: sourceSite.kbPanelCount,
-    });
-  }
-
   log.info(`Copied ${sourcePolygons.length} roof polygons from site ${sourceSiteId} to site ${req.params.id} (same address: "${currentSite.address}")`);
 
   res.json({
