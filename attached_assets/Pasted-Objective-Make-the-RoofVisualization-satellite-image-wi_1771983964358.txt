@@ -1,0 +1,35 @@
+Objective
+Make the RoofVisualization satellite image (with panel arrays, zone outlines, and constraints exactly as rendered by the Google Maps JS component) reliably appear in the Full PDF Report. The infrastructure is mostly already in place but the capture can silently fail and there is no user feedback.
+
+Context
+RoofVisualization.tsx already uses html2canvas to capture its rendered view
+documentDataProvider.ts already checks site.roofVisualizationImageUrl (Priority 1) before falling back to Google Static Maps
+The capture is triggered automatically on PDF download (onBeforeDownload) and after saving KB data
+Problem: No visual confirmation, no explicit save button, capture silently fails if the component isn't mounted or the tab isn't active
+Tasks
+T001: Add "Save Snapshot for PDF" Button with Visual Feedback
+Blocked By: []
+Details:
+Add a camera/snapshot icon button in the RoofVisualization control toolbar
+On click: shows a loading spinner while html2canvas captures the current Google Maps view (with panels, zones, constraints)
+On success: green checkmark + "Snapshot saved for PDF" toast
+On failure: error toast
+Wire via a new onSaveSnapshot?: () => Promise<void> prop passed down from site-detail/index.tsx (re-uses existing captureAndSaveVisualization function)
+Files: client/src/components/RoofVisualization.tsx, client/src/pages/site-detail/index.tsx
+Acceptance: User can explicitly save the snapshot and receives visual confirmation
+T002: Show Snapshot Thumbnail + Freshness Status Near the PDF Download Button
+Blocked By: [T001]
+Details:
+Near the "Download PDF" button in the site-detail page, show:
+A small thumbnail (approx 80×50px) of site.roofVisualizationImageUrl if it exists, wrapped in a tooltip "Image qui apparaîtra dans le PDF"
+If no snapshot: a subtle warning badge "Aucune capture — le PDF utilisera l'image satellite de base"
+Files: client/src/pages/site-detail/index.tsx
+Acceptance: User can see at a glance whether the PDF will use their panel visualization or the satellite fallback
+T003: Auto-save Snapshot After RoofVisualization Finishes Rendering Panels
+Blocked By: [T001]
+Details:
+In RoofVisualization.tsx, after the panel layout is computed and rendered on the map, trigger the capture callback with a 2-second debounce (same as the existing KB data save)
+Guard: only trigger when panel count or polygon count changes (avoid infinite loops)
+This ensures the snapshot stays current even without manual action
+Files: client/src/components/RoofVisualization.tsx
+Acceptance: After visiting the RoofVisualization step (even without clicking anything), the latest view is automatically saved and will appear in the next PDF
