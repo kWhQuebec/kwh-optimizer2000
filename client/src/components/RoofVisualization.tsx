@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Slider } from "@/components/ui/slider";
-import { Home, Sun, Zap, Maximize2, Layers, AlertTriangle, RefreshCw, PencilRuler, ChevronDown, Camera, Check } from "lucide-react";
+import { Home, Sun, Zap, Maximize2, Layers, AlertTriangle, RefreshCw, PencilRuler, ChevronDown } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
 import type { RoofPolygon } from "@shared/schema";
@@ -60,7 +60,6 @@ interface RoofVisualizationProps {
   }) => void;
   onVisualizationReady?: (captureFunction: () => Promise<string | null>) => void;
   onOpenRoofDrawing?: () => void;
-  onSaveSnapshot?: () => Promise<void>;
 }
 
 interface PanelPosition {
@@ -999,7 +998,6 @@ export function RoofVisualization({
   onGeometryCalculated,
   onVisualizationReady,
   onOpenRoofDrawing,
-  onSaveSnapshot,
 }: RoofVisualizationProps) {
   const { language } = useI18n();
   const { toast } = useToast();
@@ -1021,9 +1019,6 @@ export function RoofVisualization({
   const [totalUsableArea, setTotalUsableArea] = useState(0);
   const [constraintArea, setConstraintArea] = useState(0);
   const [isExporting, setIsExporting] = useState(false);
-  const [isSavingSnapshot, setIsSavingSnapshot] = useState(false);
-  const [snapshotSaved, setSnapshotSaved] = useState(false);
-  const prevPanelCountRef = useRef(0);
   const [panelsPerZone, setPanelsPerZone] = useState<Record<string, { count: number; label: string }>>({});
   const [zoneCount, setZoneCount] = useState(0);
   const [panelArrays, setPanelArrays] = useState<ArrayInfo[]>([]); // Panel arrays (numbered 1, 2, 3...)
@@ -2045,16 +2040,6 @@ export function RoofVisualization({
     }
   }, [onVisualizationReady, isLoading, allPanelPositions.length, captureVisualization]);
 
-  // T003: Auto-save snapshot when panel count changes (debounced, 2s)
-  useEffect(() => {
-    if (!onSaveSnapshot || isLoading || allPanelPositions.length === 0) return;
-    if (allPanelPositions.length === prevPanelCountRef.current) return;
-    prevPanelCountRef.current = allPanelPositions.length;
-    const timer = setTimeout(() => {
-      onSaveSnapshot().catch(() => {});
-    }, 2000);
-    return () => clearTimeout(timer);
-  }, [onSaveSnapshot, isLoading, allPanelPositions.length]);
 
   const hasPolygons = roofPolygons.length > 0;
 
@@ -2148,35 +2133,6 @@ export function RoofVisualization({
               title={language === "fr" ? "Dessiner le toit" : "Draw Roof"}
             >
               <PencilRuler className="w-4 h-4" />
-            </Button>
-          )}
-          {onSaveSnapshot && !isLoading && allPanelPositions.length > 0 && (
-            <Button
-              size="icon"
-              variant="secondary"
-              className={`border backdrop-blur-sm ${snapshotSaved ? "bg-green-500/80 border-green-400/50 text-white" : "bg-white/20 border-white/30 text-white hover:bg-white/30"}`}
-              onClick={async () => {
-                setIsSavingSnapshot(true);
-                setSnapshotSaved(false);
-                try {
-                  await onSaveSnapshot();
-                  setSnapshotSaved(true);
-                  setTimeout(() => setSnapshotSaved(false), 3000);
-                } finally {
-                  setIsSavingSnapshot(false);
-                }
-              }}
-              disabled={isSavingSnapshot}
-              data-testid="button-save-snapshot"
-              title={language === "fr" ? "Sauvegarder l'image pour le PDF" : "Save image for PDF"}
-            >
-              {isSavingSnapshot ? (
-                <RefreshCw className="w-4 h-4 animate-spin" />
-              ) : snapshotSaved ? (
-                <Check className="w-4 h-4" />
-              ) : (
-                <Camera className="w-4 h-4" />
-              )}
             </Button>
           )}
           <Button

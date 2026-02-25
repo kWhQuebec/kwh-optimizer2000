@@ -43,8 +43,7 @@ import {
   Mail,
   Gauge,
   FileSpreadsheet,
-  X,
-  Camera
+  X
 } from "lucide-react";
 import type { AnalysisAssumptions, SimulationRun, RoofPolygon, InsertRoofPolygon } from "@shared/schema";
 import { defaultAnalysisAssumptions } from "@shared/schema";
@@ -470,7 +469,6 @@ export default function SiteDetailPage() {
         setCustomAssumptions(prev => ({ ...prev, roofAreaSqFt: totalAreaSqFt }));
       }
       setIsRoofDrawingModalOpen(false);
-      setTimeout(() => { captureAndSaveVisualization(); }, 1500);
     },
     onError: (error) => {
       console.error("Error saving roof polygons:", error);
@@ -1007,33 +1005,6 @@ export default function SiteDetailPage() {
           )}
           {latestSimulation && postAnalysisSteps.includes(activeTab) && (
             <>
-              {site.roofVisualizationImageUrl ? (
-                <div
-                  className="relative h-9 rounded-md overflow-hidden border border-border shrink-0"
-                  style={{ width: 56 }}
-                  title={language === "fr" ? "Image du toit sauvegardée — apparaîtra dans le PDF" : "Saved roof snapshot — will appear in PDF"}
-                  data-testid="img-snapshot-thumbnail"
-                >
-                  <img
-                    src={site.roofVisualizationImageUrl}
-                    alt=""
-                    className="h-full w-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-black/20 flex items-end justify-end p-0.5">
-                    <Camera className="w-2.5 h-2.5 text-white drop-shadow" />
-                  </div>
-                </div>
-              ) : (
-                <Badge
-                  variant="outline"
-                  className="text-muted-foreground text-xs gap-1 shrink-0"
-                  title={language === "fr" ? "Aucune capture — le PDF utilisera l'image satellite" : "No snapshot — PDF will use satellite fallback"}
-                  data-testid="badge-no-snapshot"
-                >
-                  <Camera className="w-3 h-3" />
-                  {language === "fr" ? "Aucune capture" : "No snapshot"}
-                </Badge>
-              )}
               {(() => {
                 const qualifiedStages = ["qualified", "analysis_done", "design_mandate_signed", "epc_proposal_sent", "negotiation", "won"];
                 const isQualified = !!designAgreement || opportunities.some(opp => qualifiedStages.includes(opp.stage));
@@ -1042,7 +1013,6 @@ export default function SiteDetailPage() {
                     simulationId={latestSimulation.id}
                     siteName={site.name}
                     optimizationTarget={optimizationTarget}
-                    onBeforeDownload={captureAndSaveVisualization}
                     isQualified={isQualified || isStaff}
                   />
                 );
@@ -1941,13 +1911,11 @@ export default function SiteDetailPage() {
                       kbKwDc: newKw
                     }).then(() => {
                       queryClient.invalidateQueries({ queryKey: ['/api/sites', id] });
-                      setTimeout(() => { captureAndSaveVisualization(); }, 1500);
                     }).catch(err => console.error('Failed to save roof capacity:', err));
                   }
                 }
               }}
               onVisualizationReady={(captureFunc) => { visualizationCaptureRef.current = captureFunc; }}
-              onSaveSnapshot={captureAndSaveVisualization}
             />
           )}
 
@@ -2350,7 +2318,6 @@ export default function SiteDetailPage() {
                 onCompareScenarios={(site.simulationRuns?.length ?? 0) > 1 ? () => setActiveTab("compare") : undefined}
                 onGeometryUpdate={(data) => setGeometryCapacity(data)}
                 onVisualizationCaptureReady={(captureFunc) => { visualizationCaptureRef.current = captureFunc; }}
-                onSaveSnapshot={captureAndSaveVisualization}
               />
               {isStaff && latestSimulation && (
                 <Collapsible>

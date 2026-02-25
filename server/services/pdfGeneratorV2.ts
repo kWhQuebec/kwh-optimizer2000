@@ -42,6 +42,65 @@ function smartCur(value: number | null | undefined): string {
   return `${sign}${Math.round(abs).toLocaleString("fr-CA")} $`;
 }
 
+/**
+ * Build an SVG zone/constraint outline overlay for the satellite image.
+ * Uses Google Static Maps Mercator projection (same math as getRoofVisualizationUrl).
+ * Returns empty string if no polygons or no center.
+ */
+function buildRoofSvgOverlay(
+  roofPolygons: Array<{ coordinates: [number, number][]; color: string; label?: string }>,
+  center: { lat: number; lng: number; zoom: number },
+  imgWidth = 800,
+  imgHeight = 500
+): string {
+  if (!roofPolygons || roofPolygons.length === 0) return "";
+
+  // Mercator world-coordinate helpers (same as Google Maps JS API)
+  const TILE = 256;
+  function latLngToWorld(lat: number, lng: number): { x: number; y: number } {
+    const x = (lng + 180) / 360 * TILE;
+    const sinLat = Math.sin(lat * Math.PI / 180);
+    const y = (0.5 - Math.log((1 + sinLat) / (1 - sinLat)) / (4 * Math.PI)) * TILE;
+    return { x, y };
+  }
+
+  const scale = Math.pow(2, center.zoom);
+  const centerWorld = latLngToWorld(center.lat, center.lng);
+
+  function toPixel(lat: number, lng: number): { x: number; y: number } {
+    const w = latLngToWorld(lat, lng);
+    return {
+      x: (w.x - centerWorld.x) * scale + imgWidth / 2,
+      y: (w.y - centerWorld.y) * scale + imgHeight / 2,
+    };
+  }
+
+  let paths = "";
+  for (const polygon of roofPolygons) {
+    if (!polygon.coordinates || polygon.coordinates.length < 3) continue;
+    const isConstraint = polygon.color === "#f97316" ||
+      (polygon.label?.toLowerCase().includes("constraint") ||
+       polygon.label?.toLowerCase().includes("contrainte") ||
+       polygon.label?.toLowerCase().includes("hvac") ||
+       polygon.label?.toLowerCase().includes("obstacle"));
+
+    const strokeColor = isConstraint ? "#f97316" : "#22c55e";
+    const fillColor = isConstraint ? "rgba(249,115,22,0.15)" : "rgba(34,197,94,0.12)";
+    const strokeWidth = isConstraint ? 1.5 : 2;
+
+    const points = polygon.coordinates.map(([lng, lat]) => {
+      const px = toPixel(lat, lng);
+      return `${px.x.toFixed(1)},${px.y.toFixed(1)}`;
+    }).join(" ");
+
+    paths += `<polygon points="${points}" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" stroke-linejoin="round" />`;
+  }
+
+  if (!paths) return "";
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${imgWidth} ${imgHeight}" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;">${paths}</svg>`;
+}
+
 function orientationLabel(azimuth: number | undefined, lang: "fr" | "en"): string {
   if (azimuth === undefined) return lang === "fr" ? "N/D" : "N/A";
   const dirs = lang === "fr"
@@ -109,7 +168,7 @@ export async function generateProfessionalPDFv2(
   nextPage();
 
   pages.push(buildWhySolarNowPage(t, lang, nextPage()));
-  pages.push(buildProjectSnapshotPage(simulation, t, totalProductionKWh, roofImageBase64, nextPage(), isSyntheticData));
+  pages.push(buildProjectSnapshotPage(simulation, t, totalProductionKWh, roofImageBase64, nextPage(), isSyntheticData, (simulation as any).satelliteCenter));
   pages.push(buildResultsPage(simulation, t, totalProductionKWh, nextPage()));
   pages.push(buildNetInvestmentPage(simulation, t, nextPage()));
 
@@ -446,7 +505,8 @@ function buildProjectSnapshotPage(
   totalProductionKWh: number,
   roofImageBase64: string | null,
   pageNum: number,
-  isSyntheticData: boolean = false
+  isSyntheticData: boolean = false,
+  satelliteCenter?: { lat: number; lng: number; zoom: number }
 ): string {
   const co2Total25yr = sim.co2AvoidedTonnesPerYear * 25;
   const co2Trees = Math.round((co2Total25yr * 1000) / 21.77);
@@ -463,18 +523,14 @@ function buildProjectSnapshotPage(
 
   const hasOverlayData = totalRoofAreaSqM > 0 || capacityKW > 0;
 
-  const legendHtml = hasOverlayData ? `
+  const legendHtml = (zoneCount > 0 || constraintPolygons.length > 0) ? `
     <div style="position: absolute; top: 8px; left: 8px; display: flex; flex-direction: column; gap: 4px; z-index: 2;">
-      <div style="display: flex; align-items: center; gap: 4px; background: rgba(0,0,0,0.55); border-radius: 3px; padding: 2px 6px;">
-        <div style="width: 8px; height: 8px; background: #3b82f6; border-radius: 1px;"></div>
-        <span style="color: white; font-size: 7pt;">${t("Panneaux solaires", "Solar panels")}</span>
-      </div>
       ${zoneCount > 0 ? `<div style="display: flex; align-items: center; gap: 4px; background: rgba(0,0,0,0.55); border-radius: 3px; padding: 2px 6px;">
-        <div style="width: 8px; height: 8px; border: 1.5px solid #22c55e; border-radius: 1px;"></div>
-        <span style="color: white; font-size: 7pt;">${zoneCount} ${t("zones unifi&eacute;es", "unified zones")}</span>
+        <div style="width: 8px; height: 8px; border: 2px solid #22c55e; background: rgba(34,197,94,0.2); border-radius: 1px;"></div>
+        <span style="color: white; font-size: 7pt;">${zoneCount} ${t("zone(s) solaire(s)", "solar zone(s)")}</span>
       </div>` : ""}
       ${constraintPolygons.length > 0 ? `<div style="display: flex; align-items: center; gap: 4px; background: rgba(0,0,0,0.55); border-radius: 3px; padding: 2px 6px;">
-        <div style="width: 8px; height: 8px; background: #f97316; border-radius: 1px;"></div>
+        <div style="width: 8px; height: 8px; border: 1.5px solid #f97316; background: rgba(249,115,22,0.2); border-radius: 1px;"></div>
         <span style="color: white; font-size: 7pt;">${t("Contraintes", "Constraints")}</span>
       </div>` : ""}
     </div>
@@ -501,9 +557,14 @@ function buildProjectSnapshotPage(
     </div>
   ` : "";
 
+  const svgOverlay = satelliteCenter
+    ? buildRoofSvgOverlay(roofPolygons as any, satelliteCenter, 800, 500)
+    : "";
+
   const satelliteHtml = roofImageBase64
     ? `<div style="position: relative; width: 100%; height: 75mm; border-radius: 2mm; overflow: hidden;">
         <img src="${roofImageBase64}" style="width: 100%; height: 100%; object-fit: cover;" />
+        ${svgOverlay}
         ${legendHtml}
         ${badgesHtml}
         ${siteInfoOverlay}

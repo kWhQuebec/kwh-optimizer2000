@@ -29,6 +29,7 @@ export interface DocumentSimulationData {
   };
   roofPolygons?: RoofPolygonData[];
   roofVisualizationBuffer?: Buffer;
+  satelliteCenter?: { lat: number; lng: number; zoom: number };
   pvSizeKW: number;
   battEnergyKWh: number;
   battPowerKW: number;
@@ -162,6 +163,7 @@ export interface DocumentData {
   simulation: SimulationRun & { site: Site & { client: Client } };
   roofPolygons: RoofPolygonData[];
   roofVisualizationBuffer?: Buffer;
+  satelliteCenter?: { lat: number; lng: number; zoom: number };
   siteSimulations: (SimulationRun & { site: Site & { client: Client } })[];
   isSynthetic: boolean;
   catalogEquipment?: Array<{
@@ -205,8 +207,11 @@ export async function prepareDocumentData(simulationId: string, storage: IStorag
   }));
 
   let roofVisualizationBuffer: Buffer | undefined;
+  let satelliteCenter: { lat: number; lng: number; zoom: number } | undefined;
 
   const MIN_VALID_IMAGE_SIZE = 10 * 1024;
+  const IMG_WIDTH = 800;
+  const IMG_HEIGHT = 500;
 
   async function fetchImageWithRedirects(url: string): Promise<Buffer> {
     const mod = url.startsWith("https") ? await import("https") : await import("http");
@@ -228,57 +233,58 @@ export async function prepareDocumentData(simulationId: string, storage: IStorag
     });
   }
 
-  // Priority 1: Use stored html2canvas capture (includes panels, zones, constraints, badges)
-  if (simulation.site.roofVisualizationImageUrl) {
-    log.info("Trying stored html2canvas capture (includes panel overlay)");
-    try {
-      const imgUrl = simulation.site.roofVisualizationImageUrl;
-      if (imgUrl.startsWith("data:image/")) {
-        const base64Data = imgUrl.split(",")[1];
-        if (base64Data) {
-          const buf = Buffer.from(base64Data, "base64");
-          if (buf.length >= MIN_VALID_IMAGE_SIZE) {
-            roofVisualizationBuffer = buf;
-            log.info(`Stored roof visualization with panels accepted: ${buf.length} bytes`);
-          } else {
-            log.warn(`Stored roof image data URL too small (${buf.length} bytes) — trying Google Static Maps`);
-          }
-        }
-      } else if (imgUrl.startsWith("http")) {
-        const buf = await fetchImageWithRedirects(imgUrl);
-        if (buf.length >= MIN_VALID_IMAGE_SIZE) {
-          roofVisualizationBuffer = buf;
-          log.info(`Stored roof image from URL accepted: ${buf.length} bytes`);
-        } else {
-          log.warn(`Stored roof image from URL too small (${buf.length} bytes) — trying Google Static Maps`);
-        }
+  // Compute centroid and auto-zoom matching getRoofVisualizationUrl logic exactly
+  function computeSatelliteCenter(polygons: typeof roofPolygonsRaw, fallbackLat: number, fallbackLng: number): { lat: number; lng: number; zoom: number } {
+    const allCoords: { lat: number; lng: number }[] = [];
+    polygons.forEach(p => {
+      const coords = p.coordinates as [number, number][];
+      if (coords && coords.length >= 3) {
+        coords.forEach(([lng, lat]) => allCoords.push({ lat, lng }));
       }
-    } catch (fallbackError) {
-      log.error("Failed to load stored roof visualization image:", fallbackError);
+    });
+    if (allCoords.length === 0) return { lat: fallbackLat, lng: fallbackLng, zoom: 18 };
+
+    const sumLat = allCoords.reduce((s, c) => s + c.lat, 0);
+    const sumLng = allCoords.reduce((s, c) => s + c.lng, 0);
+    const centerLat = sumLat / allCoords.length;
+    const centerLng = sumLng / allCoords.length;
+
+    const minLat = Math.min(...allCoords.map(c => c.lat));
+    const maxLat = Math.max(...allCoords.map(c => c.lat));
+    const minLng = Math.min(...allCoords.map(c => c.lng));
+    const maxLng = Math.max(...allCoords.map(c => c.lng));
+    const paddedLatSpan = (maxLat - minLat) * 1.15;
+    const paddedLngSpan = (maxLng - minLng) * 1.15;
+
+    let zoom = 18;
+    if (paddedLatSpan > 0 || paddedLngSpan > 0) {
+      const WORLD_DIM = 256 * 2;
+      const latZoom = paddedLatSpan > 0 ? Math.floor(Math.log2((180 * IMG_HEIGHT) / (paddedLatSpan * WORLD_DIM))) : 20;
+      const lngZoom = paddedLngSpan > 0 ? Math.floor(Math.log2((360 * IMG_WIDTH) / (paddedLngSpan * WORLD_DIM))) : 20;
+      zoom = Math.max(Math.min(latZoom, lngZoom, 20), 15);
     }
+    return { lat: centerLat, lng: centerLng, zoom };
   }
 
-  // Priority 2: Fallback to Google Static Maps API (may not include panel overlay)
-  if (!roofVisualizationBuffer && simulation.site.latitude && simulation.site.longitude) {
-    const hasPolygons = roofPolygonsRaw.length > 0;
-    log.info(`Fallback: fetching satellite image via Google Static Maps API (${hasPolygons ? `with ${roofPolygonsRaw.length} polygon overlays` : "plain satellite view"})`);
+  // Fetch clean satellite tile from Google Static Maps (no polygon blobs baked in)
+  // Zone outlines are rendered as SVG overlay in the PDF HTML template
+  if (simulation.site.latitude && simulation.site.longitude) {
+    const center = computeSatelliteCenter(roofPolygonsRaw, simulation.site.latitude, simulation.site.longitude);
+    satelliteCenter = center;
+    log.info(`Fetching satellite image: center=${center.lat.toFixed(6)},${center.lng.toFixed(6)} zoom=${center.zoom}`);
     try {
       const { getRoofVisualizationUrl } = await import("./googleSolarService");
       const roofImageUrl = getRoofVisualizationUrl(
-        { latitude: simulation.site.latitude, longitude: simulation.site.longitude },
-        hasPolygons ? roofPolygonsRaw.map(p => ({
-          coordinates: p.coordinates as [number, number][],
-          color: p.color || "#3b82f6",
-          label: p.label || undefined,
-        })) : [],
-        { width: 800, height: 500, zoom: 18, skipPolygons: !hasPolygons }
+        { latitude: center.lat, longitude: center.lng },
+        [],
+        { width: IMG_WIDTH, height: IMG_HEIGHT, zoom: center.zoom, skipPolygons: true }
       );
 
       if (roofImageUrl) {
         const buf = await fetchImageWithRedirects(roofImageUrl);
         if (buf.length >= MIN_VALID_IMAGE_SIZE) {
           roofVisualizationBuffer = buf;
-          log.info(`Google Static Maps roof image fetched: ${buf.length} bytes`);
+          log.info(`Google Static Maps satellite image fetched: ${buf.length} bytes`);
         } else {
           log.warn(`Google Static Maps image too small (${buf.length} bytes) — skipping`);
         }
@@ -286,7 +292,7 @@ export async function prepareDocumentData(simulationId: string, storage: IStorag
         log.warn("getRoofVisualizationUrl returned null — Google API key may not be configured");
       }
     } catch (imgError) {
-      log.error("Failed to fetch Google Static Maps roof visualization:", imgError);
+      log.error("Failed to fetch Google Static Maps satellite image:", imgError);
     }
   }
 
@@ -347,6 +353,7 @@ export async function prepareDocumentData(simulationId: string, storage: IStorag
     simulation,
     roofPolygons,
     roofVisualizationBuffer,
+    satelliteCenter,
     siteSimulations,
     isSynthetic,
     catalogEquipment,
