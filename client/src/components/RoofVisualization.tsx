@@ -1901,11 +1901,97 @@ export function RoofVisualization({
 
   const captureVisualization = useCallback(async (): Promise<string | null> => {
     const target = mapAreaRef.current;
+    const map = mapRef.current;
     if (!target) return null;
-    
+
     try {
       await new Promise(resolve => setTimeout(resolve, 500));
-      
+
+      // --- Draw panel polygons as a DOM canvas overlay (html2canvas can't capture WebGL google.maps.Polygon) ---
+      let panelOverlay: HTMLCanvasElement | null = null;
+      if (map && panelPolygonsRef.current.length > 0) {
+        try {
+          const mapDiv = map.getDiv();
+          const rect = mapDiv.getBoundingClientRect();
+          const targetRect = target.getBoundingClientRect();
+
+          panelOverlay = document.createElement('canvas');
+          panelOverlay.width = rect.width * 2;
+          panelOverlay.height = rect.height * 2;
+          panelOverlay.style.position = 'absolute';
+          panelOverlay.style.left = `${rect.left - targetRect.left}px`;
+          panelOverlay.style.top = `${rect.top - targetRect.top}px`;
+          panelOverlay.style.width = `${rect.width}px`;
+          panelOverlay.style.height = `${rect.height}px`;
+          panelOverlay.style.pointerEvents = 'none';
+          panelOverlay.style.zIndex = '1';
+          target.appendChild(panelOverlay);
+
+          const ctx = panelOverlay.getContext('2d');
+          if (ctx) {
+            ctx.scale(2, 2);
+            const bounds = map.getBounds();
+            const projection = map.getProjection();
+
+            if (bounds && projection) {
+              const ne = bounds.getNorthEast();
+              const sw = bounds.getSouthWest();
+              const topRight = projection.fromLatLngToPoint(ne)!;
+              const bottomLeft = projection.fromLatLngToPoint(sw)!;
+              const scale = Math.pow(2, map.getZoom()!);
+
+              const toPixel = (lat: number, lng: number) => {
+                const worldPoint = projection.fromLatLngToPoint(new google.maps.LatLng(lat, lng))!;
+                return {
+                  x: (worldPoint.x - bottomLeft.x) * scale,
+                  y: (worldPoint.y - topRight.y) * scale,
+                };
+              };
+
+              const panelsToRender = allPanelPositions.slice(0, panelsToShow);
+              for (let i = 0; i < panelsToRender.length; i++) {
+                const panel = panelsToRender[i];
+                let corners: { lat: number; lng: number }[];
+                if (panel.corners && panel.corners.length === 4) {
+                  corners = panel.corners;
+                } else {
+                  corners = [
+                    { lat: panel.lat, lng: panel.lng },
+                    { lat: panel.lat, lng: panel.lng + panel.widthDeg },
+                    { lat: panel.lat + panel.heightDeg, lng: panel.lng + panel.widthDeg },
+                    { lat: panel.lat + panel.heightDeg, lng: panel.lng },
+                  ];
+                }
+
+                const positionRatio = panelsToRender.length > 1 ? i / (panelsToRender.length - 1) : 0;
+                const fillOpacity = 0.9 - positionRatio * 0.35;
+                const fillColor = positionRatio < 0.3 ? "#2563eb" : positionRatio < 0.7 ? "#3b82f6" : "#60a5fa";
+
+                ctx.beginPath();
+                corners.forEach((c, idx) => {
+                  const px = toPixel(c.lat, c.lng);
+                  if (idx === 0) ctx.moveTo(px.x, px.y);
+                  else ctx.lineTo(px.x, px.y);
+                });
+                ctx.closePath();
+                ctx.fillStyle = fillColor.replace('#', 'rgba(') === fillColor
+                  ? `${fillColor}` : fillColor;
+                ctx.globalAlpha = fillOpacity;
+                ctx.fill();
+                ctx.globalAlpha = 0.9;
+                ctx.strokeStyle = "#1e40af";
+                ctx.lineWidth = 0.5;
+                ctx.stroke();
+              }
+              ctx.globalAlpha = 1;
+            }
+          }
+        } catch (overlayErr) {
+          console.warn('Panel overlay drawing failed (non-blocking):', overlayErr);
+        }
+      }
+      // --- End panel overlay ---
+
       const hideSelectors = [
         '[data-testid="button-export-image"]',
         '[data-testid="button-fullscreen"]',
@@ -1932,14 +2018,19 @@ export function RoofVisualization({
 
       target.style.overflow = prevOverflow;
       hidden.forEach(el => { el.style.visibility = ''; });
-      
+
+      // Remove the temporary panel overlay
+      if (panelOverlay && panelOverlay.parentNode) {
+        panelOverlay.parentNode.removeChild(panelOverlay);
+      }
+
       const dataUrl = canvas.toDataURL('image/png');
       return dataUrl;
     } catch (error) {
       console.error('Failed to capture visualization:', error);
       return null;
     }
-  }, []);
+  }, [allPanelPositions, panelsToShow]);
 
   // Notify parent when visualization is ready for capture
   useEffect(() => {
