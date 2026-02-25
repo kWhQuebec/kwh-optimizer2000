@@ -2477,6 +2477,11 @@ export interface AnalysisAssumptions {
   // NOT client's energy tariff rate - HQ compensates at cost of supply after 24-month bank reset
   hqSurplusCompensationRate?: number;  // $/kWh - default 0.0460 (4.60¢/kWh)
 
+  // HQ OSE 6.0: Net metering vs GDP (Gestion de Puissance) — mutually exclusive
+  // true = mesurage net active (surplus credited), false = GDP mode (no surplus, demand shaving only)
+  // Auto-detected from hqTariffDetail containing "GDP"; override manually if needed
+  netMeteringEnabled?: boolean;  // Default: true
+
   snowLossProfile?: 'none' | 'flat_roof' | 'tilted' | 'ballasted_10deg'; // Snow loss profile: ballasted_10deg (NAIT 5%, default for Google), flat_roof (PVGIS ~15%), tilted (>15° slope ~10%), none
 
   // EPC gross margin applied to catalog cost prices for sell pricing
@@ -2540,6 +2545,9 @@ export const defaultAnalysisAssumptions: AnalysisAssumptions = {
   // After 24-month bank reset, surplus kWh compensated at this rate (NOT client tariff)
   hqSurplusCompensationRate: 0.0460, // 4.60¢/kWh (HQ cost of supply April 2025)
 
+  // HQ OSE 6.0: Default to net metering enabled (most clients)
+  netMeteringEnabled: true,
+
   snowLossProfile: 'ballasted_10deg' as const,
 
   // EPC gross margin — sellPrice = cost / (1 - 0.35)
@@ -2565,6 +2573,7 @@ export interface FinancialBreakdown {
   capexSolar: number;
   capexBattery: number;
   capexGross: number;
+  capexAdmissible: number;  // HQ OSE 6.0: Solar CAPEX only — base for 40% HQ cap (excludes battery, interconnection, financing)
   
   // Incentives
   potentialHQSolar: number;     // $1000/kW

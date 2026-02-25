@@ -506,13 +506,13 @@ export function generateMethodologyPDF(
   doc.moveDown(0.5);
 
   const hqIncentives = lang === "fr" ? [
-    "• Solaire: 1 000 $/kWc installé",
-    "• Stockage: 300 $/kW de capacité",
-    "• Plafond: 40% du CAPEX brut",
+    "• Solaire: 1 000 $/kWc installé (programme Solutions efficaces OSE 6.0)",
+    "• Plafond: 40% des coûts admissibles (solaire seulement, excluant stockage, raccordement et financement)",
+    "• Limite: 1 MW par installation",
   ] : [
-    "• Solar: $1,000/kWp installed",
-    "• Storage: $300/kW capacity",
-    "• Cap: 40% of gross CAPEX",
+    "• Solar: $1,000/kWp installed (Solutions efficaces OSE 6.0 program)",
+    "• Cap: 40% of admissible costs (solar only, excludes storage, interconnection and financing)",
+    "• Limit: 1 MW per installation",
   ];
 
   hqIncentives.forEach(item => {
@@ -524,8 +524,8 @@ export function generateMethodologyPDF(
   doc.rect(margin, doc.y, contentWidth, 35).fillAndStroke("#F0F4F8", COLORS.blue);
   doc.fontSize(10).fillColor(COLORS.darkGray).font("Courier");
   doc.text(t(
-    "Incitatif_HQ = min(PV_kWc × 1000 + Batt_kW × 300, CAPEX × 0.40)",
-    "HQ_incentive = min(PV_kWp × 1000 + Batt_kW × 300, CAPEX × 0.40)"
+    "Incitatif_HQ = min(PV_kWc × 1000, CAPEX_admissible × 0.40, 1000kW × 1000$)",
+    "HQ_incentive = min(PV_kWp × 1000, admissible_CAPEX × 0.40, 1000kW × $1000)"
   ), margin + 10, doc.y - 30);
   doc.font("Helvetica");
   doc.moveDown(2.5);

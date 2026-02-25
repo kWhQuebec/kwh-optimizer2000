@@ -545,8 +545,10 @@ export function runScenarioWithSizing(
   const gridChargingCost = simResult.totalGridChargingKWh * h.tariffEnergy;
   const annualSavings = (energySavings - gridChargingCost) + demandSavings;
 
+  // HQ OSE 6.0: Mesurage net vs GDP mutually exclusive
+  const netMeteringActive = h.netMeteringEnabled !== false;
   const scenarioHqSurplusRate = h.hqSurplusCompensationRate ?? 0.0454;
-  const annualSurplusRevenue = annualExportedKWh * scenarioHqSurplusRate;
+  const annualSurplusRevenue = netMeteringActive ? (annualExportedKWh * scenarioHqSurplusRate) : 0;
 
   const baseSolarCostPerW = h.solarCostPerW ?? getTieredSolarCostPerW(pvSizeKW);
   const effectiveSolarCostPerW = h.bifacialEnabled
@@ -586,7 +588,9 @@ export function runScenarioWithSizing(
   const eligibleSolarKW = Math.min(pvSizeKW, 1000);
   const potentialHQSolar = eligibleSolarKW * 1000;
   const potentialHQBattery = 0;
-  const cap40Percent = capexGross * 0.40;
+  // HQ OSE 6.0: 40% cap on admissible costs only (solar, excludes battery/interconnection/financing)
+  const capexAdmissible = capexPV;
+  const cap40Percent = capexAdmissible * 0.40;
 
   let incentivesHQSolar = Math.min(potentialHQSolar, cap40Percent);
 
@@ -782,9 +786,11 @@ export function runSensitivityAnalysis(
     : ((assumptions.roofAreaSqFt / 10.764) * assumptions.roofUtilizationRatio / 3.71) * 0.660;
 
   const solarSteps = 20;
+  // HQ OSE 6.0: PV ≤ peak demand (puissance max appelée) AND ≤ roof capacity
+  const effectivePvCap = Math.min(maxPVFromRoof, peakKW);
   const solarMax = Math.min(
-    Math.max(configuredPvSizeKW * 1.5, maxPVFromRoof * 0.5),
-    maxPVFromRoof
+    Math.max(configuredPvSizeKW * 1.5, effectivePvCap * 0.5),
+    effectivePvCap
   );
   const solarStep = Math.max(5, Math.round(solarMax / solarSteps / 5) * 5);
 

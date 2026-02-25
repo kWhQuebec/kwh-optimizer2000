@@ -136,10 +136,11 @@ export function createSimplifiedScenarioRunner(
     const capexGross = pvSizeKW * 1000 * solarCostPerW;
     
     // Incentives (aligned with main financial engine)
-    // HQ: $1000/kW capped at 40% of gross CAPEX, max 1MW
+    // HQ OSE 6.0: $1000/kW capped at 40% of ADMISSIBLE CAPEX (solar only), max 1MW
+    const capexAdmissible = capexGross; // In MC wrapper, capexGross = solar only (no battery modeled)
     const hqIncentive = Math.min(
-      pvSizeKW * 1000, 
-      capexGross * 0.40,
+      pvSizeKW * 1000,
+      capexAdmissible * 0.40,
       1000 * 1000 // 1MW cap
     );
     const afterHQ = capexGross - hqIncentive;
@@ -157,7 +158,9 @@ export function createSimplifiedScenarioRunner(
     // Energy savings year 1 (surplus revenue separated - delayed to year 3 per HQ 24-month cycle)
     const energyRate = tariffEnergy || h.tariffEnergy || 0.06;
     const energySavingsY1 = selfConsumedKWh * energyRate;
-    const surplusRevenueY1 = exportedKWh * (h.hqSurplusCompensationRate || 0.046);
+    // HQ OSE 6.0: No surplus revenue in GDP mode
+    const mcNetMeteringActive = h.netMeteringEnabled !== false;
+    const surplusRevenueY1 = mcNetMeteringActive ? exportedKWh * (h.hqSurplusCompensationRate || 0.046) : 0;
     
     // Demand charge savings (simplified model)
     // Estimate solar covers ~10-15% of peak during peak hours (conservative)

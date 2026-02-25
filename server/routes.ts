@@ -829,9 +829,10 @@ function runPotentialAnalysis(
   
   // HQ Net Metering surplus revenue (new Dec 2024 program)
   // After 24 months, HQ compensates surplus kWh at cost of supply rate (NOT client tariff)
-  // Source: HQ Tariff Proposal R-4270-2024 - 4.54¢/kWh (coût moyen d'approvisionnement)
+  // HQ OSE 6.0: mesurage net and GDP are mutually exclusive
+  const netMeteringActive = h.netMeteringEnabled !== false;
   const hqSurplusRate = h.hqSurplusCompensationRate ?? 0.0454; // Default 4.54¢/kWh
-  const annualSurplusRevenue = totalExportedKWh * hqSurplusRate;
+  const annualSurplusRevenue = netMeteringActive ? (totalExportedKWh * hqSurplusRate) : 0;
   
   // ========== STEP 5: Calculate CAPEX ==========
   // Use tiered pricing based on system size (automatic, or override from assumptions)
@@ -845,14 +846,16 @@ function runPotentialAnalysis(
   const capexGross = capexPV + capexBattery;
   
   // ========== STEP 6: Calculate Quebec (HQ) incentives ==========
-  // Hydro-Québec: $1000/kW for solar, capped at 40% of total CAPEX
-  // Note: HQ Autoproduction program is limited to 1 MW - only first 1000 kW eligible for $1000/kW
+  // HQ OSE 6.0: $1000/kW for solar, capped at 40% of ADMISSIBLE CAPEX (solar only)
+  // Note: HQ programme is limited to 1 MW - only first 1000 kW eligible for $1000/kW
   // Battery: NO standalone $300/kW incentive (discontinued as of Dec 2024)
   // Battery can only receive HQ credit if paired with solar AND there's leftover room in the cap
+  // OSE 6.0: Excluded from admissible costs: battery, interconnection, financing
   const eligibleSolarKW = Math.min(pvSizeKW, 1000); // Pro-rata: only first 1 MW
   const potentialHQSolar = eligibleSolarKW * 1000;
   const potentialHQBattery = 0; // Discontinued - no standalone battery incentive
-  const cap40Percent = capexGross * 0.40;
+  const capexAdmissible = capexPV; // HQ OSE 6.0: only solar is admissible for 40% cap
+  const cap40Percent = capexAdmissible * 0.40;
   
   // Solar gets up to $1000/kW, capped at 40% of CAPEX
   let incentivesHQSolar = Math.min(potentialHQSolar, cap40Percent);

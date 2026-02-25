@@ -266,6 +266,7 @@ interface FinancialBreakdown {
   capexSolar: number;
   capexBattery: number;
   capexGross: number;
+  capexAdmissible: number;  // HQ OSE 6.0: Solar CAPEX only — base for 40% cap
   potentialHQSolar: number;
   potentialHQBattery: number;
   cap40Percent: number;
@@ -544,9 +545,11 @@ export function runPotentialAnalysis(
     : h.solarYieldKWhPerKWp || BASELINE_YIELD;
   const targetPVSize = (annualConsumptionKWh / effectiveYield) * 1.2;
   
-  const pvSizeKW = forcedSizing?.forcePvSize !== undefined 
+  // HQ OSE 6.0: PV ≤ puissance max appelée des 12 derniers mois (mesurage net requirement)
+  // peakKW is already derived from the meter readings (max kW observed over the billing period)
+  const pvSizeKW = forcedSizing?.forcePvSize !== undefined
     ? Math.round(forcedSizing.forcePvSize)
-    : Math.min(Math.round(targetPVSize), Math.round(maxPVFromRoof));
+    : Math.min(Math.round(targetPVSize), Math.round(maxPVFromRoof), Math.round(peakKW));
   
   const battPowerKW = forcedSizing?.forceBatteryPower !== undefined
     ? Math.round(forcedSizing.forceBatteryPower)
@@ -603,8 +606,11 @@ export function runPotentialAnalysis(
   const annualCostAfter = annualCostBefore - annualSavings;
   const savingsYear1 = annualSavings;
   
+  // HQ OSE 6.0: Mesurage net vs GDP are mutually exclusive
+  // When netMeteringEnabled=false (GDP mode), no surplus revenue — only demand shaving
+  const netMeteringActive = h.netMeteringEnabled !== false;
   const hqSurplusRate = h.hqSurplusCompensationRate ?? 0.0454;
-  const annualSurplusRevenue = totalExportedKWh * hqSurplusRate;
+  const annualSurplusRevenue = netMeteringActive ? (totalExportedKWh * hqSurplusRate) : 0;
   
   const baseSolarCostPerW = h.solarCostPerW ?? getTieredSolarCostPerW(pvSizeKW);
   const effectiveSolarCostPerW = h.bifacialEnabled 
@@ -613,11 +619,14 @@ export function runPotentialAnalysis(
   const capexPV = pvSizeKW * 1000 * effectiveSolarCostPerW;
   const capexBattery = battEnergyKWh * h.batteryCapacityCost + battPowerKW * h.batteryPowerCost;
   const capexGross = capexPV + capexBattery;
-  
+  // HQ OSE 6.0: 40% cap applies to admissible costs only (solar + installation)
+  // Excluded: battery storage, network interconnection fees, financing costs
+  const capexAdmissible = capexPV;
+
   const eligibleSolarKW = Math.min(pvSizeKW, 1000);
   const potentialHQSolar = eligibleSolarKW * 1000;
   const potentialHQBattery = 0;
-  const cap40Percent = capexGross * 0.40;
+  const cap40Percent = capexAdmissible * 0.40;
   
   let incentivesHQSolar = Math.min(potentialHQSolar, cap40Percent);
   
@@ -809,6 +818,7 @@ export function runPotentialAnalysis(
     capexSolar: capexPV,
     capexBattery: capexBattery,
     capexGross: capexGross,
+    capexAdmissible: capexAdmissible,
     potentialHQSolar: potentialHQSolar,
     potentialHQBattery: potentialHQBattery,
     cap40Percent: cap40Percent,
