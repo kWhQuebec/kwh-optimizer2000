@@ -301,9 +301,10 @@ export default function PortfoliosPage() {
     queryKey: ["/api/portfolios"],
   });
 
-  const { data: clients = [] } = useQuery<Client[]>({
+  const { data: clientsData } = useQuery<{ clients: Client[]; total: number }>({
     queryKey: ["/api/clients"],
   });
+  const clients = clientsData?.clients ?? [];
 
   const createMutation = useMutation({
     mutationFn: async (data: PortfolioFormValues) => {
