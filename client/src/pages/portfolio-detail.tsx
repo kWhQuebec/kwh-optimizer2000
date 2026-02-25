@@ -2,9 +2,9 @@ import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
 import { 
-  ArrowLeft, Building2, Plus, Trash2, Calculator, FileText, 
+  ArrowLeft, Building2, Plus, Trash2, Calculator, FileText,
   Zap, Battery, DollarSign, TrendingUp, Leaf, Download, Loader2,
-  ChevronDown, ChevronUp, Pencil, Check, X, MapPin, Calendar, Users,
+  ChevronDown, ChevronUp, Pencil, Check, X,
   FileSignature, Send, Mail
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -27,7 +27,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useI18n } from "@/lib/i18n";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Portfolio, Site, PortfolioSiteWithDetails } from "@shared/schema";
-import PortfolioFinancialModels from "@/components/SiteFinancialModel";
+
 
 function formatCurrency(value: number | null | undefined): string {
   if (value === null || value === undefined) return "—";
@@ -386,99 +386,6 @@ interface PortfolioFullResponse {
     volumeDiscount: number;
     discountedCapex: number;
   };
-}
-
-import { COMMUNITY_SESSIONS } from "@shared/communitySessionData";
-
-function CommunityFlyerSection({ portfolioId, language }: { portfolioId: string; language: string }) {
-  const [downloading, setDownloading] = useState<number | null>(null);
-  const { toast } = useToast();
-
-  const handleDownload = async (sessionIndex: number) => {
-    setDownloading(sessionIndex);
-    try {
-      const response = await fetch(`/api/portfolios/${portfolioId}/community-flyer/${sessionIndex}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-      });
-      if (!response.ok) throw new Error("Download failed");
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `Community_Flyer_${sessionIndex + 1}.pdf`;
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch {
-      toast({
-        title: language === "fr" ? "Erreur de téléchargement" : "Download failed",
-        description: language === "fr"
-          ? "Impossible de télécharger le dépliant. Veuillez réessayer."
-          : "Could not download the flyer. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setDownloading(null);
-    }
-  };
-
-  return (
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-      {COMMUNITY_SESSIONS.map((session, idx) => (
-        <div
-          key={idx}
-          className="border rounded-md p-3 flex flex-col gap-2"
-          data-testid={`card-community-session-${idx}`}
-        >
-          <div className="flex items-center gap-2 flex-wrap">
-            <Badge variant="outline" className="text-xs shrink-0">
-              {language === "fr" ? `Session ${idx + 1}` : `Session ${idx + 1}`}
-            </Badge>
-            {idx === 3 && (
-              <Badge variant="secondary" className="text-xs shrink-0">
-                {language === "fr" ? "Sessions 4-5 fusionnées" : "Sessions 4-5 merged"}
-              </Badge>
-            )}
-            <span className="text-xs text-muted-foreground truncate">
-              {language === "fr" ? session.regionFr : session.regionEn}
-            </span>
-          </div>
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Calendar className="w-3 h-3 shrink-0" />
-            <span>{language === "fr" ? session.dateFr : session.dateEn}</span>
-            <span className="mx-0.5">·</span>
-            <span>{language === "fr" ? session.timeFr : session.timeEn}</span>
-          </div>
-          <div className="flex items-start gap-1.5 text-xs text-muted-foreground">
-            <Building2 className="w-3 h-3 shrink-0 mt-0.5" />
-            <span className="line-clamp-2">{session.buildings.join(", ")}</span>
-          </div>
-          <div className="flex items-start gap-1.5 text-xs text-muted-foreground">
-            <MapPin className="w-3 h-3 shrink-0 mt-0.5" />
-            <span className="line-clamp-2">
-              {language === "fr" ? session.meetingAddressFr : session.meetingAddressEn}
-            </span>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="mt-auto w-full"
-            onClick={() => handleDownload(idx)}
-            disabled={downloading === idx}
-            data-testid={`button-download-flyer-${idx}`}
-          >
-            {downloading === idx ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <Download className="w-3.5 h-3.5" />
-            )}
-            <span className="ml-1.5">
-              {language === "fr" ? "Télécharger PDF" : "Download PDF"}
-            </span>
-          </Button>
-        </div>
-      ))}
-    </div>
-  );
 }
 
 export default function PortfolioDetailPage() {
@@ -1137,40 +1044,6 @@ export default function PortfolioDetailPage() {
         </CardContent>
       </Card>
 
-      {/* Per-Site Financial Models */}
-      <PortfolioFinancialModels
-        portfolioId={id!}
-        portfolioSites={portfolioSites.map(ps => ({
-          id: ps.id,
-          siteId: ps.siteId,
-          financialModel: (ps as any).financialModel,
-          site: {
-            id: ps.site.id,
-            name: ps.site.name,
-            address: ps.site.address || "",
-            city: ps.site.city || "",
-          }
-        }))}
-        language={language}
-      />
-
-      {/* Community Information Sessions — Dream-RFP */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="w-5 h-5" />
-            {language === "fr" ? "Rencontres d'information communautaires" : "Community Information Sessions"}
-          </CardTitle>
-          <CardDescription>
-            {language === "fr"
-              ? "Dépliants bilingues pour les rencontres de voisinage — Dream-RFP"
-              : "Bilingual flyers for neighbourhood meetings — Dream-RFP"}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <CommunityFlyerSection portfolioId={id!} language={language} />
-        </CardContent>
-      </Card>
 
       <Dialog open={isBatchProcurationDialogOpen} onOpenChange={(open) => {
         setIsBatchProcurationDialogOpen(open);
