@@ -27,6 +27,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useI18n } from "@/lib/i18n";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Portfolio, Site, PortfolioSiteWithDetails } from "@shared/schema";
+import PortfolioFinancialModels from "@/components/SiteFinancialModel";
 
 
 function formatCurrency(value: number | null | undefined): string {
@@ -1044,6 +1045,24 @@ export default function PortfolioDetailPage() {
         </CardContent>
       </Card>
 
+      {/* Per-Site Financial Models (Master Agreement / Annex A) — Dream RFP only */}
+      {portfolio.name.toLowerCase().includes("dream") && (
+        <PortfolioFinancialModels
+          portfolioId={id!}
+          portfolioSites={portfolioSites.map(ps => ({
+            id: ps.id,
+            siteId: ps.siteId,
+            financialModel: (ps as any).financialModel,
+            site: {
+              id: ps.site.id,
+              name: ps.site.name,
+              address: ps.site.address || "",
+              city: ps.site.city || "",
+            }
+          }))}
+          language={language}
+        />
+      )}
 
       <Dialog open={isBatchProcurationDialogOpen} onOpenChange={(open) => {
         setIsBatchProcurationDialogOpen(open);
