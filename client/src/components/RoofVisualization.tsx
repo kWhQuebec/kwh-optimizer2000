@@ -1052,7 +1052,7 @@ export function RoofVisualization({
   const netUsableArea = Math.max(0, totalUsableArea - constraintArea);
   const maxCapacity = allPanelPositions.length > 0 
     ? Math.round(allPanelPositions.length * PANEL_KW)
-    : Math.round((netUsableArea > 0 ? netUsableArea : (roofAreaSqFt ? roofAreaSqFt * 0.0929 : 1000)) * 0.85 * 0.187);
+    : Math.round((netUsableArea > 0 ? netUsableArea : (roofAreaSqFt ? roofAreaSqFt * 0.0929 : 1000)) * 0.85 / 3.71 * PANEL_KW);
   const minCapacity = Math.round(maxCapacity * 0.1);
 
   // Panels are grouped by module (arrayId). Detect module size from the data.
