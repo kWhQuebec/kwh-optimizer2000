@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import {
-  ChevronDown, ChevronUp, Building2, DollarSign, TrendingUp,
+  ChevronDown, ChevronUp, Building2, DollarSign,
   FileText, Loader2, Pencil, Check, X
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -79,7 +79,7 @@ const sections: Array<{
       { key: "yieldKwhPerKwp", labelFr: "Rendement (kWh/kWp)", labelEn: "Yield (kWh/kWp)", responsibility: "kwh", format: "number", getValue: m => m.projectSpecs.yieldKwhPerKwp },
       { key: "firstYearKwh", labelFr: "Production 1re année", labelEn: "1st Year Production", responsibility: "kwh", format: "kwh", getValue: m => m.projectSpecs.firstYearKwh },
       { key: "degradationPct", labelFr: "Dégradation annuelle", labelEn: "Annual Degradation", responsibility: "kwh", format: "percent", getValue: m => m.projectSpecs.degradationPct ? m.projectSpecs.degradationPct / 100 : null },
-      { key: "availabilityPct", labelFr: "Disponibilité", labelEn: "Availability", responsibility: "kwh", format: "percent", getValue: m => m.projectSpecs.availabilityPct ? m.projectSpecs.availabilityPct / 100 : null },
+      { key: "availabilityPct", labelFr: "Hypothèse de disponibilité", labelEn: "Availability Assumption", responsibility: "kwh", format: "percent", getValue: m => m.projectSpecs.availabilityPct ? m.projectSpecs.availabilityPct / 100 : null },
       { key: "usefulLifeYears", labelFr: "Durée de vie utile", labelEn: "Projected Useful Life", responsibility: "kwh", format: "years", getValue: m => m.projectSpecs.usefulLifeYears },
     ]
   },
@@ -93,22 +93,9 @@ const sections: Array<{
       { key: "constructionCosts", labelFr: "Coûts de construction", labelEn: "Construction Costs", responsibility: "kwh", format: "currency", getValue: m => m.projectCosts.constructionCosts },
       { key: "municipalFees", labelFr: "Frais municipaux", labelEn: "Municipal Fees", responsibility: "dream", format: "currency", getValue: m => m.projectCosts.municipalFees },
       { key: "interconnectionCost", labelFr: "Interconnexion (Hydro-Québec)", labelEn: "Interconnection (Hydro-Québec)", responsibility: "dream", format: "currency", getValue: m => m.projectCosts.interconnectionCost },
-      { key: "developmentFees", labelFr: "Frais de développement", labelEn: "Development Fees", responsibility: "kwh", format: "currency", getValue: m => m.projectCosts.developmentFees },
       { key: "totalProjectCost", labelFr: "Coût total du projet", labelEn: "Total Project Cost", responsibility: "computed", format: "currency", getValue: m => m.projectCosts.totalProjectCost },
       { key: "allInCosts", labelFr: "Coûts tout inclus", labelEn: "All-in Costs", responsibility: "computed", format: "currency", getValue: m => m.projectCosts.allInCosts },
       { key: "projectCostPerW", labelFr: "Coût du projet ($/W)", labelEn: "Project Cost ($/W)", responsibility: "computed", format: "currency_per_w", getValue: m => m.projectCosts.projectCostPerW },
-    ]
-  },
-  {
-    id: "revenue",
-    titleFr: "Revenus",
-    titleEn: "Revenue",
-    icon: TrendingUp,
-    fields: [
-      { key: "ppaRate", labelFr: "Taux PPA ($/kWh)", labelEn: "PPA Rate ($/kWh)", responsibility: "kwh", format: "rate", getValue: m => m.revenue.ppaRate },
-      { key: "ppaEscalator", labelFr: "Escalade PPA (%)", labelEn: "PPA Escalator (%)", responsibility: "kwh", format: "percent", getValue: m => m.revenue.ppaEscalator },
-      { key: "ppaLengthYears", labelFr: "Durée PPA", labelEn: "PPA Length", responsibility: "kwh", format: "years", getValue: m => m.revenue.ppaLengthYears },
-      { key: "tailRate", labelFr: "Taux résiduel ($/kWh)", labelEn: "Tail Rate ($/kWh)", responsibility: "kwh", format: "rate", getValue: m => m.revenue.tailRate },
     ]
   },
   {
@@ -126,21 +113,6 @@ const sections: Array<{
     ]
   },
   {
-    id: "financing",
-    titleFr: "Financement",
-    titleEn: "Financing",
-    icon: DollarSign,
-    fields: [
-      { key: "financingEnabled", labelFr: "Financement", labelEn: "Financing", responsibility: "kwh", format: "boolean", getValue: m => m.financing.financingEnabled },
-      { key: "debtPercent", labelFr: "% dette", labelEn: "Debt %", responsibility: "kwh", format: "percent", getValue: m => m.financing.debtPercent },
-      { key: "debtAmount", labelFr: "Montant dette", labelEn: "Debt Amount", responsibility: "computed", format: "currency", getValue: m => m.financing.debtAmount },
-      { key: "debtTerm", labelFr: "Terme", labelEn: "Term", responsibility: "kwh", format: "years", getValue: m => m.financing.debtTerm },
-      { key: "interestRate", labelFr: "Taux d'intérêt", labelEn: "Interest Rate", responsibility: "kwh", format: "percent", getValue: m => m.financing.interestRate },
-      { key: "dscrTarget", labelFr: "DSCR cible", labelEn: "DSCR Target", responsibility: "kwh", format: "number", getValue: m => m.financing.dscrTarget },
-      { key: "equity", labelFr: "Équité requise", labelEn: "Required Equity", responsibility: "computed", format: "currency", getValue: m => m.financing.equity },
-    ]
-  },
-  {
     id: "itc",
     titleFr: "Crédit d'impôt (CII)",
     titleEn: "Investment Tax Credit (ITC)",
@@ -153,15 +125,6 @@ const sections: Array<{
       { key: "nonEligibleCosts", labelFr: "Coûts non éligibles", labelEn: "Non-Eligible Costs", responsibility: "computed", format: "currency", getValue: m => m.itc.nonEligibleCosts },
       { key: "potentialItcRebate", labelFr: "Remise CII potentielle", labelEn: "Potential ITC Rebate", responsibility: "computed", format: "currency", getValue: m => m.itc.potentialItcRebate },
       { key: "effectiveItcRebate", labelFr: "Remise CII effective", labelEn: "Effective ITC Rebate", responsibility: "computed", format: "currency", getValue: m => m.itc.effectiveItcRebate },
-    ]
-  },
-  {
-    id: "results",
-    titleFr: "Résultats",
-    titleEn: "Results",
-    icon: TrendingUp,
-    fields: [
-      { key: "pretaxIrr", labelFr: "TRI avant impôt", labelEn: "Pretax IRR", responsibility: "computed", format: "percent", getValue: m => m.results.pretaxIrr },
     ]
   },
 ];

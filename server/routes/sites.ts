@@ -1812,6 +1812,9 @@ router.get("/:id/copy-roof-from-address", authMiddleware, asyncHandler(async (re
     });
   }
 
+  // kbKwDc and kbPanelCount are NOT copied — RoofVisualization recalculates them
+  // automatically via onGeometryCalculated when the user opens the page.
+
   log.info(`Copied ${sourcePolygons.length} roof polygons from site ${sourceSiteId} to site ${req.params.id} (same address: "${currentSite.address}")`);
 
   res.json({
