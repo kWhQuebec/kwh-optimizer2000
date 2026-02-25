@@ -126,7 +126,7 @@ export const WORKFLOW_STEPS: WorkflowStepDef[] = [
     gateBlockedEn: "Mandate + deposit required",
     isHardBlock: true,
     tabs: ["consumption", "analysis", "design-agreement"],
-    maxPoints: 550,
+    maxPoints: 600,  // +50 for OSE 6.0 eligibility check
   },
   {
     id: "technical-validation",
@@ -143,7 +143,7 @@ export const WORKFLOW_STEPS: WorkflowStepDef[] = [
     gateEn: "EPC agreement signed",
     isHardBlock: true,
     tabs: ["site-visit", "epc-proposal"],
-    maxPoints: 750,
+    maxPoints: 800,  // +50 for PV vs PMA validation
   },
   {
     id: "engineering",
@@ -160,7 +160,7 @@ export const WORKFLOW_STEPS: WorkflowStepDef[] = [
     gateEn: "Permits obtained, plans approved, budget confirmed",
     isHardBlock: true,
     tabs: ["plans-specs"],
-    maxPoints: 800,
+    maxPoints: 1150,  // +350 for HQ raccordement + conditional acceptance
   },
   {
     id: "construction",
@@ -177,7 +177,7 @@ export const WORKFLOW_STEPS: WorkflowStepDef[] = [
     gateEn: "Installation completed + inspection passed",
     isHardBlock: true,
     tabs: ["permits"],
-    maxPoints: 2000,
+    maxPoints: 2350,  // +350 for HQ authorization + mise en service
   },
   {
     id: "operation",
@@ -194,7 +194,7 @@ export const WORKFLOW_STEPS: WorkflowStepDef[] = [
     gateEn: "System in production",
     isHardBlock: false,
     tabs: ["operations"],
-    maxPoints: 2000,
+    maxPoints: 2400,  // +400 for OSE 6.0 claim + payment
   },
 ];
 
@@ -217,6 +217,7 @@ export const WORKFLOW_TASKS: WorkflowTaskDef[] = [
   { key: "s2_sign_mandate", stepNum: 2, assignedTo: "client", titleFr: "Signer le mandat + verser le dépôt", titleEn: "Sign mandate + pay deposit", points: 200, optional: false },
   { key: "s2_run_analysis", stepNum: 2, assignedTo: "account_manager", titleFr: "Lancer la validation économique", titleEn: "Run economic validation", points: 100, optional: false },
   { key: "s2_present_results", stepNum: 2, assignedTo: "account_manager", titleFr: "Présenter les résultats au client", titleEn: "Present results to client", points: 150, optional: false },
+  { key: "s2_validate_ose6_eligibility", stepNum: 2, assignedTo: "account_manager", titleFr: "Valider admissibilité OSE 6.0 (tarif, ≤1MW)", titleEn: "Validate OSE 6.0 eligibility (tariff, ≤1MW)", points: 50, optional: false },
 
   // ── Step 3: Validation technique ──
   { key: "s3_site_access", stepNum: 3, assignedTo: "client", titleFr: "Donner accès au site", titleEn: "Provide site access", points: 50, optional: false },
@@ -227,6 +228,7 @@ export const WORKFLOW_TASKS: WorkflowTaskDef[] = [
   { key: "s3_track_vc0", stepNum: 3, assignedTo: "account_manager", titleFr: "Suivre la progression du VC0", titleEn: "Track VC0 progress", points: 50, optional: false },
   { key: "s3_import_vc0", stepNum: 3, assignedTo: "account_manager", titleFr: "Importer VC0 dans la plateforme", titleEn: "Import VC0 into platform", points: 50, optional: false },
   { key: "s3_calibrate_cashflow", stepNum: 3, assignedTo: "account_manager", titleFr: "Calibrer CashflowEngine avec VC0", titleEn: "Calibrate CashflowEngine with VC0", points: 50, optional: false },
+  { key: "s3_validate_pv_vs_pma", stepNum: 3, assignedTo: "account_manager", titleFr: "Valider PV ≤ puissance max appelée (PMA)", titleEn: "Validate PV ≤ peak demand (PMA)", points: 50, optional: false },
 
   // ── Step 3 (suite): Proposition EPC (fait partie de la validation technique) ──
   { key: "s3_receive_epc", stepNum: 3, assignedTo: "client", titleFr: "Recevoir la proposition EPC complète", titleEn: "Receive complete EPC proposal", points: 50, optional: false },
@@ -238,6 +240,8 @@ export const WORKFLOW_TASKS: WorkflowTaskDef[] = [
   { key: "s4_approve_design", stepNum: 4, assignedTo: "client", titleFr: "Approuver le design final ou avenant", titleEn: "Approve final design or amendment", points: 250, optional: false },
   { key: "s4_coordinate_engineering", stepNum: 4, assignedTo: "account_manager", titleFr: "Coordonner rapport d'ingénieur", titleEn: "Coordinate engineering report", points: 100, optional: false },
   { key: "s4_prepare_amendment", stepNum: 4, assignedTo: "account_manager", titleFr: "Préparer avenant si requis", titleEn: "Prepare amendment if required", points: 100, optional: true },
+  { key: "s4_submit_hq_raccordement", stepNum: 4, assignedTo: "account_manager", titleFr: "Soumettre demande de raccordement HQ", titleEn: "Submit HQ interconnection request", points: 150, optional: false },
+  { key: "s4_receive_hq_acceptance", stepNum: 4, assignedTo: "account_manager", titleFr: "Recevoir acceptation conditionnelle HQ", titleEn: "Receive HQ conditional acceptance", points: 200, optional: false },
   { key: "s4_final_go", stepNum: 4, assignedTo: "account_manager", titleFr: "Obtenir GO final + permis confirmés", titleEn: "Obtain final GO + permits confirmed", points: 250, optional: false },
 
   // ── Step 5: Construction ──
@@ -251,6 +255,8 @@ export const WORKFLOW_TASKS: WorkflowTaskDef[] = [
   { key: "s5_upload_photos", stepNum: 5, assignedTo: "account_manager", titleFr: "Upload photos + daily log", titleEn: "Upload photos + daily log", points: 100, optional: false },
   { key: "s5_complete_inspection", stepNum: 5, assignedTo: "account_manager", titleFr: "Compléter inspection", titleEn: "Complete inspection", points: 100, optional: false },
   { key: "s5_configure_monitoring", stepNum: 5, assignedTo: "account_manager", titleFr: "Configurer monitoring API", titleEn: "Configure monitoring API", points: 100, optional: false },
+  { key: "s5_receive_hq_authorization", stepNum: 5, assignedTo: "account_manager", titleFr: "Recevoir autorisation officielle HQ", titleEn: "Receive HQ official authorization", points: 150, optional: false },
+  { key: "s5_hq_mise_en_service", stepNum: 5, assignedTo: "account_manager", titleFr: "Compléter branchement / mise en service HQ", titleEn: "Complete HQ connection / commissioning", points: 200, optional: false },
 
   // ── Step 6: Opération ──
   { key: "s6_check_dashboard", stepNum: 6, assignedTo: "client", titleFr: "Consulter dashboard production (hebdo)", titleEn: "Check production dashboard (weekly)", points: 100, optional: true },
@@ -261,6 +267,8 @@ export const WORKFLOW_TASKS: WorkflowTaskDef[] = [
   { key: "s6_request_testimonial", stepNum: 6, assignedTo: "account_manager", titleFr: "Demander le témoignage", titleEn: "Request testimonial", points: 100, optional: true },
   { key: "s6_qualify_referral", stepNum: 6, assignedTo: "account_manager", titleFr: "Qualifier la référence < 48h", titleEn: "Qualify referral within 48h", points: 200, optional: false },
   { key: "s6_document_portfolio", stepNum: 6, assignedTo: "account_manager", titleFr: "Documenter le cas portfolio", titleEn: "Document portfolio case", points: 200, optional: false },
+  { key: "s6_submit_ose6_claim", stepNum: 6, assignedTo: "account_manager", titleFr: "Soumettre demande d'appuis financiers OSE 6.0", titleEn: "Submit OSE 6.0 financial support request", points: 200, optional: false },
+  { key: "s6_receive_ose6_payment", stepNum: 6, assignedTo: "account_manager", titleFr: "Confirmer réception paiement OSE 6.0", titleEn: "Confirm OSE 6.0 payment received", points: 200, optional: false },
 ];
 
 // ─── HELPERS ──────────────────────────────────────────────────

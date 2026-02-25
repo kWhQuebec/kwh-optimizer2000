@@ -67,6 +67,17 @@ interface SiteData {
   analysisAssumptions?: Record<string, unknown> | null;
   // Step 4
   engineeringOutcome?: string | null;
+  baselinePeakDemandKw?: number | null;
+  // HQ OSE 6.0 process tracking
+  hqRaccordementSubmittedAt?: string | null;
+  hqConditionalAcceptanceAt?: string | null;
+  hqOfficialAuthorizationAt?: string | null;
+  hqMiseEnServiceAt?: string | null;
+  hqOse6RequestSubmittedAt?: string | null;
+  hqOse6PaymentReceivedAt?: string | null;
+  // Operations
+  operationsStartDate?: string | null;
+  baselineSnapshotDate?: string | null;
   // Nested data
   simulationRuns?: Array<{ id?: string; type?: string; pvSizeKW?: number; assumptions?: unknown }> | null;
   siteVisits?: Array<{ status?: string; visitDate?: string; notes?: string }> | null;
@@ -143,6 +154,18 @@ const TASK_DETECTORS: Record<string, TaskDetector> = {
     const presentedStages = ["design_mandate_signed", "epc_proposal_sent", "negotiation", "won_to_be_delivered", "won_in_construction", "won_delivered"];
     return presentedStages.includes(opportunityStage);
   },
+  s2_validate_ose6_eligibility: ({ site }) => {
+    // Auto: tariff not L, not contrat particulier, and PV ≤ 1MW
+    const assumptions = site?.analysisAssumptions as any;
+    const tariff = assumptions?.tariffCode;
+    if (!tariff) return false;
+    const excludedTariffs = ["L", "contrat_particulier"];
+    if (excludedTariffs.includes(tariff)) return false;
+    // Check PV ≤ 1MW from latest simulation
+    const latestRun = site?.simulationRuns?.[site.simulationRuns.length - 1];
+    const pvKW = latestRun?.pvSizeKW ?? 0;
+    return pvKW > 0 && pvKW <= 1000;
+  },
 
   // ── Step 3: Validation technique ──
   s3_site_access: () => false, // Needs activity log — future
@@ -162,6 +185,13 @@ const TASK_DETECTORS: Record<string, TaskDetector> = {
     return visits.some(v => v.status === "completed" && v.notes);
   },
   s3_calibrate_cashflow: () => false,
+  s3_validate_pv_vs_pma: ({ site }) => {
+    // Auto: PV sizing ≤ peak demand (puissance max appelée)
+    const latestRun = site?.simulationRuns?.[site.simulationRuns.length - 1];
+    const pvKW = latestRun?.pvSizeKW ?? 0;
+    const peakKW = site?.baselinePeakDemandKw ?? 0;
+    return pvKW > 0 && peakKW > 0 && pvKW <= peakKW;
+  },
 
   // ── Step 3 (suite): Proposition EPC ──
   s3_receive_epc: ({ opportunityStage }) => {
@@ -180,6 +210,10 @@ const TASK_DETECTORS: Record<string, TaskDetector> = {
     return approvedStages.includes(opportunityStage);
   },
   s4_coordinate_engineering: () => false, // Needs engineering report tracking — future
+  s4_submit_hq_raccordement: ({ site }) =>
+    !!site?.hqRaccordementSubmittedAt,
+  s4_receive_hq_acceptance: ({ site }) =>
+    !!site?.hqConditionalAcceptanceAt,
   s4_prepare_amendment: ({ site }) =>
     site?.engineeringOutcome === "amendment",
   s4_final_go: ({ opportunityStage }) => {
@@ -199,6 +233,10 @@ const TASK_DETECTORS: Record<string, TaskDetector> = {
   s5_complete_inspection: ({ opportunityStage }) =>
     opportunityStage === "won_delivered",
   s5_configure_monitoring: () => false,
+  s5_receive_hq_authorization: ({ site }) =>
+    !!site?.hqOfficialAuthorizationAt,
+  s5_hq_mise_en_service: ({ site }) =>
+    !!site?.hqMiseEnServiceAt,
 
   // ── Step 6: Opération ── (Phase 1 — Close the Loop)
   s6_check_dashboard: ({ site }) => !!site?.operationsStartDate,
@@ -213,6 +251,10 @@ const TASK_DETECTORS: Record<string, TaskDetector> = {
   s6_request_testimonial: () => false,
   s6_qualify_referral: () => false,
   s6_document_portfolio: () => false,
+  s6_submit_ose6_claim: ({ site }) =>
+    !!site?.hqOse6RequestSubmittedAt,
+  s6_receive_ose6_payment: ({ site }) =>
+    !!site?.hqOse6PaymentReceivedAt,
 };
 
 function isTaskCompleted(taskKey: string, ctx: DetectionContext): boolean {

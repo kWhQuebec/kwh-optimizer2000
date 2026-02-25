@@ -305,6 +305,14 @@ export const sites = pgTable("sites", {
   baselineMonthlyProfile: jsonb("baseline_monthly_profile"), // [{month: 1, kWh: 5000, cost: 350}, ...]
   operationsStartDate: timestamp("operations_start_date"),
 
+  // ── HQ OSE 6.0 process tracking ──
+  hqRaccordementSubmittedAt: timestamp("hq_raccordement_submitted_at"),   // Étape 2 HQ: demande de raccordement soumise
+  hqConditionalAcceptanceAt: timestamp("hq_conditional_acceptance_at"),   // Étape 3 HQ: acceptation conditionnelle (BLOQUANT avant achat équipement)
+  hqOfficialAuthorizationAt: timestamp("hq_official_authorization_at"),   // Étape 5 HQ: autorisation officielle post-travaux
+  hqMiseEnServiceAt: timestamp("hq_mise_en_service_at"),                 // Étape 6 HQ: branchement / mise en service
+  hqOse6RequestSubmittedAt: timestamp("hq_ose6_request_submitted_at"),   // Étape 7 HQ: demande d'appuis financiers soumise
+  hqOse6PaymentReceivedAt: timestamp("hq_ose6_payment_received_at"),     // Paiement OSE 6.0 reçu
+
   // Archive status
   isArchived: boolean("is_archived").notNull().default(false),
   archivedAt: timestamp("archived_at"),

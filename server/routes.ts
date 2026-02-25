@@ -1056,8 +1056,9 @@ function runPotentialAnalysis(
     batterySubY0: batterySubY0,
     batterySubY1: batterySubY1,
     capexNet: capexNet,
+    capexAdmissible: capexPV,
   };
-  
+
   // ========== STEP 14: Run sensitivity analysis ==========
   // Pass the configured sizing AND the calculated NPV to ensure the frontier
   // includes the current configuration as a data point
@@ -1326,8 +1327,9 @@ function runPotentialAnalysis(
       batterySubY0: optBatterySubY0,
       batterySubY1: optBatterySubY1,
       capexNet: optCapexNet,
+      capexAdmissible: optCapexPV,
     };
-    
+
     // REGENERATE sensitivity with the FINAL sizing and NPV so charts match KPIs
     // This ensures the "current-config" point shows the actual NPV being displayed
     let finalSensitivity = runSensitivityAnalysis(
@@ -1434,6 +1436,7 @@ function runPotentialAnalysis(
         batterySubY0: finalBatterySubY0,
         batterySubY1: finalBatterySubY1,
         capexNet: trueOptCapexNet,
+        capexAdmissible: finalCapexPV,
       };
       
       // Return the truly optimal result
