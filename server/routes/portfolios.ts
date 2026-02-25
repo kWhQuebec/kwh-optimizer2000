@@ -393,17 +393,27 @@ router.get("/api/portfolios/:id/master-agreement-pdf", authMiddleware, asyncHand
 
   const portfolioSites = await storage.getPortfolioSites(req.params.id);
 
-  const doc = new PDFDocument({ size: "LETTER", margin: 50 });
+  const { generateMasterAgreementPDFBuffer } = await import("../pdf/masterAgreementPDF");
 
-  const portfolioName = portfolio.name.replace(/\s+/g, "-").toLowerCase();
-  res.setHeader("Content-Type", "application/pdf");
-  res.setHeader("Content-Disposition", `attachment; filename="master-agreement-${portfolioName}.pdf"`);
+  let totalFirstYearKwh = 0;
+  const allSites = portfolioSites.map(ps => {
+    const fm = (ps as any).financialModel;
+    const pvKw = ps.overridePvSizeKW ?? ps.latestSimulation?.pvSizeKW ?? null;
+    const yr1Kwh = fm?.projectSpecs?.firstYearKwh ?? ps.latestSimulation?.totalProductionKWh ?? null;
+    const cost = fm?.projectCosts?.totalProjectCost ?? ps.overrideCapexNet ?? ps.latestSimulation?.capexNet ?? null;
+    if (yr1Kwh) totalFirstYearKwh += yr1Kwh;
+    return {
+      siteName: ps.site?.name || "Unknown",
+      address: ps.site?.address || undefined,
+      city: ps.site?.city || undefined,
+      financialModel: fm || undefined,
+      pvSizeKW: pvKw,
+      firstYearKwh: yr1Kwh,
+      totalProjectCost: cost,
+    };
+  });
 
-  doc.pipe(res);
-
-  const { generateMasterAgreementPDF } = await import("../pdf");
-
-  generateMasterAgreementPDF(doc, {
+  const pdfBuffer = await generateMasterAgreementPDFBuffer({
     name: portfolio.name,
     clientName: client.name,
     description: portfolio.description || undefined,
@@ -415,17 +425,14 @@ router.get("/api/portfolios/:id/master-agreement-pdf", authMiddleware, asyncHand
     totalNpv25: portfolio.totalNpv25,
     totalAnnualSavings: portfolio.totalAnnualSavings,
     totalCo2Avoided: portfolio.totalCo2Avoided,
-    sites: portfolioSites
-      .filter(ps => (ps as any).financialModel)
-      .map(ps => ({
-        siteName: ps.site?.name || "Unknown",
-        address: ps.site?.address || undefined,
-        city: ps.site?.city || undefined,
-        financialModel: (ps as any).financialModel,
-      })),
+    totalFirstYearKwh: totalFirstYearKwh || null,
+    sites: allSites,
   }, lang as "fr" | "en");
 
-  doc.end();
+  const portfolioName = portfolio.name.replace(/\s+/g, "-").toLowerCase();
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader("Content-Disposition", `attachment; filename="master-agreement-${portfolioName}.pdf"`);
+  res.send(pdfBuffer);
 }));
 
 router.post("/api/portfolios/:id/recalculate", authMiddleware, requireStaff, asyncHandler(async (req: AuthRequest, res) => {

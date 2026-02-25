@@ -1,19 +1,19 @@
-import { COLORS } from "./types";
-import {
-  formatSmartPower,
-  formatSmartEnergy,
-  formatSmartCurrency,
-  formatCurrency,
-  formatPercent,
-} from "./helpers";
-import path from "path";
+import puppeteer from "puppeteer";
+import * as path from "path";
+import * as fs from "fs";
 import type { SiteFinancialModel } from "@shared/schema";
+import { createLogger } from "../lib/logger";
+
+const log = createLogger("MasterAgreementPDF");
 
 export interface MasterAgreementSiteData {
   siteName: string;
   address?: string;
   city?: string;
-  financialModel: SiteFinancialModel;
+  financialModel?: SiteFinancialModel;
+  pvSizeKW?: number | null;
+  firstYearKwh?: number | null;
+  totalProjectCost?: number | null;
 }
 
 export interface MasterAgreementData {
@@ -22,817 +22,633 @@ export interface MasterAgreementData {
   description?: string;
   numBuildings: number;
   volumeDiscountPercent: number | null;
-  // Aggregate KPIs
   totalPvSizeKW: number | null;
   totalBatteryKWh: number | null;
   totalCapexNet: number | null;
   totalNpv25: number | null;
   totalAnnualSavings: number | null;
   totalCo2Avoided: number | null;
-  // Sites with financial models
+  totalFirstYearKwh?: number | null;
   sites: MasterAgreementSiteData[];
 }
 
-interface PDFContext {
-  doc: PDFKit.PDFDocument;
-  lang: "fr" | "en";
-  t: (fr: string, en: string) => string;
-  pageWidth: number;
-  pageHeight: number;
-  margin: number;
-  contentWidth: number;
-}
-
-function createContext(doc: PDFKit.PDFDocument, lang: "fr" | "en"): PDFContext {
-  const t = (fr: string, en: string) => (lang === "fr" ? fr : en);
-  return {
-    doc,
-    lang,
-    t,
-    pageWidth: 612,
-    pageHeight: 792,
-    margin: 50,
-    contentWidth: 512,
-  };
-}
-
-/** Check if content fits on current page; if not, add a new page and return true */
-function ensureContentFits(ctx: PDFContext, requiredHeight: number): boolean {
-  const { doc, pageHeight, margin } = ctx;
-  if (doc.y + requiredHeight > pageHeight - 50) {
-    doc.addPage();
-    doc.y = margin + 10;
-    return true;
-  }
-  return false;
-}
-
-function drawMasterHeader(ctx: PDFContext, subtitle?: string) {
-  const { doc, margin, pageWidth } = ctx;
-
-  // Blue header background
-  doc.rect(0, 0, pageWidth, 100).fill(COLORS.blue);
-  doc.rect(0, 96, pageWidth, 4).fill(COLORS.gold);
-
-  // Logo
+function loadImageAsBase64(filePath: string): string | null {
   try {
-    const logoPath = path.join(process.cwd(), "client", "public", "assets", ctx.lang === "fr" ? "logo-fr-white.png" : "logo-en-white.png");
-    doc.image(logoPath, margin, 10, { width: 120 });
-  } catch {
-    doc.fontSize(20).fillColor(COLORS.white).font("Helvetica-Bold");
-    doc.text("kWh Québec", margin, 20);
+    if (fs.existsSync(filePath)) {
+      const buf = fs.readFileSync(filePath);
+      const ext = path.extname(filePath).toLowerCase();
+      const mime = ext === ".png" ? "image/png" : ext === ".jpg" || ext === ".jpeg" ? "image/jpeg" : "image/png";
+      return `data:${mime};base64,${buf.toString("base64")}`;
+    }
+  } catch (e) {
+    log.error(`Failed to load image: ${filePath}`, e);
   }
-
-  // Title
-  doc.fontSize(16).fillColor(COLORS.white).font("Helvetica-Bold");
-  doc.text(subtitle || ctx.t("Entente Cadre", "Master Agreement"), margin, 55);
-
-  doc.fontSize(10).fillColor(COLORS.gold).font("Helvetica");
-  doc.text("Dream Industrial REIT — Hydro-Québec RFP", margin, 78);
+  return null;
 }
 
-function drawCoverPage(ctx: PDFContext, data: MasterAgreementData) {
-  const { doc, margin, contentWidth, pageHeight, t } = ctx;
-
-  drawMasterHeader(ctx);
-
-  let y = 130;
-
-  // Subtitle
-  doc.fontSize(16).fillColor(COLORS.blue).font("Helvetica-Bold");
-  doc.text(t("Entente Cadre EPC", "Master EPC Agreement"), margin, y);
-  y += 30;
-
-  // Portfolio name
-  doc.fontSize(14).fillColor(COLORS.darkGray).font("Helvetica");
-  doc.text(data.name, margin, y);
-  y += 25;
-
-  // Parties
-  doc.fontSize(11).fillColor(COLORS.blue).font("Helvetica-Bold");
-  doc.text(t("Parties", "Parties"), margin, y);
-  y += 20;
-
-  doc.fontSize(10).fillColor(COLORS.darkGray).font("Helvetica");
-  doc.text(t("Propriétaire:", "Owner:"), margin, y);
-  doc.text("Dream Industrial REIT", margin + 120, y);
-  y += 18;
-
-  doc.text(t("Ingénierie et Exploitation:", "EPC & Operations:"), margin, y);
-  doc.text("kWh Québec", margin + 180, y);
-  y += 18;
-
-  doc.text(t("Consultant RFP:", "RFP Consultant:"), margin, y);
-  doc.text("ScaleClean Tech", margin + 150, y);
-  y += 40;
-
-  // Portfolio summary
-  doc.fontSize(11).fillColor(COLORS.blue).font("Helvetica-Bold");
-  doc.text(t("Résumé du Portfolio", "Portfolio Summary"), margin, y);
-  y += 20;
-
-  doc.fontSize(10).fillColor(COLORS.darkGray).font("Helvetica");
-  const summaryItems = [
-    { label: t("Nombre de bâtiments:", "Number of buildings:"), value: String(data.numBuildings) },
-    { label: t("Taille PV totale:", "Total PV size:"), value: formatSmartPower(data.totalPvSizeKW, ctx.lang, "kW") },
-    { label: t("Stockage total:", "Total storage:"), value: formatSmartEnergy(data.totalBatteryKWh, ctx.lang) },
-    { label: t("CAPEX Net:", "Net CAPEX:"), value: formatSmartCurrency(data.totalCapexNet, ctx.lang) },
-    { label: "NPV (25 ans):", value: formatSmartCurrency(data.totalNpv25, ctx.lang) },
-    { label: t("Économies annuelles:", "Annual savings:"), value: formatSmartCurrency(data.totalAnnualSavings, ctx.lang) },
-    { label: t("CO₂ évité par an:", "CO₂ avoided per year:"), value: `${(data.totalCo2Avoided ?? 0).toLocaleString("fr-CA", { maximumFractionDigits: 1 })} t` },
-  ];
-
-  summaryItems.forEach((item) => {
-    doc.text(item.label, margin, y);
-    doc.text(item.value, margin + 250, y);
-    y += 18;
-  });
-
-  // Footer
-  y = pageHeight - 50;
-  doc.fontSize(8).fillColor(COLORS.lightGray);
-  doc.text(t("Document confidentiel | kWh Québec", "Confidential document | kWh Québec"), margin, y, {
-    align: "center",
-    width: contentWidth,
-  });
+function fmt(num: number | null | undefined): string {
+  if (num === null || num === undefined || isNaN(num)) return "&mdash;";
+  return new Intl.NumberFormat("fr-CA").format(Math.round(num));
 }
 
-function drawTableOfContents(ctx: PDFContext) {
-  const { doc, margin, contentWidth, pageHeight, t } = ctx;
+function cur(amount: number | null | undefined): string {
+  if (amount === null || amount === undefined || isNaN(amount)) return "&mdash;";
+  return `${Math.round(amount).toLocaleString("fr-CA")}&nbsp;$`;
+}
 
-  drawMasterHeader(ctx);
+function pct(value: number | null | undefined): string {
+  if (value === null || value === undefined || isNaN(value)) return "&mdash;";
+  if (value < 1) return `${(value * 100).toFixed(1)}&nbsp;%`;
+  return `${value.toFixed(1)}&nbsp;%`;
+}
 
-  let y = 130;
+function getStyles(): string {
+  return `
+* { margin: 0; padding: 0; box-sizing: border-box; }
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap');
+body {
+  font-family: 'Montserrat', 'Helvetica Neue', Arial, sans-serif;
+  font-size: 10pt; line-height: 1.45; color: #2A2A2B; background: white;
+}
+:root {
+  --primary: #003DA6; --primary-dark: #002B75;
+  --accent: #FFB005; --accent-light: #FFD060;
+  --dark: #2A2A2B; --gray: #6b7280; --light-gray: #f3f4f6; --white: #ffffff;
+  --green: #16A34A; --red: #DC2626;
+}
+.page {
+  width: 215.9mm; min-height: 279.4mm; max-height: 279.4mm;
+  padding: 18mm 22mm; page-break-after: always; page-break-inside: avoid;
+  position: relative; overflow: hidden; background: white;
+}
+.page:last-child { page-break-after: auto; }
+h1 { font-size: 28pt; font-weight: 700; color: var(--primary); margin-bottom: 8mm; }
+h2 { font-size: 18pt; font-weight: 600; color: var(--primary); margin-bottom: 5mm; padding-bottom: 2mm; border-bottom: 2px solid var(--accent); }
+h3 { font-size: 12pt; font-weight: 600; color: var(--dark); margin-bottom: 3mm; }
+p { margin-bottom: 2mm; color: var(--dark); }
+.section-num { font-size: 13pt; font-weight: 700; color: var(--primary); margin-bottom: 1mm; }
 
-  doc.fontSize(16).fillColor(COLORS.blue).font("Helvetica-Bold");
-  doc.text(t("Table des matières", "Table of Contents"), margin, y);
-  y += 30;
+.cover-page {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  color: white; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; text-align: center; padding: 30mm 25mm;
+}
+.cover-title { font-size: 36pt; font-weight: 700; letter-spacing: 2px; margin-bottom: 6mm; }
+.cover-subtitle { font-size: 16pt; opacity: 0.85; margin-bottom: 25mm; font-weight: 400; }
+.cover-client { font-size: 22pt; font-weight: 600; margin-bottom: 4mm; }
+.cover-stats { font-size: 14pt; opacity: 0.8; margin-bottom: 30mm; }
+.cover-prepared { font-size: 11pt; opacity: 0.7; margin-bottom: 2mm; }
+.cover-collab { font-size: 11pt; opacity: 0.7; margin-bottom: 15mm; }
+.cover-date { font-size: 11pt; opacity: 0.7; margin-bottom: 20mm; }
+.cover-confidential { font-size: 9pt; opacity: 0.5; font-style: italic; }
 
+.toc-item { display: flex; justify-content: space-between; padding: 3mm 0; border-bottom: 1px dotted #ddd; font-size: 11pt; }
+.toc-num { font-weight: 700; color: var(--primary); min-width: 12mm; }
+.toc-title { flex: 1; }
+
+.kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5mm; margin: 8mm 0; }
+.kpi-card { background: var(--light-gray); border-radius: 3mm; padding: 6mm 4mm; text-align: center; border: 1px solid #e5e7eb; }
+.kpi-value { font-size: 20pt; font-weight: 700; color: var(--primary); display: block; margin-bottom: 1mm; }
+.kpi-label { font-size: 8pt; color: var(--gray); text-transform: uppercase; letter-spacing: 0.5px; }
+
+.benefit-list { list-style: none; padding: 0; margin: 6mm 0; }
+.benefit-list li { padding: 3mm 0 3mm 10mm; position: relative; font-size: 10pt; color: var(--dark); border-bottom: 1px solid var(--light-gray); }
+.benefit-list li::before { content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: 4mm; height: 4mm; background: var(--accent); border-radius: 1px; }
+
+.role-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5mm; margin: 8mm 0; }
+.role-card { border: 1px solid #e5e7eb; border-radius: 3mm; padding: 6mm; text-align: center; }
+.role-type { font-size: 8pt; color: var(--gray); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3mm; }
+.role-name { font-size: 13pt; font-weight: 700; color: var(--primary); margin-bottom: 2mm; }
+.role-desc { font-size: 8.5pt; color: var(--gray); line-height: 1.4; }
+
+.badge { display: inline-block; padding: 1mm 3mm; border-radius: 2mm; font-size: 7pt; font-weight: 600; letter-spacing: 0.3px; }
+.badge-kwh { background: var(--primary); color: white; }
+.badge-dream { background: var(--accent); color: var(--dark); }
+.badge-computed { background: #e5e7eb; color: var(--gray); }
+.badge-row { display: flex; gap: 3mm; justify-content: center; margin-top: 5mm; }
+
+.terms-table { width: 100%; border-collapse: collapse; margin: 5mm 0; font-size: 9.5pt; }
+.terms-table th { background: var(--primary); color: white; padding: 3mm 5mm; text-align: left; font-weight: 600; }
+.terms-table td { padding: 3mm 5mm; border-bottom: 1px solid #e5e7eb; vertical-align: top; }
+.terms-table tr:nth-child(even) { background: var(--light-gray); }
+.terms-table .clause { font-weight: 600; color: var(--primary); white-space: nowrap; min-width: 55mm; }
+
+.site-table { width: 100%; border-collapse: collapse; margin: 5mm 0; font-size: 8pt; }
+.site-table th { background: var(--primary); color: white; padding: 2.5mm 3mm; text-align: left; font-weight: 600; font-size: 7.5pt; }
+.site-table td { padding: 2mm 3mm; border-bottom: 1px solid #e5e7eb; }
+.site-table tr:nth-child(even) { background: var(--light-gray); }
+.site-table .number { text-align: right; font-family: 'Courier New', monospace; }
+.site-table .total-row { background: var(--primary) !important; color: white; font-weight: 700; }
+.site-table .total-row td { border-bottom: none; }
+
+.annex-header { margin-bottom: 5mm; }
+.annex-site-name { font-size: 14pt; font-weight: 700; color: var(--primary); margin-bottom: 1mm; }
+.annex-address { font-size: 10pt; color: var(--gray); }
+
+.annex-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; margin-top: 5mm; }
+.annex-box { border: 1px solid #e5e7eb; border-radius: 3mm; overflow: hidden; }
+.annex-box-header { background: var(--primary); color: white; padding: 3mm 5mm; font-weight: 600; font-size: 10pt; }
+.annex-box-body { padding: 0; }
+.annex-row { display: flex; justify-content: space-between; align-items: center; padding: 2.5mm 5mm; border-bottom: 1px solid #f0f0f0; font-size: 9pt; }
+.annex-row:nth-child(even) { background: var(--light-gray); }
+.annex-row:last-child { border-bottom: none; }
+.annex-row-label { display: flex; align-items: center; gap: 2mm; flex: 1; }
+.annex-row-value { font-weight: 600; text-align: right; white-space: nowrap; }
+
+.conditions-list { counter-reset: condition; list-style: none; padding: 0; margin: 5mm 0; }
+.condition-item { margin-bottom: 5mm; padding: 4mm 5mm; border: 1px solid #e5e7eb; border-radius: 3mm; }
+.condition-num { font-size: 11pt; font-weight: 700; color: var(--primary); margin-bottom: 1mm; }
+.condition-title { font-size: 10pt; font-weight: 600; color: var(--dark); margin-bottom: 2mm; }
+.condition-text { font-size: 9pt; color: var(--gray); line-height: 1.5; }
+
+.sig-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15mm; margin: 15mm 0; }
+.sig-block { border-top: 2px solid var(--primary); padding-top: 5mm; }
+.sig-org { font-size: 13pt; font-weight: 700; color: var(--primary); margin-bottom: 10mm; }
+.sig-line { border-bottom: 1px solid #ccc; padding: 8mm 0 2mm 0; margin-bottom: 3mm; }
+.sig-label { font-size: 8pt; color: var(--gray); }
+.sig-disclaimer { margin-top: 12mm; padding: 5mm; background: var(--light-gray); border-radius: 3mm; font-size: 8.5pt; color: var(--gray); line-height: 1.5; font-style: italic; }
+
+.page-footer {
+  position: absolute; bottom: 8mm; left: 22mm; right: 22mm;
+  display: flex; justify-content: space-between;
+  font-size: 7.5pt; color: var(--gray);
+  border-top: 1px solid #e5e7eb; padding-top: 2mm;
+}
+`;
+}
+
+function footerHtml(t: (fr: string, en: string) => string, dateStr: string, pageNum: number): string {
+  return `<div class="page-footer">
+    <span>${t("Confidentiel", "Confidential")} &mdash; kWh Qu&eacute;bec &amp; Dream Industrial REIT</span>
+    <span>${dateStr} &mdash; Page ${pageNum}</span>
+  </div>`;
+}
+
+function buildCoverPage(data: MasterAgreementData, t: (fr: string, en: string) => string, dateStr: string, logoBase64: string | null): string {
+  const logoHtml = logoBase64 ? `<img src="${logoBase64}" style="max-width: 150px; height: auto; margin-bottom: 10mm; opacity: 0.9;" />` : "";
+  const totalKw = data.totalPvSizeKW ? fmt(data.totalPvSizeKW) : "&mdash;";
+  return `
+  <div class="page cover-page">
+    ${logoHtml}
+    <div class="cover-title">${t("ENTENTE CADRE", "MASTER AGREEMENT")}</div>
+    <div class="cover-subtitle">${t("Proposition Globale &mdash; Installation Solaire Commerciale", "Global Proposal &mdash; Commercial Solar Installation")}</div>
+    <div class="cover-client">${data.clientName}</div>
+    <div class="cover-stats">${data.numBuildings} sites &bull; ${totalKw} kW DC</div>
+    <div class="cover-prepared">${t("Pr&eacute;par&eacute; par", "Prepared by")} kWh Qu&eacute;bec</div>
+    <div class="cover-collab">${t("En collaboration avec", "In collaboration with")} ScaleClean Tech</div>
+    <div class="cover-date">${dateStr}</div>
+    <div class="cover-confidential">${t("Document confidentiel &mdash; Ne pas distribuer", "Confidential document &mdash; Do not distribute")}</div>
+  </div>`;
+}
+
+function buildTocPage(t: (fr: string, en: string) => string, dateStr: string): string {
   const sections = [
-    { num: "1", title: t("Introduction et Champ d'Application", "Introduction & Scope") },
-    { num: "2", title: t("Spécifications du Projet", "Project Specifications") },
-    { num: "3", title: t("Tarification et Coûts", "Pricing & Costs") },
+    { num: "1", title: t("Sommaire Ex&eacute;cutif", "Executive Summary") },
+    { num: "2", title: t("Parties et R&ocirc;les", "Parties &amp; Roles") },
+    { num: "3", title: t("Termes Commerciaux", "Commercial Terms") },
     { num: "4", title: t("Cadre Financier", "Financial Framework") },
-    { num: "5", title: t("Coûts d'Exploitation et Maintenance", "Operating Costs & Maintenance") },
-    { num: "6", title: t("Crédit d'Impôt aux Investissements", "Investment Tax Credit (ITC)") },
-    { num: "7", title: t("Termes et Conditions", "Terms & Conditions") },
-    { num: "A", title: t("Annexe A - Détails par Site", "Annex A - Site Details") },
+    { num: "5", title: t("Annexe A &mdash; Fiches Financi&egrave;res par Site", "Annex A &mdash; Per-Site Financial Schedules") },
+    { num: "6", title: t("Conditions G&eacute;n&eacute;rales", "General Conditions") },
+    { num: "7", title: t("Signatures", "Signatures") },
   ];
+  const tocItems = sections.map(s => `
+    <div class="toc-item">
+      <span class="toc-num">${s.num}</span>
+      <span class="toc-title">${s.title}</span>
+    </div>`).join("");
 
-  doc.fontSize(11).fillColor(COLORS.darkGray).font("Helvetica");
-  sections.forEach((section) => {
-    doc.text(`${section.num}. ${section.title}`, margin + 20, y);
-    y += 22;
-  });
-
-  // Footer
-  y = pageHeight - 50;
-  doc.fontSize(8).fillColor(COLORS.lightGray);
-  doc.text(t("Document confidentiel | kWh Québec", "Confidential document | kWh Québec"), margin, y, {
-    align: "center",
-    width: contentWidth,
-  });
+  return `
+  <div class="page">
+    <h2>${t("Table des Mati&egrave;res", "Table of Contents")}</h2>
+    <div style="margin-top: 8mm;">${tocItems}</div>
+    ${footerHtml(t, dateStr, 1)}
+  </div>`;
 }
 
-function drawSection1(ctx: PDFContext, data: MasterAgreementData) {
-  const { doc, margin, contentWidth, pageHeight, t } = ctx;
+function buildExecutiveSummaryPage(data: MasterAgreementData, t: (fr: string, en: string) => string, dateStr: string): string {
+  const totalKw = data.totalPvSizeKW ? fmt(data.totalPvSizeKW) : "&mdash;";
+  const totalKwh = data.totalFirstYearKwh ? fmt(data.totalFirstYearKwh) : "&mdash;";
+  const totalInvest = data.totalCapexNet ? cur(data.totalCapexNet) : "&mdash;";
 
-  drawMasterHeader(ctx);
-
-  let y = 130;
-
-  doc.fontSize(16).fillColor(COLORS.blue).font("Helvetica-Bold");
-  doc.text(t("Section 1 : Introduction et Champ d'Application", "Section 1: Introduction & Scope"), margin, y);
-  y += 30;
-
-  doc.fontSize(11).fillColor(COLORS.darkGray).font("Helvetica");
-  const introText = t(
-    "Cette entente cadre établit les conditions et modalités d'exécution des services d'ingénierie, d'approvisionnement et de construction (EPC) pour un portfolio de systèmes solaires photovoltaïques auprès de Dream Industrial REIT. Les services couvrent la conception complète, l'approvisionnement des équipements, la construction et la mise en service des installations solaires sur l'ensemble des bâtiments du portfolio.",
-    "This Master Agreement establishes the conditions and terms for the execution of Engineering, Procurement and Construction (EPC) services for a portfolio of photovoltaic solar systems with Dream Industrial REIT. Services include complete design, equipment procurement, construction and commissioning of solar installations across all portfolio buildings."
-  );
-
-  doc.fontSize(10);
-  doc.text(introText, margin, y, { width: contentWidth, align: "justify" });
-  y += doc.heightOfString(introText, { width: contentWidth }) + 20;
-
-  // Scope
-  doc.fontSize(11).fillColor(COLORS.blue).font("Helvetica-Bold");
-  doc.text(t("Champ d'Application", "Scope"), margin, y);
-  y += 18;
-
-  doc.fontSize(10).fillColor(COLORS.darkGray).font("Helvetica");
-  const scopeItems = [
-    t("Analyse et optimisation du design solaire", "Solar design analysis and optimization"),
-    t("Sélection et approvisionnement de l'équipement", "Equipment selection and procurement"),
-    t("Services de construction et d'installation", "Construction and installation services"),
-    t("Tests de système et mise en service", "System testing and commissioning"),
-    t("Documentation technique et garanties", "Technical documentation and warranties"),
+  const benefits = [
+    t("Rabais volume sur l'approvisionnement en &eacute;quipement et la main-d'&oelig;uvre", "Volume discount on equipment procurement and labour"),
+    t("Gestion de projet unifi&eacute;e avec un seul point de contact", "Unified project management with a single point of contact"),
+    t("&Eacute;conomies d'&eacute;chelle sur les frais de d&eacute;veloppement", "Economies of scale on development fees"),
+    t("Contrat global d'exploitation et maintenance (O&amp;M)", "Global operations &amp; maintenance (O&amp;M) contract"),
+    t("Rapport consolid&eacute; et suivi centralis&eacute; de la performance", "Consolidated reporting and centralized performance monitoring"),
   ];
 
-  scopeItems.forEach((item) => {
-    doc.text(`• ${item}`, margin + 15, y);
-    y += 16;
-  });
-
-  // Footer
-  y = pageHeight - 50;
-  doc.fontSize(8).fillColor(COLORS.lightGray);
-  doc.text(t("Document confidentiel | kWh Québec", "Confidential document | kWh Québec"), margin, y, {
-    align: "center",
-    width: contentWidth,
-  });
+  return `
+  <div class="page">
+    <div class="section-num">1</div>
+    <h2>${t("Sommaire Ex&eacute;cutif", "Executive Summary")}</h2>
+    <p style="font-size: 10pt; color: var(--gray); margin-bottom: 6mm;">
+      ${t(
+        `kWh Qu&eacute;bec a le plaisir de soumettre &agrave; ${data.clientName} cette entente cadre couvrant l'installation de syst&egrave;mes solaires photovolta&iuml;ques sur ${data.numBuildings} sites industriels au Qu&eacute;bec. Cette proposition refl&egrave;te un rabais volume significatif rendu possible par le regroupement de tous les sites sous un seul accord-cadre.`,
+        `kWh Qu&eacute;bec is pleased to submit to ${data.clientName} this master agreement covering the installation of photovoltaic solar systems on ${data.numBuildings} industrial sites in Quebec. This proposal reflects a significant volume discount made possible by grouping all sites under a single framework agreement.`
+      )}
+    </p>
+    <div class="kpi-grid">
+      <div class="kpi-card"><span class="kpi-value">${data.numBuildings}</span><span class="kpi-label">Sites</span></div>
+      <div class="kpi-card"><span class="kpi-value">${totalKw}</span><span class="kpi-label">Total kW DC</span></div>
+      <div class="kpi-card"><span class="kpi-value">${totalKwh}</span><span class="kpi-label">${t("kWh An 1", "Year 1 kWh")}</span></div>
+      <div class="kpi-card"><span class="kpi-value">${totalInvest}</span><span class="kpi-label">${t("Investissement Total", "Total Investment")}</span></div>
+    </div>
+    <h3>${t("Avantages du Portfolio", "Portfolio Benefits")}</h3>
+    <ul class="benefit-list">
+      ${benefits.map(b => `<li>${b}</li>`).join("")}
+    </ul>
+    ${footerHtml(t, dateStr, 2)}
+  </div>`;
 }
 
-function drawSection2(ctx: PDFContext, data: MasterAgreementData) {
-  const { doc, margin, contentWidth, pageHeight, t } = ctx;
+function buildPartiesPage(t: (fr: string, en: string) => string, dateStr: string): string {
+  return `
+  <div class="page">
+    <div class="section-num">2</div>
+    <h2>${t("Parties et R&ocirc;les", "Parties &amp; Roles")}</h2>
+    <div class="role-grid">
+      <div class="role-card">
+        <div class="role-type">${t("Propri&eacute;taire", "Owner")}</div>
+        <div class="role-name">Dream Industrial REIT</div>
+        <div class="role-desc">${t(
+          "Propri&eacute;taire des b&acirc;timents et b&eacute;n&eacute;ficiaire de l'&eacute;nergie produite. Responsable des frais d'interconnexion (Hydro-Qu&eacute;bec), permis municipaux et acc&egrave;s au toit.",
+          "Property owner and beneficiary of produced energy. Responsible for interconnection fees (Hydro-Qu&eacute;bec), municipal permits and roof access."
+        )}</div>
+      </div>
+      <div class="role-card">
+        <div class="role-type">EPC &amp; O&amp;M</div>
+        <div class="role-name">kWh Qu&eacute;bec</div>
+        <div class="role-desc">${t(
+          "Entrepreneur g&eacute;n&eacute;ral (EPC) responsable de l'ing&eacute;nierie, de l'approvisionnement et de la construction. &Eacute;galement responsable de l'exploitation et la maintenance (O&amp;M) post-construction.",
+          "General contractor (EPC) responsible for engineering, procurement and construction. Also responsible for post-construction operations &amp; maintenance (O&amp;M)."
+        )}</div>
+      </div>
+      <div class="role-card">
+        <div class="role-type">${t("Consultant RFP", "RFP Consultant")}</div>
+        <div class="role-name">ScaleClean Tech</div>
+        <div class="role-desc">${t(
+          "Consultant ind&eacute;pendant mandat&eacute; par Dream Industrial REIT pour la gestion du RFP, l'&eacute;valuation technique et la recommandation de fournisseurs.",
+          "Independent consultant mandated by Dream Industrial REIT for RFP management, technical evaluation and vendor recommendation."
+        )}</div>
+      </div>
+    </div>
+    <div class="badge-row">
+      <span class="badge badge-kwh">${t("Responsabilit&eacute; kWh", "kWh Responsibility")}</span>
+      <span class="badge badge-dream">${t("Responsabilit&eacute; Dream", "Dream Responsibility")}</span>
+      <span class="badge badge-computed">${t("Valeur Calcul&eacute;e", "Computed Value")}</span>
+    </div>
+    ${footerHtml(t, dateStr, 3)}
+  </div>`;
+}
 
-  drawMasterHeader(ctx);
-
-  let y = 130;
-
-  doc.fontSize(16).fillColor(COLORS.blue).font("Helvetica-Bold");
-  doc.text(t("Section 2 : Spécifications du Projet", "Section 2: Project Specifications"), margin, y);
-  y += 30;
-
-  doc.fontSize(11).fillColor(COLORS.blue).font("Helvetica-Bold");
-  doc.text(t("Résumé du Portfolio", "Portfolio Summary"), margin, y);
-  y += 20;
-
-  // Summary table
-  const tableData = [
-    [t("Paramètre", "Parameter"), t("Valeur", "Value")],
-    [t("Nombre de bâtiments", "Number of buildings"), String(data.numBuildings)],
-    [t("Taille PV totale (kW)", "Total PV size (kW)"), formatSmartPower(data.totalPvSizeKW, ctx.lang, "kW")],
-    [t("Stockage total (kWh)", "Total storage (kWh)"), formatSmartEnergy(data.totalBatteryKWh, ctx.lang)],
-    [t("Production annuelle estimée (kWh)", "Estimated annual production (kWh)"), "—"],
+function buildCommercialTermsPage(t: (fr: string, en: string) => string, dateStr: string): string {
+  const terms = [
+    { clause: t("Structure du Contrat", "Contract Structure"), details: t("Entente cadre avec annexes par site", "Master agreement with per-site annexes") },
+    { clause: t("Mod&egrave;le Commercial", "Commercial Model"), details: t("PPA (Power Purchase Agreement) &mdash; vente d'&eacute;nergie", "PPA (Power Purchase Agreement) &mdash; energy sale") },
+    { clause: t("Dur&eacute;e du PPA", "PPA Duration"), details: t("25 ans, avec option de prolongation", "25 years, with extension option") },
+    { clause: t("Indexation Annuelle", "Annual Escalation"), details: t("Selon l'indice d&eacute;fini par site", "Per site-defined escalation index") },
+    { clause: t("Garantie de Performance", "Performance Guarantee"), details: t("Ratio de performance minimum de 80&nbsp;% garanti", "Minimum 80% performance ratio guaranteed") },
+    { clause: t("P&eacute;nalit&eacute; de Sous-Performance", "Underperformance Penalty"), details: t("Cr&eacute;dit &eacute;nerg&eacute;tique pour production sous 80&nbsp;% du P50", "Energy credit for production below 80% of P50") },
+    { clause: t("Assurance", "Insurance"), details: t("Couverture tous risques construction + responsabilit&eacute; professionnelle", "All-risk construction coverage + professional liability") },
+    { clause: t("Cr&eacute;dit d'Imp&ocirc;t (CII)", "Investment Tax Credit (ITC)"), details: t("&Eacute;ligibilit&eacute; au CII f&eacute;d&eacute;ral &mdash; montant par site", "Federal ITC eligibility &mdash; amount per site") },
+    { clause: t("Transfert de Propri&eacute;t&eacute;", "Ownership Transfer"), details: t("L'&eacute;quipement devient propri&eacute;t&eacute; de Dream &agrave; la fin du PPA", "Equipment becomes Dream's property at end of PPA") },
+    { clause: t("Calendrier de Construction", "Construction Schedule"), details: t("D&eacute;ploiement progressif &mdash; phases d&eacute;finies par site", "Progressive deployment &mdash; site-defined phases") },
   ];
 
-  doc.fontSize(9).fillColor(COLORS.darkGray).font("Helvetica");
+  return `
+  <div class="page">
+    <div class="section-num">3</div>
+    <h2>${t("Termes Commerciaux", "Commercial Terms")}</h2>
+    <table class="terms-table">
+      <thead><tr><th>${t("Clause", "Clause")}</th><th>${t("D&eacute;tails", "Details")}</th></tr></thead>
+      <tbody>
+        ${terms.map(term => `<tr><td class="clause">${term.clause}</td><td>${term.details}</td></tr>`).join("")}
+      </tbody>
+    </table>
+    ${footerHtml(t, dateStr, 4)}
+  </div>`;
+}
 
-  const colWidth = [280, 200];
-  let cellY = y;
+function buildFinancialFrameworkPage(data: MasterAgreementData, t: (fr: string, en: string) => string, dateStr: string): string {
+  const siteRows = data.sites.map(site => {
+    const fm = site.financialModel;
+    const pvKw = fm?.projectSpecs?.projectSizeDcKw ?? site.pvSizeKW;
+    const yr1 = fm?.projectSpecs?.firstYearKwh ?? site.firstYearKwh;
+    const cost = fm?.projectCosts?.totalProjectCost ?? site.totalProjectCost;
 
-  // Header row
-  doc.rect(margin, cellY, colWidth[0], 18).fill(COLORS.blue);
-  doc.rect(margin + colWidth[0], cellY, colWidth[1], 18).fill(COLORS.blue);
+    return `<tr>
+      <td>${site.siteName}</td>
+      <td class="number">${pvKw ? fmt(pvKw) : "&mdash;"}</td>
+      <td class="number">${yr1 ? fmt(yr1) : "&mdash;"}</td>
+      <td class="number">${cost ? cur(cost) : "&mdash;"}</td>
+    </tr>`;
+  }).join("");
 
-  doc.fillColor(COLORS.white).font("Helvetica-Bold");
-  doc.text(tableData[0][0], margin + 8, cellY + 5, { width: colWidth[0] - 16 });
-  doc.text(tableData[0][1], margin + colWidth[0] + 8, cellY + 5, { width: colWidth[1] - 16, align: "right" });
+  const totalPv = data.totalPvSizeKW ? fmt(data.totalPvSizeKW) : "&mdash;";
+  const totalKwh = data.totalFirstYearKwh ? fmt(data.totalFirstYearKwh) : "&mdash;";
+  const totalCost = data.totalCapexNet ? cur(data.totalCapexNet) : "&mdash;";
 
-  cellY += 18;
+  return `
+  <div class="page">
+    <div class="section-num">4</div>
+    <h2>${t("Cadre Financier", "Financial Framework")}</h2>
+    <p style="font-size: 9pt; color: var(--gray); margin-bottom: 4mm;">
+      ${t(
+        "Le tableau suivant pr&eacute;sente un sommaire financier consolid&eacute; du portfolio. Les d&eacute;tails par site sont pr&eacute;sent&eacute;s &agrave; l'Annexe&nbsp;A.",
+        "The following table presents a consolidated financial summary of the entire portfolio. Site-specific details are presented in Annex&nbsp;A."
+      )}
+    </p>
+    <table class="site-table">
+      <thead><tr>
+        <th>${t("Site", "Site")}</th>
+        <th style="text-align:right">${t("Taille DC (kW)", "DC Size (kW)")}</th>
+        <th style="text-align:right">${t("Prod. An 1 (kWh)", "Year 1 Prod. (kWh)")}</th>
+        <th style="text-align:right">${t("Co&ucirc;t Total", "Total Cost")}</th>
+      </tr></thead>
+      <tbody>
+        ${siteRows}
+        <tr class="total-row">
+          <td>TOTAL / AVG.</td>
+          <td class="number">${totalPv}</td>
+          <td class="number">${totalKwh}</td>
+          <td class="number">${totalCost}</td>
+        </tr>
+      </tbody>
+    </table>
+    ${footerHtml(t, dateStr, 5)}
+  </div>`;
+}
 
-  // Data rows
-  doc.fillColor(COLORS.darkGray).font("Helvetica");
-  for (let i = 1; i < tableData.length; i++) {
-    const bgColor = i % 2 === 0 ? "#FFFFFF" : "#F9F9F9";
-    doc.rect(margin, cellY, colWidth[0], 16).fill(bgColor);
-    doc.rect(margin + colWidth[0], cellY, colWidth[1], 16).fill(bgColor);
+function buildAnnexPage(site: MasterAgreementSiteData, siteIndex: number, totalSitesWithFm: number, t: (fr: string, en: string) => string, dateStr: string, pageNum: number): string {
+  const fm = site.financialModel!;
 
-    doc.text(tableData[i][0], margin + 8, cellY + 3, { width: colWidth[0] - 16 });
-    doc.text(tableData[i][1], margin + colWidth[0] + 8, cellY + 3, { width: colWidth[1] - 16, align: "right" });
-
-    cellY += 16;
+  function badge(type: "kwh" | "dream" | "computed"): string {
+    const labels = { kwh: "kWh", dream: "Dream", computed: "Result" };
+    return `<span class="badge badge-${type}">${labels[type]}</span>`;
   }
 
-  // Footer
-  y = pageHeight - 50;
-  doc.fontSize(8).fillColor(COLORS.lightGray);
-  doc.text(t("Document confidentiel | kWh Québec", "Confidential document | kWh Québec"), margin, y, {
-    align: "center",
-    width: contentWidth,
-  });
-}
-
-function drawSection3(ctx: PDFContext, data: MasterAgreementData) {
-  const { doc, margin, contentWidth, pageHeight, t } = ctx;
-
-  drawMasterHeader(ctx);
-
-  let y = 130;
-
-  doc.fontSize(16).fillColor(COLORS.blue).font("Helvetica-Bold");
-  doc.text(t("Section 3 : Tarification et Coûts", "Section 3: Pricing & Costs"), margin, y);
-  y += 30;
-
-  doc.fontSize(11).fillColor(COLORS.blue).font("Helvetica-Bold");
-  doc.text(t("Coûts Agrégés du Portfolio", "Portfolio Aggregate Costs"), margin, y);
-  y += 20;
-
-  doc.fontSize(10).fillColor(COLORS.darkGray).font("Helvetica");
-  doc.text(t("CAPEX Net Total:", "Total Net CAPEX:"), margin, y);
-  doc.text(formatSmartCurrency(data.totalCapexNet, ctx.lang), margin + 350, y, { align: "right", width: 150 });
-  y += 18;
-
-  const pvSize = data.totalPvSizeKW ?? 0;
-  const costPerW = pvSize > 0 && data.totalCapexNet ? data.totalCapexNet / pvSize / 1000 : 0;
-  doc.text(t("Coût par Watt:", "Cost per Watt:"), margin, y);
-  doc.text(`${costPerW.toFixed(2)} $/W`, margin + 350, y, { align: "right", width: 150 });
-  y += 18;
-
-  if (data.volumeDiscountPercent && data.volumeDiscountPercent > 0) {
-    doc.text(t("Rabais Volume:", "Volume Discount:"), margin, y);
-    doc.text(formatPercent(data.volumeDiscountPercent), margin + 350, y, { align: "right", width: 150 });
-    y += 20;
+  function row(label: string, value: string, resp: "kwh" | "dream" | "computed"): string {
+    return `<div class="annex-row">
+      <div class="annex-row-label">${label}</div>
+      <div class="annex-row-value">${value}</div>
+      <div style="margin-left: 3mm;">${badge(resp)}</div>
+    </div>`;
   }
 
-  // Footer
-  y = pageHeight - 50;
-  doc.fontSize(8).fillColor(COLORS.lightGray);
-  doc.text(t("Document confidentiel | kWh Québec", "Confidential document | kWh Québec"), margin, y, {
-    align: "center",
-    width: contentWidth,
-  });
+  const specsHtml = `
+    <div class="annex-box">
+      <div class="annex-box-header">${t("Sp&eacute;cifications", "Specifications")}</div>
+      <div class="annex-box-body">
+        ${row(t("Taille DC (kW)", "DC Size (kW)"), `${fmt(fm.projectSpecs.projectSizeDcKw)}&nbsp;kW`, "kwh")}
+        ${row(t("Taille AC (kW)", "AC Size (kW)"), `${fmt(fm.projectSpecs.projectSizeAcKw)}&nbsp;kW`, "kwh")}
+        ${row(t("Rendement (kWh/kWp)", "Yield (kWh/kWp)"), `${fmt(fm.projectSpecs.yieldKwhPerKwp)}`, "kwh")}
+        ${row(t("Prod. an 1", "1st Year Production"), `${fmt(fm.projectSpecs.firstYearKwh)}&nbsp;kWh`, "kwh")}
+        ${row(t("D&eacute;gradation annuelle", "Annual Degradation"), pct(fm.projectSpecs.degradationPct), "kwh")}
+        ${row(t("Hypoth&egrave;se de disponibilit&eacute;", "Availability Assumption"), pct(fm.projectSpecs.availabilityPct), "kwh")}
+        ${row(t("Dur&eacute;e de vie utile", "Useful Life"), `${fm.projectSpecs.usefulLifeYears || "&mdash;"}&nbsp;${t("ans", "yrs")}`, "kwh")}
+      </div>
+    </div>`;
+
+  const costsHtml = `
+    <div class="annex-box">
+      <div class="annex-box-header">${t("Co&ucirc;ts", "Costs")}</div>
+      <div class="annex-box-body">
+        ${row(t("Co&ucirc;t install. ($/W)", "Install Cost ($/W)"), `${fm.projectCosts.installCostPerW?.toFixed(2) || "&mdash;"}&nbsp;$/W`, "kwh")}
+        ${row(t("Co&ucirc;ts de construction", "Construction Costs"), cur(fm.projectCosts.constructionCosts), "kwh")}
+        ${row(t("Frais municipaux", "Municipal Fees"), cur(fm.projectCosts.municipalFees), "dream")}
+        ${row(t("Interconnexion (HQ)", "Interconnection (HQ)"), cur(fm.projectCosts.interconnectionCost), "dream")}
+        ${row(t("Co&ucirc;t total du projet", "Total Project Cost"), cur(fm.projectCosts.totalProjectCost), "computed")}
+      </div>
+    </div>`;
+
+  const opsHtml = `
+    <div class="annex-box">
+      <div class="annex-box-header">${t("Exploitation", "Operations")}</div>
+      <div class="annex-box-body">
+        ${row(t("O&amp;M ($/kW)", "O&amp;M ($/kW)"), `${fm.operatingCosts.omRatePerKw?.toFixed(2) || "&mdash;"}&nbsp;$/W`, "kwh")}
+        ${row(t("Co&ucirc;t O&amp;M", "O&amp;M Cost"), cur(fm.operatingCosts.omCost), "kwh")}
+        ${row(t("Total op&eacute;rations an 1", "Total Operations Yr 1"), cur(fm.operatingCosts.totalOperationsCostYr1), "computed")}
+        ${row(t("Inflation", "Inflation"), pct(fm.operatingCosts.inflationRate), "kwh")}
+      </div>
+    </div>`;
+
+  const itcHtml = `
+    <div class="annex-box">
+      <div class="annex-box-header">${t("CII", "ITC")}</div>
+      <div class="annex-box-body">
+        ${row(t("&Eacute;ligibilit&eacute; CII", "ITC Eligible"), fm.itc.itcEligible ? t("Oui", "Yes") : t("Non", "No"), "kwh")}
+        ${row(t("Taux CII", "ITC Rate"), pct(fm.itc.itcRate), "kwh")}
+        ${row(t("Rabais CII effectif", "Effective ITC Rebate"), cur(fm.itc.effectiveItcRebate), "computed")}
+      </div>
+    </div>`;
+
+  const addr = site.address ? `${site.address}${site.city ? `, ${site.city}` : ""}` : "";
+
+  return `
+  <div class="page">
+    <div class="annex-header">
+      <div style="font-size: 9pt; color: var(--gray); margin-bottom: 2mm;">
+        ${t(`Annexe A &mdash; Fiche ${siteIndex + 1}/${totalSitesWithFm}`, `Annex A &mdash; Schedule ${siteIndex + 1}/${totalSitesWithFm}`)}
+      </div>
+      <div class="annex-site-name">${site.siteName}</div>
+      ${addr ? `<div class="annex-address">${addr}</div>` : ""}
+    </div>
+    <div class="annex-grid">
+      ${specsHtml}
+      ${costsHtml}
+      ${opsHtml}
+      ${itcHtml}
+    </div>
+    ${footerHtml(t, dateStr, pageNum)}
+  </div>`;
 }
 
-function drawSection4(ctx: PDFContext, data: MasterAgreementData) {
-  const { doc, margin, contentWidth, pageHeight, t } = ctx;
-
-  drawMasterHeader(ctx);
-
-  let y = 130;
-
-  doc.fontSize(16).fillColor(COLORS.blue).font("Helvetica-Bold");
-  doc.text(t("Section 4 : Cadre Financier", "Section 4: Financial Framework"), margin, y);
-  y += 30;
-
-  doc.fontSize(11).fillColor(COLORS.blue).font("Helvetica-Bold");
-  doc.text(t("Métriques Financières du Portfolio", "Portfolio Financial Metrics"), margin, y);
-  y += 20;
-
-  doc.fontSize(10).fillColor(COLORS.darkGray).font("Helvetica");
-  doc.text(t("NPV (25 ans):", "NPV (25 years):"), margin, y);
-  doc.text(formatSmartCurrency(data.totalNpv25, ctx.lang), margin + 350, y, { align: "right", width: 150 });
-  y += 18;
-
-  doc.text(t("Économies Annuelles:", "Annual Savings:"), margin, y);
-  doc.text(formatSmartCurrency(data.totalAnnualSavings, ctx.lang), margin + 350, y, { align: "right", width: 150 });
-  y += 18;
-
-  const paybackYears = data.totalCapexNet && data.totalAnnualSavings ? data.totalCapexNet / data.totalAnnualSavings : 0;
-  doc.text(t("Période de Récupération (ans):", "Payback Period (years):"), margin, y);
-  doc.text(paybackYears.toFixed(1), margin + 350, y, { align: "right", width: 150 });
-  y += 20;
-
-  // Footer
-  y = pageHeight - 50;
-  doc.fontSize(8).fillColor(COLORS.lightGray);
-  doc.text(t("Document confidentiel | kWh Québec", "Confidential document | kWh Québec"), margin, y, {
-    align: "center",
-    width: contentWidth,
-  });
-}
-
-function drawSection5(ctx: PDFContext, data: MasterAgreementData) {
-  const { doc, margin, contentWidth, pageHeight, t } = ctx;
-
-  drawMasterHeader(ctx);
-
-  let y = 130;
-
-  doc.fontSize(16).fillColor(COLORS.blue).font("Helvetica-Bold");
-  doc.text(t("Section 5 : Coûts d'Exploitation et Maintenance", "Section 5: Operating Costs & Maintenance"), margin, y);
-  y += 30;
-
-  doc.fontSize(11).fillColor(COLORS.blue).font("Helvetica-Bold");
-  doc.text(t("Structure des Coûts d'Exploitation", "Operating Cost Structure"), margin, y);
-  y += 20;
-
-  doc.fontSize(10).fillColor(COLORS.darkGray).font("Helvetica");
-
-  const ocItems = [
+function buildGeneralConditionsPage(t: (fr: string, en: string) => string, dateStr: string, pageNum: number): string {
+  const conditions = [
     {
-      label: t("Taux de Maintenance et Exploitation (O&M):", "Operations & Maintenance (O&M) Rate:"),
-      value: "0.50 %–0.75 % / an",
+      num: "6.1",
+      title: t("Validit&eacute; de l'Offre", "Offer Validity"),
+      text: t(
+        "Cette offre est valide pour une p&eacute;riode de 90 jours &agrave; compter de la date du document.",
+        "This offer is valid for a period of 90 days from the document date."
+      ),
     },
     {
-      label: t("Coûts Opérationnels Variables:", "Variable Operating Costs:"),
-      value: t("$50–$100/kW/an", "$50–$100/kW/year"),
+      num: "6.2",
+      title: t("Conditions Pr&eacute;alables", "Conditions Precedent"),
+      text: t(
+        "L'ex&eacute;cution des travaux est assujettie &agrave; l'obtention des permis municipaux, &agrave; l'approbation d'interconnexion d'Hydro-Qu&eacute;bec et &agrave; la confirmation de l'int&eacute;grit&eacute; structurelle du toit.",
+        "Execution of work is subject to obtaining municipal permits, Hydro-Qu&eacute;bec interconnection approval and confirmation of roof structural integrity."
+      ),
     },
     {
-      label: t("Taux d'Inflation:", "Inflation Rate:"),
-      value: "2.0 % / an",
+      num: "6.3",
+      title: t("Garanties", "Warranties"),
+      text: t(
+        "Panneaux : 25 ans de performance lin&eacute;aire. Onduleurs : 15 ans (extensible &agrave; 25). Main-d'&oelig;uvre : 10 ans.",
+        "Panels: 25-year linear performance. Inverters: 15 years (extendable to 25). Workmanship: 10 years."
+      ),
+    },
+    {
+      num: "6.4",
+      title: t("R&eacute;siliation", "Termination"),
+      text: t(
+        "L'une ou l'autre des parties peut r&eacute;silier avec un pr&eacute;avis &eacute;crit de 90 jours en cas de manquement mat&eacute;riel non rem&eacute;di&eacute; dans les 60 jours suivant la notification.",
+        "Either party may terminate with 90 days' written notice in case of material breach not remedied within 60 days of notification."
+      ),
+    },
+    {
+      num: "6.5",
+      title: t("Droit Applicable", "Governing Law"),
+      text: t(
+        "Cette entente est r&eacute;gie par les lois de la Province de Qu&eacute;bec et du Canada. Tout diff&eacute;rend sera soumis aux tribunaux de Montr&eacute;al.",
+        "This agreement is governed by the laws of the Province of Quebec and Canada. Any dispute shall be submitted to the courts of Montreal."
+      ),
+    },
+    {
+      num: "6.6",
+      title: t("Force Majeure", "Force Majeure"),
+      text: t(
+        "Aucune des parties ne sera tenue responsable des retards ou de l'incapacit&eacute; d'ex&eacute;cuter r&eacute;sultant de circonstances hors de son contr&ocirc;le raisonnable.",
+        "Neither party shall be held liable for delays or inability to perform resulting from circumstances beyond its reasonable control."
+      ),
     },
   ];
 
-  ocItems.forEach((item) => {
-    doc.text(item.label, margin, y);
-    doc.text(item.value, margin + 350, y, { align: "right", width: 150 });
-    y += 18;
-  });
-
-  y += 10;
-
-  doc.fontSize(11).fillColor(COLORS.blue).font("Helvetica-Bold");
-  doc.text(t("Détails par Site", "Site-Specific Details"), margin, y);
-  y += 18;
-
-  doc.fontSize(9).fillColor(COLORS.darkGray).font("Helvetica");
-  doc.text(
-    t(
-      "Les coûts d'exploitation détaillés pour chaque site sont présentés dans l'Annexe A.",
-      "Detailed operating costs for each site are presented in Annex A."
-    ),
-    margin,
-    y
-  );
-
-  // Footer
-  y = pageHeight - 50;
-  doc.fontSize(8).fillColor(COLORS.lightGray);
-  doc.text(t("Document confidentiel | kWh Québec", "Confidential document | kWh Québec"), margin, y, {
-    align: "center",
-    width: contentWidth,
-  });
+  return `
+  <div class="page">
+    <div class="section-num">6</div>
+    <h2>${t("Conditions G&eacute;n&eacute;rales", "General Conditions")}</h2>
+    <div class="conditions-list">
+      ${conditions.map(c => `
+        <div class="condition-item">
+          <div class="condition-num">${c.num}</div>
+          <div class="condition-title">${c.title}</div>
+          <div class="condition-text">${c.text}</div>
+        </div>
+      `).join("")}
+    </div>
+    ${footerHtml(t, dateStr, pageNum)}
+  </div>`;
 }
 
-function drawSection6(ctx: PDFContext) {
-  const { doc, margin, contentWidth, pageHeight, t } = ctx;
-
-  drawMasterHeader(ctx);
-
-  let y = 130;
-
-  doc.fontSize(16).fillColor(COLORS.blue).font("Helvetica-Bold");
-  doc.text(
-    t("Section 6 : Crédit d'Impôt aux Investissements (CII)", "Section 6: Investment Tax Credit (ITC)"),
-    margin,
-    y
-  );
-  y += 30;
-
-  doc.fontSize(11).fillColor(COLORS.blue).font("Helvetica-Bold");
-  doc.text(t("Éligibilité et Calcul du CII", "ITC Eligibility and Calculation"), margin, y);
-  y += 20;
-
-  doc.fontSize(10).fillColor(COLORS.darkGray).font("Helvetica");
-
-  const itcItems = [
-    { label: t("Systèmes Admissibles:", "Eligible Systems:"), value: t("Modules et onduleurs", "Modules and inverters") },
-    { label: t("Taux du CII:", "ITC Rate:"), value: "30 %" },
-    { label: t("Restriction de Clawback HQ:", "HQ Clawback Restriction:"), value: t("S/O", "N/A") },
-  ];
-
-  itcItems.forEach((item) => {
-    doc.text(item.label, margin, y);
-    doc.text(item.value, margin + 300, y, { align: "right", width: 200 });
-    y += 18;
-  });
-
-  y += 10;
-
-  doc.fontSize(11).fillColor(COLORS.blue).font("Helvetica-Bold");
-  doc.text(t("Détails par Site", "Site-Specific Details"), margin, y);
-  y += 18;
-
-  doc.fontSize(9).fillColor(COLORS.darkGray).font("Helvetica");
-  doc.text(
-    t(
-      "Le calcul détaillé du CII pour chaque site est présenté dans l'Annexe A.",
-      "Detailed ITC calculation for each site is presented in Annex A."
-    ),
-    margin,
-    y
-  );
-
-  // Footer
-  y = pageHeight - 50;
-  doc.fontSize(8).fillColor(COLORS.lightGray);
-  doc.text(t("Document confidentiel | kWh Québec", "Confidential document | kWh Québec"), margin, y, {
-    align: "center",
-    width: contentWidth,
-  });
+function buildSignaturesPage(t: (fr: string, en: string) => string, dateStr: string, pageNum: number): string {
+  return `
+  <div class="page">
+    <div class="section-num">7</div>
+    <h2>${t("Signatures", "Signatures")}</h2>
+    <p style="font-size: 10pt; color: var(--gray); margin-bottom: 8mm;">
+      ${t(
+        "EN FOI DE QUOI, les parties ont sign&eacute; cette entente cadre &agrave; la date indiqu&eacute;e ci-dessous.",
+        "IN WITNESS WHEREOF, the parties have signed this master agreement on the date indicated below."
+      )}
+    </p>
+    <div class="sig-grid">
+      <div class="sig-block">
+        <div class="sig-org">Dream Industrial REIT</div>
+        <div class="sig-line"></div><div class="sig-label">${t("Nom", "Name")}</div>
+        <div class="sig-line"></div><div class="sig-label">${t("Titre", "Title")}</div>
+        <div class="sig-line"></div><div class="sig-label">Date</div>
+      </div>
+      <div class="sig-block">
+        <div class="sig-org">kWh Qu&eacute;bec</div>
+        <div class="sig-line"></div><div class="sig-label">${t("Nom", "Name")}</div>
+        <div class="sig-line"></div><div class="sig-label">${t("Titre", "Title")}</div>
+        <div class="sig-line"></div><div class="sig-label">Date</div>
+      </div>
+    </div>
+    <div class="sig-disclaimer">
+      ${t(
+        "Ce document constitue une offre formelle et non un contrat contraignant. L'entente d&eacute;finitive sera formalis&eacute;e par la signature des deux parties du contrat d&eacute;finitif incluant toutes les annexes par site.",
+        "This document constitutes a formal offer and not a binding contract. The final agreement will be formalized by both parties signing the definitive contract including all per-site annexes."
+      )}
+    </div>
+    ${footerHtml(t, dateStr, pageNum)}
+  </div>`;
 }
 
-function drawSection7(ctx: PDFContext) {
-  const { doc, margin, contentWidth, pageHeight, t } = ctx;
-
-  drawMasterHeader(ctx);
-
-  let y = 130;
-
-  doc.fontSize(16).fillColor(COLORS.blue).font("Helvetica-Bold");
-  doc.text(t("Section 7 : Termes et Conditions", "Section 7: Terms & Conditions"), margin, y);
-  y += 30;
-
-  doc.fontSize(11).fillColor(COLORS.blue).font("Helvetica-Bold");
-  doc.text(t("Calendrier Général", "General Timeline"), margin, y);
-  y += 20;
-
-  doc.fontSize(10).fillColor(COLORS.darkGray).font("Helvetica");
-
-  const timelineItems = [
-    { step: t("Approbation et Signature", "Approval & Signature"), duration: t("Semaine 1", "Week 1") },
-    { step: t("Design Détaillé", "Detailed Design"), duration: t("Semaines 2–4", "Weeks 2–4") },
-    { step: t("Approvisionnement", "Procurement"), duration: t("Semaines 3–6", "Weeks 3–6") },
-    { step: t("Construction", "Construction"), duration: t("Semaines 5–12", "Weeks 5–12") },
-    { step: t("Mise en Service", "Commissioning"), duration: t("Semaines 11–13", "Weeks 11–13") },
-  ];
-
-  timelineItems.forEach((item) => {
-    doc.text(item.step, margin, y);
-    doc.text(item.duration, margin + 350, y, { align: "right", width: 150 });
-    y += 18;
-  });
-
-  y += 10;
-
-  doc.fontSize(11).fillColor(COLORS.blue).font("Helvetica-Bold");
-  doc.text(t("Garanties", "Warranties"), margin, y);
-  y += 18;
-
-  doc.fontSize(10).fillColor(COLORS.darkGray).font("Helvetica");
-  const warrantyItems = [
-    t("Modules photovoltaïques : 25 ans", "Photovoltaic modules: 25 years"),
-    t("Onduleurs : 10 ans", "Inverters: 10 years"),
-    t("Travaux de construction : 1 an", "Construction workmanship: 1 year"),
-  ];
-
-  warrantyItems.forEach((item) => {
-    doc.text(`• ${item}`, margin + 15, y);
-    y += 16;
-  });
-
-  // Footer
-  y = pageHeight - 50;
-  doc.fontSize(8).fillColor(COLORS.lightGray);
-  doc.text(t("Document confidentiel | kWh Québec", "Confidential document | kWh Québec"), margin, y, {
-    align: "center",
-    width: contentWidth,
-  });
-}
-
-function drawAnnexASite(ctx: PDFContext, site: MasterAgreementSiteData, siteIndex: number, totalSites: number) {
-  const { doc, margin, contentWidth, pageHeight, t } = ctx;
-
-  drawMasterHeader(ctx);
-
-  let y = 130;
-
-  // Site title
-  doc.fontSize(14).fillColor(COLORS.blue).font("Helvetica-Bold");
-  doc.text(
-    t(`Annexe A - Site ${siteIndex + 1}/${totalSites}: ${site.siteName}`, `Annex A - Site ${siteIndex + 1}/${totalSites}: ${site.siteName}`),
-    margin,
-    y
-  );
-  y += 22;
-
-  // Site address
-  doc.fontSize(10).fillColor(COLORS.darkGray).font("Helvetica");
-  if (site.address) {
-    doc.text(`${site.address}, ${site.city || ""}`, margin, y);
-    y += 18;
-  }
-
-  y += 10;
-
-  const fm = site.financialModel;
-
-  // ===== PROJECT SPECIFICATIONS =====
-  doc.fontSize(11).fillColor(COLORS.blue).font("Helvetica-Bold");
-  doc.text(t("Spécifications du Projet", "Project Specifications"), margin, y);
-  y += 18;
-
-  doc.fontSize(9).fillColor(COLORS.darkGray).font("Helvetica");
-
-  const specs = [
-    [t("Paramètre", "Parameter"), t("Valeur", "Value")],
-    [t("Taille DC (kW)", "DC Size (kW)"), formatSmartPower(fm.projectSpecs.projectSizeDcKw, ctx.lang, "kW")],
-    [t("Taille AC (kW)", "AC Size (kW)"), formatSmartPower(fm.projectSpecs.projectSizeAcKw, ctx.lang, "kW")],
-    [t("Rendement (kWh/kWp)", "Yield (kWh/kWp)"), formatSmartEnergy(fm.projectSpecs.yieldKwhPerKwp, ctx.lang, "Wh")],
-    [t("Prod. an 1 (kWh)", "Year 1 Production (kWh)"), formatSmartEnergy(fm.projectSpecs.firstYearKwh, ctx.lang)],
-    [t("Dégradation (%/an)", "Degradation (%/yr)"), formatPercent(fm.projectSpecs.degradationPct)],
-    [t("Hypothèse de disponibilité (%)", "Availability Assumption (%)"), formatPercent(fm.projectSpecs.availabilityPct)],
-    [t("Durée de vie utile (ans)", "Useful Life (years)"), String(fm.projectSpecs.usefulLifeYears || "—")],
-  ];
-
-  const colWidths = [250, 240];
-  let cellY = y;
-
-  // Header
-  doc.rect(margin, cellY, colWidths[0], 16).fill(COLORS.blue);
-  doc.rect(margin + colWidths[0], cellY, colWidths[1], 16).fill(COLORS.blue);
-
-  doc.fillColor(COLORS.white).font("Helvetica-Bold");
-  doc.text(specs[0][0], margin + 6, cellY + 3, { width: colWidths[0] - 12 });
-  doc.text(specs[0][1], margin + colWidths[0] + 6, cellY + 3, { width: colWidths[1] - 12, align: "right" });
-
-  cellY += 16;
-
-  // Data rows
-  doc.fillColor(COLORS.darkGray).font("Helvetica");
-  for (let i = 1; i < specs.length; i++) {
-    const bgColor = i % 2 === 0 ? "#FFFFFF" : "#F9F9F9";
-    doc.rect(margin, cellY, colWidths[0], 14).fill(bgColor);
-    doc.rect(margin + colWidths[0], cellY, colWidths[1], 14).fill(bgColor);
-
-    doc.text(specs[i][0], margin + 6, cellY + 2, { width: colWidths[0] - 12 });
-    doc.text(specs[i][1], margin + colWidths[0] + 6, cellY + 2, { width: colWidths[1] - 12, align: "right" });
-
-    cellY += 14;
-  }
-
-  y = cellY + 18;
-
-  // ===== PROJECT COSTS =====
-  if (ensureContentFits(ctx, 200)) {
-    y = margin + 20;
-  }
-
-  doc.fontSize(11).fillColor(COLORS.blue).font("Helvetica-Bold");
-  doc.text(t("Coûts du Projet", "Project Costs"), margin, y);
-  y += 18;
-
-  doc.fontSize(9).fillColor(COLORS.darkGray).font("Helvetica");
-
-  const costs = [
-    [t("Paramètre", "Parameter"), t("Valeur", "Value")],
-    [t("Coût install./W ($)", "Install cost/W ($)"), formatCurrency(fm.projectCosts.installCostPerW)],
-    [t("Coûts de construction ($)", "Construction costs ($)"), formatCurrency(fm.projectCosts.constructionCosts)],
-    [t("Frais municipaux ($)", "Municipal fees ($)"), formatCurrency(fm.projectCosts.municipalFees)],
-    [t("Coûts d'interconnexion ($)", "Interconnection cost ($)"), formatCurrency(fm.projectCosts.interconnectionCost)],
-    [t("Coûts totaux du projet ($)", "Total project cost ($)"), formatCurrency(fm.projectCosts.totalProjectCost)],
-    [t("Coûts tout compris ($)", "All-in costs ($)"), formatCurrency(fm.projectCosts.allInCosts)],
-    [t("Coûts du projet/W ($)", "Project cost/W ($)"), formatCurrency(fm.projectCosts.projectCostPerW)],
-  ];
-
-  cellY = y;
-
-  // Header
-  doc.rect(margin, cellY, colWidths[0], 16).fill(COLORS.blue);
-  doc.rect(margin + colWidths[0], cellY, colWidths[1], 16).fill(COLORS.blue);
-
-  doc.fillColor(COLORS.white).font("Helvetica-Bold");
-  doc.text(costs[0][0], margin + 6, cellY + 3, { width: colWidths[0] - 12 });
-  doc.text(costs[0][1], margin + colWidths[0] + 6, cellY + 3, { width: colWidths[1] - 12, align: "right" });
-
-  cellY += 16;
-
-  // Data rows
-  doc.fillColor(COLORS.darkGray).font("Helvetica");
-  for (let i = 1; i < costs.length; i++) {
-    const bgColor = i % 2 === 0 ? "#FFFFFF" : "#F9F9F9";
-    doc.rect(margin, cellY, colWidths[0], 14).fill(bgColor);
-    doc.rect(margin + colWidths[0], cellY, colWidths[1], 14).fill(bgColor);
-
-    doc.text(costs[i][0], margin + 6, cellY + 2, { width: colWidths[0] - 12 });
-    doc.text(costs[i][1], margin + colWidths[0] + 6, cellY + 2, { width: colWidths[1] - 12, align: "right" });
-
-    cellY += 14;
-  }
-
-  y = cellY + 18;
-
-  // ===== OPERATING COSTS =====
-  if (ensureContentFits(ctx, 180)) {
-    y = margin + 20;
-  }
-
-  doc.fontSize(11).fillColor(COLORS.blue).font("Helvetica-Bold");
-  doc.text(t("Coûts d'Exploitation", "Operating Costs"), margin, y);
-  y += 18;
-
-  doc.fontSize(9).fillColor(COLORS.darkGray).font("Helvetica");
-
-  const opCosts = [
-    [t("Paramètre", "Parameter"), t("Valeur", "Value")],
-    [t("Taux O&M ($/kW/an)", "O&M rate ($/kW/yr)"), formatCurrency(fm.operatingCosts.omRatePerKw)],
-    [t("Coûts O&M ($)", "O&M cost ($)"), formatCurrency(fm.operatingCosts.omCost)],
-    [t("Coûts opér. var. ($/kW)", "Variable op. costs ($/kW)"), formatCurrency(fm.operatingCosts.variableOpCostPerKw)],
-    [t("Coûts opér. var. ($)", "Variable op. cost ($)"), formatCurrency(fm.operatingCosts.variableOpCost)],
-    [t("Coûts totaux an 1 ($)", "Total operations yr 1 ($)"), formatCurrency(fm.operatingCosts.totalOperationsCostYr1)],
-    [t("Taux d'inflation (% / an)", "Inflation rate (% / yr)"), formatPercent(fm.operatingCosts.inflationRate)],
-  ];
-
-  cellY = y;
-
-  // Header
-  doc.rect(margin, cellY, colWidths[0], 16).fill(COLORS.blue);
-  doc.rect(margin + colWidths[0], cellY, colWidths[1], 16).fill(COLORS.blue);
-
-  doc.fillColor(COLORS.white).font("Helvetica-Bold");
-  doc.text(opCosts[0][0], margin + 6, cellY + 3, { width: colWidths[0] - 12 });
-  doc.text(opCosts[0][1], margin + colWidths[0] + 6, cellY + 3, { width: colWidths[1] - 12, align: "right" });
-
-  cellY += 16;
-
-  // Data rows
-  doc.fillColor(COLORS.darkGray).font("Helvetica");
-  for (let i = 1; i < opCosts.length; i++) {
-    const bgColor = i % 2 === 0 ? "#FFFFFF" : "#F9F9F9";
-    doc.rect(margin, cellY, colWidths[0], 14).fill(bgColor);
-    doc.rect(margin + colWidths[0], cellY, colWidths[1], 14).fill(bgColor);
-
-    doc.text(opCosts[i][0], margin + 6, cellY + 2, { width: colWidths[0] - 12 });
-    doc.text(opCosts[i][1], margin + colWidths[0] + 6, cellY + 2, { width: colWidths[1] - 12, align: "right" });
-
-    cellY += 14;
-  }
-
-  y = cellY + 18;
-
-  // ===== ITC =====
-  if (ensureContentFits(ctx, 160)) {
-    y = margin + 20;
-  }
-
-  doc.fontSize(11).fillColor(COLORS.blue).font("Helvetica-Bold");
-  doc.text(t("Crédit d'Impôt aux Investissements (CII)", "Investment Tax Credit (ITC)"), margin, y);
-  y += 18;
-
-  doc.fontSize(9).fillColor(COLORS.darkGray).font("Helvetica");
-
-  const itcRows = [
-    [t("Paramètre", "Parameter"), t("Valeur", "Value")],
-    [t("Éligibilité", "Eligibility"), fm.itc.itcEligible ? t("Oui", "Yes") : t("Non", "No")],
-    [t("Taux CII (%)", "ITC rate (%)"), formatPercent(fm.itc.itcRate)],
-    [t("Hypothèse coûts elig. (%)", "Eligible costs assumption (%)"), formatPercent(fm.itc.eligibleCostsAssumption)],
-    [t("Coûts admissibles ($)", "Eligible costs ($)"), formatCurrency(fm.itc.eligibleCosts)],
-    [t("Coûts non-admissibles ($)", "Non-eligible costs ($)"), formatCurrency(fm.itc.nonEligibleCosts)],
-    [t("Rabais potentiel CII ($)", "Potential ITC rebate ($)"), formatCurrency(fm.itc.potentialItcRebate)],
-    [t("Rabais CII effectif ($)", "Effective ITC rebate ($)"), formatCurrency(fm.itc.effectiveItcRebate)],
-  ];
-
-  cellY = y;
-
-  // Header
-  doc.rect(margin, cellY, colWidths[0], 16).fill(COLORS.blue);
-  doc.rect(margin + colWidths[0], cellY, colWidths[1], 16).fill(COLORS.blue);
-
-  doc.fillColor(COLORS.white).font("Helvetica-Bold");
-  doc.text(itcRows[0][0], margin + 6, cellY + 3, { width: colWidths[0] - 12 });
-  doc.text(itcRows[0][1], margin + colWidths[0] + 6, cellY + 3, { width: colWidths[1] - 12, align: "right" });
-
-  cellY += 16;
-
-  // Data rows
-  doc.fillColor(COLORS.darkGray).font("Helvetica");
-  for (let i = 1; i < itcRows.length; i++) {
-    const bgColor = i % 2 === 0 ? "#FFFFFF" : "#F9F9F9";
-    doc.rect(margin, cellY, colWidths[0], 14).fill(bgColor);
-    doc.rect(margin + colWidths[0], cellY, colWidths[1], 14).fill(bgColor);
-
-    doc.text(itcRows[i][0], margin + 6, cellY + 2, { width: colWidths[0] - 12 });
-    doc.text(itcRows[i][1], margin + colWidths[0] + 6, cellY + 2, { width: colWidths[1] - 12, align: "right" });
-
-    cellY += 14;
-  }
-
-  // Footer
-  y = pageHeight - 50;
-  doc.fontSize(8).fillColor(COLORS.lightGray);
-  doc.text(t("Document confidentiel | kWh Québec", "Confidential document | kWh Québec"), margin, y, {
-    align: "center",
-    width: contentWidth,
-  });
-}
-
-export function generateMasterAgreementPDF(
-  doc: PDFKit.PDFDocument,
+export async function generateMasterAgreementPDFBuffer(
   data: MasterAgreementData,
   lang: "fr" | "en" = "fr"
-): void {
-  const ctx = createContext(doc, lang);
-
-  // Page 1: Cover Page
-  drawCoverPage(ctx, data);
-
-  // Page 2: Table of Contents
-  doc.addPage();
-  drawTableOfContents(ctx);
-
-  // Page 3: Section 1
-  doc.addPage();
-  drawSection1(ctx, data);
-
-  // Page 4: Section 2
-  doc.addPage();
-  drawSection2(ctx, data);
-
-  // Page 5: Section 3
-  doc.addPage();
-  drawSection3(ctx, data);
-
-  // Page 6: Section 4
-  doc.addPage();
-  drawSection4(ctx, data);
-
-  // Page 7: Section 5
-  doc.addPage();
-  drawSection5(ctx, data);
-
-  // Page 8: Section 6
-  doc.addPage();
-  drawSection6(ctx);
-
-  // Page 9: Section 7
-  doc.addPage();
-  drawSection7(ctx);
-
-  // Annex A: One page per site
-  data.sites.forEach((site, index) => {
-    doc.addPage();
-    drawAnnexASite(ctx, site, index, data.sites.length);
+): Promise<Buffer> {
+  const t = (fr: string, en: string) => (lang === "fr" ? fr : en);
+  const dateStr = new Date().toLocaleDateString(lang === "fr" ? "fr-CA" : "en-CA", {
+    year: "numeric", month: "long", day: "numeric",
   });
+
+  const logoPath = path.join(process.cwd(), "client", "public", "assets", lang === "fr" ? "logo-fr-white.png" : "logo-en-white.png");
+  const logoBase64 = loadImageAsBase64(logoPath);
+
+  let pageNum = 1;
+  const pages: string[] = [];
+
+  pages.push(buildCoverPage(data, t, dateStr, logoBase64));
+
+  pages.push(buildTocPage(t, dateStr));
+  pageNum++;
+
+  pages.push(buildExecutiveSummaryPage(data, t, dateStr));
+  pageNum++;
+
+  pages.push(buildPartiesPage(t, dateStr));
+  pageNum++;
+
+  pages.push(buildCommercialTermsPage(t, dateStr));
+  pageNum++;
+
+  pages.push(buildFinancialFrameworkPage(data, t, dateStr));
+  pageNum++;
+
+  const sitesWithFm = data.sites.filter(s => !!s.financialModel);
+  sitesWithFm.forEach((site, idx) => {
+    pageNum++;
+    pages.push(buildAnnexPage(site, idx, sitesWithFm.length, t, dateStr, pageNum));
+  });
+
+  pageNum++;
+  pages.push(buildGeneralConditionsPage(t, dateStr, pageNum));
+
+  pageNum++;
+  pages.push(buildSignaturesPage(t, dateStr, pageNum));
+
+  const html = `<!DOCTYPE html>
+<html lang="${lang}">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${t("Entente Cadre", "Master Agreement")} - ${data.clientName}</title>
+<style>${getStyles()}</style>
+</head>
+<body>
+${pages.join("\n")}
+</body>
+</html>`;
+
+  let browser;
+  try {
+    browser = await puppeteer.launch({
+      headless: true,
+      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || puppeteer.executablePath(),
+      args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
+    });
+  } catch (err) {
+    log.error("Failed to launch browser for PDF generation", err);
+    throw new Error("PDF generation failed: Could not launch browser");
+  }
+
+  try {
+    const page = await browser.newPage();
+    await page.setContent(html, { waitUntil: "networkidle0", timeout: 60000 });
+    const pdfBuffer = await page.pdf({
+      format: "Letter",
+      printBackground: true,
+      margin: { top: "0", right: "0", bottom: "0", left: "0" },
+    });
+    return Buffer.from(pdfBuffer);
+  } finally {
+    await browser.close();
+  }
 }
+
+export { generateMasterAgreementPDFBuffer as generateMasterAgreementPDF };
