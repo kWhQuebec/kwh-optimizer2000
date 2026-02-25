@@ -778,6 +778,39 @@ export default function PortfolioDetailPage() {
               <Download className="w-4 h-4" />
               PDF
             </Button>
+            {portfolio.name.toLowerCase().includes("dream") && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                data-testid="button-download-master-agreement"
+                onClick={async () => {
+                  try {
+                    const token = localStorage.getItem("token");
+                    const response = await fetch(`/api/portfolios/${id}/master-agreement-pdf?lang=${language}`, {
+                      headers: {
+                        Authorization: `Bearer ${token}`,
+                      },
+                    });
+                    if (!response.ok) throw new Error("Failed to download Master Agreement PDF");
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = `master-agreement-${portfolio.name.replace(/\s+/g, "-").toLowerCase()}.pdf`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                  } catch (error) {
+                    console.error("Master Agreement PDF download error:", error);
+                  }
+                }}
+              >
+                <FileSignature className="w-4 h-4" />
+                {language === "fr" ? "Entente Cadre" : "Master Agreement"}
+              </Button>
+            )}
             <Button
               variant="outline"
               size="sm"

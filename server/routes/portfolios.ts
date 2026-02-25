@@ -373,6 +373,61 @@ router.get("/api/portfolios/:id/pdf", authMiddleware, asyncHandler(async (req: A
   doc.end();
 }));
 
+// Master Agreement PDF (Dream RFP — full document with Annex A per site)
+router.get("/api/portfolios/:id/master-agreement-pdf", authMiddleware, asyncHandler(async (req: AuthRequest, res) => {
+  const lang = (req.query.lang as string) === "en" ? "en" : "fr";
+  const portfolio = await storage.getPortfolio(req.params.id);
+
+  if (!portfolio) {
+    throw new NotFoundError("Portfolio");
+  }
+
+  if (req.userRole === "client" && req.userClientId !== portfolio.clientId) {
+    throw new ForbiddenError("Access denied");
+  }
+
+  const client = await storage.getClient(portfolio.clientId);
+  if (!client) {
+    throw new NotFoundError("Client");
+  }
+
+  const portfolioSites = await storage.getPortfolioSites(req.params.id);
+
+  const doc = new PDFDocument({ size: "LETTER", margin: 50 });
+
+  const portfolioName = portfolio.name.replace(/\s+/g, "-").toLowerCase();
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader("Content-Disposition", `attachment; filename="master-agreement-${portfolioName}.pdf"`);
+
+  doc.pipe(res);
+
+  const { generateMasterAgreementPDF } = await import("../pdf");
+
+  generateMasterAgreementPDF(doc, {
+    name: portfolio.name,
+    clientName: client.name,
+    description: portfolio.description || undefined,
+    numBuildings: portfolio.numBuildings || portfolioSites.length,
+    volumeDiscountPercent: portfolio.volumeDiscountPercent,
+    totalPvSizeKW: portfolio.totalPvSizeKW,
+    totalBatteryKWh: portfolio.totalBatteryKWh,
+    totalCapexNet: portfolio.totalCapexNet,
+    totalNpv25: portfolio.totalNpv25,
+    totalAnnualSavings: portfolio.totalAnnualSavings,
+    totalCo2Avoided: portfolio.totalCo2Avoided,
+    sites: portfolioSites
+      .filter(ps => (ps as any).financialModel)
+      .map(ps => ({
+        siteName: ps.site?.name || "Unknown",
+        address: ps.site?.address || undefined,
+        city: ps.site?.city || undefined,
+        financialModel: (ps as any).financialModel,
+      })),
+  }, lang as "fr" | "en");
+
+  doc.end();
+}));
+
 router.post("/api/portfolios/:id/recalculate", authMiddleware, requireStaff, asyncHandler(async (req: AuthRequest, res) => {
   const portfolio = await storage.getPortfolio(req.params.id);
   if (!portfolio) {
