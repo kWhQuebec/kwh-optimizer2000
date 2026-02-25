@@ -94,7 +94,7 @@ export function generatePortfolioSummaryPDF(
     { label: t("Bâtiments", "Buildings"), value: String(portfolio.numBuildings) },
     { label: t("PV Total", "Total PV"), value: formatSmartPower(portfolio.totalPvSizeKW, lang, "kW") },
     { label: "NPV (25 ans)", value: formatSmartCurrency(portfolio.totalNpv25, lang) },
-    { label: t("TRI Pondéré", "Weighted IRR"), value: formatPercent(portfolio.weightedIrr25) },
+    { label: t("Économies/an", "Savings/yr"), value: formatSmartCurrency(portfolio.totalAnnualSavings, lang) },
   ];
 
   kpis.forEach((kpi, i) => {
@@ -134,7 +134,7 @@ export function generatePortfolioSummaryPDF(
   doc.text(t("Détail par site", "Site Details"), margin, y);
   y += 20;
 
-  const colWidths = [140, 55, 50, 75, 75, 55, 70];
+  const colWidths = [160, 60, 55, 85, 85, 85];
   const tableWidth = colWidths.reduce((a, b) => a + b, 0);
   const headers = [
     t("Site", "Site"),
@@ -142,7 +142,6 @@ export function generatePortfolioSummaryPDF(
     t("Batt.", "Batt."),
     t("CAPEX Net", "Net CAPEX"),
     "NPV",
-    "TRI",
     t("Écon./an", "Savings/yr"),
   ];
 
@@ -182,10 +181,7 @@ export function generatePortfolioSummaryPDF(
     cellX += colWidths[4];
 
     doc.fillColor(COLORS.darkGray);
-    doc.text(formatPercent(site.irr25), cellX, y + 5, { width: colWidths[5] - 8, align: "right" });
-    cellX += colWidths[5];
-
-    doc.text(formatCurrency(site.annualSavings), cellX, y + 5, { width: colWidths[6] - 8, align: "right" });
+    doc.text(formatCurrency(site.annualSavings), cellX, y + 5, { width: colWidths[5] - 8, align: "right" });
 
     y += 18;
   });
@@ -211,10 +207,7 @@ export function generatePortfolioSummaryPDF(
   totalX += colWidths[4];
 
   doc.fillColor(COLORS.blue);
-  doc.text(formatPercent(portfolio.weightedIrr25), totalX, y + 6, { width: colWidths[5] - 8, align: "right" });
-  totalX += colWidths[5];
-
-  doc.text(formatCurrency(portfolio.totalAnnualSavings), totalX, y + 6, { width: colWidths[6] - 8, align: "right" });
+  doc.text(formatCurrency(portfolio.totalAnnualSavings), totalX, y + 6, { width: colWidths[5] - 8, align: "right" });
 
   y += 35;
 
