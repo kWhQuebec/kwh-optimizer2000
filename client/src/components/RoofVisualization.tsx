@@ -1132,6 +1132,8 @@ export function RoofVisualization({
       prevPVSizeRef.current = currentPVSizeKW;
       setSelectedCapacityKW(currentPVSizeKW);
       setHasUserAdjusted(false);
+      // Reset orientation so it re-evaluates at the new recommended size
+      orientationInitializedRef.current = false;
     } else if (!hasUserAdjusted && currentPVSizeKW) {
       setSelectedCapacityKW(currentPVSizeKW);
     }
@@ -1566,20 +1568,27 @@ export function RoofVisualization({
         setBuildingAlignedAngle(buildingResult.orientationAngle);
         setTrueSouthAngle(0);
         
-        // Auto-select OPTIMAL orientation based on estimated annual production (panels × yield factor)
+        // Auto-select OPTIMAL orientation based on estimated annual production at the RECOMMENDED size
+        // Key insight: compare at the slider's current target panel count, not at max capacity.
+        // - If south can fit the recommended panels, it always wins on yield/kWp (same capacity, better azimuth).
+        // - Building-aligned only wins when the recommended count exceeds what south can physically fit
+        //   (more panels compensate for worse azimuth).
         // Only auto-select on first initialization or when polygon data actually changes — don't override user's manual selection on re-renders
         const buildingYieldFactor = calculateOrientationYieldFactor(buildingResult.orientationAngle).factor;
         const southYieldFactor = calculateOrientationYieldFactor(0).factor; // True south = 0 radians = optimal
-        const buildingProduction = sortedBuildingPanels.length * PANEL_KW * buildingYieldFactor;
-        const southProduction = sortedSouthPanels.length * PANEL_KW * southYieldFactor;
-        const optimalOrientation = southProduction > buildingProduction ? "south" : "building";
+        const recommendedPanels = Math.round(selectedCapacityKW / PANEL_KW);
+        const effectiveBuildingCount = Math.min(recommendedPanels, sortedBuildingPanels.length);
+        const effectiveSouthCount = Math.min(recommendedPanels, sortedSouthPanels.length);
+        const buildingProduction = effectiveBuildingCount * PANEL_KW * buildingYieldFactor;
+        const southProduction = effectiveSouthCount * PANEL_KW * southYieldFactor;
+        const optimalOrientation = southProduction >= buildingProduction ? "south" : "building";
         const currentPolygonCount = solarPolygonDataForUnified.length;
         if (!orientationInitializedRef.current || prevPolygonCountRef.current !== currentPolygonCount) {
           setSelectedOrientation(optimalOrientation);
           orientationInitializedRef.current = true;
           prevPolygonCountRef.current = currentPolygonCount;
         }
-        console.log(`[RoofVisualization] Yield comparison: Building=${(buildingYieldFactor*100).toFixed(1)}% (${sortedBuildingPanels.length}×${PANEL_KW}kW×${buildingYieldFactor.toFixed(2)}=${buildingProduction.toFixed(0)}kWh), South=${(southYieldFactor*100).toFixed(1)}% (${sortedSouthPanels.length}×${PANEL_KW}kW×${southYieldFactor.toFixed(2)}=${southProduction.toFixed(0)}kWh)`);
+        console.log(`[RoofVisualization] Yield comparison @ ${recommendedPanels} panels: Building=${(buildingYieldFactor*100).toFixed(1)}% (${effectiveBuildingCount}×${PANEL_KW}kW=${buildingProduction.toFixed(0)}kWh), South=${(southYieldFactor*100).toFixed(1)}% (${effectiveSouthCount}×${PANEL_KW}kW=${southProduction.toFixed(0)}kWh) → Optimal: ${optimalOrientation}`);
         
         // Use optimal orientation as default
         const sortedPanels = optimalOrientation === "south" ? sortedSouthPanels : sortedBuildingPanels;
@@ -2458,25 +2467,51 @@ export function RoofVisualization({
                 </div>
                 
                 <div className="mt-2 pt-2 border-t text-xs">
-                      {difference > 0 ? (
-                        <span className="text-green-700">
-                          {language === "fr" 
-                            ? `Plein sud produirait +${formatNumber(Math.round(difference), language)} kWh/an (+${percentDiff.toFixed(1)}%)`
-                            : `True south would produce +${formatNumber(Math.round(difference), language)} kWh/yr (+${percentDiff.toFixed(1)}%)`
-                          }
-                        </span>
-                      ) : difference < 0 ? (
-                        <span className="text-amber-700">
-                          {language === "fr"
-                            ? `Aligné bâtiment produit ${formatNumber(Math.round(Math.abs(difference)), language)} kWh/an de plus grâce à ${buildingPanelCount - southPanelCount} panneaux additionnels`
-                            : `Building-aligned produces ${formatNumber(Math.round(Math.abs(difference)), language)} kWh/yr more due to ${buildingPanelCount - southPanelCount} additional panels`
-                          }
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground">
-                          {language === "fr" ? "Production équivalente" : "Equivalent production"}
-                        </span>
-                      )}
+                      {(() => {
+                        // When the slider count fits in both orientations → same capacity, south wins on yield/kWp
+                        const sliderFitsInSouth = panelsToShow <= trueSouthPanels.length;
+                        if (sliderFitsInSouth && difference > 0) {
+                          const yieldGainPct = buildingProduction > 0 ? ((difference / buildingProduction) * 100) : 0;
+                          return (
+                            <span className="text-green-700">
+                              {language === "fr"
+                                ? `Plein sud : même capacité (${southPanelCount} panneaux), rendement +${yieldGainPct.toFixed(1)}%`
+                                : `True south: same capacity (${southPanelCount} panels), yield +${yieldGainPct.toFixed(1)}%`
+                              }
+                            </span>
+                          );
+                        } else if (sliderFitsInSouth && difference <= 0) {
+                          return (
+                            <span className="text-muted-foreground">
+                              {language === "fr" ? "Production équivalente" : "Equivalent production"}
+                            </span>
+                          );
+                        } else if (difference > 0) {
+                          return (
+                            <span className="text-green-700">
+                              {language === "fr"
+                                ? `Plein sud produirait +${formatNumber(Math.round(difference), language)} kWh/an (+${percentDiff.toFixed(1)}%)`
+                                : `True south would produce +${formatNumber(Math.round(difference), language)} kWh/yr (+${percentDiff.toFixed(1)}%)`
+                              }
+                            </span>
+                          );
+                        } else if (difference < 0) {
+                          return (
+                            <span className="text-amber-700">
+                              {language === "fr"
+                                ? `Aligné bâtiment produit ${formatNumber(Math.round(Math.abs(difference)), language)} kWh/an de plus grâce à ${buildingPanelCount - southPanelCount} panneaux additionnels`
+                                : `Building-aligned produces ${formatNumber(Math.round(Math.abs(difference)), language)} kWh/yr more due to ${buildingPanelCount - southPanelCount} additional panels`
+                              }
+                            </span>
+                          );
+                        } else {
+                          return (
+                            <span className="text-muted-foreground">
+                              {language === "fr" ? "Production équivalente" : "Equivalent production"}
+                            </span>
+                          );
+                        }
+                      })()}
                     </div>
                     </>
                   );
