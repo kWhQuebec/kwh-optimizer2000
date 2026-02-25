@@ -80,31 +80,17 @@ router.get("/api/portfolios/:id/full", authMiddleware, asyncHandler(async (req: 
   let totalNpv = 0;
   let sitesWithSimulations = 0;
 
-  interface SimulationResults {
-    pvSizeKW?: number;
-    optimalPvSizeKW?: number;
-    batteryCapacityKWh?: number;
-    optimalBatteryKWh?: number;
-    netCapex?: number;
-    npv?: number;
-    irr?: number;
-    annualSavings?: number;
-    firstYearSavings?: number;
-    co2AvoidedTonnes?: number;
-    annualCo2Avoided?: number;
-  }
-
   for (const ps of portfolioSites) {
     const sim = ps.latestSimulation;
-    const results = sim?.results as SimulationResults | undefined;
 
-    const pvSize = ps.overridePvSizeKW ?? results?.pvSizeKW ?? results?.optimalPvSizeKW ?? 0;
-    const batterySize = ps.overrideBatteryKWh ?? results?.batteryCapacityKWh ?? results?.optimalBatteryKWh ?? 0;
-    const netCapex = ps.overrideCapexNet ?? results?.netCapex ?? 0;
-    const npv = ps.overrideNpv ?? results?.npv ?? 0;
-    const irr = ps.overrideIrr ?? results?.irr ?? 0;
-    const annualSavings = ps.overrideAnnualSavings ?? results?.annualSavings ?? results?.firstYearSavings ?? 0;
-    const co2 = results?.co2AvoidedTonnes ?? results?.annualCo2Avoided ?? 0;
+    // Read directly from simulation columns (not the JSONB results blob which has different field names)
+    const pvSize = ps.overridePvSizeKW ?? sim?.pvSizeKW ?? 0;
+    const batterySize = ps.overrideBatteryKWh ?? sim?.battEnergyKWh ?? 0;
+    const netCapex = ps.overrideCapexNet ?? sim?.capexNet ?? 0;
+    const npv = ps.overrideNpv ?? sim?.npv25 ?? 0;
+    const irr = ps.overrideIrr ?? sim?.irr25 ?? 0;
+    const annualSavings = ps.overrideAnnualSavings ?? sim?.annualSavings ?? 0;
+    const co2 = sim?.co2AvoidedTonnesPerYear ?? 0;
 
     const hasData = pvSize > 0 || netCapex !== 0 || npv !== 0 || annualSavings !== 0 ||
                    ps.overridePvSizeKW != null || ps.overrideCapexNet != null ||
