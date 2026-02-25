@@ -2,6 +2,17 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## CRITICAL: Git Sync Protocol
+
+**This repo is actively edited by multiple Claude instances (Claude Code on Replit + Cowork).**
+To avoid conflicts:
+
+1. **ALWAYS `git pull --rebase origin main` BEFORE starting any work** — no exceptions
+2. **ALWAYS `git pull --rebase origin main` BEFORE pushing** — to catch any changes pushed while you were working
+3. **Commit frequently** — small, focused commits reduce conflict surface
+4. If you get a merge conflict, resolve it cleanly and continue the rebase
+5. Never force push to main
+
 ## Project Overview
 
 kWh Québec is a B2B solar + storage analysis and design platform for commercial/industrial/institutional buildings in Québec. Full-stack TypeScript monorepo with React frontend and Express backend.
