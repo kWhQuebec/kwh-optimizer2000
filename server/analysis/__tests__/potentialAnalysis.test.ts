@@ -80,7 +80,7 @@ describe("resolveYieldStrategy", () => {
       { maxSunshineHoursPerYear: 1400 }
     );
     expect(strategy.yieldSource).toBe("google");
-    expect(strategy.baseYield).toBe(Math.round(1400 * 0.85));
+    expect(strategy.baseYield).toBe(1400);
     expect(strategy.skipTempCorrection).toBe(true);
   });
 

@@ -1,0 +1,15 @@
+#!/bin/sh
+
+echo "🔍 Pre-commit: Running tests..."
+
+# Run vitest (tests critiques seulement — pas de timeout long)
+npx vitest run --bail 1 2>&1
+
+# Check exit code
+if [ $? -ne 0 ]; then
+    echo "❌ Tests échoués — commit bloqué"
+    echo "   Corrigez les erreurs avant de committer."
+    exit 1
+fi
+
+echo "✅ Tests passés — commit autorisé"
