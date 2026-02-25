@@ -1,0 +1,28 @@
+#!/bin/bash
+# Auto-sync: pull --rebase before every commit to avoid conflicts
+# between multiple Claude instances (Cowork + Claude Code on Replit)
+#
+# Strategy: stash staged changes, pull, then re-apply
+
+echo "🔄 Auto-syncing with remote before commit..."
+
+# Stash everything (staged + unstaged) to allow pull
+git stash --keep-index --quiet 2>/dev/null
+git stash --quiet 2>/dev/null
+STASHED=$?
+
+# Pull latest from remote
+git pull --rebase origin main 2>/dev/null
+PULL_RESULT=$?
+
+# Restore stashed changes
+if [ $STASHED -eq 0 ]; then
+  git stash pop --quiet 2>/dev/null
+fi
+
+if [ $PULL_RESULT -ne 0 ]; then
+  echo "❌ Rebase conflict detected. Resolve conflicts, then re-commit."
+  exit 1
+fi
+
+echo "✅ Synced with remote. Proceeding with commit."
