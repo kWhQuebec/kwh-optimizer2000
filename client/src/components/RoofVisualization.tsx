@@ -1032,17 +1032,17 @@ export function RoofVisualization({
   const [buildingAlignedAngle, setBuildingAlignedAngle] = useState(0);
   const [trueSouthAngle, setTrueSouthAngle] = useState(0);
   const [selectedOrientation, setSelectedOrientation] = useState<"building" | "south">("building");
-  const orientationInitializedRef = useRef(false);
+  const [hasUserSelectedOrientation, setHasUserSelectedOrientation] = useState(false);
   const prevSiteIdRef = useRef(siteId);
   const onGeometryCalculatedRef = useRef(onGeometryCalculated);
   onGeometryCalculatedRef.current = onGeometryCalculated;
 
-  if (prevSiteIdRef.current !== siteId) {
-    prevSiteIdRef.current = siteId;
-    orientationInitializedRef.current = false;
-  }
-
-  const prevPolygonCountRef = useRef(0);
+  useEffect(() => {
+    if (prevSiteIdRef.current !== siteId) {
+      prevSiteIdRef.current = siteId;
+      setHasUserSelectedOrientation(false);
+    }
+  }, [siteId]);
 
   const { data: roofPolygons = [] } = useQuery<RoofPolygon[]>({
     queryKey: ["/api/sites", siteId, "roof-polygons"],
@@ -1133,7 +1133,7 @@ export function RoofVisualization({
       setSelectedCapacityKW(currentPVSizeKW);
       setHasUserAdjusted(false);
       // Reset orientation so it re-evaluates at the new recommended size
-      orientationInitializedRef.current = false;
+      setHasUserSelectedOrientation(false);
     } else if (!hasUserAdjusted && currentPVSizeKW) {
       setSelectedCapacityKW(currentPVSizeKW);
     }
@@ -1145,6 +1145,19 @@ export function RoofVisualization({
       setSelectedCapacityKW(Math.min(defaultCapacity, maxCapacity));
     }
   }, [maxCapacity, currentPVSizeKW, hasUserAdjusted]);
+
+  // Dynamic orientation re-evaluation: follows the slider in real time when no manual choice has been made
+  useEffect(() => {
+    if (hasUserSelectedOrientation) return;
+    if (buildingAlignedPanels.length === 0 || trueSouthPanels.length === 0) return;
+    const buildingYieldFactor = calculateOrientationYieldFactor(buildingAlignedAngle).factor;
+    const southYieldFactor = calculateOrientationYieldFactor(0).factor;
+    const effectiveBuildingCount = Math.min(panelsToShow, buildingAlignedPanels.length);
+    const effectiveSouthCount = Math.min(panelsToShow, trueSouthPanels.length);
+    const buildingProduction = effectiveBuildingCount * PANEL_KW * buildingYieldFactor;
+    const southProduction = effectiveSouthCount * PANEL_KW * southYieldFactor;
+    setSelectedOrientation(southProduction >= buildingProduction ? "south" : "building");
+  }, [panelsToShow, buildingAlignedPanels, trueSouthPanels, buildingAlignedAngle, hasUserSelectedOrientation]);
 
   useEffect(() => {
     if (!currentPVSizeKW || !sliderContainerRef.current || maxCapacity <= minCapacity) {
@@ -1568,42 +1581,20 @@ export function RoofVisualization({
         setBuildingAlignedAngle(buildingResult.orientationAngle);
         setTrueSouthAngle(0);
         
-        // Auto-select OPTIMAL orientation based on estimated annual production at the RECOMMENDED size
-        // Key insight: compare at the slider's current target panel count, not at max capacity.
-        // - If south can fit the recommended panels, it always wins on yield/kWp (same capacity, better azimuth).
-        // - Building-aligned only wins when the recommended count exceeds what south can physically fit
-        //   (more panels compensate for worse azimuth).
-        // Only auto-select on first initialization or when polygon data actually changes — don't override user's manual selection on re-renders
+        // Log diagnostic: orientation will be set dynamically by the slider useEffect
         const buildingYieldFactor = calculateOrientationYieldFactor(buildingResult.orientationAngle).factor;
-        const southYieldFactor = calculateOrientationYieldFactor(0).factor; // True south = 0 radians = optimal
-        const recommendedPanels = Math.round(selectedCapacityKW / PANEL_KW);
-        const effectiveBuildingCount = Math.min(recommendedPanels, sortedBuildingPanels.length);
-        const effectiveSouthCount = Math.min(recommendedPanels, sortedSouthPanels.length);
-        const buildingProduction = effectiveBuildingCount * PANEL_KW * buildingYieldFactor;
-        const southProduction = effectiveSouthCount * PANEL_KW * southYieldFactor;
-        const optimalOrientation = southProduction >= buildingProduction ? "south" : "building";
-        const currentPolygonCount = solarPolygonDataForUnified.length;
-        if (!orientationInitializedRef.current || prevPolygonCountRef.current !== currentPolygonCount) {
-          setSelectedOrientation(optimalOrientation);
-          orientationInitializedRef.current = true;
-          prevPolygonCountRef.current = currentPolygonCount;
-        }
-        console.log(`[RoofVisualization] Yield comparison @ ${recommendedPanels} panels: Building=${(buildingYieldFactor*100).toFixed(1)}% (${effectiveBuildingCount}×${PANEL_KW}kW=${buildingProduction.toFixed(0)}kWh), South=${(southYieldFactor*100).toFixed(1)}% (${effectiveSouthCount}×${PANEL_KW}kW=${southProduction.toFixed(0)}kWh) → Optimal: ${optimalOrientation}`);
+        const southYieldFactor = calculateOrientationYieldFactor(0).factor;
+        console.log(`[RoofVisualization] Dual layouts generated: Building=${sortedBuildingPanels.length} panels (yield ${(buildingYieldFactor*100).toFixed(1)}%), TrueSouth=${sortedSouthPanels.length} panels (yield ${(southYieldFactor*100).toFixed(1)}%) — orientation follows slider dynamically`);
         
-        // Use optimal orientation as default
-        const sortedPanels = optimalOrientation === "south" ? sortedSouthPanels : sortedBuildingPanels;
-        const defaultAngle = optimalOrientation === "south" ? 0 : buildingResult.orientationAngle;
-        const defaultSource = optimalOrientation === "south" ? "true south" : buildingResult.orientationSource;
-        
-        setAllPanelPositions(sortedPanels);
-        setPanelOrientationAngle(defaultAngle);
-        setOrientationSource(defaultSource);
-        
-        console.log(`[RoofVisualization] Dual layouts generated: Building=${sortedBuildingPanels.length} panels, TrueSouth=${sortedSouthPanels.length} panels → Optimal: ${optimalOrientation}`);
+        // Initial panel positions: start with building-aligned; the dynamic orientation useEffect will switch
+        // to the optimal orientation for the current slider position
+        setAllPanelPositions(sortedBuildingPanels);
+        setPanelOrientationAngle(buildingResult.orientationAngle);
+        setOrientationSource(buildingResult.orientationSource);
         
         // Track panels per zone for legend display
         const zoneStats: Record<string, { count: number; label: string }> = {};
-        for (const panel of sortedPanels) {
+        for (const panel of sortedBuildingPanels) {
           if (!zoneStats[panel.polygonId]) {
             const polygon = solarPolygons.find(p => p.id === panel.polygonId);
             zoneStats[panel.polygonId] = { 
@@ -1619,7 +1610,7 @@ export function RoofVisualization({
         // Calculate panel arrays (sections separated by fire corridors)
         // Use composite key: polygonId + arrayId to avoid merging arrays from different polygons
         const arrayStats: Map<string, { panels: PanelPosition[]; polygonId: string; localArrayId: number }> = new Map();
-        for (const panel of sortedPanels) {
+        for (const panel of sortedBuildingPanels) {
           if (panel.arrayId !== undefined) {
             // Composite key ensures arrays from different polygons don't merge
             const compositeKey = `${panel.polygonId}:${panel.arrayId}`;
@@ -1693,13 +1684,13 @@ export function RoofVisualization({
         setPanelArrays(arrays);
         console.log(`[RoofVisualization] Arrays generated: ${arrays.length}`, arrays.map(a => `Array ${a.id}: ${a.panelCount} panels (${a.rows}×${a.columns})`));
 
-        console.log(`[RoofVisualization] Total panels generated: ${sortedPanels.length}, capacity: ${Math.round(sortedPanels.length * PANEL_KW)} kWc, zones: ${Object.keys(zoneStats).length}, arrays: ${arrays.length}`);
+        console.log(`[RoofVisualization] Total panels generated: ${sortedBuildingPanels.length}, capacity: ${Math.round(sortedBuildingPanels.length * PANEL_KW)} kWc, zones: ${Object.keys(zoneStats).length}, arrays: ${arrays.length}`);
 
-        if (onGeometryCalculatedRef.current && sortedPanels.length > 0) {
+        if (onGeometryCalculatedRef.current && sortedBuildingPanels.length > 0) {
           onGeometryCalculatedRef.current({
-            maxCapacityKW: Math.round(sortedPanels.length * PANEL_KW),
-            panelCount: sortedPanels.length,
-            realisticCapacityKW: Math.round(sortedPanels.length * PANEL_KW * 0.9),
+            maxCapacityKW: Math.round(sortedBuildingPanels.length * PANEL_KW),
+            panelCount: sortedBuildingPanels.length,
+            realisticCapacityKW: Math.round(sortedBuildingPanels.length * PANEL_KW * 0.9),
             constraintAreaSqM: totalConstraintArea,
             arrays: arrays.length > 0 ? arrays : undefined
           });
@@ -2086,7 +2077,7 @@ export function RoofVisualization({
                 onClick={() => {
                   setMapError(null);
                   setIsLoading(true);
-                  orientationInitializedRef.current = false;
+                  setHasUserSelectedOrientation(false);
                   setRetryKey(k => k + 1);
                 }}
                 data-testid="button-retry-map"
@@ -2412,7 +2403,7 @@ export function RoofVisualization({
                     <>
                 <div className="grid grid-cols-2 gap-2">
                   <button
-                    onClick={() => setSelectedOrientation("building")}
+                    onClick={() => { setSelectedOrientation("building"); setHasUserSelectedOrientation(true); }}
                     className={`p-2 rounded-md border text-left transition-all ${
                       selectedOrientation === "building" 
                         ? "border-primary bg-primary/10 ring-1 ring-primary" 
@@ -2441,7 +2432,7 @@ export function RoofVisualization({
                   </button>
                   
                   <button
-                    onClick={() => setSelectedOrientation("south")}
+                    onClick={() => { setSelectedOrientation("south"); setHasUserSelectedOrientation(true); }}
                     className={`p-2 rounded-md border text-left transition-all ${
                       selectedOrientation === "south" 
                         ? "border-green-500 bg-green-500/10 ring-1 ring-green-500" 
