@@ -374,7 +374,10 @@ export function AnalysisResults({
   const dashboardPvSizeKW = displayedScenario.pvSizeKW ?? simulation.pvSizeKW ?? 0;
   const uncappedPvSizeKW = displayedScenario.pvSizeKW ?? simulation.pvSizeKW ?? 0;
   const displayedRoofCapacityKW = Math.round(effectiveMaxPV);
-  const cappedPvSizeKW = displayedRoofCapacityKW > 0
+  // Only cap PV size by roof if the roof capacity is credible (> 50% of simulation value)
+  // Otherwise the cap likely comes from missing/wrong polygons and would corrupt the display
+  const roofCapIsCredible = displayedRoofCapacityKW > 0 && displayedRoofCapacityKW >= uncappedPvSizeKW * 0.5;
+  const cappedPvSizeKW = roofCapIsCredible
     ? Math.min(uncappedPvSizeKW, displayedRoofCapacityKW)
     : uncappedPvSizeKW;
   const dashboardBattEnergyKWh = displayedScenario.battEnergyKWh ?? 0;

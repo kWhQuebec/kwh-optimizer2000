@@ -16,11 +16,10 @@ if [ -z "$TOKEN" ]; then
   exit 1
 fi
 
-# Full UUIDs required — get them from the API with the curl command above
 SITES=(
-  "0758f7ee:G4AE0056067"
-  "d026b5e3:G4AE0056082"
-  "b426d015:G4AE0056083"
+  "0758f7ee-c41b-4a32-8d04-fd6da5886091:G4AE0056067"
+  "d026b5e3-43a1-45da-b6db-fda637044ddb:G4AE0056082"
+  "b426d015-2f42-43fb-a4db-101bb1e35199:G4SH0004983"
 )
 
 for entry in "${SITES[@]}"; do
