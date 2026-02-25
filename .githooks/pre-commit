@@ -2,27 +2,31 @@
 # Auto-sync: pull --rebase before every commit to avoid conflicts
 # between multiple Claude instances (Cowork + Claude Code on Replit)
 #
-# Strategy: stash staged changes, pull, then re-apply
+# Strategy: only pull if no rebase needed (fast-forward), otherwise warn.
+# We do NOT stash — previous stash approach was losing staged changes.
 
 echo "🔄 Auto-syncing with remote before commit..."
 
-# Stash everything (staged + unstaged) to allow pull
-git stash --keep-index --quiet 2>/dev/null
-git stash --quiet 2>/dev/null
-STASHED=$?
+# Fetch latest without merging
+git fetch origin main --quiet 2>/dev/null
 
-# Pull latest from remote
-git pull --rebase origin main 2>/dev/null
-PULL_RESULT=$?
+# Check if we're behind
+LOCAL=$(git rev-parse HEAD)
+REMOTE=$(git rev-parse origin/main 2>/dev/null)
 
-# Restore stashed changes
-if [ $STASHED -eq 0 ]; then
-  git stash pop --quiet 2>/dev/null
+if [ "$LOCAL" = "$REMOTE" ]; then
+  echo "✅ Already up to date. Proceeding with commit."
+  exit 0
 fi
 
-if [ $PULL_RESULT -ne 0 ]; then
-  echo "❌ Rebase conflict detected. Resolve conflicts, then re-commit."
-  exit 1
+# Check if fast-forward is possible (local is ancestor of remote)
+if git merge-base --is-ancestor HEAD origin/main 2>/dev/null; then
+  # Safe to rebase — but we can't rebase with staged changes.
+  # Just warn and let the commit proceed; user can pull after.
+  echo "⚠️  Remote has new commits. Commit will proceed, but run 'git pull --rebase' after."
+  exit 0
 fi
 
-echo "✅ Synced with remote. Proceeding with commit."
+# Local has diverged — warn but don't block
+echo "⚠️  Local and remote have diverged. Commit will proceed, but reconcile after."
+exit 0
