@@ -135,25 +135,9 @@ router.get("/api/portfolios/:id/full", authMiddleware, asyncHandler(async (req: 
     discountedCapex: totalNetCapex * (1 - volumeDiscount),
   };
 
-  const stripHeavySiteFields = (s: any) => {
-    if (!s) return s;
-    const { roofVisualizationImageUrl, hqConsumptionHistory, baselineMonthlyProfile, analysisAssumptions, ...rest } = s;
-    return rest;
-  };
-
-  const lightSites = portfolioSites.map(ps => ({
-    ...ps,
-    site: stripHeavySiteFields(ps.site),
-  }));
-
-  const lightPortfolio = {
-    ...portfolio,
-    sites: portfolio.sites?.map(stripHeavySiteFields) ?? portfolio.sites,
-  };
-
   res.json({
-    portfolio: lightPortfolio,
-    sites: lightSites,
+    portfolio,
+    sites: portfolioSites,
     kpis: aggregatedKpis,
   });
 }));

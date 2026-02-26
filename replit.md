@@ -27,6 +27,12 @@ The site detail page uses a compact numbered stepper (1-9) to mirror the solar p
 ### Hydro-Québec Background Job System
 The HQ data fetch runs as an asynchronous background job with a dedicated schema (`hqFetchJobs`, `siteMeters`). The backend service (`server/services/hqBackgroundJobRunner.ts`) handles asynchronous fetching and incremental CSV import, updating progress in the database. The API provides endpoints to start jobs, poll status, and check for active jobs. The frontend polls job status and provides global toast notifications for job completion or failure.
 
+### Portfolio Performance Optimization
+The portfolio `/full` endpoint uses `lightSiteColumns` in `server/repositories/portfolioRepo.ts` to exclude heavy JSONB columns (`hqConsumptionHistory`, `baselineMonthlyProfile`, `analysisAssumptions`, `roofAreaAutoDetails`) and large text fields (`roofVisualizationImageUrl` which stores base64 images) at the SQL level. Simulation queries for portfolio sites first fetch SCENARIO-type simulations, then fall back for sites without scenarios — avoiding fetching all historical simulations. Response: ~200 KB / ~0.4s (down from 64 MB / 2.6s).
+
+### Master Agreement PDF (CCDC 14 Format)
+The Dream Industrial REIT Master Agreement PDF (`server/pdf/masterAgreementPDF.ts`) generates a comprehensive 9-section document: Cover, TOC, Executive Summary, Parties & Roles, Commercial Terms, Financial Framework, Scope of Work (Section 5: 11 Owner items + 21 Design-Builder items + 5 General Provisions), Schedule of Values (Section 6: 10 milestones, 20 pricing assumptions, 9 exclusions, payment terms), Annex A per-site schedules, Supplementary Conditions (Section 8: 28 SC articles covering CCDC 14, CCQ, CNESST, RBQ, IP, liens, change orders), and Signatures.
+
 ### Error Handling
 The backend uses a centralized error handling system with custom `AppError` classes and an `asyncHandler` wrapper for consistent error responses.
 

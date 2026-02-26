@@ -1,4 +1,4 @@
-import { eq, desc, and, inArray } from "drizzle-orm";
+import { eq, desc, and, inArray, sql } from "drizzle-orm";
 import { db } from "../db";
 import { portfolios, portfolioSites, sites, clients, simulationRuns } from "@shared/schema";
 import type {
@@ -6,6 +6,125 @@ import type {
   PortfolioSite, InsertPortfolioSite, PortfolioSiteWithDetails,
   Site,
 } from "@shared/schema";
+
+const lightSiteColumns = {
+  id: sites.id,
+  clientId: sites.clientId,
+  name: sites.name,
+  address: sites.address,
+  city: sites.city,
+  province: sites.province,
+  postalCode: sites.postalCode,
+  notes: sites.notes,
+  ownerName: sites.ownerName,
+  buildingType: sites.buildingType,
+  roofType: sites.roofType,
+  roofAreaSqM: sites.roofAreaSqM,
+  latitude: sites.latitude,
+  longitude: sites.longitude,
+  roofAreaAutoSqM: sites.roofAreaAutoSqM,
+  roofAreaAutoSource: sites.roofAreaAutoSource,
+  roofAreaAutoTimestamp: sites.roofAreaAutoTimestamp,
+  roofEstimateStatus: sites.roofEstimateStatus,
+  roofEstimateError: sites.roofEstimateError,
+  roofEstimatePendingAt: sites.roofEstimatePendingAt,
+  roofColorType: sites.roofColorType,
+  roofColorConfidence: sites.roofColorConfidence,
+  roofColorDetectedAt: sites.roofColorDetectedAt,
+  bifacialAnalysisPrompted: sites.bifacialAnalysisPrompted,
+  bifacialAnalysisAccepted: sites.bifacialAnalysisAccepted,
+  analysisAvailable: sites.analysisAvailable,
+  structuralNotes: sites.structuralNotes,
+  structuralConstraints: sites.structuralConstraints,
+  hqRfpStatus: sites.hqRfpStatus,
+  hqSubstation: sites.hqSubstation,
+  hqLineId: sites.hqLineId,
+  hqTransformer: sites.hqTransformer,
+  hqLineVoltage: sites.hqLineVoltage,
+  hqDistributionUpgradeCost: sites.hqDistributionUpgradeCost,
+  hqSubstationUpgradeCost: sites.hqSubstationUpgradeCost,
+  hqProtectionsCost: sites.hqProtectionsCost,
+  hqCommunicationsCost: sites.hqCommunicationsCost,
+  hqTotalUpgradeCost: sites.hqTotalUpgradeCost,
+  hqLeadTimeMonths: sites.hqLeadTimeMonths,
+  hqCompletionDate: sites.hqCompletionDate,
+  hqContractTargetDate: sites.hqContractTargetDate,
+  dotCapacityStatus: sites.dotCapacityStatus,
+  structuralPassStatus: sites.structuralPassStatus,
+  structuralCapacity: sites.structuralCapacity,
+  structuralBallastRemoval: sites.structuralBallastRemoval,
+  externalBuildingId: sites.externalBuildingId,
+  buildingSqFt: sites.buildingSqFt,
+  yearBuilt: sites.yearBuilt,
+  roofAreaValidated: sites.roofAreaValidated,
+  roofAreaValidatedAt: sites.roofAreaValidatedAt,
+  roofAreaValidatedBy: sites.roofAreaValidatedBy,
+  kbDesignStatus: sites.kbDesignStatus,
+  kbPanelCount: sites.kbPanelCount,
+  kbKwDc: sites.kbKwDc,
+  kbPricePerPanel: sites.kbPricePerPanel,
+  kbRackingSubtotal: sites.kbRackingSubtotal,
+  kbShippingCost: sites.kbShippingCost,
+  kbEngineeringCost: sites.kbEngineeringCost,
+  kbQuoteDate: sites.kbQuoteDate,
+  kbQuoteExpiry: sites.kbQuoteExpiry,
+  kbQuoteNumber: sites.kbQuoteNumber,
+  kbDesignPdfUrl: sites.kbDesignPdfUrl,
+  kbWindPressureKpa: sites.kbWindPressureKpa,
+  kbExposureFactor: sites.kbExposureFactor,
+  kbTerrainType: sites.kbTerrainType,
+  quickAnalysisSystemSizeKw: sites.quickAnalysisSystemSizeKw,
+  quickAnalysisAnnualProductionKwh: sites.quickAnalysisAnnualProductionKwh,
+  quickAnalysisAnnualSavings: sites.quickAnalysisAnnualSavings,
+  quickAnalysisPaybackYears: sites.quickAnalysisPaybackYears,
+  quickAnalysisGrossCapex: sites.quickAnalysisGrossCapex,
+  quickAnalysisNetCapex: sites.quickAnalysisNetCapex,
+  quickAnalysisHqIncentive: sites.quickAnalysisHqIncentive,
+  quickAnalysisMonthlyBill: sites.quickAnalysisMonthlyBill,
+  quickAnalysisConstraintFactor: sites.quickAnalysisConstraintFactor,
+  quickAnalysisCompletedAt: sites.quickAnalysisCompletedAt,
+  workQueueAssignedToId: sites.workQueueAssignedToId,
+  workQueueAssignedAt: sites.workQueueAssignedAt,
+  workQueuePriority: sites.workQueuePriority,
+  workQueueDelegatedToEmail: sites.workQueueDelegatedToEmail,
+  workQueueDelegatedToName: sites.workQueueDelegatedToName,
+  workQueueDelegatedAt: sites.workQueueDelegatedAt,
+  hqBillPath: sites.hqBillPath,
+  hqBillUploadedAt: sites.hqBillUploadedAt,
+  hqLegalClientName: sites.hqLegalClientName,
+  hqClientNumber: sites.hqClientNumber,
+  hqBillNumber: sites.hqBillNumber,
+  hqAccountNumber: sites.hqAccountNumber,
+  hqContractNumber: sites.hqContractNumber,
+  hqTariffDetail: sites.hqTariffDetail,
+  hqMeterNumber: sites.hqMeterNumber,
+  subscribedPowerKw: sites.subscribedPowerKw,
+  maxDemandKw: sites.maxDemandKw,
+  serviceAddress: sites.serviceAddress,
+  readyForAnalysis: sites.readyForAnalysis,
+  roofAgeYears: sites.roofAgeYears,
+  ownershipType: sites.ownershipType,
+  numFloors: sites.numFloors,
+  buildingHeightFt: sites.buildingHeightFt,
+  estimatedMonthlyBill: sites.estimatedMonthlyBill,
+  estimatedAnnualConsumptionKwh: sites.estimatedAnnualConsumptionKwh,
+  quickInfoCompletedAt: sites.quickInfoCompletedAt,
+  baselineSnapshotDate: sites.baselineSnapshotDate,
+  baselineAnnualConsumptionKwh: sites.baselineAnnualConsumptionKwh,
+  baselineAnnualCostCad: sites.baselineAnnualCostCad,
+  baselinePeakDemandKw: sites.baselinePeakDemandKw,
+  operationsStartDate: sites.operationsStartDate,
+  hqRaccordementSubmittedAt: sites.hqRaccordementSubmittedAt,
+  hqConditionalAcceptanceAt: sites.hqConditionalAcceptanceAt,
+  hqOfficialAuthorizationAt: sites.hqOfficialAuthorizationAt,
+  hqMiseEnServiceAt: sites.hqMiseEnServiceAt,
+  hqOse6RequestSubmittedAt: sites.hqOse6RequestSubmittedAt,
+  hqOse6PaymentReceivedAt: sites.hqOse6PaymentReceivedAt,
+  isArchived: sites.isArchived,
+  archivedAt: sites.archivedAt,
+  createdAt: sites.createdAt,
+  updatedAt: sites.updatedAt,
+};
 
 // ==================== PORTFOLIOS ====================
 
@@ -19,7 +138,10 @@ export async function getPortfolios(): Promise<PortfolioWithSites[]> {
   const clientMap = new Map(relevantClients.map(c => [c.id, c]));
 
   const allPortfolioSites = await db.select().from(portfolioSites);
-  const allSitesList = await db.select().from(sites);
+  const allSiteIds = Array.from(new Set(allPortfolioSites.map(ps => ps.siteId)));
+  const allSitesList = allSiteIds.length > 0
+    ? await db.select(lightSiteColumns).from(sites).where(inArray(sites.id, allSiteIds))
+    : [];
   const siteMap = new Map(allSitesList.map(s => [s.id, s]));
 
   return allPortfolios.map(portfolio => {
@@ -28,11 +150,11 @@ export async function getPortfolios(): Promise<PortfolioWithSites[]> {
       .map(ps => ps.siteId);
     const portfolioSiteList = linkedSiteIds
       .map(id => siteMap.get(id))
-      .filter((s): s is Site => s !== undefined);
+      .filter((s): s is typeof allSitesList[number] => s !== undefined);
     return {
       ...portfolio,
       client: clientMap.get(portfolio.clientId)!,
-      sites: portfolioSiteList,
+      sites: portfolioSiteList as any as Site[],
     };
   });
 }
@@ -44,13 +166,14 @@ export async function getPortfolio(id: string): Promise<PortfolioWithSites | und
   const [client] = await db.select().from(clients).where(eq(clients.id, portfolio.clientId)).limit(1);
   const psEntries = await db.select().from(portfolioSites).where(eq(portfolioSites.portfolioId, id));
   const siteIds = psEntries.map(ps => ps.siteId);
-  const allSites = await db.select().from(sites);
-  const portfolioSiteList = allSites.filter(s => siteIds.includes(s.id));
+  const portfolioSiteList = siteIds.length > 0
+    ? await db.select(lightSiteColumns).from(sites).where(inArray(sites.id, siteIds))
+    : [];
 
   return {
     ...portfolio,
     client: client!,
-    sites: portfolioSiteList,
+    sites: portfolioSiteList as any as Site[],
   };
 }
 
@@ -60,18 +183,24 @@ export async function getPortfoliosByClient(clientId: string): Promise<Portfolio
     .orderBy(desc(portfolios.createdAt));
 
   const [client] = await db.select().from(clients).where(eq(clients.id, clientId)).limit(1);
-  const allPortfolioSites = await db.select().from(portfolioSites);
-  const allSites = await db.select().from(sites);
+  const portfolioIds = clientPortfolios.map(p => p.id);
+  const relevantPortfolioSites = portfolioIds.length > 0
+    ? await db.select().from(portfolioSites).where(inArray(portfolioSites.portfolioId, portfolioIds))
+    : [];
+  const allSiteIds = Array.from(new Set(relevantPortfolioSites.map(ps => ps.siteId)));
+  const allSites = allSiteIds.length > 0
+    ? await db.select(lightSiteColumns).from(sites).where(inArray(sites.id, allSiteIds))
+    : [];
 
   return clientPortfolios.map(portfolio => {
-    const psEntries = allPortfolioSites.filter(ps => ps.portfolioId === portfolio.id);
+    const psEntries = relevantPortfolioSites.filter(ps => ps.portfolioId === portfolio.id);
     const portfolioSiteList = psEntries
       .map(ps => allSites.find(s => s.id === ps.siteId))
-      .filter((s): s is Site => s !== undefined);
+      .filter((s): s is typeof allSites[number] => s !== undefined);
     return {
       ...portfolio,
       client: client!,
-      sites: portfolioSiteList,
+      sites: portfolioSiteList as any as Site[],
     };
   });
 }
@@ -106,10 +235,10 @@ export async function getPortfolioSites(portfolioId: string): Promise<PortfolioS
 
   const siteIds = entries.map(ps => ps.siteId);
 
-  const portfolioSitesList = await db.select().from(sites)
+  const portfolioSitesList = await db.select(lightSiteColumns).from(sites)
     .where(inArray(sites.id, siteIds));
 
-  const relevantSimulations = await db.select({
+  const simColumns = {
     id: simulationRuns.id,
     siteId: simulationRuns.siteId,
     meterId: simulationRuns.meterId,
@@ -141,19 +270,40 @@ export async function getPortfolioSites(portfolioId: string): Promise<PortfolioS
     co2AvoidedTonnesPerYear: simulationRuns.co2AvoidedTonnesPerYear,
     selfSufficiencyPercent: simulationRuns.selfSufficiencyPercent,
     createdAt: simulationRuns.createdAt,
-  }).from(simulationRuns)
-    .where(inArray(simulationRuns.siteId, siteIds))
+  };
+
+  const scenarioSims = await db.select(simColumns).from(simulationRuns)
+    .where(and(
+      inArray(simulationRuns.siteId, siteIds),
+      eq(simulationRuns.type, "SCENARIO"),
+    ))
     .orderBy(desc(simulationRuns.createdAt));
+
+  const scenarioMap = new Map<string, typeof scenarioSims[number]>();
+  for (const sim of scenarioSims) {
+    if (!scenarioMap.has(sim.siteId)) {
+      scenarioMap.set(sim.siteId, sim);
+    }
+  }
+
+  const sitesMissingScenario = siteIds.filter(id => !scenarioMap.has(id));
+  if (sitesMissingScenario.length > 0) {
+    const fallbackSims = await db.select(simColumns).from(simulationRuns)
+      .where(inArray(simulationRuns.siteId, sitesMissingScenario))
+      .orderBy(desc(simulationRuns.createdAt));
+    for (const sim of fallbackSims) {
+      if (!scenarioMap.has(sim.siteId)) {
+        scenarioMap.set(sim.siteId, sim);
+      }
+    }
+  }
 
   return entries.map(ps => {
     const site = portfolioSitesList.find(s => s.id === ps.siteId)!;
-    const siteSimulations = relevantSimulations
-      .filter(s => s.siteId === ps.siteId);
-    const latestSimulation = siteSimulations.find(s => s.type === "SCENARIO") || siteSimulations[0];
     return {
       ...ps,
-      site,
-      latestSimulation,
+      site: site as any as Site,
+      latestSimulation: scenarioMap.get(ps.siteId),
     };
   });
 }
