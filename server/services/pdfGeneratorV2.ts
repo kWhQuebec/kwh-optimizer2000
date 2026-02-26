@@ -168,7 +168,7 @@ export async function generateProfessionalPDFv2(
   nextPage();
 
   pages.push(buildWhySolarNowPage(t, lang, nextPage()));
-  pages.push(buildProjectSnapshotPage(simulation, t, totalProductionKWh, roofImageBase64, nextPage(), isSyntheticData, (simulation as any).satelliteCenter, !!(simulation as any).isStoredVisualization));
+  pages.push(buildProjectSnapshotPage(simulation, t, totalProductionKWh, roofImageBase64, nextPage(), isSyntheticData, (simulation as any).satelliteCenter));
   pages.push(buildResultsPage(simulation, t, totalProductionKWh, nextPage(), isSyntheticData));
   pages.push(buildNetInvestmentPage(simulation, t, nextPage()));
 
@@ -506,8 +506,7 @@ function buildProjectSnapshotPage(
   roofImageBase64: string | null,
   pageNum: number,
   isSyntheticData: boolean = false,
-  satelliteCenter?: { lat: number; lng: number; zoom: number },
-  isStoredVisualization: boolean = false
+  _satelliteCenter?: { lat: number; lng: number; zoom: number }
 ): string {
   const co2Total25yr = sim.co2AvoidedTonnesPerYear * 25;
   const co2Trees = Math.round((co2Total25yr * 1000) / 21.77);
@@ -558,14 +557,9 @@ function buildProjectSnapshotPage(
     </div>
   ` : "";
 
-  const svgOverlay = (!isStoredVisualization && satelliteCenter)
-    ? buildRoofSvgOverlay(roofPolygons as any, satelliteCenter, 800, 500)
-    : "";
-
   const satelliteHtml = roofImageBase64
     ? `<div style="position: relative; width: 100%; height: 75mm; border-radius: 2mm; overflow: hidden;">
-        <img src="${roofImageBase64}" style="width: 100%; height: 100%; object-fit: ${isStoredVisualization ? 'contain' : 'cover'}; background: #1a1a2e;" />
-        ${svgOverlay}
+        <img src="${roofImageBase64}" style="width: 100%; height: 100%; object-fit: cover;" />
         ${legendHtml}
         ${badgesHtml}
         ${siteInfoOverlay}

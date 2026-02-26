@@ -29,7 +29,6 @@ export interface DocumentSimulationData {
   };
   roofPolygons?: RoofPolygonData[];
   roofVisualizationBuffer?: Buffer;
-  isStoredVisualization?: boolean;
   satelliteCenter?: { lat: number; lng: number; zoom: number };
   pvSizeKW: number;
   battEnergyKWh: number;
@@ -164,7 +163,6 @@ export interface DocumentData {
   simulation: SimulationRun & { site: Site & { client: Client } };
   roofPolygons: RoofPolygonData[];
   roofVisualizationBuffer?: Buffer;
-  isStoredVisualization: boolean;
   satelliteCenter?: { lat: number; lng: number; zoom: number };
   siteSimulations: (SimulationRun & { site: Site & { client: Client } })[];
   isSynthetic: boolean;
@@ -209,7 +207,6 @@ export async function prepareDocumentData(simulationId: string, storage: IStorag
   }));
 
   let roofVisualizationBuffer: Buffer | undefined;
-  let isStoredVisualization = false;
   let satelliteCenter: { lat: number; lng: number; zoom: number } | undefined;
 
   const MIN_VALID_IMAGE_SIZE = 10 * 1024;
@@ -269,38 +266,19 @@ export async function prepareDocumentData(simulationId: string, storage: IStorag
     return { lat: centerLat, lng: centerLng, zoom };
   }
 
-  // Prefer the stored roof visualization (html2canvas capture with panels drawn)
-  // which matches what the HTML presentation and detailed analysis page show.
-  // Fall back to Google Static Maps clean satellite tile if stored image unavailable.
-  const storedImageUrl = (simulation.site as any).roofVisualizationImageUrl as string | null | undefined;
-  if (storedImageUrl && storedImageUrl.startsWith("data:image/")) {
-    try {
-      const base64Part = storedImageUrl.split(",")[1];
-      if (base64Part) {
-        const buf = Buffer.from(base64Part, "base64");
-        if (buf.length >= MIN_VALID_IMAGE_SIZE) {
-          roofVisualizationBuffer = buf;
-          isStoredVisualization = true;
-          log.info(`Using stored roof visualization image: ${buf.length} bytes`);
-        } else {
-          log.warn(`Stored roof visualization too small (${buf.length} bytes) — falling back to Google Static Maps`);
-        }
-      }
-    } catch (e) {
-      log.warn("Failed to decode stored roof visualization — falling back to Google Static Maps");
-    }
-  }
-
-  if (!roofVisualizationBuffer && simulation.site.latitude && simulation.site.longitude) {
+  // Fetch satellite image with polygon outlines baked in via Google Static Maps API.
+  // This matches the approach used by projectInfoSheetPdf.ts — polygon zones are drawn
+  // directly by Google's API so they always appear reliably (no CORS issues like html2canvas).
+  if (simulation.site.latitude && simulation.site.longitude) {
     const center = computeSatelliteCenter(roofPolygonsRaw, simulation.site.latitude, simulation.site.longitude);
     satelliteCenter = center;
-    log.info(`Fetching satellite image: center=${center.lat.toFixed(6)},${center.lng.toFixed(6)} zoom=${center.zoom}`);
+    log.info(`Fetching satellite image with polygons: center=${center.lat.toFixed(6)},${center.lng.toFixed(6)} zoom=${center.zoom}, polygons=${roofPolygons.length}`);
     try {
       const { getRoofVisualizationUrl } = await import("./googleSolarService");
       const roofImageUrl = getRoofVisualizationUrl(
         { latitude: center.lat, longitude: center.lng },
-        [],
-        { width: IMG_WIDTH, height: IMG_HEIGHT, zoom: center.zoom, skipPolygons: true }
+        roofPolygons,
+        { width: IMG_WIDTH, height: IMG_HEIGHT, zoom: center.zoom }
       );
 
       if (roofImageUrl) {
@@ -376,7 +354,6 @@ export async function prepareDocumentData(simulationId: string, storage: IStorag
     simulation,
     roofPolygons,
     roofVisualizationBuffer,
-    isStoredVisualization,
     satelliteCenter,
     siteSimulations,
     isSynthetic,
