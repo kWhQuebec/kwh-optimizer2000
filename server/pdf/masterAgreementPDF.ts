@@ -151,12 +151,14 @@ p { margin-bottom: 2mm; color: var(--dark); }
 .scope-table { width: 100%; border-collapse: collapse; margin: 4mm 0; font-size: 9pt; }
 .scope-table th { background: var(--primary); color: white; padding: 2.5mm 5mm; text-align: left; font-weight: 600; font-size: 9pt; }
 .scope-table td { padding: 3mm 5mm; border-bottom: 1px solid #e5e7eb; vertical-align: top; line-height: 1.4; }
+.scope-table tr { page-break-inside: avoid; break-inside: avoid; }
 .scope-table tr:nth-child(even) { background: var(--light-gray); }
 .scope-table .scope-cat { font-weight: 600; color: var(--primary); white-space: nowrap; min-width: 40mm; }
 
 .sov-table { width: 100%; border-collapse: collapse; margin: 5mm 0; font-size: 9.5pt; }
 .sov-table th { background: var(--primary); color: white; padding: 3mm 5mm; text-align: left; font-weight: 600; }
 .sov-table td { padding: 3mm 5mm; border-bottom: 1px solid #e5e7eb; }
+.sov-table tr { page-break-inside: avoid; break-inside: avoid; }
 .sov-table tr:nth-child(even) { background: var(--light-gray); }
 .sov-table .sov-pct { text-align: right; font-weight: 600; color: var(--primary); font-family: 'Courier New', monospace; }
 .sov-table .total-row { background: var(--primary) !important; color: white; font-weight: 700; }
@@ -185,7 +187,7 @@ p { margin-bottom: 2mm; color: var(--dark); }
 .annex-row-label { display: flex; align-items: center; gap: 2mm; flex: 1; }
 .annex-row-value { font-weight: 600; text-align: right; white-space: nowrap; }
 
-.sc-article { margin-bottom: 4mm; padding: 3mm 4mm; border-left: 3px solid var(--primary); background: var(--light-gray); border-radius: 0 3mm 3mm 0; }
+.sc-article { margin-bottom: 4mm; padding: 3mm 4mm; border-left: 3px solid var(--primary); background: var(--light-gray); border-radius: 0 3mm 3mm 0; page-break-inside: avoid; break-inside: avoid; }
 .sc-ref { font-size: 9pt; font-weight: 700; color: var(--primary); margin-bottom: 1mm; }
 .sc-title { font-size: 9pt; font-weight: 600; color: var(--dark); margin-bottom: 1.5mm; }
 .sc-text { font-size: 8.5pt; color: var(--gray); line-height: 1.5; }
@@ -690,7 +692,7 @@ function buildScopeOfWorkPages(t: (fr: string, en: string) => string, dateStr: s
   ];
 
   pages.push(`
-  <div class="page">
+  <div class="page-auto">
     <div class="section-num">5</div>
     <h2>${t("&Eacute;tendue des Travaux", "Scope of Work")}</h2>
     <p style="font-size: 9pt; color: var(--gray); margin-bottom: 4mm;">
@@ -716,7 +718,7 @@ function buildScopeOfWorkPages(t: (fr: string, en: string) => string, dateStr: s
   const dbScopePage2 = dbScope.slice(10);
 
   pages.push(`
-  <div class="page">
+  <div class="page-auto">
     <h3>${t("5.2 &mdash; &Eacute;tendue du Concepteur-Constructeur", "5.2 &mdash; Design-Builder's Scope of Work")}</h3>
     <table class="scope-table">
       <thead><tr><th>${t("Cat&eacute;gorie", "Category")}</th><th>${t("Description", "Description")}</th></tr></thead>
@@ -728,7 +730,7 @@ function buildScopeOfWorkPages(t: (fr: string, en: string) => string, dateStr: s
   </div>`);
 
   pages.push(`
-  <div class="page">
+  <div class="page-auto">
     <h3>${t("5.2 &mdash; &Eacute;tendue du Concepteur-Constructeur (suite)", "5.2 &mdash; Design-Builder's Scope of Work (cont'd)")}</h3>
     <table class="scope-table">
       <thead><tr><th>${t("Cat&eacute;gorie", "Category")}</th><th>${t("Description", "Description")}</th></tr></thead>
@@ -743,7 +745,7 @@ function buildScopeOfWorkPages(t: (fr: string, en: string) => string, dateStr: s
   </div>`);
 
   pages.push(`
-  <div class="page">
+  <div class="page-auto">
     <h3>${t("5.3 &mdash; Dispositions G&eacute;n&eacute;rales", "5.3 &mdash; General Provisions")}</h3>
     <p style="font-size: 9pt; color: var(--gray); margin-bottom: 4mm;">
       ${t(
@@ -898,7 +900,7 @@ function buildScheduleOfValuesPages(t: (fr: string, en: string) => string, dateS
   ];
 
   pages.push(`
-  <div class="page">
+  <div class="page-auto">
     <div class="section-num">6</div>
     <h2>${t("&Eacute;ch&eacute;ancier de Paiement", "Schedule of Values")}</h2>
     <p style="font-size: 9pt; color: var(--gray); margin-bottom: 4mm;">
@@ -939,7 +941,7 @@ function buildScheduleOfValuesPages(t: (fr: string, en: string) => string, dateS
   </div>`);
 
   pages.push(`
-  <div class="page">
+  <div class="page-auto">
     <h3>${t("Conditions de Paiement", "Payment Terms")}</h3>
     <table class="terms-table">
       <thead><tr><th>${t("Condition", "Condition")}</th><th>${t("D&eacute;tails", "Details")}</th></tr></thead>
@@ -997,7 +999,7 @@ function buildScheduleOfValuesPages(t: (fr: string, en: string) => string, dateS
   </div>`);
 
   pages.push(`
-  <div class="page">
+  <div class="page-auto">
     <h3>${t("Hypoth&egrave;ses de Prix (suite)", "Pricing Assumptions (continued)")}</h3>
     <ul class="assumptions-list">
       ${assumptions.slice(10).map(a => `<li>${a}</li>`).join("")}
@@ -1374,7 +1376,7 @@ function buildSupplementaryConditionsPages(t: (fr: string, en: string) => string
     },
   ];
 
-  const articlesPerPage = 5;
+  const articlesPerPage = 3;
   const totalPages = Math.ceil(allArticles.length / articlesPerPage);
 
   for (let p = 0; p < totalPages; p++) {
