@@ -81,12 +81,7 @@ body {
   padding: 18mm 22mm; page-break-after: always; page-break-inside: avoid;
   position: relative; overflow: hidden; background: white;
 }
-.page-auto {
-  width: 215.9mm; min-height: 279.4mm;
-  padding: 18mm 22mm; page-break-after: always;
-  position: relative; background: white;
-}
-.page:last-child, .page-auto:last-child { page-break-after: auto; }
+.page:last-child { page-break-after: auto; }
 h1 { font-size: 28pt; font-weight: 700; color: var(--primary); margin-bottom: 8mm; }
 h2 { font-size: 18pt; font-weight: 600; color: var(--primary); margin-bottom: 5mm; padding-bottom: 2mm; border-bottom: 2px solid var(--accent); }
 h3 { font-size: 12pt; font-weight: 600; color: var(--dark); margin-bottom: 3mm; }
@@ -148,9 +143,9 @@ p { margin-bottom: 2mm; color: var(--dark); }
 .site-table .total-row { background: var(--primary) !important; color: white; font-weight: 700; }
 .site-table .total-row td { border-bottom: none; }
 
-.scope-table { width: 100%; border-collapse: collapse; margin: 4mm 0; font-size: 9pt; }
-.scope-table th { background: var(--primary); color: white; padding: 2.5mm 5mm; text-align: left; font-weight: 600; font-size: 9pt; }
-.scope-table td { padding: 3mm 5mm; border-bottom: 1px solid #e5e7eb; vertical-align: top; line-height: 1.4; }
+.scope-table { width: 100%; border-collapse: collapse; margin: 3mm 0; font-size: 8.5pt; }
+.scope-table th { background: var(--primary); color: white; padding: 2mm 4mm; text-align: left; font-weight: 600; font-size: 8.5pt; }
+.scope-table td { padding: 2.5mm 4mm; border-bottom: 1px solid #e5e7eb; vertical-align: top; line-height: 1.35; }
 .scope-table tr { page-break-inside: avoid; break-inside: avoid; }
 .scope-table tr:nth-child(even) { background: var(--light-gray); }
 .scope-table .scope-cat { font-weight: 600; color: var(--primary); white-space: nowrap; min-width: 40mm; }
@@ -168,20 +163,21 @@ p { margin-bottom: 2mm; color: var(--dark); }
 .assumptions-list li { padding: 1.5mm 0 1.5mm 8mm; position: relative; font-size: 8.5pt; color: var(--dark); line-height: 1.4; }
 .assumptions-list li::before { content: '\\2022'; position: absolute; left: 0; color: var(--primary); font-weight: 700; }
 
-.equip-table { width: 100%; border-collapse: collapse; margin: 3mm 0; font-size: 8.5pt; }
-.equip-table th { background: var(--primary); color: white; padding: 2mm 4mm; text-align: left; font-weight: 600; font-size: 8pt; }
-.equip-table td { padding: 2mm 4mm; border-bottom: 1px solid #e5e7eb; }
+.equip-table { width: 100%; border-collapse: collapse; margin: 2mm 0; font-size: 8pt; }
+.equip-table th { background: var(--primary); color: white; padding: 1.5mm 3mm; text-align: left; font-weight: 600; font-size: 7.5pt; }
+.equip-table td { padding: 1.5mm 3mm; border-bottom: 1px solid #e5e7eb; }
 .equip-table tr:nth-child(even) { background: var(--light-gray); }
 
-.annex-header { margin-bottom: 5mm; }
-.annex-site-name { font-size: 14pt; font-weight: 700; color: var(--primary); margin-bottom: 1mm; }
+.page.annex-page { padding: 14mm 20mm; }
+.annex-header { margin-bottom: 3mm; }
+.annex-site-name { font-size: 13pt; font-weight: 700; color: var(--primary); margin-bottom: 1mm; }
 .annex-address { font-size: 10pt; color: var(--gray); }
 
-.annex-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; margin-top: 5mm; }
-.annex-box { border: 1px solid #e5e7eb; border-radius: 3mm; overflow: hidden; }
-.annex-box-header { background: var(--primary); color: white; padding: 3mm 5mm; font-weight: 600; font-size: 10pt; }
+.annex-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3mm; margin-top: 3mm; }
+.annex-box { border: 1px solid #e5e7eb; border-radius: 2mm; overflow: hidden; }
+.annex-box-header { background: var(--primary); color: white; padding: 2mm 4mm; font-weight: 600; font-size: 9pt; }
 .annex-box-body { padding: 0; }
-.annex-row { display: flex; justify-content: space-between; align-items: center; padding: 2.5mm 5mm; border-bottom: 1px solid #f0f0f0; font-size: 9pt; }
+.annex-row { display: flex; justify-content: space-between; align-items: center; padding: 1.5mm 3mm; border-bottom: 1px solid #f0f0f0; font-size: 8pt; }
 .annex-row:nth-child(even) { background: var(--light-gray); }
 .annex-row:last-child { border-bottom: none; }
 .annex-row-label { display: flex; align-items: center; gap: 2mm; flex: 1; }
@@ -370,13 +366,29 @@ function buildCommercialTermsPage(t: (fr: string, en: string) => string, dateStr
   </div>`;
 }
 
-function buildFinancialFrameworkPage(data: MasterAgreementData, t: (fr: string, en: string) => string, dateStr: string): string {
-  const siteRows = data.sites.map(site => {
+function buildFinancialFrameworkPage(data: MasterAgreementData, t: (fr: string, en: string) => string, dateStr: string): string[] {
+
+  const totalPv = data.totalPvSizeKW ? fmt(data.totalPvSizeKW) : "&mdash;";
+  const totalKwh = data.totalFirstYearKwh ? fmt(data.totalFirstYearKwh) : "&mdash;";
+  const totalCost = data.totalCapexNet ? cur(data.totalCapexNet) : "&mdash;";
+
+  const allRows = data.sites;
+  const rowsPerPage1 = 15;
+  const page1Sites = allRows.slice(0, rowsPerPage1);
+  const page2Sites = allRows.slice(rowsPerPage1);
+
+  const tableHead = `<thead><tr>
+        <th>${t("Site", "Site")}</th>
+        <th style="text-align:right">${t("Taille DC (kW)", "DC Size (kW)")}</th>
+        <th style="text-align:right">${t("Prod. An 1 (kWh)", "Year 1 Prod. (kWh)")}</th>
+        <th style="text-align:right">${t("Co&ucirc;t Total", "Total Cost")}</th>
+      </tr></thead>`;
+
+  const makeRows = (sites: typeof allRows) => sites.map(site => {
     const fm = site.financialModel;
     const pvKw = fm?.projectSpecs?.projectSizeDcKw ?? site.pvSizeKW;
     const yr1 = fm?.projectSpecs?.firstYearKwh ?? site.firstYearKwh;
     const cost = fm?.projectCosts?.totalProjectCost ?? site.totalProjectCost;
-
     return `<tr>
       <td>${site.siteName}</td>
       <td class="number">${pvKw ? fmt(pvKw) : "&mdash;"}</td>
@@ -385,11 +397,9 @@ function buildFinancialFrameworkPage(data: MasterAgreementData, t: (fr: string, 
     </tr>`;
   }).join("");
 
-  const totalPv = data.totalPvSizeKW ? fmt(data.totalPvSizeKW) : "&mdash;";
-  const totalKwh = data.totalFirstYearKwh ? fmt(data.totalFirstYearKwh) : "&mdash;";
-  const totalCost = data.totalCapexNet ? cur(data.totalCapexNet) : "&mdash;";
+  const pages: string[] = [];
 
-  return `
+  pages.push(`
   <div class="page">
     <div class="section-num">4</div>
     <h2>${t("Cadre Financier", "Financial Framework")}</h2>
@@ -400,14 +410,22 @@ function buildFinancialFrameworkPage(data: MasterAgreementData, t: (fr: string, 
       )}
     </p>
     <table class="site-table">
-      <thead><tr>
-        <th>${t("Site", "Site")}</th>
-        <th style="text-align:right">${t("Taille DC (kW)", "DC Size (kW)")}</th>
-        <th style="text-align:right">${t("Prod. An 1 (kWh)", "Year 1 Prod. (kWh)")}</th>
-        <th style="text-align:right">${t("Co&ucirc;t Total", "Total Cost")}</th>
-      </tr></thead>
+      ${tableHead}
       <tbody>
-        ${siteRows}
+        ${makeRows(page1Sites)}
+      </tbody>
+    </table>
+    ${footerHtml(t, dateStr, 5)}
+  </div>`);
+
+  if (page2Sites.length > 0) {
+    pages.push(`
+  <div class="page">
+    <h3 style="color: var(--primary); margin-bottom: 4mm;">${t("Cadre Financier (suite)", "Financial Framework (continued)")}</h3>
+    <table class="site-table">
+      ${tableHead}
+      <tbody>
+        ${makeRows(page2Sites)}
         <tr class="total-row">
           <td>TOTAL / AVG.</td>
           <td class="number">${totalPv}</td>
@@ -416,8 +434,21 @@ function buildFinancialFrameworkPage(data: MasterAgreementData, t: (fr: string, 
         </tr>
       </tbody>
     </table>
-    ${footerHtml(t, dateStr, 5)}
-  </div>`;
+    ${footerHtml(t, dateStr, 6)}
+  </div>`);
+  } else {
+    const lastPage = pages[pages.length - 1];
+    pages[pages.length - 1] = lastPage.replace('</tbody>', `
+        <tr class="total-row">
+          <td>TOTAL / AVG.</td>
+          <td class="number">${totalPv}</td>
+          <td class="number">${totalKwh}</td>
+          <td class="number">${totalCost}</td>
+        </tr>
+      </tbody>`);
+  }
+
+  return pages;
 }
 
 function buildScopeOfWorkPages(t: (fr: string, en: string) => string, dateStr: string, startPage: number): string[] {
@@ -691,8 +722,11 @@ function buildScopeOfWorkPages(t: (fr: string, en: string) => string, dateStr: s
     },
   ];
 
+  const ownerPage1 = ownerScope.slice(0, 4);
+  const ownerPage2 = ownerScope.slice(4);
+
   pages.push(`
-  <div class="page-auto">
+  <div class="page">
     <div class="section-num">5</div>
     <h2>${t("&Eacute;tendue des Travaux", "Scope of Work")}</h2>
     <p style="font-size: 9pt; color: var(--gray); margin-bottom: 4mm;">
@@ -705,20 +739,33 @@ function buildScopeOfWorkPages(t: (fr: string, en: string) => string, dateStr: s
     <table class="scope-table">
       <thead><tr><th>${t("Cat&eacute;gorie", "Category")}</th><th>${t("Description", "Description")}</th></tr></thead>
       <tbody>
-        ${ownerScope.map(s => `<tr><td class="scope-cat">${s.cat}</td><td>${s.desc}</td></tr>`).join("")}
+        ${ownerPage1.map(s => `<tr><td class="scope-cat">${s.cat}</td><td>${s.desc}</td></tr>`).join("")}
+      </tbody>
+    </table>
+    ${footerHtml(t, dateStr, startPage)}
+  </div>`);
+
+  pages.push(`
+  <div class="page">
+    <h3>${t("5.1 &mdash; &Eacute;tendue du Propri&eacute;taire (suite)", "5.1 &mdash; Owner's Scope of Work (cont'd)")}</h3>
+    <table class="scope-table">
+      <thead><tr><th>${t("Cat&eacute;gorie", "Category")}</th><th>${t("Description", "Description")}</th></tr></thead>
+      <tbody>
+        ${ownerPage2.map(s => `<tr><td class="scope-cat">${s.cat}</td><td>${s.desc}</td></tr>`).join("")}
       </tbody>
     </table>
     <p style="font-size: 8.5pt; color: var(--gray); text-align: center; margin-top: 3mm; font-style: italic;">
       *${t("FIN DE L'&Eacute;TENDUE DU PROPRI&Eacute;TAIRE", "END OF OWNER'S SCOPE OF WORK")}*
     </p>
-    ${footerHtml(t, dateStr, startPage)}
+    ${footerHtml(t, dateStr, startPage + 1)}
   </div>`);
 
-  const dbScopePage1 = dbScope.slice(0, 10);
-  const dbScopePage2 = dbScope.slice(10);
+  const dbScopePage1 = dbScope.slice(0, 7);
+  const dbScopePage2 = dbScope.slice(7, 14);
+  const dbScopePage3 = dbScope.slice(14);
 
   pages.push(`
-  <div class="page-auto">
+  <div class="page">
     <h3>${t("5.2 &mdash; &Eacute;tendue du Concepteur-Constructeur", "5.2 &mdash; Design-Builder's Scope of Work")}</h3>
     <table class="scope-table">
       <thead><tr><th>${t("Cat&eacute;gorie", "Category")}</th><th>${t("Description", "Description")}</th></tr></thead>
@@ -726,11 +773,11 @@ function buildScopeOfWorkPages(t: (fr: string, en: string) => string, dateStr: s
         ${dbScopePage1.map(s => `<tr><td class="scope-cat">${s.cat}</td><td>${s.desc}</td></tr>`).join("")}
       </tbody>
     </table>
-    ${footerHtml(t, dateStr, startPage + 1)}
+    ${footerHtml(t, dateStr, startPage + 2)}
   </div>`);
 
   pages.push(`
-  <div class="page-auto">
+  <div class="page">
     <h3>${t("5.2 &mdash; &Eacute;tendue du Concepteur-Constructeur (suite)", "5.2 &mdash; Design-Builder's Scope of Work (cont'd)")}</h3>
     <table class="scope-table">
       <thead><tr><th>${t("Cat&eacute;gorie", "Category")}</th><th>${t("Description", "Description")}</th></tr></thead>
@@ -738,14 +785,29 @@ function buildScopeOfWorkPages(t: (fr: string, en: string) => string, dateStr: s
         ${dbScopePage2.map(s => `<tr><td class="scope-cat">${s.cat}</td><td>${s.desc}</td></tr>`).join("")}
       </tbody>
     </table>
-    <p style="font-size: 8.5pt; color: var(--gray); text-align: center; margin-top: 3mm; font-style: italic;">
-      *${t("FIN DE L'&Eacute;TENDUE DU CONCEPTEUR-CONSTRUCTEUR", "END OF DESIGN-BUILDER'S SCOPE OF WORK")}*
-    </p>
-    ${footerHtml(t, dateStr, startPage + 2)}
+    ${footerHtml(t, dateStr, startPage + 3)}
   </div>`);
 
   pages.push(`
-  <div class="page-auto">
+  <div class="page">
+    <h3>${t("5.2 &mdash; &Eacute;tendue du Concepteur-Constructeur (suite)", "5.2 &mdash; Design-Builder's Scope of Work (cont'd)")}</h3>
+    <table class="scope-table">
+      <thead><tr><th>${t("Cat&eacute;gorie", "Category")}</th><th>${t("Description", "Description")}</th></tr></thead>
+      <tbody>
+        ${dbScopePage3.map(s => `<tr><td class="scope-cat">${s.cat}</td><td>${s.desc}</td></tr>`).join("")}
+      </tbody>
+    </table>
+    <p style="font-size: 8.5pt; color: var(--gray); text-align: center; margin-top: 3mm; font-style: italic;">
+      *${t("FIN DE L'&Eacute;TENDUE DU CONCEPTEUR-CONSTRUCTEUR", "END OF DESIGN-BUILDER'S SCOPE OF WORK")}*
+    </p>
+    ${footerHtml(t, dateStr, startPage + 4)}
+  </div>`);
+
+  const gpPage1 = generalProvisions.slice(0, 3);
+  const gpPage2 = generalProvisions.slice(3);
+
+  pages.push(`
+  <div class="page">
     <h3>${t("5.3 &mdash; Dispositions G&eacute;n&eacute;rales", "5.3 &mdash; General Provisions")}</h3>
     <p style="font-size: 9pt; color: var(--gray); margin-bottom: 4mm;">
       ${t(
@@ -756,13 +818,25 @@ function buildScopeOfWorkPages(t: (fr: string, en: string) => string, dateStr: s
     <table class="scope-table">
       <thead><tr><th>${t("Cat&eacute;gorie", "Category")}</th><th>${t("Description", "Description")}</th></tr></thead>
       <tbody>
-        ${generalProvisions.map(s => `<tr><td class="scope-cat">${s.cat}</td><td>${s.desc}</td></tr>`).join("")}
+        ${gpPage1.map(s => `<tr><td class="scope-cat">${s.cat}</td><td>${s.desc}</td></tr>`).join("")}
+      </tbody>
+    </table>
+    ${footerHtml(t, dateStr, startPage + 5)}
+  </div>`);
+
+  pages.push(`
+  <div class="page">
+    <h3>${t("5.3 &mdash; Dispositions G&eacute;n&eacute;rales (suite)", "5.3 &mdash; General Provisions (cont'd)")}</h3>
+    <table class="scope-table">
+      <thead><tr><th>${t("Cat&eacute;gorie", "Category")}</th><th>${t("Description", "Description")}</th></tr></thead>
+      <tbody>
+        ${gpPage2.map(s => `<tr><td class="scope-cat">${s.cat}</td><td>${s.desc}</td></tr>`).join("")}
       </tbody>
     </table>
     <p style="font-size: 8.5pt; color: var(--gray); text-align: center; margin-top: 3mm; font-style: italic;">
       *${t("FIN DES DISPOSITIONS G&Eacute;N&Eacute;RALES", "END OF GENERAL PROVISIONS")}*
     </p>
-    ${footerHtml(t, dateStr, startPage + 3)}
+    ${footerHtml(t, dateStr, startPage + 6)}
   </div>`);
 
   return pages;
@@ -899,8 +973,25 @@ function buildScheduleOfValuesPages(t: (fr: string, en: string) => string, dateS
     t("Am&eacute;lioration de la capacit&eacute; du r&eacute;seau de distribution d'Hydro-Qu&eacute;bec au-del&agrave; du point de raccordement", "Hydro-Qu&eacute;bec distribution network capacity upgrades beyond point of interconnection"),
   ];
 
+  const milestonesPage1 = milestones.slice(0, 5);
+  const milestonesPage2 = milestones.slice(5);
+
+  const sovTableHeader = `<thead><tr>
+        <th>#</th>
+        <th>${t("Jalon", "Milestone")}</th>
+        <th>${t("Livrables / Conditions", "Deliverables / Conditions")}</th>
+        <th style="text-align:right">%</th>
+      </tr></thead>`;
+
+  const milestoneRow = (m: typeof milestones[0]) => `<tr>
+          <td style="font-weight:600; color: var(--primary); white-space: nowrap;">${m.num}</td>
+          <td style="font-weight:600;">${m.desc}</td>
+          <td style="font-size: 8.5pt; color: var(--gray);">${m.deliverables}</td>
+          <td class="sov-pct">${m.pct}</td>
+        </tr>`;
+
   pages.push(`
-  <div class="page-auto">
+  <div class="page">
     <div class="section-num">6</div>
     <h2>${t("&Eacute;ch&eacute;ancier de Paiement", "Schedule of Values")}</h2>
     <p style="font-size: 9pt; color: var(--gray); margin-bottom: 4mm;">
@@ -910,19 +1001,21 @@ function buildScheduleOfValuesPages(t: (fr: string, en: string) => string, dateS
       )}
     </p>
     <table class="sov-table">
-      <thead><tr>
-        <th>#</th>
-        <th>${t("Jalon", "Milestone")}</th>
-        <th>${t("Livrables / Conditions", "Deliverables / Conditions")}</th>
-        <th style="text-align:right">%</th>
-      </tr></thead>
+      ${sovTableHeader}
       <tbody>
-        ${milestones.map(m => `<tr>
-          <td style="font-weight:600; color: var(--primary); white-space: nowrap;">${m.num}</td>
-          <td style="font-weight:600;">${m.desc}</td>
-          <td style="font-size: 8.5pt; color: var(--gray);">${m.deliverables}</td>
-          <td class="sov-pct">${m.pct}</td>
-        </tr>`).join("")}
+        ${milestonesPage1.map(milestoneRow).join("")}
+      </tbody>
+    </table>
+    ${footerHtml(t, dateStr, startPage)}
+  </div>`);
+
+  pages.push(`
+  <div class="page">
+    <h3>${t("&Eacute;ch&eacute;ancier de Paiement (suite)", "Schedule of Values (cont'd)")}</h3>
+    <table class="sov-table">
+      ${sovTableHeader}
+      <tbody>
+        ${milestonesPage2.map(milestoneRow).join("")}
         <tr class="total-row">
           <td></td>
           <td>Total</td>
@@ -937,11 +1030,11 @@ function buildScheduleOfValuesPages(t: (fr: string, en: string) => string, dateS
         "Required for Final Payment: (a) Declaration confirming no written notices of legal hypothec have been received; (b) Declaration confirming all accounts for labour, subcontracts, products and services have been paid in full, except for lawfully retained holdbacks; (c) Final hypothec waiver signed by the Design-Builder and all subcontractors."
       )}
     </p>
-    ${footerHtml(t, dateStr, startPage)}
+    ${footerHtml(t, dateStr, startPage + 1)}
   </div>`);
 
   pages.push(`
-  <div class="page-auto">
+  <div class="page">
     <h3>${t("Conditions de Paiement", "Payment Terms")}</h3>
     <table class="terms-table">
       <thead><tr><th>${t("Condition", "Condition")}</th><th>${t("D&eacute;tails", "Details")}</th></tr></thead>
@@ -990,22 +1083,21 @@ function buildScheduleOfValuesPages(t: (fr: string, en: string) => string, dateS
         </tr>
       </tbody>
     </table>
-
-    <h3 style="margin-top: 6mm;">${t("Hypoth&egrave;ses de Prix", "Pricing Assumptions")}</h3>
-    <ul class="assumptions-list">
-      ${assumptions.slice(0, 10).map(a => `<li>${a}</li>`).join("")}
-    </ul>
-    ${footerHtml(t, dateStr, startPage + 1)}
+    ${footerHtml(t, dateStr, startPage + 2)}
   </div>`);
 
   pages.push(`
-  <div class="page-auto">
-    <h3>${t("Hypoth&egrave;ses de Prix (suite)", "Pricing Assumptions (continued)")}</h3>
+  <div class="page">
+    <h3>${t("Hypoth&egrave;ses de Prix", "Pricing Assumptions")}</h3>
     <ul class="assumptions-list">
-      ${assumptions.slice(10).map(a => `<li>${a}</li>`).join("")}
+      ${assumptions.map(a => `<li>${a}</li>`).join("")}
     </ul>
+    ${footerHtml(t, dateStr, startPage + 3)}
+  </div>`);
 
-    <h3 style="margin-top: 6mm;">${t("Exclusions", "Exclusions")}</h3>
+  pages.push(`
+  <div class="page">
+    <h3>${t("Exclusions", "Exclusions")}</h3>
     <p style="font-size: 9pt; color: var(--gray); margin-bottom: 3mm;">
       ${t(
         "Les &eacute;l&eacute;ments suivants ne sont PAS inclus dans le Prix du Contrat et demeurent &agrave; la charge du Propri&eacute;taire ou feront l'objet d'un avenant s&eacute;par&eacute; si requis&nbsp;:",
@@ -1022,7 +1114,7 @@ function buildScheduleOfValuesPages(t: (fr: string, en: string) => string, dateS
         "Note: Any additional work not covered by the Contract Price shall be subject to the Change Order procedure described in Section&nbsp;8, including a detailed estimate and the Owner's written approval prior to execution."
       )}
     </p>
-    ${footerHtml(t, dateStr, startPage + 2)}
+    ${footerHtml(t, dateStr, startPage + 4)}
   </div>`);
 
   return pages;
@@ -1108,7 +1200,7 @@ function buildAnnexPage(site: MasterAgreementSiteData, siteIndex: number, totalS
       eqRows.push(`<tr><td style="font-weight:600">${t("Surveillance", "Monitoring")}</td><td>${equipData.monitoring.manufacturer}</td><td>${equipData.monitoring.model}</td><td style="text-align:right">&mdash;</td></tr>`);
     }
     equipHtml = `
-    <div style="grid-column: 1 / -1; margin-top: 3mm;">
+    <div style="grid-column: 1 / -1; margin-top: 2mm;">
       <table class="equip-table">
         <thead><tr>
           <th>${t("&Eacute;quipement", "Equipment")}</th>
@@ -1127,7 +1219,7 @@ function buildAnnexPage(site: MasterAgreementSiteData, siteIndex: number, totalS
   const addr = site.address ? `${site.address}${site.city ? `, ${site.city}` : ""}` : "";
 
   return `
-  <div class="page">
+  <div class="page annex-page">
     <div class="annex-header">
       <div style="font-size: 9pt; color: var(--gray); margin-bottom: 2mm;">
         ${t(`Annexe A &mdash; Fiche ${siteIndex + 1}/${totalSitesWithFm}`, `Annex A &mdash; Schedule ${siteIndex + 1}/${totalSitesWithFm}`)}
@@ -1376,11 +1468,20 @@ function buildSupplementaryConditionsPages(t: (fr: string, en: string) => string
     },
   ];
 
-  const articlesPerPage = 3;
-  const totalPages = Math.ceil(allArticles.length / articlesPerPage);
+  const scBatches = [
+    allArticles.slice(0, 4),
+    allArticles.slice(4, 8),
+    allArticles.slice(8, 12),
+    allArticles.slice(12, 15),
+    allArticles.slice(15, 18),
+    allArticles.slice(18, 21),
+    allArticles.slice(21, 25),
+    allArticles.slice(25, 28),
+  ];
 
-  for (let p = 0; p < totalPages; p++) {
-    const batch = allArticles.slice(p * articlesPerPage, (p + 1) * articlesPerPage);
+  for (let p = 0; p < scBatches.length; p++) {
+    const batch = scBatches[p];
+    if (batch.length === 0) continue;
     const isFirstPage = p === 0;
 
     const headerHtml = isFirstPage ? `
@@ -1394,7 +1495,7 @@ function buildSupplementaryConditionsPages(t: (fr: string, en: string) => string
     </p>` : `<h3 style="color: var(--primary); margin-bottom: 4mm;">${t("Conditions Suppl&eacute;mentaires (suite)", "Supplementary Conditions (continued)")}</h3>`;
 
     pages.push(`
-  <div class="page-auto">
+  <div class="page">
     ${headerHtml}
     ${batch.map(c => `
       <div class="sc-article">
@@ -1475,9 +1576,10 @@ export async function generateMasterAgreementPDFBuffer(
   pages.push(buildCommercialTermsPage(t, dateStr));
 
   pageNum = 5;
-  pages.push(buildFinancialFrameworkPage(data, t, dateStr));
+  const ffPages = buildFinancialFrameworkPage(data, t, dateStr);
+  pages.push(...ffPages);
+  pageNum += ffPages.length;
 
-  pageNum = 6;
   const scopePages = buildScopeOfWorkPages(t, dateStr, pageNum);
   pages.push(...scopePages);
   pageNum += scopePages.length;
@@ -1526,6 +1628,23 @@ ${pages.join("\n")}
   try {
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: "networkidle0", timeout: 60000 });
+
+    const overflowCheck = await page.evaluate(() => {
+      const pages = document.querySelectorAll('.page');
+      const issues: string[] = [];
+      pages.forEach((el, i) => {
+        const h = el as HTMLElement;
+        if (h.scrollHeight > h.clientHeight + 2) {
+          const firstText = h.querySelector('h2, h3, .section-num, .annex-site-name')?.textContent?.slice(0, 60) || '';
+          issues.push(`Page ${i + 1} [${h.className}] "${firstText}": scrollHeight=${h.scrollHeight} > clientHeight=${h.clientHeight}`);
+        }
+      });
+      return issues;
+    });
+    if (overflowCheck.length > 0) {
+      log.warn("PDF overflow detected on pages:", overflowCheck);
+    }
+
     const pdfBuffer = await page.pdf({
       format: "Letter",
       printBackground: true,
