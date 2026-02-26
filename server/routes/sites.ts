@@ -745,12 +745,16 @@ router.post("/:siteId/quick-potential", authMiddleware, requireStaff, asyncHandl
 
   // Calculate total roof area from polygons or fallback to site values
   const polygonAreaSqM = solarPolygons.reduce((sum, p) => sum + (p.areaSqM || 0), 0);
-  const totalRoofAreaSqM = polygonAreaSqM > 0
+  let totalRoofAreaSqM = polygonAreaSqM > 0
     ? polygonAreaSqM
     : (site.roofAreaSqM || site.roofAreaAutoSqM || 0);
 
+  if (totalRoofAreaSqM <= 0 && site.buildingSqFt && site.buildingSqFt > 0) {
+    totalRoofAreaSqM = site.buildingSqFt * 0.0929;
+  }
+
   if (totalRoofAreaSqM <= 0) {
-    throw new BadRequestError("No roof area available. Please draw roof areas first.");
+    throw new BadRequestError("No roof area available. Please draw roof areas in Step 1 (Roof Drawing Tool) or set a building area for this site.");
   }
 
   // Import pricing and yield functions
@@ -991,13 +995,17 @@ router.post("/:siteId/run-potential-analysis", authMiddleware, requireStaff, asy
   const tracedSolarAreaSqM = solarPolygons.reduce((sum, p) => sum + (p.areaSqM || 0), 0);
 
   // Use traced area if available, otherwise fallback to site values
-  const effectiveRoofAreaSqM = tracedSolarAreaSqM > 0
+  let effectiveRoofAreaSqM = tracedSolarAreaSqM > 0
     ? tracedSolarAreaSqM
     : (site.roofAreaSqM || site.roofAreaAutoSqM || 0);
 
+  if (effectiveRoofAreaSqM <= 0 && site.buildingSqFt && site.buildingSqFt > 0) {
+    effectiveRoofAreaSqM = site.buildingSqFt * 0.0929;
+  }
+
   // Guard: require roof area to prevent NaN in calculations
   if (effectiveRoofAreaSqM <= 0) {
-    throw new BadRequestError("No roof area available. Please draw roof areas in site parameters first.");
+    throw new BadRequestError("No roof area available. Please draw roof areas in Step 1 (Roof Drawing Tool) or set a building area for this site.");
   }
 
   analysisAssumptions.roofAreaSqFt = effectiveRoofAreaSqM * 10.764;

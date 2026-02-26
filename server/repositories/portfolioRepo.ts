@@ -109,7 +109,39 @@ export async function getPortfolioSites(portfolioId: string): Promise<PortfolioS
   const portfolioSitesList = await db.select().from(sites)
     .where(inArray(sites.id, siteIds));
 
-  const relevantSimulations = await db.select().from(simulationRuns)
+  const relevantSimulations = await db.select({
+    id: simulationRuns.id,
+    siteId: simulationRuns.siteId,
+    meterId: simulationRuns.meterId,
+    label: simulationRuns.label,
+    type: simulationRuns.type,
+    pvSizeKW: simulationRuns.pvSizeKW,
+    battEnergyKWh: simulationRuns.battEnergyKWh,
+    battPowerKW: simulationRuns.battPowerKW,
+    annualConsumptionKWh: simulationRuns.annualConsumptionKWh,
+    peakDemandKW: simulationRuns.peakDemandKW,
+    totalProductionKWh: simulationRuns.totalProductionKWh,
+    totalExportedKWh: simulationRuns.totalExportedKWh,
+    annualSurplusRevenue: simulationRuns.annualSurplusRevenue,
+    annualCostBefore: simulationRuns.annualCostBefore,
+    annualCostAfter: simulationRuns.annualCostAfter,
+    annualSavings: simulationRuns.annualSavings,
+    capexGross: simulationRuns.capexGross,
+    capexPV: simulationRuns.capexPV,
+    capexBattery: simulationRuns.capexBattery,
+    incentivesHQ: simulationRuns.incentivesHQ,
+    incentivesFederal: simulationRuns.incentivesFederal,
+    taxShield: simulationRuns.taxShield,
+    totalIncentives: simulationRuns.totalIncentives,
+    capexNet: simulationRuns.capexNet,
+    npv25: simulationRuns.npv25,
+    irr25: simulationRuns.irr25,
+    simplePaybackYears: simulationRuns.simplePaybackYears,
+    lcoe: simulationRuns.lcoe,
+    co2AvoidedTonnesPerYear: simulationRuns.co2AvoidedTonnesPerYear,
+    selfSufficiencyPercent: simulationRuns.selfSufficiencyPercent,
+    createdAt: simulationRuns.createdAt,
+  }).from(simulationRuns)
     .where(inArray(simulationRuns.siteId, siteIds))
     .orderBy(desc(simulationRuns.createdAt));
 
