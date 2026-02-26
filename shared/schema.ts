@@ -865,6 +865,12 @@ export interface SiteFinancialModel {
   results: {
     pretaxIrr: number | null;
   };
+  equipment?: {
+    racking?: { manufacturer: string; model: string; units: number };
+    modules?: { manufacturer: string; model: string; units: number };
+    inverters?: { manufacturer: string; model: string; units: number };
+    monitoring?: { manufacturer: string; model: string };
+  };
 }
 
 // Blog Articles - SEO content marketing
