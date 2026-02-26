@@ -266,31 +266,28 @@ export async function prepareDocumentData(simulationId: string, storage: IStorag
     return { lat: centerLat, lng: centerLng, zoom };
   }
 
-  // Primary method: Use Puppeteer to render Google Maps with panels server-side.
-  // Puppeteer is a real headless Chrome — renders Google Maps natively, no CORS issues.
-  if (simulation.site.latitude && simulation.site.longitude) {
+  // Primary method: Use Puppeteer to navigate to the real RoofVisualization React component.
+  // This renders the exact same satellite + panel layout the user sees in the HTML view.
+  if (simulation.site.latitude && simulation.site.longitude && roofPolygonsRaw.length > 0) {
     try {
       const { captureRoofVisualization } = await import("./services/puppeteerMapCapture");
       const center = computeSatelliteCenter(roofPolygonsRaw, simulation.site.latitude, simulation.site.longitude);
       satelliteCenter = center;
-      log.info(`Attempting Puppeteer map capture: center=${center.lat.toFixed(6)},${center.lng.toFixed(6)} zoom=${center.zoom}, polygons=${roofPolygons.length}`);
+      log.info(`Attempting Puppeteer roof capture via real RoofVisualization component: siteId=${simulation.siteId}, pvSizeKW=${simulation.pvSizeKW}, polygons=${roofPolygons.length}`);
       const buf = await captureRoofVisualization({
-        latitude: center.lat,
-        longitude: center.lng,
-        roofPolygons,
+        siteId: simulation.siteId,
         pvSizeKW: simulation.pvSizeKW || 0,
-        zoom: center.zoom,
         width: IMG_WIDTH,
         height: IMG_HEIGHT,
       });
       if (buf && buf.length >= MIN_VALID_IMAGE_SIZE) {
         roofVisualizationBuffer = buf;
-        log.info(`Puppeteer map capture successful: ${buf.length} bytes (satellite + panels)`);
+        log.info(`Puppeteer roof capture successful: ${buf.length} bytes (real RoofVisualization component)`);
       } else {
         log.warn(`Puppeteer capture returned ${buf?.length || 0} bytes — falling back to Google Static Maps`);
       }
     } catch (captureErr) {
-      log.error("Puppeteer map capture failed — falling back to Google Static Maps:", captureErr);
+      log.error("Puppeteer roof capture failed — falling back to Google Static Maps:", captureErr);
     }
   }
 

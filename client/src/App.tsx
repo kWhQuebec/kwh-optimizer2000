@@ -77,6 +77,7 @@ const LcoeComparisonPage = lazy(() => import("@/pages/lcoe-comparison"));
 const EOSPage = lazy(() => import("@/pages/eos"));
 const AdminNewsPage = lazy(() => import("@/pages/admin-news"));
 const NouvelleDetailPage = lazy(() => import("@/pages/nouvelle-detail"));
+const RoofCapturePage = lazy(() => import("@/pages/roof-capture"));
 
 import NouvellesPage from "@/pages/nouvelles";
 
@@ -800,6 +801,13 @@ function AppRoutes() {
             </AppLayout>
           </StaffRoute>
         </ProtectedRoute>
+      </Route>
+
+      {/* Internal: Puppeteer capture route (no layout, auth via query param) */}
+      <Route path="/roof-capture">
+        <Suspense fallback={<div style={{ background: "#000", width: "100vw", height: "100vh" }} />}>
+          <RoofCapturePage />
+        </Suspense>
       </Route>
 
       {/* Fallback */}
