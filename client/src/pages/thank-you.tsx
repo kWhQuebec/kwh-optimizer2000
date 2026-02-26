@@ -262,8 +262,8 @@ export default function ThankYouPage() {
                 </div>
                 <p className="text-sm text-muted-foreground">
                   {language === "fr"
-                    ? "Notre équipe accompagne les entreprises partout au Canada dans leurs projets d'énergie renouvelable depuis 2011."
-                    : "Our team has been supporting businesses across Canada in renewable energy projects since 2011."}
+                    ? "Nous avons assemblé une équipe qui accompagne les entreprises partout au Canada dans leurs projets d'énergie renouvelable depuis 2010."
+                    : "We have assembled a team supporting businesses across Canada in renewable energy projects since 2010."}
                 </p>
               </div>
 

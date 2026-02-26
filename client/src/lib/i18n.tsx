@@ -1007,7 +1007,7 @@ const translations: Translations = {
 
   // Why kWh Québec Section
   "whykwh.title": { fr: "Pourquoi kWh Québec", en: "Why kWh Québec" },
-  "whykwh.subtitle": { fr: "Notre équipe accompagne les entreprises partout au Canada dans leurs projets d'énergie renouvelable depuis 2011.", en: "Our team has been supporting businesses across Canada in renewable energy projects since 2011." },
+  "whykwh.subtitle": { fr: "Nous avons assemblé une équipe qui accompagne les entreprises partout au Canada dans leurs projets d'énergie renouvelable depuis 2010.", en: "We have assembled a team supporting businesses across Canada in renewable energy projects since 2010." },
   "whykwh.value1": { fr: "Simplicité", en: "Simplicity" },
   "whykwh.value2": { fr: "Fiabilité", en: "Reliability" },
   "whykwh.value3": { fr: "Longévité", en: "Longevity" },
