@@ -101,7 +101,7 @@ export function generateExecutiveSummaryPDF(
 
   drawKpiBox(margin, kpiY, kpiWidth, kpiHeight, t("PUISSANCE PV", "PV POWER"), formatSmartPower(simulation.pvSizeKW, lang, "kWc"));
   drawKpiBox(margin + kpiWidth + 5, kpiY, kpiWidth, kpiHeight, t("BATTERIE", "BATTERY"), formatSmartEnergy(simulation.battEnergyKWh, lang));
-  drawKpiBox(margin + (kpiWidth + 5) * 2, kpiY, kpiWidth, kpiHeight, t("ÉCONOMIES AN 1", "SAVINGS YR 1"), formatSmartCurrency(simulation.savingsYear1, lang), true);
+  drawKpiBox(margin + (kpiWidth + 5) * 2, kpiY, kpiWidth, kpiHeight, t("ÉCON. ÉNERGIE AN 1", "ENERGY SAVINGS YR 1"), formatSmartCurrency(simulation.savingsYear1, lang), true);
   drawKpiBox(margin + (kpiWidth + 5) * 3, kpiY, kpiWidth, kpiHeight, t("VAN 25 ANS", "NPV 25 YRS"), formatSmartCurrency(simulation.npv25, lang), true);
 
   doc.y = kpiY + kpiHeight + 20;
@@ -123,7 +123,7 @@ export function generateExecutiveSummaryPDF(
     { label: t("Subventions totales", "Total incentives"), value: formatSmartCurrency(simulation.totalIncentives, lang), col: "left" },
     { label: t("Retour simple", "Simple payback"), value: `${simulation.simplePaybackYears.toFixed(1)} ${t("ans", "years")}`, col: "right" },
     { label: t("Investissement net", "Net investment"), value: formatSmartCurrency(simulation.capexNet, lang), col: "left" },
-    { label: t("LCOE", "LCOE"), value: `${simulation.lcoe.toFixed(2)} ¢/kWh`, col: "right" },
+    { label: t("CLÉÉ (indicatif)", "LCOE (indicative)"), value: `${simulation.lcoe.toFixed(2)} ¢/kWh`, col: "right" },
     { label: t("Bouclier fiscal", "Tax shield"), value: formatSmartCurrency(simulation.taxShield, lang), col: "left" },
     { label: t("Autosuffisance", "Self-sufficiency"), value: formatPercent(simulation.selfSufficiencyPercent / 100), col: "right" },
   ];

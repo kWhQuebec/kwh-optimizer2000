@@ -169,7 +169,7 @@ export async function generateProfessionalPDFv2(
 
   pages.push(buildWhySolarNowPage(t, lang, nextPage()));
   pages.push(buildProjectSnapshotPage(simulation, t, totalProductionKWh, roofImageBase64, nextPage(), isSyntheticData, (simulation as any).satelliteCenter));
-  pages.push(buildResultsPage(simulation, t, totalProductionKWh, nextPage()));
+  pages.push(buildResultsPage(simulation, t, totalProductionKWh, nextPage(), isSyntheticData));
   pages.push(buildNetInvestmentPage(simulation, t, nextPage()));
 
   if (hasHourlyProfile) {
@@ -609,6 +609,12 @@ function buildProjectSnapshotPage(
           <p><strong>${t("CO2 &eacute;vit&eacute; (25 ans):", "CO2 avoided (25 yr):")}</strong> ${fmt(Math.round(co2Total25yr))} ${t("tonnes", "tonnes")}</p>
           <p><strong>${t("&Eacute;quivalent arbres:", "Equivalent trees:")}</strong> ${fmt(co2Trees)} ${t("arbres", "trees")}</p>
           <p><strong>${t("&Eacute;quivalent voitures:", "Equivalent cars:")}</strong> ${co2Cars} ${t("v&eacute;hicules retir&eacute;s", "vehicles removed")}</p>
+          <p style="font-size: 7.5pt; color: #6b7280; margin-top: 2mm; border-top: 1px solid #e5e7eb; padding-top: 2mm;">
+            ${t(
+              "Facteur d'&eacute;mission: 2 g CO&sub2;e/kWh (Environnement Canada). Le r&eacute;seau qu&eacute;b&eacute;cois est parmi les plus propres au monde (hydro&eacute;lectricit&eacute; &gt;94%). La valeur principale du solaire est &eacute;conomique et de r&eacute;silience &eacute;nerg&eacute;tique.",
+              "Emission factor: 2 g CO&sub2;e/kWh (Environment Canada). Qu&eacute;bec's grid is among the cleanest in the world (hydroelectricity &gt;94%). The primary value of solar is economic and energy resilience."
+            )}
+          </p>
         </div>
       </div>
     </div>
@@ -624,7 +630,8 @@ function buildResultsPage(
   sim: DocumentSimulationData,
   t: (fr: string, en: string) => string,
   _totalProductionKWh: number,
-  pageNum: number
+  pageNum: number,
+  isSyntheticData: boolean = false
 ): string {
   const paybackStr = sim.simplePaybackYears > 0 ? sim.simplePaybackYears.toFixed(1) : "N/A";
   const irr = sim.irr25 > 1 ? sim.irr25.toFixed(1) : (sim.irr25 * 100).toFixed(1);
@@ -632,7 +639,9 @@ function buildResultsPage(
   return `
   <div class="page">
     <h2>${t("Vos r&eacute;sultats", "Your Results")}</h2>
-    <p class="subtitle">${t("Projection sur 25 ans bas&eacute;e sur votre profil de consommation r&eacute;el", "25-year projection based on your actual consumption profile")}</p>
+    <p class="subtitle">${isSyntheticData
+      ? t("Projection sur 25 ans bas&eacute;e sur un profil de consommation mod&eacute;lis&eacute;", "25-year projection based on a modeled consumption profile")
+      : t("Projection sur 25 ans bas&eacute;e sur votre profil de consommation r&eacute;el", "25-year projection based on your actual consumption profile")}</p>
     <div class="metrics-grid">
       <div class="metric-card metric-accent">
         <span class="metric-value">${smartCur(sim.capexNet)}</span>
@@ -651,10 +660,10 @@ function buildResultsPage(
       <h3>${t("Indicateurs financiers cl&eacute;s", "Key Financial Indicators")}</h3>
       <table class="data-table">
         <tr><td>${t("Taux de rendement interne (TRI)", "Internal Rate of Return (IRR)")}</td><td class="number"><strong>${irr}%</strong></td></tr>
-        <tr><td>${t("&Eacute;conomies ann&eacute;e 1", "Year 1 Savings")}</td><td class="number">${cur(sim.savingsYear1)}</td></tr>
-        <tr><td>${t("&Eacute;conomies annuelles moy.", "Avg. Annual Savings")}</td><td class="number">${cur(sim.annualSavings)}</td></tr>
+        <tr><td>${t("&Eacute;conomies d'&eacute;nergie an 1", "Year 1 Energy Savings")}</td><td class="number">${cur(sim.savingsYear1)}</td></tr>
+        <tr><td>${t("&Eacute;conomies d'&eacute;nergie moy./an", "Avg. Annual Energy Savings")}</td><td class="number">${cur(sim.annualSavings)}</td></tr>
         <tr><td>${t("Valeur actuelle nette (VAN 25 ans)", "Net Present Value (NPV 25 yrs)")}</td><td class="number"><strong>${cur(sim.npv25)}</strong></td></tr>
-        <tr><td>${t("Co&ucirc;t actualis&eacute; de l'&eacute;nergie (LCOE)", "Levelized Cost of Energy (LCOE)")}</td><td class="number">${sim.lcoe > 0 ? sim.lcoe.toFixed(3) : "N/A"} $/kWh</td></tr>
+        <tr><td>${t("Co&ucirc;t actualis&eacute; de l'&eacute;nergie (CL&Eacute;E)", "Levelized Cost of Energy (LCOE)")} <span style="font-size: 7pt; color: #6b7280; font-style: italic;">${t("(indicatif)", "(indicative)")}</span></td><td class="number">${sim.lcoe > 0 ? sim.lcoe.toFixed(3) : "N/A"} $/kWh</td></tr>
         <tr><td>${t("Co&ucirc;t annuel AVANT solaire", "Annual cost BEFORE solar")}</td><td class="number">${cur(sim.annualCostBefore)}</td></tr>
         <tr><td>${t("Co&ucirc;t annuel APR&Egrave;S solaire", "Annual cost AFTER solar")}</td><td class="number" style="color: #16a34a;">${cur(sim.annualCostAfter)}</td></tr>
       </table>
@@ -1284,11 +1293,15 @@ function buildFinancialProjectionsPage(
         <tr>
           <th>${t("Ann&eacute;e", "Year")}</th>
           <th style="text-align: right;">${t("Production (kWh)", "Production (kWh)")}</th>
-          <th style="text-align: right;">${t("&Eacute;conomies", "Savings")}</th>
+          <th style="text-align: right;">${t("B&eacute;n&eacute;fice net*", "Net Benefit*")}</th>
           <th style="text-align: right;">${t("Cumulatif", "Cumulative")}</th>
         </tr>
         ${rows}
       </table>
+      <p style="font-size: 7pt; color: #6b7280; margin-top: 1mm;">* ${t(
+        "B&eacute;n&eacute;fice net = &eacute;conomies d'&eacute;nergie + incitatifs + avantages fiscaux. Diff&egrave;re des &eacute;conomies d'&eacute;nergie seules montr&eacute;es dans les indicateurs financiers.",
+        "Net benefit = energy savings + incentives + tax benefits. Differs from energy savings only shown in financial indicators."
+      )}</p>
     </div>
     ${surplusSection}
     ${footerHtml(t, pageNum)}
@@ -1378,42 +1391,67 @@ function buildEquipmentPage(
 
   const techSummary = getEquipmentTechnicalSummary(lang);
 
+  const designStandards = [
+    {
+      titleFr: "Modules solaires", titleEn: "Solar Modules",
+      descFr: "Modules monocristallins haute efficacit&eacute; Tier 1, s&eacute;lectionn&eacute;s pour la performance canadienne. Certifications IEC/UL et garantie produit/performance 25-30 ans.",
+      descEn: "Tier 1 high-efficiency monocrystalline modules selected for Canadian performance. IEC/UL certifications with 25-30 year product/performance warranty.",
+    },
+    {
+      titleFr: "Onduleurs", titleEn: "Inverters",
+      descFr: "Architecture onduleur commerciale s&eacute;lectionn&eacute;e pour la fiabilit&eacute;, la facilit&eacute; de maintenance et la capacit&eacute; de monitoring. Topologie optimis&eacute;e selon la g&eacute;om&eacute;trie du toit et le profil d'ombrage.",
+      descEn: "Commercial inverter architecture selected for reliability, serviceability, and monitoring capability. Topology optimized to site roof geometry and shading profile.",
+    },
+    {
+      titleFr: "Structure de montage", titleEn: "Racking",
+      descFr: "Structure compatible toiture, con&ccedil;ue pour les charges de neige et de vent locales. Install&eacute;e en pr&eacute;servant les exigences de garantie de toiture (p. ex. membrane TPO).",
+      descEn: "Roof-compatible racking engineered for local snow/wind loads. Installed to preserve roof warranty requirements (e.g., TPO membrane best practices).",
+    },
+    {
+      titleFr: "Monitoring", titleEn: "Monitoring",
+      descFr: "Suivi en temps r&eacute;el avec alertes et rapports pour v&eacute;rifier la performance et supporter l'exploitation &agrave; long terme.",
+      descEn: "Real-time monitoring with alerting and reporting to verify performance and support long-term O&amp;M.",
+    },
+  ];
+
+  if (sim.battEnergyKWh > 0) {
+    designStandards.splice(3, 0, {
+      titleFr: "Stockage d'&eacute;nergie", titleEn: "Energy Storage",
+      descFr: "Syst&egrave;me BESS certifi&eacute; UL 9540A pour l'&eacute;cr&ecirc;tage de pointe et l'optimisation de la demande. Garantie 10 ans / 6 000 cycles.",
+      descEn: "UL 9540A certified BESS system for peak shaving and demand optimization. 10-year / 6,000 cycle warranty.",
+    });
+  }
+
+  const refEquipment = equipment.map(eq => {
+    const certs = (eq as any).certifications;
+    const certStr = certs && certs.length > 0 ? certs.join(", ") : "";
+    return `${eq.manufacturer} ${eq.spec}${certStr ? ` (${certStr})` : ""} — ${eq.warranty}`;
+  });
+
   return `
   <div class="page">
-    <h2>${t("&Eacute;quipements & garanties", "Equipment & Warranties")}</h2>
-    <table class="data-table">
-      <tr>
-        <th>${t("Composant", "Component")}</th>
-        <th>${t("Fabricant", "Manufacturer")}</th>
-        <th>${t("Sp&eacute;cification", "Specification")}</th>
-        <th>Certifications</th>
-        <th>${t("Garantie", "Warranty")}</th>
-      </tr>
-      ${equipment.map(eq => {
-        const certs = (eq as any).certifications;
-        const certHtml = certs && certs.length > 0
-          ? certs.map((c: string) => `<span class="cert-badge">${c}</span>`).join("")
-          : "&mdash;";
-        return `
-      <tr>
-        <td><strong>${eq.name}</strong></td>
-        <td>${eq.manufacturer}</td>
-        <td>${eq.spec}</td>
-        <td>${certHtml}</td>
-        <td>${eq.warranty}</td>
-      </tr>`;
-      }).join("")}
-    </table>
-    <div class="two-column" style="margin-top: 4mm;">
-      <div class="section">
-        <h3>${t("Certifications &eacute;quipements", "Equipment Certifications")}</h3>
-        <ul class="bullet-list">
-          <li>${t("Panneaux certifi&eacute;s CSA / UL / IEC", "Panels certified CSA / UL / IEC")}</li>
-          <li>${t("Onduleurs certifi&eacute;s CSA C22.2", "Inverters certified CSA C22.2")}</li>
-          <li>${t("Installation selon Code &eacute;lectrique du Qu&eacute;bec", "Installation per Quebec Electrical Code")}</li>
-          ${sim.battEnergyKWh > 0 ? `<li>${t("Batteries certifi&eacute;es UL 9540A", "Batteries certified UL 9540A")}</li>` : ""}
-        </ul>
-      </div>
+    <h2>${t("Composantes du syst&egrave;me & standards de conception", "System Components & Design Standards")}</h2>
+    <p class="subtitle">${t("Philosophie d'ing&eacute;nierie kWh Qu&eacute;bec", "kWh Qu&eacute;bec Engineering Philosophy")}</p>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4mm; margin-bottom: 4mm;">
+      ${designStandards.map(ds => `
+      <div class="info-box" style="margin: 0;">
+        <h3 style="font-size: 10pt; color: #003DA6; margin-bottom: 2mm;">${t(ds.titleFr, ds.titleEn)}</h3>
+        <p style="font-size: 8.5pt; margin: 0;">${t(ds.descFr, ds.descEn)}</p>
+      </div>`).join("")}
+    </div>
+    <div class="section" style="background: #f8fafc; border-radius: 2mm; padding: 3mm 5mm; margin-bottom: 4mm;">
+      <h3 style="font-size: 9pt; color: #6b7280; margin-bottom: 2mm;">${t("&Eacute;quipements de r&eacute;f&eacute;rence", "Reference Equipment")}</h3>
+      <ul style="list-style: none; padding: 0; margin: 0;">
+        ${refEquipment.map(r => `<li style="font-size: 8pt; color: #4b5563; padding: 0.5mm 0;">&bull; ${r}</li>`).join("")}
+      </ul>
+      <p style="font-size: 7.5pt; color: #6b7280; font-style: italic; margin: 2mm 0 0 0; border-top: 1px solid #e5e7eb; padding-top: 2mm;">
+        ${t(
+          "Les fabricants et mod&egrave;les finaux sont confirm&eacute;s lors de la Validation de conception, selon les contraintes du site, la disponibilit&eacute; et les exigences d'interconnexion.",
+          "Final manufacturers and models are confirmed during Design Validation based on site constraints, availability, and interconnection requirements."
+        )}
+      </p>
+    </div>
+    <div class="two-column">
       <div class="section">
         <h3>${t("Garantie installation kWh", "kWh Installation Warranty")}</h3>
         <div class="info-box">
@@ -1423,19 +1461,15 @@ function buildEquipmentPage(
           <p><strong>${t("Monitoring:", "Monitoring:")}</strong> ${t("Suivi continu inclus", "Continuous monitoring included")}</p>
         </div>
       </div>
-    </div>
-    <div class="section" style="margin-top: 3mm; padding: 3mm 5mm; background: #f0f4f8; border-radius: 2mm;">
-      <h3 style="margin-bottom: 2mm;">${t("Donn&eacute;es structurelles pour &eacute;valuation de toiture", "Structural Data for Roof Evaluation")}</h3>
-      <table class="data-table" style="margin-bottom: 0;">
-        <tr>
-          <th>${t("Param&egrave;tre", "Parameter")}</th>
-          <th>${t("Valeur", "Value")}</th>
-        </tr>
-        <tr class="total-row"><td>${t("Charge totale du syst&egrave;me", "Total System Load")}</td><td><strong style="font-size:14px;color:#FFB005;">${techSummary.totalSystemWeightKgPerM2.value} ${techSummary.totalSystemWeightKgPerM2.unit}&nbsp;&nbsp;/&nbsp;&nbsp;${techSummary.totalSystemWeightPsfPerSf.value} ${t(techSummary.totalSystemWeightPsfPerSf.unitFr, techSummary.totalSystemWeightPsfPerSf.unitEn)}</strong></td></tr>
-        <tr><td style="font-size:9px;color:#6B7280;">${t("D&eacute;tail", "Breakdown")}</td><td style="font-size:9px;color:#6B7280;">${t(`Panneaux ${techSummary.panelWeightKgPerM2.value} kg/m&sup2; + Structure ${techSummary.rackingWeightKgPerM2.value} kg/m&sup2;`, `Panels ${techSummary.panelWeightKgPerM2.value} kg/m&sup2; + Racking ${techSummary.rackingWeightKgPerM2.value} kg/m&sup2;`)}</td></tr>
-        <tr><td>${techSummary.windLoadDesign}</td><td>&#x2713;</td></tr>
-        <tr><td>${techSummary.snowLoadNote}</td><td>&#x2713;</td></tr>
-      </table>
+      <div class="section">
+        <h3>${t("Donn&eacute;es structurelles", "Structural Data")}</h3>
+        <div class="info-box">
+          <p><strong>${t("Charge totale:", "Total load:")}</strong> ${techSummary.totalSystemWeightKgPerM2.value} ${techSummary.totalSystemWeightKgPerM2.unit} / ${techSummary.totalSystemWeightPsfPerSf.value} ${t(techSummary.totalSystemWeightPsfPerSf.unitFr, techSummary.totalSystemWeightPsfPerSf.unitEn)}</p>
+          <p style="font-size: 8pt; color: #6B7280;">${t(`Panneaux ${techSummary.panelWeightKgPerM2.value} kg/m&sup2; + Structure ${techSummary.rackingWeightKgPerM2.value} kg/m&sup2;`, `Panels ${techSummary.panelWeightKgPerM2.value} kg/m&sup2; + Racking ${techSummary.rackingWeightKgPerM2.value} kg/m&sup2;`)}</p>
+          <p>&#x2713; ${techSummary.windLoadDesign}</p>
+          <p>&#x2713; ${techSummary.snowLoadNote}</p>
+        </div>
+      </div>
     </div>
     ${footerHtml(t, pageNum)}
   </div>`;
@@ -1653,8 +1687,15 @@ function buildNextStepsPage(
   const faqHtml = `<div class="section">
         <h3>${t("Questions fr&eacute;quentes", "Frequently asked questions")}</h3>
         <div class="info-box" style="font-size: 9pt;">
-          <p><strong>${t("Combien co&ucirc;te l'analyse d&eacute;taill&eacute;e et la validation &eacute;conomique de mon projet?", "How much does the detailed analysis and economic validation of my project cost?")}</strong><br>${t("Rien. L'&eacute;valuation d&eacute;taill&eacute;e est gratuite et sans engagement.", "Nothing. The detailed evaluation is free and without commitment.")}</p>
-          <p style="margin: 0;"><strong>${t("Quand est-ce que je paie quelque chose?", "When do I pay anything?")}</strong><br>${t("&Agrave; la signature du Mandat de conception pr&eacute;liminaire (2 500$ + taxes), qui inclut la visite technique sur site, la confirmation du raccordement au r&eacute;seau, les plans pr&eacute;liminaires et une soumission forfaitaire pour l'ensemble du projet.", "At the signing of the Preliminary Design Mandate ($2,500 + taxes), which includes the on-site technical visit, grid connection confirmation, preliminary plans, and a firm quote for the entire project.")}</p>
+          <p><strong>${t("Combien co&ucirc;te la Validation &eacute;conomique?", "How much does the Economic Validation cost?")}</strong><br>${t("Rien. L'&eacute;valuation d&eacute;taill&eacute;e est gratuite et sans engagement.", "Nothing. The detailed evaluation is free and without commitment.")}</p>
+          <p><strong>${t("Que comprend le Mandat de conception?", "What's included in the Design Mandate?")}</strong><br>${t(
+            "Pour 2 500$ + taxes : visite technique sur site, confirmation du raccordement au r&eacute;seau, plans pr&eacute;liminaires et soumission forfaitaire garantie 60 jours. Les frais d'ing&eacute;nierie structurale (sceau d'ing&eacute;nieur) sont en sus si requis.",
+            "For $2,500 + taxes: on-site technical visit, grid connection confirmation, preliminary plans, and firm quote guaranteed 60 days. Structural engineering fees (P.Eng. stamp) are extra if required."
+          )}</p>
+          <p style="margin: 0;"><strong>${t("Comment passer &agrave; la construction?", "How to proceed to construction?")}</strong><br>${t(
+            "Apr&egrave;s acceptation de la soumission forfaitaire, signature du contrat EPC et d&eacute;but des travaux sous 8-12 semaines.",
+            "After acceptance of the firm quote, EPC contract signing and construction start within 8-12 weeks."
+          )}</p>
         </div>
       </div>`;
 
