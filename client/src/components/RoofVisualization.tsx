@@ -1907,77 +1907,25 @@ export function RoofVisualization({
     try {
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      const mapDiv = map?.getDiv();
-      const rect = mapDiv?.getBoundingClientRect();
-
-      // Ensure target has position context for absolute children
-      const prevPosition = target.style.position;
-      if (!target.style.position || target.style.position === 'static') {
-        target.style.position = 'relative';
-      }
-
-      // --- Swap live Google Maps tiles with a static satellite image ---
-      // html2canvas can't capture Google Maps tiles (CORS/WebGL restrictions → grey background).
-      // We fetch a Google Static Maps tile as a blob, convert to a same-origin data URL,
-      // and overlay it on the map div so html2canvas can capture it reliably.
-      let staticMapImg: HTMLImageElement | null = null;
-      if (map && mapDiv && rect) {
-        try {
-          const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-          const center = map.getCenter();
-          const zoom = map.getZoom();
-          if (apiKey && center && zoom) {
-            const lat = center.lat();
-            const lng = center.lng();
-            const imgW = Math.min(Math.round(rect.width), 640);
-            const imgH = Math.min(Math.round(rect.height), 640);
-            const staticUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=${zoom}&size=${imgW}x${imgH}&scale=2&maptype=satellite&key=${apiKey}`;
-
-            const blob = await fetch(staticUrl).then(r => r.blob());
-            const dataUrl = await new Promise<string>((resolve) => {
-              const reader = new FileReader();
-              reader.onloadend = () => resolve(reader.result as string);
-              reader.readAsDataURL(blob);
-            });
-
-            staticMapImg = document.createElement('img');
-            staticMapImg.src = dataUrl;
-            await new Promise<void>((resolve) => {
-              staticMapImg!.onload = () => resolve();
-              staticMapImg!.onerror = () => resolve();
-            });
-
-            staticMapImg.style.position = 'absolute';
-            staticMapImg.style.left = '0';
-            staticMapImg.style.top = '0';
-            staticMapImg.style.width = '100%';
-            staticMapImg.style.height = '100%';
-            staticMapImg.style.zIndex = '0';
-            staticMapImg.style.objectFit = 'cover';
-            mapDiv.style.position = 'relative';
-            mapDiv.appendChild(staticMapImg);
-          }
-        } catch (staticErr) {
-          console.warn('Static map swap failed (non-blocking, html2canvas will capture live map):', staticErr);
-        }
-      }
-      // --- End static map swap ---
-
       // --- Draw panel polygons as a DOM canvas overlay (html2canvas can't capture WebGL google.maps.Polygon) ---
       let panelOverlay: HTMLCanvasElement | null = null;
-      if (map && mapDiv && rect && panelPolygonsRef.current.length > 0) {
+      if (map && panelPolygonsRef.current.length > 0) {
         try {
+          const mapDiv = map.getDiv();
+          const rect = mapDiv.getBoundingClientRect();
+          const targetRect = target.getBoundingClientRect();
+
           panelOverlay = document.createElement('canvas');
           panelOverlay.width = rect.width * 2;
           panelOverlay.height = rect.height * 2;
           panelOverlay.style.position = 'absolute';
-          panelOverlay.style.left = '0';
-          panelOverlay.style.top = '0';
-          panelOverlay.style.width = '100%';
-          panelOverlay.style.height = '100%';
+          panelOverlay.style.left = `${rect.left - targetRect.left}px`;
+          panelOverlay.style.top = `${rect.top - targetRect.top}px`;
+          panelOverlay.style.width = `${rect.width}px`;
+          panelOverlay.style.height = `${rect.height}px`;
           panelOverlay.style.pointerEvents = 'none';
-          panelOverlay.style.zIndex = '2';
-          mapDiv.appendChild(panelOverlay);
+          panelOverlay.style.zIndex = '1';
+          target.appendChild(panelOverlay);
 
           const ctx = panelOverlay.getContext('2d');
           if (ctx) {
@@ -2079,18 +2027,6 @@ export function RoofVisualization({
         });
       });
 
-      // Hide the live Google Maps canvas/WebGL elements so html2canvas only sees the static image + panel overlay
-      const hiddenMapChildren: HTMLElement[] = [];
-      if (mapDiv && staticMapImg) {
-        Array.from(mapDiv.children).forEach(child => {
-          const el = child as HTMLElement;
-          if (el !== staticMapImg && el !== panelOverlay && el.style) {
-            hiddenMapChildren.push(el);
-            el.style.visibility = 'hidden';
-          }
-        });
-      }
-
       const prevOverflow = target.style.overflow;
       target.style.overflow = 'visible';
 
@@ -2103,15 +2039,10 @@ export function RoofVisualization({
       });
 
       target.style.overflow = prevOverflow;
-      target.style.position = prevPosition;
-      hiddenMapChildren.forEach(el => { el.style.visibility = ''; });
       hidden.forEach(el => { el.style.visibility = ''; });
 
       if (panelOverlay && panelOverlay.parentNode) {
         panelOverlay.parentNode.removeChild(panelOverlay);
-      }
-      if (staticMapImg && staticMapImg.parentNode) {
-        staticMapImg.parentNode.removeChild(staticMapImg);
       }
 
       const dataUrl = canvas.toDataURL('image/png');

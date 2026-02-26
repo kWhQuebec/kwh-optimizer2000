@@ -266,23 +266,31 @@ export async function prepareDocumentData(simulationId: string, storage: IStorag
     return { lat: centerLat, lng: centerLng, zoom };
   }
 
-  // Try to use the stored roof visualization (html2canvas capture with panels + satellite).
-  // This image includes individual solar panels drawn on the satellite background.
-  const storedImageUrl = (simulation.site as any).roofVisualizationImageUrl as string | null | undefined;
-  if (storedImageUrl && storedImageUrl.startsWith("data:image/")) {
+  // Primary method: Use Puppeteer to render Google Maps with panels server-side.
+  // Puppeteer is a real headless Chrome — renders Google Maps natively, no CORS issues.
+  if (simulation.site.latitude && simulation.site.longitude) {
     try {
-      const base64Part = storedImageUrl.split(",")[1];
-      if (base64Part) {
-        const buf = Buffer.from(base64Part, "base64");
-        if (buf.length >= MIN_VALID_IMAGE_SIZE) {
-          roofVisualizationBuffer = buf;
-          log.info(`Using stored roof visualization image (with panels): ${buf.length} bytes`);
-        } else {
-          log.warn(`Stored roof visualization too small (${buf.length} bytes) — falling back to Google Static Maps`);
-        }
+      const { captureRoofVisualization } = await import("./services/puppeteerMapCapture");
+      const center = computeSatelliteCenter(roofPolygonsRaw, simulation.site.latitude, simulation.site.longitude);
+      satelliteCenter = center;
+      log.info(`Attempting Puppeteer map capture: center=${center.lat.toFixed(6)},${center.lng.toFixed(6)} zoom=${center.zoom}, polygons=${roofPolygons.length}`);
+      const buf = await captureRoofVisualization({
+        latitude: center.lat,
+        longitude: center.lng,
+        roofPolygons,
+        pvSizeKW: simulation.pvSizeKW || 0,
+        zoom: center.zoom,
+        width: IMG_WIDTH,
+        height: IMG_HEIGHT,
+      });
+      if (buf && buf.length >= MIN_VALID_IMAGE_SIZE) {
+        roofVisualizationBuffer = buf;
+        log.info(`Puppeteer map capture successful: ${buf.length} bytes (satellite + panels)`);
+      } else {
+        log.warn(`Puppeteer capture returned ${buf?.length || 0} bytes — falling back to Google Static Maps`);
       }
-    } catch (e) {
-      log.warn("Failed to decode stored roof visualization — falling back to Google Static Maps");
+    } catch (captureErr) {
+      log.error("Puppeteer map capture failed — falling back to Google Static Maps:", captureErr);
     }
   }
 
