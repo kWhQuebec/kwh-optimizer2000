@@ -52,6 +52,7 @@ export async function captureRoofVisualization(params: CaptureParams): Promise<B
 
     await page.evaluateOnNewDocument((t: string) => {
       (window as any).__captureToken = t;
+      localStorage.setItem("kwh-cookie-consent", "accepted");
     }, token);
 
     page.on("console", (msg) => {
