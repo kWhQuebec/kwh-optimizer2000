@@ -85,6 +85,7 @@ router.get("/api/simulation-runs/:id/report-pdf", authMiddleware, asyncHandler(a
     ...optimizedSimulation,
     roofPolygons: docData.roofPolygons,
     roofVisualizationBuffer: docData.roofVisualizationBuffer,
+    isStoredVisualization: docData.isStoredVisualization,
     satelliteCenter: docData.satelliteCenter,
     catalogEquipment: docData.catalogEquipment,
     constructionTimeline: docData.constructionTimeline,
