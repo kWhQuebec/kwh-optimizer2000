@@ -146,6 +146,14 @@ export default function SiteDetailPage() {
 
   // Visualization capture function ref for PDF generation
   const visualizationCaptureRef = useRef<(() => Promise<string | null>) | null>(null);
+  const autoCaptureTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hasAutoCapturedRef = useRef(false);
+  const prevAutoCaptureIdRef = useRef(id);
+  if (id !== prevAutoCaptureIdRef.current) {
+    prevAutoCaptureIdRef.current = id;
+    hasAutoCapturedRef.current = false;
+    if (autoCaptureTimerRef.current) clearTimeout(autoCaptureTimerRef.current);
+  }
 
   // Lazy loading for full simulation data (heavy JSON columns: cashflows, breakdown, hourlyProfile, peakWeekData, sensitivity)
   const [fullSimulationRuns, setFullSimulationRuns] = useState<Map<string, SimulationRun>>(new Map());
@@ -455,6 +463,32 @@ export default function SiteDetailPage() {
       console.error("Failed to capture roof visualization:", e);
     }
   };
+
+  const scheduleAutoCapture = useCallback(() => {
+    if (autoCaptureTimerRef.current) clearTimeout(autoCaptureTimerRef.current);
+    autoCaptureTimerRef.current = setTimeout(async () => {
+      if (!visualizationCaptureRef.current || !site || hasAutoCapturedRef.current) return;
+      hasAutoCapturedRef.current = true;
+      try {
+        const imageData = await visualizationCaptureRef.current();
+        if (imageData) {
+          const tkn = localStorage.getItem("token");
+          await fetch(`/api/sites/${site.id}/save-visualization`, {
+            method: "POST",
+            credentials: "include",
+            headers: {
+              "Content-Type": "application/json",
+              ...(tkn ? { Authorization: `Bearer ${tkn}` } : {})
+            },
+            body: JSON.stringify({ imageDataUrl: imageData }),
+          });
+          console.log("Auto-captured roof visualization for PDF");
+        }
+      } catch (e) {
+        console.warn("Auto-capture failed (non-critical):", e);
+      }
+    }, 3000);
+  }, [site]);
 
 
   // Mutation to save roof polygons
@@ -1977,7 +2011,7 @@ export default function SiteDetailPage() {
                   }
                 }
               }}
-              onVisualizationReady={(captureFunc) => { visualizationCaptureRef.current = captureFunc; }}
+              onVisualizationReady={(captureFunc) => { visualizationCaptureRef.current = captureFunc; scheduleAutoCapture(); }}
             />
           )}
 
@@ -2379,7 +2413,7 @@ export default function SiteDetailPage() {
                 onOpenRoofDrawing={() => setIsRoofDrawingModalOpen(true)}
                 onCompareScenarios={(site.simulationRuns?.length ?? 0) > 1 ? () => setActiveTab("compare") : undefined}
                 onGeometryUpdate={(data) => setGeometryCapacity(data)}
-                onVisualizationCaptureReady={(captureFunc) => { visualizationCaptureRef.current = captureFunc; }}
+                onVisualizationCaptureReady={(captureFunc) => { visualizationCaptureRef.current = captureFunc; scheduleAutoCapture(); }}
               />
               {isStaff && latestSimulation && (
                 <Collapsible>

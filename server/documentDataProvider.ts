@@ -266,10 +266,29 @@ export async function prepareDocumentData(simulationId: string, storage: IStorag
     return { lat: centerLat, lng: centerLng, zoom };
   }
 
-  // Fetch satellite image with polygon outlines baked in via Google Static Maps API.
-  // This matches the approach used by projectInfoSheetPdf.ts — polygon zones are drawn
-  // directly by Google's API so they always appear reliably (no CORS issues like html2canvas).
-  if (simulation.site.latitude && simulation.site.longitude) {
+  // Try to use the stored roof visualization (html2canvas capture with panels + satellite).
+  // This image includes individual solar panels drawn on the satellite background.
+  const storedImageUrl = (simulation.site as any).roofVisualizationImageUrl as string | null | undefined;
+  if (storedImageUrl && storedImageUrl.startsWith("data:image/")) {
+    try {
+      const base64Part = storedImageUrl.split(",")[1];
+      if (base64Part) {
+        const buf = Buffer.from(base64Part, "base64");
+        if (buf.length >= MIN_VALID_IMAGE_SIZE) {
+          roofVisualizationBuffer = buf;
+          log.info(`Using stored roof visualization image (with panels): ${buf.length} bytes`);
+        } else {
+          log.warn(`Stored roof visualization too small (${buf.length} bytes) — falling back to Google Static Maps`);
+        }
+      }
+    } catch (e) {
+      log.warn("Failed to decode stored roof visualization — falling back to Google Static Maps");
+    }
+  }
+
+  // Fallback: fetch satellite image with polygon outlines from Google Static Maps API.
+  // This shows zone outlines but not individual panels.
+  if (!roofVisualizationBuffer && simulation.site.latitude && simulation.site.longitude) {
     const center = computeSatelliteCenter(roofPolygonsRaw, simulation.site.latitude, simulation.site.longitude);
     satelliteCenter = center;
     log.info(`Fetching satellite image with polygons: center=${center.lat.toFixed(6)},${center.lng.toFixed(6)} zoom=${center.zoom}, polygons=${roofPolygons.length}`);
