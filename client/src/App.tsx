@@ -206,6 +206,27 @@ function AppLayout({ children }: { children: React.ReactNode }) {
   );
 }
 
+function RouteRestorer() {
+  const [location, setLocation] = useLocation();
+  const { isAuthenticated } = useAuth();
+
+  useEffect(() => {
+    if (isAuthenticated && location.startsWith('/app')) {
+      sessionStorage.setItem('kwh_last_route', location);
+    }
+  }, [location, isAuthenticated]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const saved = sessionStorage.getItem('kwh_last_route');
+    if (saved && saved !== location && saved.startsWith('/app') && (location === '/app/dashboard' || location === '/app/sites' || location === '/')) {
+      setLocation(saved);
+    }
+  }, [isAuthenticated]);
+
+  return null;
+}
+
 // Scroll to top on route changes for public pages only
 // Also handles hash-based anchor navigation for SPAs
 function ScrollToTop() {
@@ -805,6 +826,7 @@ function App() {
         <AuthProvider>
           <TooltipProvider>
             <ScrollToTop />
+            <RouteRestorer />
             <CookieConsent onAccept={initAnalytics} />
             <HQJobNotifier />
             <Toaster />
