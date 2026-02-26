@@ -21,6 +21,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
 import { useI18n } from "@/lib/i18n";
+import { useAuth } from "@/lib/auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Client, Site } from "@shared/schema";
 import { GrantPortalAccessDialog, type ClientWithSites } from "@/components/grant-portal-access-dialog";
@@ -282,12 +283,16 @@ function ClientForm({
   onCancel: () => void; 
   isLoading: boolean;
 }) {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
+  const { user } = useAuth();
   
   const [addressOpen, setAddressOpen] = useState(
     !!(client?.address || client?.city || client?.province || client?.postalCode)
   );
-  const { language } = useI18n();
+
+  const { data: staffMembers = [] } = useQuery<{ id: string; name: string | null; email: string }[]>({
+    queryKey: ['/api/users/staff'],
+  });
   
   const form = useForm<ClientFormValues>({
     resolver: zodResolver(clientFormSchema),
@@ -301,7 +306,7 @@ function ClientForm({
       province: client?.province || "QC",
       postalCode: client?.postalCode || "",
       notes: client?.notes || "",
-      accountManagerEmail: client?.accountManagerEmail || "info@kwh.quebec",
+      accountManagerEmail: client?.accountManagerEmail || user?.email || "info@kwh.quebec",
     },
   });
 
@@ -370,9 +375,23 @@ function ClientForm({
           render={({ field }) => (
             <FormItem>
               <FormLabel>{language === "fr" ? "Responsable du compte" : "Account Manager"}</FormLabel>
-              <FormControl>
-                <Input type="email" {...field} placeholder="info@kwh.quebec" data-testid="input-client-account-manager" />
-              </FormControl>
+              <Select onValueChange={field.onChange} value={field.value || ""}>
+                <FormControl>
+                  <SelectTrigger data-testid="input-client-account-manager">
+                    <SelectValue placeholder={language === "fr" ? "Sélectionner..." : "Select..."} />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {staffMembers.map((staff) => (
+                    <SelectItem key={staff.id} value={staff.email}>
+                      {staff.name || staff.email}
+                    </SelectItem>
+                  ))}
+                  {staffMembers.length === 0 && (
+                    <SelectItem value="info@kwh.quebec">info@kwh.quebec</SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
               <FormMessage />
             </FormItem>
           )}

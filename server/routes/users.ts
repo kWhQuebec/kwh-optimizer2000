@@ -11,6 +11,14 @@ import { createLogger } from "../lib/logger";
 const log = createLogger("Users");
 const router = Router();
 
+router.get("/api/users/staff", authMiddleware, requireStaff, asyncHandler(async (req: AuthRequest, res) => {
+  const users = await storage.getUsers();
+  const staffUsers = users
+    .filter(u => (u.role === "admin" || u.role === "analyst") && u.status !== "inactive")
+    .map(({ id, name, email }) => ({ id, name, email }));
+  res.json(staffUsers);
+}));
+
 // List all users (admin only)
 router.get("/api/users", authMiddleware, requireStaff, asyncHandler(async (req: AuthRequest, res) => {
   // Only admins can list all users
