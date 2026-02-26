@@ -885,7 +885,7 @@ function KPIResultsSlide({ simulation, language }: { simulation: SimulationRun |
   const kpis = [
     {
       icon: DollarSign,
-      label: language === 'fr' ? 'Économies an 1' : 'Year 1 Savings',
+      label: language === 'fr' ? "Économies d'énergie an 1" : 'Year 1 Energy Savings',
       value: simulation?.savingsYear1 ? sharedFormatSmartCurrency(simulation.savingsYear1, language) : '--',
       highlight: false
     },
@@ -988,7 +988,7 @@ function KPIResultsSlide({ simulation, language }: { simulation: SimulationRun |
           style={{ border: '1px solid #E5E7EB', backgroundColor: '#F9FAFB' }}
         >
           <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-1 text-sm" style={{ color: '#6B7280' }}>
-            <span>LCOE: <span className="font-semibold" style={{ color: '#1F2937' }}>{lcoe} ¢/kWh</span></span>
+            <span>{language === 'fr' ? 'CLÉE (indicatif)' : 'LCOE (indicative)'}: <span className="font-semibold" style={{ color: '#1F2937' }}>{lcoe} ¢/kWh</span></span>
             <span style={{ color: '#D1D5DB' }}>|</span>
             <span>CO&#8322;: <span className="font-semibold" style={{ color: '#1F2937' }}>{co2Tonnes.toFixed(1)} t/{language === 'fr' ? 'an' : 'yr'}</span></span>
             <span style={{ color: '#D1D5DB' }}>|</span>
@@ -1027,6 +1027,14 @@ function KPIResultsSlide({ simulation, language }: { simulation: SimulationRun |
               </div>
             </div>
           </div>
+        )}
+
+        {co2Tonnes > 0 && (
+          <p className="text-xs text-center mt-2" style={{ color: '#9CA3AF' }}>
+            {language === 'fr'
+              ? "Facteur d'émission : 2 g CO₂e/kWh (Env. Canada). Le réseau du Québec est parmi les plus propres au monde (hydroélectricité >94%). La valeur principale du solaire est économique et de résilience énergétique."
+              : "Emission factor: 2 g CO₂e/kWh (Environment Canada). Québec's grid is among the cleanest in the world (hydroelectricity >94%). The primary value of solar is economic and energy resilience."}
+          </p>
         )}
 
         {/* Collapsible Assumptions Section */}
@@ -2009,7 +2017,7 @@ function SystemElementsSlide({ simulation, language }: { simulation: SimulationR
   return (
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] px-6 md:px-8">
       <div className="max-w-6xl w-full">
-        <SlideTitle>{t("Système et équipement", "System & Equipment")}</SlideTitle>
+        <SlideTitle>{t("Composantes du système et standards de conception", "System Components & Design Standards")}</SlideTitle>
 
         {/* Flow diagram */}
         <div className="flex items-center justify-center gap-2 md:gap-3 flex-wrap mb-6">
@@ -2026,50 +2034,60 @@ function SystemElementsSlide({ simulation, language }: { simulation: SimulationR
           ))}
         </div>
 
-        {/* Component table with warranty + certifications */}
-        <div className="overflow-x-auto mb-5">
-          <table className="w-full text-sm">
-            <thead>
-              <tr style={{ backgroundColor: BRAND_COLORS.primaryBlue }}>
-                <th className="text-left text-white font-semibold px-3 py-2 rounded-tl-lg">{t("Composant", "Component")}</th>
-                <th className="text-left text-white font-semibold px-3 py-2">{t("Fabricant", "Manufacturer")}</th>
-                <th className="text-left text-white font-semibold px-3 py-2">{t("Spécification", "Specification")}</th>
-                <th className="text-left text-white font-semibold px-3 py-2">{t("Garantie", "Warranty")}</th>
-                <th className="text-left text-white font-semibold px-3 py-2 rounded-tr-lg">{t("Certifications", "Certifications")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {equipment.map((eq, i) => (
-                <tr key={i} className={i % 2 === 0 ? 'bg-gray-50' : ''}>
-                  <td className="px-3 py-2 font-medium">{eq.label}</td>
-                  <td className="px-3 py-2 text-gray-600">{eq.manufacturer}</td>
-                  <td className="px-3 py-2 text-gray-600 text-xs">{eq.specs || "—"}</td>
-                  <td className="px-3 py-2 font-bold" style={{ color: BRAND_COLORS.primaryBlue }}>{eq.warranty}</td>
-                  <td className="px-3 py-2">
-                    {eq.certifications && eq.certifications.length > 0 ? (
-                      <div className="flex flex-wrap gap-1">
-                        {eq.certifications.map((cert: string, ci: number) => (
-                          <span key={ci} className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(0,61,166,0.08)', color: BRAND_COLORS.primaryBlue }}>
-                            {cert}
-                          </span>
-                        ))}
-                      </div>
-                    ) : "—"}
-                  </td>
-                </tr>
-              ))}
-              {battEq && (
-                <tr className={equipment.length % 2 === 0 ? 'bg-gray-50' : ''}>
-                  <td className="px-3 py-2 font-medium">{battEq.label}</td>
-                  <td className="px-3 py-2 text-gray-600">{battEq.manufacturer}</td>
-                  <td className="px-3 py-2 text-gray-600 text-xs">{battEq.specs || "—"}</td>
-                  <td className="px-3 py-2 font-bold" style={{ color: BRAND_COLORS.primaryBlue }}>{battEq.warranty}</td>
-                  <td className="px-3 py-2">—</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+        {/* Design Standards Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+          {[
+            {
+              title: t("Modules solaires", "Solar Modules"),
+              standard: t("Tier 1, monocristallin haute efficacité, certifié IEC/UL, garantie 25 ans", "Tier 1, high-efficiency monocrystalline, IEC/UL certified, 25-year warranty"),
+              ref: equipment[0] ? `${equipment[0].manufacturer} — ${equipment[0].specs || ''}` : '',
+              warranty: equipment[0]?.warranty || '',
+            },
+            {
+              title: t("Onduleurs", "Inverters"),
+              standard: t("Architecture commerciale, optimisée pour la géométrie du site et l'ombrage", "Commercial architecture, optimized for site geometry and shading"),
+              ref: equipment[1] ? `${equipment[1].manufacturer} — ${equipment[1].specs || ''}` : '',
+              warranty: equipment[1]?.warranty || '',
+            },
+            {
+              title: t("Structure de montage", "Racking System"),
+              standard: t("Ingénierie pour charges neige/vent locales, compatible garantie toiture", "Engineered for local snow/wind loads, roof warranty compatible"),
+              ref: equipment[2] ? `${equipment[2].manufacturer}` : '',
+              warranty: equipment[2]?.warranty || '',
+            },
+            ...(hasBattery && battEq ? [{
+              title: t("Stockage d'énergie", "Energy Storage"),
+              standard: t("Système BESS commercial, écrêtage de pointe et résilience", "Commercial BESS system, peak shaving and resilience"),
+              ref: `${battEq.manufacturer} — ${battEq.specs || ''}`,
+              warranty: battEq.warranty || '',
+            }] : []),
+            {
+              title: t("Surveillance", "Monitoring"),
+              standard: t("Suivi temps réel avec alertes et rapports de performance", "Real-time monitoring with alerting and performance reporting"),
+              ref: equipment[3] ? `${equipment[3].manufacturer}` : '',
+              warranty: equipment[3]?.warranty || '',
+            },
+          ].map((item, i) => (
+            <div key={i} className="rounded-xl p-4" style={{ border: '1px solid #E5E7EB', backgroundColor: '#FAFAFA' }}>
+              <p className="font-bold text-sm mb-1" style={{ color: BRAND_COLORS.primaryBlue }}>{item.title}</p>
+              <p className="text-xs mb-2" style={{ color: '#4B5563' }}>{item.standard}</p>
+              <div className="flex flex-wrap items-center gap-2">
+                {item.ref && <span className="text-[10px]" style={{ color: '#9CA3AF' }}>{item.ref}</span>}
+                {item.warranty && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(0,61,166,0.08)', color: BRAND_COLORS.primaryBlue }}>
+                    {item.warranty}
+                  </span>
+                )}
+              </div>
+            </div>
+          ))}
         </div>
+        <p className="text-[10px] text-center mb-5" style={{ color: '#9CA3AF' }}>
+          {t(
+            "Les fabricants et modèles finaux sont confirmés lors de la Validation de conception selon les contraintes du site, la disponibilité et les exigences d'interconnexion.",
+            "Final manufacturers and models are confirmed during Design Validation based on site constraints, availability, and interconnection requirements."
+          )}
+        </p>
 
         {/* Operating modes + Structural data side by side */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">

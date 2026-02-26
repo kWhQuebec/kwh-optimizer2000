@@ -545,7 +545,7 @@ export default function ClientPortalPage({ previewClientId }: { previewClientId?
                             {latestRun.savingsYear1 != null && (
                               <div>
                                 <div className="text-muted-foreground text-xs">
-                                  {language === "fr" ? "Économies an 1" : "Year 1 Savings"}
+                                  {language === "fr" ? "Économies d'énergie an 1" : "Year 1 Energy Savings"}
                                 </div>
                                 <div className="font-medium text-green-600" data-testid={`kpi-savings-${site.id}`}>
                                   {formatCurrency(latestRun.savingsYear1)}

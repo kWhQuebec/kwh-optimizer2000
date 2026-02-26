@@ -768,7 +768,7 @@ function buildNetInvestmentPage(
         <tr><td><span style="color: #3B82F6; margin-right: 4px;">&#9679;</span>${t("Cr&eacute;dit d'imp&ocirc;t &agrave; l'investissement f&eacute;d&eacute;ral (ITC)", "Federal Investment Tax Credit (ITC)")}</td><td class="number" style="color: #3B82F6;">-${cur(sim.incentivesFederal)}</td></tr>
         <tr><td><span style="color: #FFB005; margin-right: 4px;">&#9679;</span>${t("Incitatif Hydro-Qu&eacute;bec autoproduction", "Hydro-Qu&eacute;bec Self-Production Incentive")}${sim.incentivesHQSolar > 0 && sim.incentivesHQBattery > 0 ? ` (${t("Solaire", "Solar")}: ${cur(sim.incentivesHQSolar)}, ${t("Batterie", "Battery")}: ${cur(sim.incentivesHQBattery)})` : ""}</td><td class="number" style="color: #FFB005;">-${cur(sim.incentivesHQ)}</td></tr>
         ${sim.taxShield > 0 ? `<tr><td><span style="color: #3B82F6; margin-right: 4px;">&#9679;</span>${t("Bouclier fiscal (amortissement acc&eacute;l&eacute;r&eacute;)", "Tax shield (accelerated depreciation)")}</td><td class="number" style="color: #3B82F6;">-${cur(sim.taxShield)}</td></tr>` : ""}
-        <tr class="total-row"><td><span style="color: #003DA6; margin-right: 4px;">&#9679;</span><strong>${t("INVESTISSEMENT NET", "NET INVESTMENT")}</strong></td><td class="number" style="color: #003DA6;"><strong>${cur(sim.capexNet)}</strong></td></tr>
+        <tr class="total-row"><td><span style="color: white; margin-right: 4px;">&#9679;</span><strong>${t("INVESTISSEMENT NET", "NET INVESTMENT")}</strong></td><td class="number"><strong>${cur(sim.capexNet)}</strong></td></tr>
       </table>
     </div>
     <div class="info-box" style="background: #FFF8E1; border-left: 4px solid var(--accent); border-radius: 0;">

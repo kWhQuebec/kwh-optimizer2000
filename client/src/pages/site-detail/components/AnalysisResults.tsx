@@ -526,7 +526,7 @@ export function AnalysisResults({
             <div className="flex flex-wrap gap-4">
               <div className="text-center">
                 <p className="text-2xl font-bold font-mono text-primary">{formatSmartCurrency(dashboardAnnualSavings || 0, language)}</p>
-                <p className="text-xs text-muted-foreground">{language === "fr" ? "économies/an" : "savings/yr"}</p>
+                <p className="text-xs text-muted-foreground">{language === "fr" ? "économies d'énergie/an" : "energy savings/yr"}</p>
               </div>
               <div className="text-center">
                 <p className="text-2xl font-bold font-mono">{(dashboardPaybackYears || 0).toFixed(1)} {language === "fr" ? "ans" : "yrs"}</p>
@@ -804,7 +804,7 @@ export function AnalysisResults({
             <div className="flex items-center gap-2 mb-2">
               <DollarSign className="w-4 h-4 text-amber-500" />
               <p className="text-xs text-muted-foreground uppercase tracking-wide">
-                {language === "fr" ? "Économies annuelles" : "Annual Savings"}
+                {language === "fr" ? "Économies d'énergie annuelles" : "Annual Energy Savings"}
               </p>
             </div>
             <div>
@@ -883,7 +883,7 @@ export function AnalysisResults({
           <p className="text-lg font-bold font-mono" data-testid="text-payback">{(dashboardPaybackYears || 0).toFixed(1)} {language === "fr" ? "ans" : "yrs"}</p>
         </div>
         <div className="p-3 bg-muted/30 rounded-lg border">
-          <p className="text-xs text-muted-foreground">LCOE</p>
+          <p className="text-xs text-muted-foreground">{language === "fr" ? "CLÉE (indicatif)" : "LCOE (indicative)"}</p>
           <p className="text-lg font-bold font-mono" data-testid="text-lcoe">${(displayedScenario.scenarioBreakdown?.lcoe || simulation.lcoe || 0).toFixed(3)}/kWh</p>
         </div>
         <div className="p-3 bg-muted/30 rounded-lg border">
@@ -934,6 +934,13 @@ export function AnalysisResults({
               </div>
             </div>
           </div>
+          {dashboardCo2Tonnes > 0 && (
+            <p className="text-xs text-muted-foreground mt-3">
+              {language === "fr"
+                ? "Facteur d'émission : 2 g CO₂e/kWh (Env. Canada). Le réseau du Québec est parmi les plus propres au monde (hydroélectricité >94%). La valeur principale du solaire est économique et de résilience énergétique."
+                : "Emission factor: 2 g CO₂e/kWh (Environment Canada). Québec's grid is among the cleanest in the world (hydroelectricity >94%). The primary value of solar is economic and energy resilience."}
+            </p>
+          )}
         </CardContent>
       </Card>
 
@@ -1967,7 +1974,7 @@ export function AnalysisResults({
                         <p className="text-lg font-bold font-mono">{(displayedScenario.selfSufficiencyPercent || 0).toFixed(1)}%</p>
                       </div>
                       <div>
-                        <p className="text-xs text-muted-foreground">LCOE</p>
+                        <p className="text-xs text-muted-foreground">{language === "fr" ? "CLÉE (indicatif)" : "LCOE (indicative)"}</p>
                         <p className="text-lg font-bold font-mono">${(displayedScenario.scenarioBreakdown?.lcoe || simulation.lcoe || 0).toFixed(3)}/kWh</p>
                       </div>
                       <div>

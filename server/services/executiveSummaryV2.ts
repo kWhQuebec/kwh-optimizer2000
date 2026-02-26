@@ -196,7 +196,7 @@ ${getStyles()}
     </div>
     <div class="metric-card metric-accent">
       <span class="metric-value">${smartCur(simulation.savingsYear1)}</span>
-      <span class="metric-label">${t("&Eacute;CONOMIES AN 1", "SAVINGS YR 1")}</span>
+      <span class="metric-label">${t("&Eacute;CON. &Eacute;NERGIE AN 1", "ENERGY SAVINGS YR 1")}</span>
     </div>
     <div class="metric-card metric-accent">
       <span class="metric-value">${smartCur(simulation.npv25)}</span>
@@ -223,7 +223,7 @@ ${getStyles()}
       <tr>
         <td>${t("Investissement net", "Net investment")}</td>
         <td class="number">${smartCur(simulation.capexNet)}</td>
-        <td>LCOE</td>
+        <td>${t("CL&Eacute;&Eacute; (indicatif)", "LCOE (indicative)")}</td>
         <td class="number">${simulation.lcoe.toFixed(2)} &cent;/kWh</td>
       </tr>
       <tr>
@@ -269,6 +269,10 @@ ${getStyles()}
       <span class="metric-label">${t("tonnes CO&#8322; sur 25 ans", "tonnes CO&#8322; over 25 yrs")}</span>
     </div>
   </div>
+  <p style="font-size: 7pt; color: #9CA3AF; margin: 1mm 0 3mm 0; text-align: center;">${t(
+    "Facteur d'&eacute;mission : 2 g CO&#8322;e/kWh (Env. Canada). Le r&eacute;seau du Qu&eacute;bec est parmi les plus propres au monde (hydro&eacute;lectricit&eacute; &gt;94%).",
+    "Emission factor: 2 g CO&#8322;e/kWh (Env. Canada). Qu&eacute;bec's grid is among the cleanest in the world (hydroelectricity &gt;94%)."
+  )}</p>
 
   <!-- FIT SCORE -->
   <h3>${t("POTENTIEL SOLAIRE", "SOLAR POTENTIAL")}</h3>
