@@ -1234,8 +1234,7 @@ export function RoofVisualization({
       setRecommendedMarkerLeft(null);
       return;
     }
-    const snapped = Math.round(currentPVSizeKW / 10) * 10;
-    const clamped = Math.max(minCapacity, Math.min(maxCapacity, snapped));
+    const clamped = Math.max(minCapacity, Math.min(maxCapacity, currentPVSizeKW));
     if (clamped <= minCapacity || clamped >= maxCapacity) {
       setRecommendedMarkerLeft(null);
       return;
