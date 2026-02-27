@@ -558,7 +558,7 @@ function buildProjectSnapshotPage(
   ` : "";
 
   const satelliteHtml = roofImageBase64
-    ? `<div style="position: relative; width: 100%; height: 75mm; border-radius: 2mm; overflow: hidden;">
+    ? `<div style="position: relative; width: 100%; height: 75mm; overflow: hidden;">
         <img src="${roofImageBase64}" style="width: 100%; height: 100%; object-fit: cover;" />
         ${legendHtml}
         ${badgesHtml}
@@ -613,7 +613,7 @@ function buildProjectSnapshotPage(
         </div>
       </div>
     </div>
-    <div class="chart-container" style="padding: 0; overflow: hidden; background: transparent; border-radius: 0; margin-left: -20mm; margin-right: -20mm; width: calc(100% + 40mm);">
+    <div style="position: relative; left: -20mm; width: 210mm; padding: 0; overflow: hidden;">
       <div class="chart-title" style="padding: 2mm 20mm 2mm 20mm;">${t("Image satellite du site", "Site Satellite Image")}</div>
       ${satelliteHtml}
     </div>
