@@ -520,6 +520,11 @@ interface SyntheticProfileGeneratorProps {
   roofAreaSqM?: number | null;
   buildingType?: string | null;
   clientWebsite?: string | null;
+  existingSyntheticParams?: {
+    buildingSubType?: string;
+    operatingSchedule?: string;
+    annualConsumptionKWh?: number;
+  } | null;
   onGenerated: () => void;
 }
 
@@ -530,21 +535,27 @@ function deriveSchedule(key: string): string {
   return "standard";
 }
 
-export function SyntheticProfileGenerator({ siteId, buildingSqFt, roofAreaSqM, buildingType, clientWebsite, onGenerated }: SyntheticProfileGeneratorProps) {
+export function SyntheticProfileGenerator({ siteId, buildingSqFt, roofAreaSqM, buildingType, clientWebsite, existingSyntheticParams, onGenerated }: SyntheticProfileGeneratorProps) {
   const { language } = useI18n();
   const { toast } = useToast();
   const labels = language === "fr" ? BUILDING_SUB_LABELS.fr : BUILDING_SUB_LABELS.en;
   const schedLabels = language === "fr" ? SCHEDULE_LABELS.fr : SCHEDULE_LABELS.en;
 
-  const resolvedType = resolveBuildingTypeKey(buildingType || "");
+  const resolvedType = existingSyntheticParams?.buildingSubType
+    ? resolveBuildingTypeKey(existingSyntheticParams.buildingSubType)
+    : resolveBuildingTypeKey(buildingType || "");
   const [buildingSubType, setBuildingSubType] = useState<string>(resolvedType);
-  const [operatingSchedule, setOperatingSchedule] = useState<string>(deriveSchedule(resolvedType));
-  const [inputMode, setInputMode] = useState<string>("bill");
+  const [operatingSchedule, setOperatingSchedule] = useState<string>(
+    existingSyntheticParams?.operatingSchedule || deriveSchedule(resolvedType)
+  );
+  const [inputMode, setInputMode] = useState<string>(
+    existingSyntheticParams?.annualConsumptionKWh ? "direct" : "bill"
+  );
   const [billAmount, setBillAmount] = useState<number>(5000);
   const [billingPeriod, setBillingPeriod] = useState<number>(1);
   const [tariffCode, setTariffCode] = useState<string>("M");
   const [sqFt, setSqFt] = useState<number>(buildingSqFt || Math.round((roofAreaSqM || 0) * 10.764));
-  const [directKWh, setDirectKWh] = useState<number>(0);
+  const [directKWh, setDirectKWh] = useState<number>(existingSyntheticParams?.annualConsumptionKWh || 0);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isAnalyzingWeb, setIsAnalyzingWeb] = useState(false);
 
@@ -646,13 +657,19 @@ export function SyntheticProfileGenerator({ siteId, buildingSqFt, roofAreaSqM, b
         <div className="flex items-center gap-2">
           <Zap className="h-5 w-5 text-amber-600" />
           <CardTitle className="text-lg">
-            {language === "fr" ? "Générer un profil synthétique" : "Generate Synthetic Profile"}
+            {existingSyntheticParams
+              ? (language === "fr" ? "Modifier le profil synthétique" : "Edit Synthetic Profile")
+              : (language === "fr" ? "Générer un profil synthétique" : "Generate Synthetic Profile")}
           </CardTitle>
         </div>
         <CardDescription>
-          {language === "fr"
-            ? "Créez un profil de consommation horaire estimé (8760 points) pour débloquer l'analyse complète"
-            : "Create an estimated hourly consumption profile (8760 points) to unlock the full analysis"}
+          {existingSyntheticParams
+            ? (language === "fr"
+              ? "Ajustez les paramètres et régénérez le profil de consommation horaire (8760 points)"
+              : "Adjust parameters and regenerate the hourly consumption profile (8760 points)")
+            : (language === "fr"
+              ? "Créez un profil de consommation horaire estimé (8760 points) pour débloquer l'analyse complète"
+              : "Create an estimated hourly consumption profile (8760 points) to unlock the full analysis")}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -840,8 +857,8 @@ export function SyntheticProfileGenerator({ siteId, buildingSqFt, roofAreaSqM, b
             <BarChart3 className="h-4 w-4" />
           )}
           {language === "fr"
-            ? isGenerating ? "Génération en cours..." : "Générer le profil (8760 points)"
-            : isGenerating ? "Generating..." : "Generate profile (8760 points)"}
+            ? isGenerating ? "Génération en cours..." : existingSyntheticParams ? "Régénérer le profil (8760 points)" : "Générer le profil (8760 points)"
+            : isGenerating ? "Generating..." : existingSyntheticParams ? "Regenerate profile (8760 points)" : "Generate profile (8760 points)"}
         </Button>
       </CardContent>
     </Card>

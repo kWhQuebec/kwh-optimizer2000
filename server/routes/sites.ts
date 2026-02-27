@@ -1611,6 +1611,12 @@ router.post("/:siteId/generate-synthetic-profile", authMiddleware, requireStaff,
     throw new BadRequestError("Invalid parameters: " + parsed.error.message);
   }
 
+  const existingSyntheticFiles = (site.meterFiles || []).filter((f: any) => f.isSynthetic);
+  for (const sf of existingSyntheticFiles) {
+    log.info(`Deleting existing synthetic meter file ${sf.id} before regeneration`);
+    await storage.deleteMeterFile(sf.id);
+  }
+
   const { buildingSubType, operatingSchedule, monthlyBill, tariffCode, buildingSqFt } = parsed.data;
 
   // Determine annual consumption: direct value > bill estimate > area estimate > fallback

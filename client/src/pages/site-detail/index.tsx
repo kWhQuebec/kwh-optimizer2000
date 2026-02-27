@@ -114,6 +114,7 @@ export default function SiteDetailPage() {
   const [pendingModalOpen, setPendingModalOpen] = useState(false);
   const [optimizationTarget, setOptimizationTarget] = useState<'npv' | 'irr' | 'selfSufficiency'>('npv');
   const [syntheticBannerDismissed, setSyntheticBannerDismissed] = useState(false);
+  const [editingSyntheticProfile, setEditingSyntheticProfile] = useState(false);
   const [isTransitioningSimulation, setIsTransitioningSimulation] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -2011,18 +2012,30 @@ export default function SiteDetailPage() {
                 </p>
                 <p className="text-sm text-amber-700 dark:text-amber-400">
                   {language === "fr"
-                    ? "Ce site utilise un profil de consommation synthétique à des fins de démonstration. Les résultats d'analyse sont indicatifs et ne reflètent pas la consommation réelle du bâtiment."
-                    : "This site uses a synthetic consumption profile for demonstration purposes. Analysis results are indicative and do not reflect actual building consumption."}
+                    ? "Ce site utilise un profil de consommation synthétique. Les résultats sont indicatifs."
+                    : "This site uses a synthetic consumption profile. Results are indicative."}
                 </p>
               </div>
-              <button
-                onClick={() => setSyntheticBannerDismissed(true)}
-                className="shrink-0 p-0.5 rounded hover-elevate text-amber-600 dark:text-amber-400"
-                data-testid="button-dismiss-synthetic-banner"
-                aria-label="Dismiss"
-              >
-                <X className="h-4 w-4" />
-              </button>
+              <div className="flex items-center gap-2 shrink-0">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setEditingSyntheticProfile(true)}
+                  className="gap-1 border-amber-400 text-amber-700 dark:text-amber-300 dark:border-amber-600"
+                  data-testid="button-edit-synthetic-profile"
+                >
+                  <Pencil className="w-3 h-3" />
+                  {language === "fr" ? "Modifier" : "Edit"}
+                </Button>
+                <button
+                  onClick={() => setSyntheticBannerDismissed(true)}
+                  className="shrink-0 p-0.5 rounded hover-elevate text-amber-600 dark:text-amber-400"
+                  data-testid="button-dismiss-synthetic-banner"
+                  aria-label="Dismiss"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
             </div>
           )}
           {(site.meterFiles?.length ?? 0) > 0 && !site.roofAreaValidated && isStaff && (
@@ -2138,16 +2151,24 @@ export default function SiteDetailPage() {
             />
           )}
 
-          {isStaff && (!site.meterFiles || site.meterFiles.length === 0) && (
-            <SyntheticProfileGenerator
-              siteId={site.id}
-              buildingSqFt={site.buildingSqFt}
-              roofAreaSqM={site.roofAreaSqM}
-              buildingType={site.buildingType}
-              clientWebsite={(site as any).client?.website}
-              onGenerated={() => refetch()}
-            />
-          )}
+          {isStaff && ((!site.meterFiles || site.meterFiles.length === 0) || editingSyntheticProfile) && (() => {
+            const syntheticFile = site.meterFiles?.find((f: any) => f.isSynthetic);
+            const existingParams = syntheticFile ? (syntheticFile as any).syntheticParams : null;
+            return (
+              <SyntheticProfileGenerator
+                siteId={site.id}
+                buildingSqFt={site.buildingSqFt}
+                roofAreaSqM={site.roofAreaSqM}
+                buildingType={site.buildingType}
+                clientWebsite={(site as any).client?.website}
+                existingSyntheticParams={existingParams}
+                onGenerated={() => {
+                  setEditingSyntheticProfile(false);
+                  refetch();
+                }}
+              />
+            );
+          })()}
 
           {isStaff && site.meterFiles && site.meterFiles.length > 0 && latestSimulation && (() => {
             const hourlyProfile = latestSimulation.hourlyProfile as Array<{hour: number; month: number; consumption: number}> | null;

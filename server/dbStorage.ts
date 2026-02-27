@@ -121,6 +121,7 @@ export class DatabaseStorage implements IStorage {
   getMeterFile = siteRepo.getMeterFile;
   createMeterFile = siteRepo.createMeterFile;
   updateMeterFile = siteRepo.updateMeterFile;
+  deleteMeterFile = siteRepo.deleteMeterFile;
   getMeterReadings = siteRepo.getMeterReadings;
   getMeterReadingsBySite = siteRepo.getMeterReadingsBySite;
   getMeterReadingsByMeter = siteRepo.getMeterReadingsByMeter;

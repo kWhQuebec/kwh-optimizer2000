@@ -402,6 +402,11 @@ export async function updateMeterFile(id: string, file: Partial<MeterFile>): Pro
   return result;
 }
 
+export async function deleteMeterFile(id: string): Promise<void> {
+  await db.delete(meterReadings).where(eq(meterReadings.meterFileId, id));
+  await db.delete(meterFiles).where(eq(meterFiles.id, id));
+}
+
 // ==================== METER READINGS ====================
 
 export async function getMeterReadings(meterFileId: string): Promise<MeterReading[]> {

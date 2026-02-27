@@ -127,6 +127,7 @@ export interface IStorage {
   getMeterFile(id: string): Promise<MeterFile | undefined>;
   createMeterFile(file: InsertMeterFile): Promise<MeterFile>;
   updateMeterFile(id: string, file: Partial<MeterFile>): Promise<MeterFile | undefined>;
+  deleteMeterFile(id: string): Promise<void>;
 
   // Meter Readings
   getMeterReadings(meterFileId: string): Promise<MeterReading[]>;

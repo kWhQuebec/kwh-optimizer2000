@@ -231,6 +231,8 @@ function segmentsIntersect(
   return t > 0 && t < 1 && u > 0 && u < 1;
 }
 
+const EDGE_SAMPLE_INTERVAL_M = 1.5;
+
 function modulePositionIsValid(
   moduleOriginX: number,
   moduleOriginY: number,
@@ -264,6 +266,32 @@ function modulePositionIsValid(
   }
 
   if (expandedConstraintPolygons.length === 0) return true;
+
+  const samplesX = Math.max(1, Math.ceil(moduleWidthM / EDGE_SAMPLE_INTERVAL_M));
+  const samplesY = Math.max(1, Math.ceil(moduleDepthM / EDGE_SAMPLE_INTERVAL_M));
+
+  for (let i = 1; i < samplesX; i++) {
+    const fx = moduleOriginX + (moduleWidthM * i) / samplesX;
+    const ptBot = toGeo(fx, moduleOriginY);
+    const ptTop = toGeo(fx, moduleOriginY + moduleDepthM);
+    const llBot = new google.maps.LatLng(ptBot.lat, ptBot.lng);
+    const llTop = new google.maps.LatLng(ptTop.lat, ptTop.lng);
+    for (const constraint of expandedConstraintPolygons) {
+      if (google.maps.geometry.poly.containsLocation(llBot, constraint)) return false;
+      if (google.maps.geometry.poly.containsLocation(llTop, constraint)) return false;
+    }
+  }
+  for (let j = 1; j < samplesY; j++) {
+    const fy = moduleOriginY + (moduleDepthM * j) / samplesY;
+    const ptLeft = toGeo(moduleOriginX, fy);
+    const ptRight = toGeo(moduleOriginX + moduleWidthM, fy);
+    const llLeft = new google.maps.LatLng(ptLeft.lat, ptLeft.lng);
+    const llRight = new google.maps.LatLng(ptRight.lat, ptRight.lng);
+    for (const constraint of expandedConstraintPolygons) {
+      if (google.maps.geometry.poly.containsLocation(llLeft, constraint)) return false;
+      if (google.maps.geometry.poly.containsLocation(llRight, constraint)) return false;
+    }
+  }
 
   const moduleEdges: [{ lat: number; lng: number }, { lat: number; lng: number }][] = [
     [c0, c1], [c1, c2], [c2, c3], [c3, c0],
