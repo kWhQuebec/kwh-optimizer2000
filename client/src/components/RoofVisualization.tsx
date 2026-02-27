@@ -142,6 +142,10 @@ const KB_INTER_ROW_SPACING_M = 0.435;     // Gap between back of row 1 and front
 const PANEL_TILT_DEG = 10.0;              // AeroGrid 10° system
 const SUN_ALTITUDE_WINTER_SOLSTICE_DEG = 21.5; // Quebec winter sun angle
 
+// Flush-mount row geometry — for tilted/pitched roofs (panels lay flat on roof surface)
+const FLUSH_MOUNT_ROW_GAP_M = 0.05;      // 5cm mechanical gap between rows (no tilt/shading gap needed)
+const FLUSH_MOUNT_ROW_SPACING_M = PANEL_HEIGHT_M + FLUSH_MOUNT_ROW_GAP_M; // ~1.184m center-to-center
+
 // Maintenance corridor constants (IFC fire code compliance)
 const MAINTENANCE_CORRIDOR_WIDTH_M = 1.22; // 4 feet (1.22m) minimum for firefighter access
 const MAINTENANCE_CORRIDOR_SPACING_M = 40; // Maximum array section before corridor required
@@ -168,19 +172,18 @@ const MODULE_GAP_M = 1.22; // IFC fire code: 1.22m (4 ft) between array sections
  * Generate candidate module sizes to test for auto-optimization.
  * Returns realistic commercial array dimensions sorted by panel count (largest first).
  */
-function defineModuleCandidates(): ModuleSizeCandidate[] {
+function defineModuleCandidates(flushMount: boolean = false): ModuleSizeCandidate[] {
   const panelPitchX = PANEL_WIDTH_M + PANEL_GAP_M; // 2.482m
-  const panelPitchY = KB_ROW_SPACING_M;             // 1.557m center-to-center
+  const panelPitchY = flushMount ? FLUSH_MOUNT_ROW_SPACING_M : KB_ROW_SPACING_M;
 
   const candidates: ModuleSizeCandidate[] = [];
-  // Test realistic commercial sizes: rows 2-5, cols 4-16
   const rowOptions = [2, 3, 4, 5];
   const colOptions = [4, 6, 8, 10, 12, 14, 16];
 
   for (const rows of rowOptions) {
     for (const cols of colOptions) {
-      const widthM = cols * panelPitchX - PANEL_GAP_M; // No trailing gap
-      const depthM = (rows - 1) * panelPitchY + PANEL_HEIGHT_M; // Last row uses panel height
+      const widthM = cols * panelPitchX - PANEL_GAP_M;
+      const depthM = (rows - 1) * panelPitchY + PANEL_HEIGHT_M;
       candidates.push({
         rows,
         cols,
@@ -192,7 +195,6 @@ function defineModuleCandidates(): ModuleSizeCandidate[] {
     }
   }
 
-  // Sort by panel count descending (try largest first)
   candidates.sort((a, b) => b.panelCount - a.panelCount);
   return candidates;
 }
@@ -361,9 +363,10 @@ function placeModulesOnPolygon(
   minYRot: number,
   maxYRot: number,
   shadowZones: google.maps.Polygon[],
+  flushMount: boolean = false,
 ): ModulePlacement[] {
   const panelPitchX = PANEL_WIDTH_M + PANEL_GAP_M;
-  const panelPitchY = KB_ROW_SPACING_M;
+  const panelPitchY = flushMount ? FLUSH_MOUNT_ROW_SPACING_M : KB_ROW_SPACING_M;
 
   // Module pitch = module size + inter-module gap
   const modulePitchX = moduleSize.widthM + MODULE_GAP_M;
@@ -503,13 +506,15 @@ function autoOptimizeModuleSize(
     localMetersPerDegreeLng: number;
     minXRot: number; maxXRot: number;
     minYRot: number; maxYRot: number;
+    flushMount?: boolean;
   }[],
   expandedConstraintPolygons: google.maps.Polygon[],
   metersPerDegreeLat: number,
   cos: number, sin: number, cosPos: number, sinPos: number,
   shadowZones: google.maps.Polygon[],
 ): { bestSize: ModuleSizeCandidate; bestModules: ModulePlacement[]; allResults: { size: ModuleSizeCandidate; totalPanels: number; moduleCount: number }[] } {
-  const candidates = defineModuleCandidates();
+  const hasAnyFlushMount = polygonData.some(p => p.flushMount);
+  const candidates = defineModuleCandidates(hasAnyFlushMount);
 
   let bestTotalPanels = 0;
   let bestSize = candidates[0];
@@ -528,7 +533,8 @@ function autoOptimizeModuleSize(
         metersPerDegreeLat, poly.localMetersPerDegreeLng,
         cos, sin, cosPos, sinPos,
         poly.minXRot, poly.maxXRot, poly.minYRot, poly.maxYRot,
-        shadowZones
+        shadowZones,
+        poly.flushMount
       );
       totalPanels += polyModules.reduce((sum, m) => sum + m.panels.length, 0);
       totalModules += polyModules.length;
@@ -564,12 +570,28 @@ function calculateOrientationYieldFactor(panelRowAngleRad: number): { factor: nu
 }
 
 // Calculate estimated annual yield in kWh/kWp
+// tiltDeg: effective panel tilt (10° for ballast, or actual roof pitch for flush-mount)
 function calculateEstimatedYield(panelRowAngleRad: number, tiltDeg: number): number {
   const baseYield = QUEBEC_BASE_YIELD_KWH_KWP;
   const { factor: orientationFactor } = calculateOrientationYieldFactor(panelRowAngleRad);
   
-  // Tilt loss: 10° is suboptimal vs 35-45° for Quebec latitude
-  const tiltFactor = tiltDeg < 15 ? (1 - YIELD_LOSS_10DEG_TILT) : 1.0;
+  // Tilt factor: optimal for Quebec is ~35-45°
+  // 10° ballast: ~6% loss (YIELD_LOSS_10DEG_TILT)
+  // 15-50°: near optimal, minimal loss
+  // >50°: increasing loss from steep pitch
+  let tiltFactor: number;
+  if (tiltDeg < 15) {
+    tiltFactor = 1 - YIELD_LOSS_10DEG_TILT;
+  } else if (tiltDeg <= 50) {
+    // 15-50° is near optimal for Quebec latitude (~45°N)
+    // Peak around 35-40°, mild penalties at edges
+    const optimalTilt = 37;
+    const deviationFromOptimal = Math.abs(tiltDeg - optimalTilt);
+    tiltFactor = 1 - (deviationFromOptimal * 0.001); // ~0.1% per degree from optimal
+  } else {
+    // >50° steep: increasing loss
+    tiltFactor = 1 - ((tiltDeg - 50) * 0.005 + 0.013);
+  }
   
   return Math.round(baseYield * orientationFactor * tiltFactor);
 }
@@ -1094,6 +1116,7 @@ export function RoofVisualization({
   const [panelArrays, setPanelArrays] = useState<ArrayInfo[]>([]); // Panel arrays (numbered 1, 2, 3...)
   const [panelOrientationAngle, setPanelOrientationAngle] = useState(0); // Radians
   const [orientationSource, setOrientationSource] = useState<string>("default");
+  const [effectiveTiltDeg, setEffectiveTiltDeg] = useState(PANEL_TILT_DEG); // Actual tilt: 10° for ballast, or roof pitch for flush-mount
   const [arraysExpanded, setArraysExpanded] = useState(false);
   
   // Dual orientation comparison state
@@ -1259,11 +1282,11 @@ export function RoofVisualization({
   // forceOrientationAngle: if provided, use this angle instead of calculating from building edges
   // useBuildingEdgeOnly: if true, use raw building edge angle WITHOUT fallback to south (for explicit building-aligned mode)
   const generateUnifiedPanelPositions = useCallback((
-    solarPolygonData: { polygon: google.maps.Polygon; id: string; coords: [number, number][] }[],
+    solarPolygonData: { polygon: google.maps.Polygon; id: string; coords: [number, number][]; tiltDegrees?: number }[],
     constraintPolygons: google.maps.Polygon[],
     constraintCoordsData: [number, number][][],
-    forceOrientationAngle?: number, // Optional: force specific orientation (radians)
-    useBuildingEdgeOnly?: boolean // Optional: use raw building edge angle without fallback
+    forceOrientationAngle?: number,
+    useBuildingEdgeOnly?: boolean
   ): { panels: PanelPosition[]; orientationAngle: number; orientationSource: string } => {
     if (solarPolygonData.length === 0) return { panels: [], orientationAngle: 0, orientationSource: "default" };
     
@@ -1354,9 +1377,10 @@ export function RoofVisualization({
       localMetersPerDegreeLng: number;
       minXRot: number; maxXRot: number;
       minYRot: number; maxYRot: number;
+      flushMount?: boolean;
     }[] = [];
 
-    for (const { polygon, id, coords } of solarPolygonData) {
+    for (const { polygon, id, coords, tiltDegrees } of solarPolygonData) {
       const localCentroid = computeCentroid(coords);
       const localMetersPerDegreeLng = 111320 * Math.cos(localCentroid.lat * Math.PI / 180);
 
@@ -1378,7 +1402,8 @@ export function RoofVisualization({
 
       const rawWidth = maxXRot - minXRot;
       const rawHeight = maxYRot - minYRot;
-      console.log(`[RoofVisualization] Polygon ${id.slice(0,8)}: bbox=${Math.round(rawWidth)}×${Math.round(rawHeight)}m`);
+      const isFlushMount = (tiltDegrees ?? 0) > 0;
+      console.log(`[RoofVisualization] Polygon ${id.slice(0,8)}: bbox=${Math.round(rawWidth)}×${Math.round(rawHeight)}m${isFlushMount ? ` (flush-mount ${tiltDegrees}°)` : ''}`);
 
       polygonData.push({
         polygonId: id,
@@ -1387,6 +1412,7 @@ export function RoofVisualization({
         localCentroid,
         localMetersPerDegreeLng,
         minXRot, maxXRot, minYRot, maxYRot,
+        flushMount: isFlushMount,
       });
     }
 
@@ -1587,7 +1613,7 @@ export function RoofVisualization({
         }
 
         // Create Google polygon objects for all solar polygons
-        const solarPolygonDataForUnified: { polygon: google.maps.Polygon; id: string; coords: [number, number][] }[] = [];
+        const solarPolygonDataForUnified: { polygon: google.maps.Polygon; id: string; coords: [number, number][]; tiltDegrees?: number }[] = [];
         
         for (const polygon of solarPolygons) {
           const coords = polygon.coordinates as [number, number][];
@@ -1607,7 +1633,8 @@ export function RoofVisualization({
           solarPolygonDataForUnified.push({
             polygon: solarGooglePolygon,
             id: polygon.id,
-            coords
+            coords,
+            tiltDegrees: polygon.tiltDegrees ?? undefined,
           });
         }
 
@@ -1655,6 +1682,10 @@ export function RoofVisualization({
         const buildingYieldFactor = calculateOrientationYieldFactor(buildingResult.orientationAngle).factor;
         const southYieldFactor = calculateOrientationYieldFactor(0).factor;
         console.log(`[RoofVisualization] Dual layouts generated: Building=${sortedBuildingPanels.length} panels (yield ${(buildingYieldFactor*100).toFixed(1)}%), TrueSouth=${sortedSouthPanels.length} panels (yield ${(southYieldFactor*100).toFixed(1)}%) — orientation follows slider dynamically`);
+        
+        // Determine effective tilt from polygon data (use max tilt if any polygon is tilted)
+        const maxPolygonTilt = solarPolygons.reduce((max, p) => Math.max(max, p.tiltDegrees ?? 0), 0);
+        setEffectiveTiltDeg(maxPolygonTilt > 0 ? maxPolygonTilt : PANEL_TILT_DEG);
         
         // Initial panel positions: start with building-aligned; the dynamic orientation useEffect will switch
         // to the optimal orientation for the current slider position
@@ -2381,9 +2412,9 @@ export function RoofVisualization({
                 {PANEL_WIDTH_M}×{PANEL_HEIGHT_M}m @ {PANEL_KW * 1000}W
               </span>
               <span>•</span>
-              <span>{language === "fr" ? "Inclinaison" : "Tilt"}: {PANEL_TILT_DEG}°</span>
+              <span>{language === "fr" ? "Inclinaison" : "Tilt"}: {effectiveTiltDeg}°{effectiveTiltDeg !== PANEL_TILT_DEG ? (language === "fr" ? " (flush)" : " (flush)") : ""}</span>
               <span>•</span>
-              <span>{language === "fr" ? "Espacement rangées" : "Row spacing"}: {ROW_SPACING_M.toFixed(2)}m</span>
+              <span>{language === "fr" ? "Espacement rangées" : "Row spacing"}: {effectiveTiltDeg !== PANEL_TILT_DEG ? FLUSH_MOUNT_ROW_SPACING_M.toFixed(2) : ROW_SPACING_M.toFixed(2)}m</span>
               <span>•</span>
               <span>{language === "fr" ? "Marge périmètre" : "Perimeter setback"}: {PERIMETER_SETBACK_M}m</span>
             </div>
@@ -2392,7 +2423,7 @@ export function RoofVisualization({
               {/* Estimated Yield */}
               <Badge variant="secondary" className="text-xs font-normal gap-1" data-testid="badge-yield">
                 <Zap className="w-3 h-3" />
-                {language === "fr" ? "Rendement" : "Yield"}: {calculateEstimatedYield(panelOrientationAngle, PANEL_TILT_DEG)} kWh/kWp
+                {language === "fr" ? "Rendement" : "Yield"}: {calculateEstimatedYield(panelOrientationAngle, effectiveTiltDeg)} kWh/kWp
               </Badge>
               
               {/* Orientation info */}
@@ -2491,8 +2522,8 @@ export function RoofVisualization({
                   const southPanelCount = Math.min(panelsToShow, trueSouthPanels.length);
                   const buildingCapacityKW = Math.round(buildingPanelCount * PANEL_KW);
                   const southCapacityKW = Math.round(southPanelCount * PANEL_KW);
-                  const buildingYield = calculateEstimatedYield(buildingAlignedAngle, PANEL_TILT_DEG);
-                  const southYield = calculateEstimatedYield(0, PANEL_TILT_DEG);
+                  const buildingYield = calculateEstimatedYield(buildingAlignedAngle, effectiveTiltDeg);
+                  const southYield = calculateEstimatedYield(0, effectiveTiltDeg);
                   const buildingProduction = buildingPanelCount * PANEL_KW * buildingYield;
                   const southProduction = southPanelCount * PANEL_KW * southYield;
                   const difference = southProduction - buildingProduction;

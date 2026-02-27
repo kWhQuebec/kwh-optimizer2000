@@ -28,6 +28,7 @@ interface DrawnPolygon {
   areaSqM: number;
   color: string;
   googlePolygon: google.maps.Polygon | null;
+  tiltDegrees?: number;
 }
 
 const SOLAR_COLOR = '#003DA6';      // Blue for solar areas
@@ -492,6 +493,7 @@ export function RoofDrawingModal({
             areaSqM: ep.areaSqM,
             color: ep.color || SOLAR_COLOR,
             googlePolygon,
+            tiltDegrees: ep.tiltDegrees ?? undefined,
           };
 
           setupPolygonListeners(googlePolygon, drawnPolygon.id);
@@ -820,6 +822,7 @@ export function RoofDrawingModal({
         coordinates: p.coordinates,
         areaSqM: p.areaSqM,
         color: p.color,
+        tiltDegrees: p.tiltDegrees ?? null,
       }));
 
       await onSave(polygonsToSave);
@@ -1254,6 +1257,37 @@ export function RoofDrawingModal({
                             return null;
                           })()}
                         </p>
+                        {!isConstraintPolygon && (
+                          <div className="flex items-center gap-1.5 mt-1.5">
+                            <label className="text-[10px] text-muted-foreground whitespace-nowrap">
+                              {language === 'fr' ? 'Pente:' : 'Pitch:'}
+                            </label>
+                            <Input
+                              type="number"
+                              min={0}
+                              max={60}
+                              step={1}
+                              value={polygon.tiltDegrees ?? ''}
+                              placeholder="0"
+                              onChange={(e) => {
+                                const val = e.target.value ? parseInt(e.target.value) : undefined;
+                                setPolygons((prev) =>
+                                  prev.map((p) =>
+                                    p.id === polygon.id ? { ...p, tiltDegrees: val } : p
+                                  )
+                                );
+                              }}
+                              className="h-6 w-14 text-xs px-1.5"
+                              data-testid={`input-tilt-${index}`}
+                            />
+                            <span className="text-[10px] text-muted-foreground">°</span>
+                            {(polygon.tiltDegrees ?? 0) > 0 && (
+                              <Badge variant="secondary" className="text-[9px] h-4 px-1">
+                                {language === 'fr' ? 'Incliné' : 'Tilted'}
+                              </Badge>
+                            )}
+                          </div>
+                        )}
                       </div>
                       <Button
                         size="icon"
