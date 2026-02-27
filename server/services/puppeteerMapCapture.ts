@@ -47,8 +47,10 @@ export async function captureRoofVisualization(params: CaptureParams): Promise<B
       args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
     });
 
+    const OVERSCAN = 400;
+    const viewportWidth = width + OVERSCAN * 2;
     const page = await browser.newPage();
-    await page.setViewport({ width, height, deviceScaleFactor: 2 });
+    await page.setViewport({ width: viewportWidth, height, deviceScaleFactor: 2 });
 
     await page.evaluateOnNewDocument((t: string) => {
       (window as any).__captureToken = t;
@@ -79,7 +81,7 @@ export async function captureRoofVisualization(params: CaptureParams): Promise<B
 
     const screenshot = await page.screenshot({
       type: "png",
-      clip: { x: 0, y: 0, width, height },
+      clip: { x: OVERSCAN, y: 0, width, height },
     });
 
     log.info(`Puppeteer roof capture successful: ${screenshot.length} bytes`);
