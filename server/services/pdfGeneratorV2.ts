@@ -613,8 +613,8 @@ function buildProjectSnapshotPage(
         </div>
       </div>
     </div>
-    <div class="chart-container">
-      <div class="chart-title">${t("Image satellite du site", "Site Satellite Image")}</div>
+    <div class="chart-container" style="padding: 0; overflow: hidden;">
+      <div class="chart-title" style="padding: 3mm 5mm 2mm 5mm;">${t("Image satellite du site", "Site Satellite Image")}</div>
       ${satelliteHtml}
     </div>
     ${footerHtml(t, pageNum)}
