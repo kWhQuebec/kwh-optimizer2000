@@ -1455,10 +1455,10 @@ export function RoofVisualization({
         const map = new google.maps.Map(mapContainerRef.current!, {
           center: { lat: latitude, lng: longitude },
           zoom: 20,
-          mapTypeId: "hybrid",
+          mapTypeId: captureMode ? "satellite" : "hybrid",
           tilt: 0,
           disableDefaultUI: true,
-          zoomControl: true,
+          zoomControl: !captureMode,
           mapTypeControl: false,
           streetViewControl: false,
           fullscreenControl: false,

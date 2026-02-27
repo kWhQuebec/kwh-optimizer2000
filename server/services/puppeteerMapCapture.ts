@@ -75,7 +75,7 @@ export async function captureRoofVisualization(params: CaptureParams): Promise<B
       log.warn("Capture ready signal not received within 30s, proceeding anyway");
     });
 
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise(resolve => setTimeout(resolve, 3000));
 
     const screenshot = await page.screenshot({
       type: "png",
