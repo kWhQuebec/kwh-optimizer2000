@@ -473,7 +473,7 @@ export default function SiteDetailPage() {
       const totalAreaSqFt = Math.round(totalAreaSqM * 10.764);
       if (totalAreaSqFt > 0) {
         setCustomAssumptions(prev => ({ ...prev, roofAreaSqFt: totalAreaSqFt }));
-        apiRequest("PATCH", `/api/sites/${id}`, { buildingSqFt: totalAreaSqFt }).then(() => {
+        apiRequest("PATCH", `/api/sites/${id}`, { buildingSqFt: totalAreaSqFt, roofAreaSqM: Math.round(totalAreaSqM) }).then(() => {
           queryClient.invalidateQueries({ queryKey: ["/api/sites", id] });
         }).catch(() => {});
       }

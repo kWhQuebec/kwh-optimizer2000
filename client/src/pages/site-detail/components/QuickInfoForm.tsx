@@ -82,6 +82,12 @@ export function QuickInfoForm({ site, language, onSaved, onGoToNextStep }: Quick
   const isMountedRef = useRef(true);
 
   useEffect(() => {
+    if (site.roofAreaSqM && site.roofAreaSqM !== roofAreaSqM) {
+      setRoofAreaSqM(site.roofAreaSqM);
+    }
+  }, [site.roofAreaSqM]);
+
+  useEffect(() => {
     isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
