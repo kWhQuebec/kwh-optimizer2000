@@ -450,14 +450,14 @@ function buildWhySolarNowPage(
 
   const beforeItems = content.beforeReasons.map(r =>
     `<li style="padding: 1.5mm 0 1.5mm 6mm; position: relative; font-size: 8.5pt;">
-      <span style="position: absolute; left: 0; top: 50%; transform: translateY(-50%); color: #DC2626; font-weight: 700;">&#x2717;</span>
+      <span style="position: absolute; left: 1.2mm; top: 50%; transform: translateY(-50%); color: #DC2626; font-weight: 700;">&#x2717;</span>
       ${r}
     </li>`
   ).join("");
 
   const nowItems = content.nowReasons.map(r =>
     `<li style="padding: 1.5mm 0 1.5mm 6mm; position: relative; font-size: 8.5pt;">
-      <span style="position: absolute; left: 0; top: 50%; transform: translateY(-50%); color: #16A34A; font-weight: 700;">&#x2713;</span>
+      <span style="position: absolute; left: 1.2mm; top: 50%; transform: translateY(-50%); color: #16A34A; font-weight: 700;">&#x2713;</span>
       ${r}
     </li>`
   ).join("");
