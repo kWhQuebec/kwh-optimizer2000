@@ -981,6 +981,39 @@ router.post("/:siteId/run-potential-analysis", authMiddleware, requireStaff, asy
     _yieldStrategy: yieldStrategy
   };
 
+  if (!analysisAssumptions.tariffEnergy || analysisAssumptions.tariffEnergy === 0) {
+    const annualKWh = dedupResult.readings.reduce((sum, r) => sum + (r.kWh || 0), 0);
+    const hasRealPowerData = dedupResult.readings.some(r => r.kW !== null && r.kW !== undefined && r.kW > 0);
+    let peakKW: number;
+    if (hasRealPowerData) {
+      peakKW = dedupResult.readings.reduce((max, r) => Math.max(max, r.kW || 0), 0);
+    } else {
+      const meterFiles = await storage.getMeterFiles(siteId);
+      const syntheticFile = meterFiles.find((f: any) => f.isSynthetic);
+      const syntheticParams = syntheticFile ? (syntheticFile as any).syntheticParams : null;
+      const schedule = syntheticParams?.operatingSchedule || "standard";
+      const loadFactor = schedule === "24/7" ? 0.55 : schedule === "extended" ? 0.45 : 0.35;
+      peakKW = annualKWh / (8760 * loadFactor);
+    }
+
+    const { detectTariff: _dt } = await import("../hqTariffs");
+    const detected = _dt(peakKW, annualKWh, hasRealPowerData);
+    let tariffCode = detected.detectedTariff;
+    if (tariffCode === "D" || tariffCode === "Flex D") {
+      tariffCode = peakKW >= 65 ? "M" : "G";
+    }
+    const rateMap: Record<string, { energy: number; power: number }> = {
+      "G": { energy: 0.11933, power: 21.261 },
+      "M": { energy: 0.06061, power: 17.573 },
+      "L": { energy: 0.03681, power: 14.476 },
+    };
+    const rates = rateMap[tariffCode] || rateMap["M"];
+    analysisAssumptions.tariffEnergy = rates.energy;
+    analysisAssumptions.tariffPower = rates.power;
+    (analysisAssumptions as any).tariffCode = tariffCode;
+    log.info(`Auto-detected tariff ${tariffCode} from meter data (peak=${peakKW.toFixed(1)}kW, annual=${annualKWh.toFixed(0)}kWh, hasPower=${hasRealPowerData}): energy=${rates.energy}$/kWh, power=${rates.power}$/kW`);
+  }
+
   // CRITICAL: Use manually traced roof polygons as source of truth (not site.roofAreaSqM)
   // Per methodology: "Manual roof tracing: Source of truth for roof surfaces (Google not reliable for C&I)"
   const polygons = await storage.getRoofPolygons(siteId);

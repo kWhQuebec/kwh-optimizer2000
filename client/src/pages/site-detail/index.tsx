@@ -336,6 +336,23 @@ export default function SiteDetailPage() {
           initialAssumptions.tariffEnergy = rates.energyRate;
           initialAssumptions.tariffPower = rates.demandRate;
         }
+      } else if (site.meterFiles && site.meterFiles.length > 0) {
+        const syntheticFile = site.meterFiles.find((f: any) => f.isSynthetic);
+        const params = syntheticFile ? (syntheticFile as any).syntheticParams : null;
+        const annualKWh = params?.annualConsumptionKWh
+          || site.estimatedAnnualConsumptionKwh
+          || site.baselineAnnualConsumptionKwh;
+
+        if (annualKWh && annualKWh > 0) {
+          const schedule = params?.operatingSchedule || "standard";
+          const loadFactor = schedule === "24/7" ? 0.55 : schedule === "extended" ? 0.45 : 0.35;
+          const estimatedPeakKW = annualKWh / (8760 * loadFactor);
+          const autoTariff = estimatedPeakKW >= 65 ? "M" : "G";
+          const rates = getTariffRates(autoTariff);
+          initialAssumptions.tariffCode = autoTariff;
+          initialAssumptions.tariffEnergy = rates.energyRate;
+          initialAssumptions.tariffPower = rates.demandRate;
+        }
       }
 
       if (site.analysisAssumptions) {
