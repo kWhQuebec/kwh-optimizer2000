@@ -1706,17 +1706,13 @@ export function RoofVisualization({
               bounds.extend({ lat, lng });
             }
           }
-          if (captureMode) {
-            map.fitBounds(bounds, 80);
-          } else {
-            map.fitBounds(bounds, 0);
-            google.maps.event.addListenerOnce(map, 'bounds_changed', () => {
-              const currentZoom = map.getZoom();
-              if (currentZoom && currentZoom < 21) {
-                map.setZoom(currentZoom + 1);
-              }
-            });
-          }
+          map.fitBounds(bounds, 0);
+          google.maps.event.addListenerOnce(map, 'bounds_changed', () => {
+            const currentZoom = map.getZoom();
+            if (currentZoom && currentZoom < 21) {
+              map.setZoom(currentZoom + 1);
+            }
+          });
         }
 
         setIsLoading(false);
