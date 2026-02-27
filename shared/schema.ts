@@ -2525,7 +2525,7 @@ export const defaultAnalysisAssumptions: AnalysisAssumptions = {
   discountRate: 0.07, // 7% WACC (midpoint of 6-8% range)
   taxRate: 0.265, // 26.5% corporate tax
   solarCostPerW: 2.25, // $2.25/Wc
-  batteryCapacityCost: 450, // $450/kWh
+  batteryCapacityCost: 540, // $540/kWh (supplier cost $350/kWh + 35% gross margin)
   batteryPowerCost: 800, // $800/kW
   omSolarPercent: 0.01, // 1% of solar CAPEX
   omBatteryPercent: 0.005, // 0.5% of battery CAPEX
