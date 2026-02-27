@@ -205,6 +205,32 @@ function defineModuleCandidates(): ModuleSizeCandidate[] {
  *
  * Returns true if the module fits cleanly.
  */
+function rotatedToGeo(
+  rx: number, ry: number,
+  cosPos: number, sinPos: number,
+  localCentroid: { lat: number; lng: number },
+  metersPerDegreeLat: number,
+  localMetersPerDegreeLng: number
+): { lat: number; lng: number } {
+  const ux = rx * cosPos - ry * sinPos;
+  const uy = rx * sinPos + ry * cosPos;
+  return {
+    lat: localCentroid.lat + uy / metersPerDegreeLat,
+    lng: localCentroid.lng + ux / localMetersPerDegreeLng,
+  };
+}
+
+function segmentsIntersect(
+  ax: number, ay: number, bx: number, by: number,
+  cx: number, cy: number, dx: number, dy: number
+): boolean {
+  const denom = (bx - ax) * (dy - cy) - (by - ay) * (dx - cx);
+  if (Math.abs(denom) < 1e-12) return false;
+  const t = ((cx - ax) * (dy - cy) - (cy - ay) * (dx - cx)) / denom;
+  const u = ((cx - ax) * (by - ay) - (cy - ay) * (bx - ax)) / denom;
+  return t > 0 && t < 1 && u > 0 && u < 1;
+}
+
 function modulePositionIsValid(
   moduleOriginX: number,
   moduleOriginY: number,
@@ -219,54 +245,67 @@ function modulePositionIsValid(
   coords: [number, number][],
   expandedConstraintPolygons: google.maps.Polygon[]
 ): boolean {
-  // Module corners in rotated space (with setback margin included)
-  const corners = [
-    { x: moduleOriginX, y: moduleOriginY },
-    { x: moduleOriginX + moduleWidthM, y: moduleOriginY },
-    { x: moduleOriginX + moduleWidthM, y: moduleOriginY + moduleDepthM },
-    { x: moduleOriginX, y: moduleOriginY + moduleDepthM },
+  const toGeo = (rx: number, ry: number) =>
+    rotatedToGeo(rx, ry, cosPos, sinPos, localCentroid, metersPerDegreeLat, localMetersPerDegreeLng);
+
+  const c0 = toGeo(moduleOriginX, moduleOriginY);
+  const c1 = toGeo(moduleOriginX + moduleWidthM, moduleOriginY);
+  const c2 = toGeo(moduleOriginX + moduleWidthM, moduleOriginY + moduleDepthM);
+  const c3 = toGeo(moduleOriginX, moduleOriginY + moduleDepthM);
+  const geoCorners = [c0, c1, c2, c3];
+
+  for (const gc of geoCorners) {
+    const ll = new google.maps.LatLng(gc.lat, gc.lng);
+    if (!google.maps.geometry.poly.containsLocation(ll, originalPolygon)) return false;
+    if (pointToPolygonDistance(gc.lat, gc.lng, coords, localCentroid.lat) < PERIMETER_SETBACK_M) return false;
+    for (const constraint of expandedConstraintPolygons) {
+      if (google.maps.geometry.poly.containsLocation(ll, constraint)) return false;
+    }
+  }
+
+  if (expandedConstraintPolygons.length === 0) return true;
+
+  const moduleEdges: [{ lat: number; lng: number }, { lat: number; lng: number }][] = [
+    [c0, c1], [c1, c2], [c2, c3], [c3, c0],
   ];
 
-  // Convert all 4 corners to geographic coordinates
-  for (const corner of corners) {
-    const unrotatedX = corner.x * cosPos - corner.y * sinPos;
-    const unrotatedY = corner.x * sinPos + corner.y * cosPos;
-    const lat = localCentroid.lat + unrotatedY / metersPerDegreeLat;
-    const lng = localCentroid.lng + unrotatedX / localMetersPerDegreeLng;
+  for (const constraint of expandedConstraintPolygons) {
+    const cPath = constraint.getPath();
+    const cLen = cPath.getLength();
+    if (cLen < 3) continue;
 
-    // Check containment: corner must be inside polygon
-    const latLng = new google.maps.LatLng(lat, lng);
-    if (!google.maps.geometry.poly.containsLocation(latLng, originalPolygon)) {
-      return false;
+    const cVerts: { lat: number; lng: number }[] = [];
+    for (let v = 0; v < cLen; v++) {
+      const pt = cPath.getAt(v);
+      cVerts.push({ lat: pt.lat(), lng: pt.lng() });
     }
 
-    // Check setback: corner must be at least PERIMETER_SETBACK_M from polygon edge
-    const dist = pointToPolygonDistance(lat, lng, coords, localCentroid.lat);
-    if (dist < PERIMETER_SETBACK_M) {
-      return false;
-    }
-
-    // Check constraints: corner must be outside all expanded obstacle zones
-    for (const constraint of expandedConstraintPolygons) {
-      if (google.maps.geometry.poly.containsLocation(latLng, constraint)) {
-        return false;
+    for (let v = 0; v < cLen; v++) {
+      const cv1 = cVerts[v];
+      const cv2 = cVerts[(v + 1) % cLen];
+      for (const [m1, m2] of moduleEdges) {
+        if (segmentsIntersect(
+          m1.lng, m1.lat, m2.lng, m2.lat,
+          cv1.lng, cv1.lat, cv2.lng, cv2.lat
+        )) return false;
       }
     }
   }
 
-  // Also check module center against constraints (catches obstacles fully inside module)
-  const centerX = moduleOriginX + moduleWidthM / 2;
-  const centerY = moduleOriginY + moduleDepthM / 2;
-  const unrotCX = centerX * cosPos - centerY * sinPos;
-  const unrotCY = centerX * sinPos + centerY * cosPos;
-  const centerLat = localCentroid.lat + unrotCY / metersPerDegreeLat;
-  const centerLng = localCentroid.lng + unrotCX / localMetersPerDegreeLng;
-  const centerLatLng = new google.maps.LatLng(centerLat, centerLng);
-
+  const modulePoly = new google.maps.Polygon({
+    paths: geoCorners.map(gc => ({ lat: gc.lat, lng: gc.lng })),
+  });
   for (const constraint of expandedConstraintPolygons) {
-    if (google.maps.geometry.poly.containsLocation(centerLatLng, constraint)) {
-      return false;
+    const cPath = constraint.getPath();
+    for (let v = 0; v < cPath.getLength(); v++) {
+      if (google.maps.geometry.poly.containsLocation(cPath.getAt(v), modulePoly)) return false;
     }
+  }
+
+  const centerGeo = toGeo(moduleOriginX + moduleWidthM / 2, moduleOriginY + moduleDepthM / 2);
+  const centerLL = new google.maps.LatLng(centerGeo.lat, centerGeo.lng);
+  for (const constraint of expandedConstraintPolygons) {
+    if (google.maps.geometry.poly.containsLocation(centerLL, constraint)) return false;
   }
 
   return true;
