@@ -1587,17 +1587,10 @@ router.post("/:id/unarchive", authMiddleware, requireStaff, asyncHandler(async (
 
 // ==================== SYNTHETIC PROFILE ====================
 
-const BUILDING_TYPE_LABELS: Record<string, string> = {
-  office: "Bureau",
-  warehouse: "Entrepôt",
-  cold_warehouse: "Entrepôt réfrigéré",
-  retail: "Commerce",
-  industrial: "Industriel",
-  institutional: "Institutionnel",
-};
+import { getBuildingTypeLabel as getBTLabel } from "@shared/buildingTypes";
 
 const syntheticProfileSchema = z.object({
-  buildingSubType: z.enum(["office", "warehouse", "cold_warehouse", "retail", "industrial", "institutional"]),
+  buildingSubType: z.enum(["office", "retail", "hotel", "restaurant", "warehouse", "cold_warehouse", "industrial", "light_industrial", "healthcare", "education", "government", "agricultural"]),
   annualConsumptionKWh: z.number().positive().optional(),
   monthlyBill: z.number().positive().optional(),
   tariffCode: z.enum(["G", "M", "L"]).optional(),
@@ -1636,7 +1629,7 @@ router.post("/:siteId/generate-synthetic-profile", authMiddleware, requireStaff,
     operatingSchedule: (operatingSchedule as OperatingSchedule) || 'standard',
   });
 
-  const label = BUILDING_TYPE_LABELS[buildingSubType] || buildingSubType;
+  const label = getBTLabel(buildingSubType, 'fr');
 
   // Create the meter file entry
   const meterFile = await storage.createMeterFile({

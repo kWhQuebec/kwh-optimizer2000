@@ -33,6 +33,9 @@ The portfolio `/full` endpoint uses `lightSiteColumns` in `server/repositories/p
 ### Master Agreement PDF (CCDC 14 Format)
 The Dream Industrial REIT Master Agreement PDF (`server/pdf/masterAgreementPDF.ts`) generates a comprehensive 9-section document: Cover, TOC, Executive Summary, Parties & Roles, Commercial Terms, Financial Framework (auto-splits for >15 sites), Scope of Work (Section 5: 11 Owner items + 21 Design-Builder items + 5 General Provisions), Schedule of Values (Section 6: 10 milestones, 21 pricing assumptions, 9 exclusions, payment terms — each on separate pages), Annex A per-site schedules (compact annex-page layout), Supplementary Conditions (Section 8: 28 SC articles in 8-page batches of 3-4 articles), and Signatures. All pages use fixed `.page` class (279.4mm height, overflow:hidden) with Puppeteer-side overflow detection that warns if any page content is clipped.
 
+### Building Types (CUBF-Aligned)
+All building type data is centralized in `shared/buildingTypes.ts`, aligned with Quebec's CUBF (Code d'Utilisation des Biens-Fonds) standard. Each type includes CUBF code range, bilingual labels, energy intensity, operating schedule, load factors, monthly shape factors, and industry benchmarks. Legacy values (`commercial`, `institutional`, `other`) auto-resolve via aliases. Consumers: `syntheticProfile.ts`, `industryBenchmarks.ts`, `consumption-tools.tsx`, `QuickInfoForm.tsx`, `analyse-detaillee.tsx`, `emailService.ts`, `kbProposalPdfGenerator.ts`.
+
 ### Error Handling
 The backend uses a centralized error handling system with custom `AppError` classes and an `asyncHandler` wrapper for consistent error responses.
 

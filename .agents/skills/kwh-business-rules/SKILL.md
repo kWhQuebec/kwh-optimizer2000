@@ -35,3 +35,17 @@ description: Critical business rules and common development pitfalls for kWh Qu�
 - Roof capacity (`site.kbKwDc`) from RoofVisualization is the hard cap for PV sizing
 - Sensitivity analysis caps at 100% roof capacity (not 110% — roof area is a physical constraint)
 - The AC/DC ratio (ILR) is configurable in Advanced System Modeling (range 1.0–2.0)
+
+## Building Types (CUBF-Aligned)
+
+- All building type data is centralized in `shared/buildingTypes.ts` — this is the single source of truth
+- Types are aligned with Quebec's CUBF (Code d'Utilisation des Biens-Fonds) municipal assessment standard
+- Available types: `office` (2100), `retail` (2300), `hotel` (2500), `restaurant` (2600), `warehouse` (3400), `cold_warehouse` (3400), `industrial` (3000), `light_industrial` (3100), `healthcare` (4300), `education` (4100), `government` (4200), `agricultural` (5000)
+- Each type includes: bilingual labels, energy intensity (kWh/ft²/yr), operating schedule, load factors, monthly shape factors, and industry benchmarks
+- Legacy values (`commercial`, `institutional`, `other`) are auto-resolved via `LEGACY_ALIASES` in the same file
+- Never add building type labels, intensities, or benchmarks in individual files — always add to the centralized registry
+- Use `getBuildingTypeByKey()` to resolve any building type string (handles legacy aliases)
+- Use `getBuildingTypesByCategory()` for grouped dropdowns in forms
+- Use `getCubfCategory()` to map a 4-digit CUBF code to a building type key
+- Consumers: `syntheticProfile.ts`, `industryBenchmarks.ts`, `consumption-tools.tsx`, `QuickInfoForm.tsx`, `analyse-detaillee.tsx`, `sites.tsx`, `emailService.ts`, `kbProposalPdfGenerator.ts`, `server/routes/sites.ts`
+- The landing page (`landing.tsx`) intentionally keeps broad legacy categories (industrial/commercial/institutional/other) for the public lead form — these resolve via aliases

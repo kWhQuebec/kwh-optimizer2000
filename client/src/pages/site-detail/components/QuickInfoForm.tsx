@@ -1,9 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import {
   Building2,
-  Store,
-  GraduationCap,
-  HelpCircle,
   Layers,
   Mountain,
   CircleDot,
@@ -24,7 +21,9 @@ import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { getBuildingTypesByCategory, getBuildingTypeLabel, resolveBuildingTypeKey } from "@shared/buildingTypes";
 import type { SiteWithDetails } from "../types";
 
 interface QuickInfoFormProps {
@@ -37,12 +36,7 @@ interface QuickInfoFormProps {
 const SQ_FT_TO_SQ_M = 0.092903;
 const SQ_M_TO_SQ_FT = 10.7639;
 
-const BUILDING_TYPES = [
-  { value: "industrial", labelFr: "Industriel", labelEn: "Industrial", Icon: Building2 },
-  { value: "commercial", labelFr: "Commercial", labelEn: "Commercial", Icon: Store },
-  { value: "institutional", labelFr: "Institutionnel", labelEn: "Institutional", Icon: GraduationCap },
-  { value: "other", labelFr: "Autre", labelEn: "Other", Icon: HelpCircle },
-];
+const BUILDING_TYPE_GROUPS = getBuildingTypesByCategory();
 
 const ROOF_SHAPES = [
   { value: "flat", labelFr: "Toit plat", labelEn: "Flat roof", Icon: Layers },
@@ -62,7 +56,7 @@ const HEIGHT_OPTIONS = [14, 20, 30, 40, 50];
 export function QuickInfoForm({ site, language, onSaved, onGoToNextStep }: QuickInfoFormProps) {
   const fr = language === "fr";
 
-  const [buildingType, setBuildingType] = useState<string | null>(site.buildingType || null);
+  const [buildingType, setBuildingType] = useState<string | null>(site.buildingType ? resolveBuildingTypeKey(site.buildingType) : null);
   const [roofShape, setRoofShape] = useState<string | null>(site.roofType || null);
   const [roofCovering, setRoofCovering] = useState<string | null>(site.roofColorType || null);
   const [useMetric, setUseMetric] = useState(true);
@@ -255,25 +249,35 @@ export function QuickInfoForm({ site, language, onSaved, onGoToNextStep }: Quick
       <div>
         <Label className="flex items-center gap-2 mb-3 text-base font-medium">
           <Building2 className="w-4 h-4" />
-          {fr ? "Type de b\u00e2timent" : "Building type"}
+          {fr ? "Type de bâtiment (CUBF)" : "Building type (CUBF)"}
         </Label>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {BUILDING_TYPES.map((bt) => (
-            <Card
-              key={bt.value}
-              className={`cursor-pointer toggle-elevate ${buildingType === bt.value ? "toggle-elevated border-primary" : ""}`}
-              onClick={() => handleBuildingType(bt.value)}
-              data-testid={`card-building-type-${bt.value}`}
-            >
-              <CardContent className="flex flex-col items-center justify-center gap-2 p-4">
-                <bt.Icon className="w-6 h-6" />
-                <span className="text-sm font-medium text-center">
-                  {fr ? bt.labelFr : bt.labelEn}
-                </span>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <Select
+          value={buildingType || ""}
+          onValueChange={(value) => handleBuildingType(value)}
+          data-testid="select-building-type"
+        >
+          <SelectTrigger className="w-full" data-testid="select-building-type-trigger">
+            <SelectValue placeholder={fr ? "Sélectionner un type" : "Select a type"}>
+              {buildingType ? getBuildingTypeLabel(buildingType, fr ? 'fr' : 'en') : (fr ? "Sélectionner un type" : "Select a type")}
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            {BUILDING_TYPE_GROUPS.map((group) => (
+              <SelectGroup key={group.category}>
+                <SelectLabel>{fr ? group.labelFr : group.labelEn}</SelectLabel>
+                {group.types.map((bt) => (
+                  <SelectItem
+                    key={bt.key}
+                    value={bt.key}
+                    data-testid={`select-building-type-${bt.key}`}
+                  >
+                    {fr ? bt.labelFr : bt.labelEn}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <div>

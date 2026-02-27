@@ -14,7 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -22,6 +22,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useI18n } from "@/lib/i18n";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Client, Site, ProcurationSignature } from "@shared/schema";
+import { getBuildingTypesByCategory } from "@shared/buildingTypes";
 
 // Helper function to download files with authentication
 async function downloadWithAuth(url: string, filename: string): Promise<void> {
@@ -437,10 +438,16 @@ function SiteForm({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="industrial">{t("form.buildingType.industrial")}</SelectItem>
-                        <SelectItem value="commercial">{t("form.buildingType.commercial")}</SelectItem>
-                        <SelectItem value="institutional">{t("form.buildingType.institutional")}</SelectItem>
-                        <SelectItem value="other">{t("form.buildingType.other")}</SelectItem>
+                        {getBuildingTypesByCategory().map((group) => (
+                          <SelectGroup key={group.category}>
+                            <SelectLabel>{language === "fr" ? group.labelFr : group.labelEn}</SelectLabel>
+                            {group.types.map((bt) => (
+                              <SelectItem key={bt.key} value={bt.key} data-testid={`select-site-building-type-${bt.key}`}>
+                                {language === "fr" ? bt.labelFr : bt.labelEn}
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
+                        ))}
                       </SelectContent>
                     </Select>
                     <FormMessage />

@@ -19,7 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -28,6 +28,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { LanguageToggle } from "@/components/language-toggle";
 import { useI18n } from "@/lib/i18n";
 import { apiRequest } from "@/lib/queryClient";
+import { getBuildingTypesByCategory } from "@shared/buildingTypes";
 import logoFr from "@assets/kWh_Quebec_Logo-01_-_Rectangulaire_1764799021536.png";
 import logoEn from "@assets/kWh_Quebec_Logo-02_-_Rectangle_1764799021536.png";
 
@@ -677,12 +678,7 @@ export default function AnalyseDetailleePage() {
     mutation.mutate(data);
   };
 
-  const buildingTypes = [
-    { value: "industrial", label: language === "fr" ? "Industriel" : "Industrial" },
-    { value: "commercial", label: language === "fr" ? "Commercial" : "Commercial" },
-    { value: "institutional", label: language === "fr" ? "Institutionnel" : "Institutional" },
-    { value: "other", label: language === "fr" ? "Autre" : "Other" },
-  ];
+  const buildingTypeGroups = getBuildingTypesByCategory();
 
   const tariffCodes = [
     { value: "G", label: language === "fr" ? "G - Petit débit" : "G - Small power" },
@@ -2014,10 +2010,15 @@ The data obtained will be used exclusively for solar potential analysis and phot
                                           </SelectTrigger>
                                         </FormControl>
                                         <SelectContent>
-                                          {buildingTypes.map((type) => (
-                                            <SelectItem key={type.value} value={type.value}>
-                                              {type.label}
-                                            </SelectItem>
+                                          {buildingTypeGroups.map((group) => (
+                                            <SelectGroup key={group.category}>
+                                              <SelectLabel>{language === "fr" ? group.labelFr : group.labelEn}</SelectLabel>
+                                              {group.types.map((bt) => (
+                                                <SelectItem key={bt.key} value={bt.key} data-testid={`select-building-type-${bt.key}`}>
+                                                  {language === "fr" ? bt.labelFr : bt.labelEn}
+                                                </SelectItem>
+                                              ))}
+                                            </SelectGroup>
                                           ))}
                                         </SelectContent>
                                       </Select>

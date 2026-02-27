@@ -6,42 +6,19 @@
  * to run on estimated consumption profiles.
  */
 
-// Monthly shape factors by building type (reused from client BUILDING_PROFILES)
-const MONTHLY_FACTORS: Record<string, number[]> = {
-  office:         [1.0, 1.0, 1.0, 0.95, 0.9, 0.85, 0.8, 0.85, 0.95, 1.0, 1.05, 1.1],
-  warehouse:      [0.95, 0.95, 1.0, 1.0, 1.0, 1.05, 1.1, 1.1, 1.0, 1.0, 0.95, 0.9],
-  cold_warehouse: [0.85, 0.85, 0.90, 0.95, 1.05, 1.15, 1.25, 1.25, 1.10, 0.95, 0.85, 0.85],
-  retail:         [1.15, 1.0, 0.95, 0.9, 0.85, 0.8, 0.85, 0.9, 0.95, 1.0, 1.15, 1.4],
-  industrial:     [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
-  light_industrial: [1.0, 1.0, 1.0, 0.97, 0.95, 0.92, 0.9, 0.92, 0.97, 1.0, 1.03, 1.05],
-  institutional:  [1.1, 1.1, 1.0, 0.9, 0.7, 0.5, 0.4, 0.5, 1.0, 1.1, 1.1, 1.2],
-};
+import {
+  type BuildingTypeKey,
+  getArchetypeParams,
+  getMonthlyFactors,
+  getBuildingTypeByKey,
+} from '@shared/buildingTypes';
 
-// Building archetype definitions
-const ARCHETYPES: Record<string, {
-  operatingStart: number;  // Hour of day (0-23)
-  operatingEnd: number;
-  baseNight: number;       // Fraction of peak during off-hours (0-1)
-  weekendFactor: number;   // Fraction of weekday load on weekends (0-1)
-  loadFactor: number;      // Annual load factor for peak kW derivation
-  intensityKwhPerSqFt: number; // kWh/ft²/year for area-based estimation
-}> = {
-  office:           { operatingStart: 7,  operatingEnd: 19, baseNight: 0.30, weekendFactor: 0.25, loadFactor: 0.45, intensityKwhPerSqFt: 18 },
-  warehouse:        { operatingStart: 6,  operatingEnd: 22, baseNight: 0.60, weekendFactor: 0.50, loadFactor: 0.65, intensityKwhPerSqFt: 10 },
-  cold_warehouse:   { operatingStart: 0,  operatingEnd: 24, baseNight: 0.85, weekendFactor: 0.95, loadFactor: 0.75, intensityKwhPerSqFt: 30 },
-  retail:           { operatingStart: 9,  operatingEnd: 21, baseNight: 0.20, weekendFactor: 0.85, loadFactor: 0.40, intensityKwhPerSqFt: 22 },
-  industrial:       { operatingStart: 0,  operatingEnd: 24, baseNight: 0.80, weekendFactor: 0.75, loadFactor: 0.70, intensityKwhPerSqFt: 15 },
-  light_industrial: { operatingStart: 7,  operatingEnd: 20, baseNight: 0.40, weekendFactor: 0.30, loadFactor: 0.55, intensityKwhPerSqFt: 14 },
-  institutional:    { operatingStart: 7,  operatingEnd: 17, baseNight: 0.25, weekendFactor: 0.20, loadFactor: 0.40, intensityKwhPerSqFt: 20 },
-};
-
-// Schedule overrides: how they modify operating hours
 const SCHEDULE_OVERRIDES: Record<string, { operatingStart: number; operatingEnd: number }> = {
   extended: { operatingStart: 5, operatingEnd: 23 },
   '24/7':  { operatingStart: 0, operatingEnd: 24 },
 };
 
-export type BuildingSubType = 'office' | 'warehouse' | 'cold_warehouse' | 'retail' | 'industrial' | 'light_industrial' | 'institutional';
+export type BuildingSubType = BuildingTypeKey;
 export type OperatingSchedule = 'standard' | 'extended' | '24/7';
 
 export interface SyntheticProfileParams {
@@ -106,12 +83,8 @@ function hourlyWeight(hour: number, opStart: number, opEnd: number, baseNight: n
 export function generateSyntheticProfile(params: SyntheticProfileParams): SyntheticProfileResult {
   const { buildingSubType, annualConsumptionKWh, operatingSchedule = 'standard' } = params;
 
-  const archetype = ARCHETYPES[buildingSubType];
-  if (!archetype) {
-    throw new Error(`Unknown building sub-type: ${buildingSubType}`);
-  }
-
-  const monthly = MONTHLY_FACTORS[buildingSubType] || MONTHLY_FACTORS.office;
+  const archetype = getArchetypeParams(buildingSubType);
+  const monthly = getMonthlyFactors(buildingSubType);
 
   // Apply schedule override if not standard
   let opStart = archetype.operatingStart;
@@ -205,8 +178,8 @@ export function estimateAnnualConsumption(params: {
 
   // Priority 2: From building area
   if (buildingSqFt && buildingSqFt > 0) {
-    const archetype = ARCHETYPES[buildingSubType];
-    const intensity = archetype?.intensityKwhPerSqFt ?? 18;
+    const def = getBuildingTypeByKey(buildingSubType);
+    const intensity = def.intensityKwhPerSqFt;
     return Math.round(buildingSqFt * intensity);
   }
 

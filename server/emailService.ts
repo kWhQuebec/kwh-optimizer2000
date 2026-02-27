@@ -3,6 +3,7 @@ import { sendEmailViaOutlook } from "./outlook";
 import { sendEmailViaResend } from "./resend";
 import { renderEmailTemplate } from "./emailTemplates";
 import { createLogger } from "./lib/logger";
+import { getBuildingTypeLabel } from "@shared/buildingTypes";
 
 const log = createLogger("EmailService");
 
@@ -87,18 +88,6 @@ function formatCurrency(amount: number): string {
 
 function formatNumber(amount: number): string {
   return new Intl.NumberFormat('fr-CA').format(amount);
-}
-
-function getBuildingTypeLabel(buildingType: string, lang: 'fr' | 'en'): string {
-  const labels: Record<string, { fr: string; en: string }> = {
-    office: { fr: 'Bureau', en: 'Office' },
-    warehouse: { fr: 'Entrepôt', en: 'Warehouse' },
-    retail: { fr: 'Commerce', en: 'Retail' },
-    industrial: { fr: 'Industriel', en: 'Industrial' },
-    healthcare: { fr: 'Santé', en: 'Healthcare' },
-    education: { fr: 'Éducation', en: 'Education' },
-  };
-  return labels[buildingType]?.[lang] || buildingType;
 }
 
 function getScenarioLabel(key: string, offsetPercent: number, lang: 'fr' | 'en'): { title: string; subtitle: string } {

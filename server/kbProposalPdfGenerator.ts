@@ -11,6 +11,7 @@ import {
   createDocument,
   collectBuffer,
 } from "./pdfTemplates";
+import { getBuildingTypeLabel } from "@shared/buildingTypes";
 
 interface SiteData {
   name: string;
@@ -188,7 +189,7 @@ export function generateKBProposalPDF(
     `${siteData.address || ""}${siteData.postalCode ? " " + siteData.postalCode : ""}`
   );
   if (siteData.buildingType) {
-    y = drawLabelValue(y, t("buildingType"), siteData.buildingType);
+    y = drawLabelValue(y, t("buildingType"), getBuildingTypeLabel(siteData.buildingType, language as 'fr' | 'en'));
   }
 
   y += 15;
