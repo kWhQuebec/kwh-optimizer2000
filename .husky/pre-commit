@@ -1,9 +1,45 @@
 #!/bin/sh
 
-echo "🔍 Pre-commit: Running tests..."
+echo "Pre-commit: Running ESLint + Tests..."
 
-# Run vitest (tests critiques seulement — pas de timeout long)
+# Step 1: ESLint on staged .ts/.tsx files only (fast)
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(ts|tsx)$')
+
+if [ -n "$STAGED_FILES" ]; then
+    echo "Linting staged files..."
+    npx eslint $STAGED_FILES --max-warnings 0 2>&1
+
+    if [ $? -ne 0 ]; then
+        echo "ESLint errors found - commit blocked"
+        echo "  Fix lint errors or run: npx eslint --fix <file>"
+        exit 1
+    fi
+    echo "Lint OK"
+else
+    echo "No staged .ts/.tsx files - skipping lint"
+fi
+
+# Step 2: TypeScript type-check (catch type errors before push)
+echo "Running TypeScript check..."
+npx tsc --noEmit --pretty 2>&1
+
+if [ $? -ne 0 ]; then
+    echo "TypeScript errors found - commit blocked"
+    exit 1
+fi
+echo "Types OK"
+
+# Step 3: Run vitest (critical tests only, bail on first failure)
+echo "Running tests..."
 npx vitest run --bail 1 2>&1
+
+if [ $? -ne 0 ]; then
+    echo "Tests failed - commit blocked"
+    echo "  Fix failing tests before committing."
+    exit 1
+fi
+
+echo "All checks passed - commit authorized"
 
 # Check exit code
 if [ $? -ne 0 ]; then
