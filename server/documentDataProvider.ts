@@ -212,8 +212,8 @@ export async function prepareDocumentData(simulationId: string, storage: IStorag
   const MIN_VALID_IMAGE_SIZE = 10 * 1024;
   const IMG_WIDTH = 800;
   const IMG_HEIGHT = 500;
-  const CAPTURE_WIDTH = 1728;
-  const CAPTURE_HEIGHT = 1080;
+  const CAPTURE_WIDTH = 1920;
+  const CAPTURE_HEIGHT = 800;
 
   async function fetchImageWithRedirects(url: string): Promise<Buffer> {
     const mod = url.startsWith("https") ? await import("https") : await import("http");

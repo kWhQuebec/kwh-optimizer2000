@@ -27,8 +27,8 @@ export async function captureRoofVisualization(params: CaptureParams): Promise<B
   const {
     siteId,
     pvSizeKW = 0,
-    width = 1728,
-    height = 1080,
+    width = 1920,
+    height = 800,
   } = params;
 
   const token = await getInternalToken();
