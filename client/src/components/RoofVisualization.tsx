@@ -1013,6 +1013,7 @@ export function RoofVisualization({
   const roofPolygonObjectsRef = useRef<google.maps.Polygon[]>([]);
   
   const [isLoading, setIsLoading] = useState(true);
+  const [tilesLoaded, setTilesLoaded] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
   const [retryKey, setRetryKey] = useState(0);
   const [allPanelPositions, setAllPanelPositions] = useState<PanelPosition[]>([]);
@@ -1462,6 +1463,7 @@ export function RoofVisualization({
           mapTypeControl: false,
           streetViewControl: false,
           fullscreenControl: false,
+          ...(captureMode ? { backgroundColor: '#1a2e1a' } : {}),
         });
 
         mapRef.current = map;
@@ -1715,6 +1717,17 @@ export function RoofVisualization({
           });
         }
 
+        if (captureMode) {
+          google.maps.event.addListenerOnce(map, 'tilesloaded', () => {
+            console.log('[RoofVisualization] tilesloaded event fired (capture mode)');
+            setTilesLoaded(true);
+          });
+          setTimeout(() => {
+            console.log('[RoofVisualization] tilesloaded safety timeout (10s)');
+            setTilesLoaded(true);
+          }, 10000);
+        }
+
         setIsLoading(false);
       } catch (error) {
         console.error("Map initialization error:", error);
@@ -1727,7 +1740,7 @@ export function RoofVisualization({
     };
 
     initMap();
-  }, [latitude, longitude, roofPolygons, language, generateUnifiedPanelPositions, sortPanelsByRowPriority, retryKey]);
+  }, [latitude, longitude, roofPolygons, language, generateUnifiedPanelPositions, sortPanelsByRowPriority, retryKey, captureMode]);
 
   useEffect(() => {
     if (!mapRef.current || allPanelPositions.length === 0) return;
@@ -2054,12 +2067,11 @@ export function RoofVisualization({
     }
   }, [allPanelPositions, panelsToShow, roofPolygons]);
 
-  // Notify parent when visualization is ready for capture
   useEffect(() => {
-    if (onVisualizationReady && !isLoading && allPanelPositions.length > 0) {
-      onVisualizationReady(captureVisualization);
-    }
-  }, [onVisualizationReady, isLoading, allPanelPositions.length, captureVisualization]);
+    if (!onVisualizationReady || isLoading || allPanelPositions.length === 0) return;
+    if (captureMode && !tilesLoaded) return;
+    onVisualizationReady(captureVisualization);
+  }, [onVisualizationReady, isLoading, allPanelPositions.length, captureVisualization, captureMode, tilesLoaded]);
 
 
   const hasPolygons = roofPolygons.length > 0;

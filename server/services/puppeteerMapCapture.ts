@@ -84,8 +84,14 @@ export async function captureRoofVisualization(params: CaptureParams): Promise<B
       clip: { x: OVERSCAN, y: 0, width, height },
     });
 
-    log.info(`Puppeteer roof capture successful: ${screenshot.length} bytes`);
-    return Buffer.from(screenshot);
+    const buf = Buffer.from(screenshot);
+    try {
+      const fs = await import("fs");
+      fs.writeFileSync("/tmp/roof-capture-debug.png", buf);
+      log.info(`Debug: saved raw capture to /tmp/roof-capture-debug.png`);
+    } catch (_) {}
+    log.info(`Puppeteer roof capture successful: ${buf.length} bytes`);
+    return buf;
   } catch (err) {
     log.error("Puppeteer roof capture failed:", err);
     return null;
