@@ -31,6 +31,7 @@ import {
 import { useI18n } from "@/lib/i18n";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { getAllBuildingTypes, getMonthlyFactors, getBuildingTypeLabel, getBuildingTypeByKey, resolveBuildingTypeKey } from '@shared/buildingTypes';
 
 const MONTHS_FR = ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Août", "Sep", "Oct", "Nov", "Déc"];
 const MONTHS_EN = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -203,8 +204,6 @@ export function LoadProfileEditor({ monthlyData, onUpdate, disabled = false }: L
     </Card>
   );
 }
-
-import { getAllBuildingTypes, getMonthlyFactors, getBuildingTypeLabel } from '@shared/buildingTypes';
 
 const BUILDING_PROFILES: Record<string, number[]> = Object.fromEntries(
   getAllBuildingTypes().map(t => [t.key, t.monthlyFactors])
@@ -518,23 +517,33 @@ const ENERGY_INTENSITY: Record<string, number> = Object.fromEntries(
 interface SyntheticProfileGeneratorProps {
   siteId: string;
   buildingSqFt?: number | null;
+  roofAreaSqM?: number | null;
+  buildingType?: string | null;
   clientWebsite?: string | null;
   onGenerated: () => void;
 }
 
-export function SyntheticProfileGenerator({ siteId, buildingSqFt, clientWebsite, onGenerated }: SyntheticProfileGeneratorProps) {
+function deriveSchedule(key: string): string {
+  const def = getBuildingTypeByKey(key);
+  if (def.operatingStart === 0 && def.operatingEnd === 24) return "24/7";
+  if ((def.operatingEnd - def.operatingStart) > 14) return "extended";
+  return "standard";
+}
+
+export function SyntheticProfileGenerator({ siteId, buildingSqFt, roofAreaSqM, buildingType, clientWebsite, onGenerated }: SyntheticProfileGeneratorProps) {
   const { language } = useI18n();
   const { toast } = useToast();
   const labels = language === "fr" ? BUILDING_SUB_LABELS.fr : BUILDING_SUB_LABELS.en;
   const schedLabels = language === "fr" ? SCHEDULE_LABELS.fr : SCHEDULE_LABELS.en;
 
-  const [buildingSubType, setBuildingSubType] = useState<string>("office");
-  const [operatingSchedule, setOperatingSchedule] = useState<string>("standard");
+  const resolvedType = resolveBuildingTypeKey(buildingType || "");
+  const [buildingSubType, setBuildingSubType] = useState<string>(resolvedType);
+  const [operatingSchedule, setOperatingSchedule] = useState<string>(deriveSchedule(resolvedType));
   const [inputMode, setInputMode] = useState<string>("bill");
   const [billAmount, setBillAmount] = useState<number>(5000);
   const [billingPeriod, setBillingPeriod] = useState<number>(1);
   const [tariffCode, setTariffCode] = useState<string>("M");
-  const [sqFt, setSqFt] = useState<number>(buildingSqFt || 0);
+  const [sqFt, setSqFt] = useState<number>(buildingSqFt || Math.round((roofAreaSqM || 0) * 10.764));
   const [directKWh, setDirectKWh] = useState<number>(0);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isAnalyzingWeb, setIsAnalyzingWeb] = useState(false);

@@ -2142,6 +2142,8 @@ export default function SiteDetailPage() {
             <SyntheticProfileGenerator
               siteId={site.id}
               buildingSqFt={site.buildingSqFt}
+              roofAreaSqM={site.roofAreaSqM}
+              buildingType={site.buildingType}
               clientWebsite={(site as any).client?.website}
               onGenerated={() => refetch()}
             />
