@@ -27,8 +27,8 @@ export async function captureRoofVisualization(params: CaptureParams): Promise<B
   const {
     siteId,
     pvSizeKW = 0,
-    width = 1440,
-    height = 900,
+    width = 1728,
+    height = 1080,
   } = params;
 
   const token = await getInternalToken();
@@ -57,8 +57,11 @@ export async function captureRoofVisualization(params: CaptureParams): Promise<B
 
     page.on("console", (msg) => {
       const type = msg.type();
+      const text = msg.text();
       if (type === "error") {
-        log.warn(`[Browser:error] ${msg.text()}`);
+        log.warn(`[Browser:error] ${text}`);
+      } else if (text.includes("[RoofVisualization]") || text.includes("panelsToShow")) {
+        log.info(`[Browser] ${text}`);
       }
     });
 

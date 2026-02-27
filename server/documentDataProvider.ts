@@ -212,6 +212,8 @@ export async function prepareDocumentData(simulationId: string, storage: IStorag
   const MIN_VALID_IMAGE_SIZE = 10 * 1024;
   const IMG_WIDTH = 800;
   const IMG_HEIGHT = 500;
+  const CAPTURE_WIDTH = 1728;
+  const CAPTURE_HEIGHT = 1080;
 
   async function fetchImageWithRedirects(url: string): Promise<Buffer> {
     const mod = url.startsWith("https") ? await import("https") : await import("http");
@@ -266,6 +268,13 @@ export async function prepareDocumentData(simulationId: string, storage: IStorag
     return { lat: centerLat, lng: centerLng, zoom };
   }
 
+  // Determine the optimal pvSizeKW BEFORE capture so the screenshot shows the recommended panel count
+  let capturePvSizeKW = simulation.pvSizeKW || 0;
+  const sensitivity = simulation.sensitivity as SensitivityAnalysis | null | undefined;
+  if (sensitivity?.optimalScenarios?.bestNPV) {
+    capturePvSizeKW = sensitivity.optimalScenarios.bestNPV.pvSizeKW;
+  }
+
   // Primary method: Use Puppeteer to navigate to the real RoofVisualization React component.
   // This renders the exact same satellite + panel layout the user sees in the HTML view.
   if (simulation.site.latitude && simulation.site.longitude && roofPolygonsRaw.length > 0) {
@@ -273,12 +282,12 @@ export async function prepareDocumentData(simulationId: string, storage: IStorag
       const { captureRoofVisualization } = await import("./services/puppeteerMapCapture");
       const center = computeSatelliteCenter(roofPolygonsRaw, simulation.site.latitude, simulation.site.longitude);
       satelliteCenter = center;
-      log.info(`Attempting Puppeteer roof capture via real RoofVisualization component: siteId=${simulation.siteId}, pvSizeKW=${simulation.pvSizeKW}, polygons=${roofPolygons.length}`);
+      log.info(`Attempting Puppeteer roof capture via real RoofVisualization component: siteId=${simulation.siteId}, pvSizeKW=${capturePvSizeKW} (optimal), polygons=${roofPolygons.length}`);
       const buf = await captureRoofVisualization({
         siteId: simulation.siteId,
-        pvSizeKW: simulation.pvSizeKW || 0,
-        width: IMG_WIDTH,
-        height: IMG_HEIGHT,
+        pvSizeKW: capturePvSizeKW,
+        width: CAPTURE_WIDTH,
+        height: CAPTURE_HEIGHT,
       });
       if (buf && buf.length >= MIN_VALID_IMAGE_SIZE) {
         roofVisualizationBuffer = buf;
