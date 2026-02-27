@@ -94,6 +94,7 @@ export default function RoofCapturePage() {
         maxPVCapacityKW={pvSizeKW * 2 || 5000}
         currentPVSizeKW={pvSizeKW || undefined}
         onVisualizationReady={handleVisualizationReady}
+        captureMode={true}
       />
     </div>
   );

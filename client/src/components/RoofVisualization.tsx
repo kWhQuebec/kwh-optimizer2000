@@ -60,6 +60,7 @@ interface RoofVisualizationProps {
   }) => void;
   onVisualizationReady?: (captureFunction: () => Promise<string | null>) => void;
   onOpenRoofDrawing?: () => void;
+  captureMode?: boolean;
 }
 
 interface PanelPosition {
@@ -998,6 +999,7 @@ export function RoofVisualization({
   onGeometryCalculated,
   onVisualizationReady,
   onOpenRoofDrawing,
+  captureMode,
 }: RoofVisualizationProps) {
   const { language } = useI18n();
   const { toast } = useToast();
@@ -1704,14 +1706,17 @@ export function RoofVisualization({
               bounds.extend({ lat, lng });
             }
           }
-          map.fitBounds(bounds, 0);  // No padding - maximum zoom on roof
-          // After fitBounds, zoom in one more level for tighter focus
-          google.maps.event.addListenerOnce(map, 'bounds_changed', () => {
-            const currentZoom = map.getZoom();
-            if (currentZoom && currentZoom < 21) {
-              map.setZoom(currentZoom + 1);
-            }
-          });
+          if (captureMode) {
+            map.fitBounds(bounds, 80);
+          } else {
+            map.fitBounds(bounds, 0);
+            google.maps.event.addListenerOnce(map, 'bounds_changed', () => {
+              const currentZoom = map.getZoom();
+              if (currentZoom && currentZoom < 21) {
+                map.setZoom(currentZoom + 1);
+              }
+            });
+          }
         }
 
         setIsLoading(false);
