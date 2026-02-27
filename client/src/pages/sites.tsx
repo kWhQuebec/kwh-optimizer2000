@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Link, useParams } from "wouter";
-import { Plus, Building2, MapPin, CheckCircle2, Clock, MoreHorizontal, Pencil, Trash2, BarChart3, ArrowLeft, Users, ChevronLeft, ChevronRight, ChevronDown, Grid3X3, AlertTriangle, Archive, ArchiveRestore, Eye, EyeOff, FileSignature, Download, Calendar, FileText, FolderOpen, X, ArrowUpDown, LayoutGrid, List } from "lucide-react";
+import { Plus, Building2, MapPin, CheckCircle2, Clock, MoreHorizontal, Pencil, Trash2, BarChart3, ArrowLeft, Users, ChevronLeft, ChevronRight, ChevronDown, Grid3X3, AlertTriangle, Archive, ArchiveRestore, Eye, EyeOff, FileSignature, Download, Calendar, FileText, FolderOpen, X, ArrowUpDown, LayoutGrid, List, Mail, Phone, Globe, User, Settings2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
@@ -782,127 +782,199 @@ export default function SitesPage() {
 
   return (
     <div className="space-y-6">
-      {/* Back button and breadcrumb when viewing a specific client's sites */}
       {currentClient && (
-        <div className="flex items-center gap-3">
-          <Link href="/app/clients">
-            <Button variant="ghost" size="icon" data-testid="button-back-clients">
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
+        <div className="space-y-4">
+          <Link href="/app/clients" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground" data-testid="link-back-clients">
+            <ArrowLeft className="w-3.5 h-3.5" />
+            {language === "fr" ? "Clients" : "Clients"}
           </Link>
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Users className="w-4 h-4" />
-            <span>{currentClient.name}</span>
-          </div>
+          <Card>
+            <CardContent className="p-5">
+              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                <div className="space-y-3 min-w-0 flex-1">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                      <Building2 className="w-5 h-5 text-primary" />
+                    </div>
+                    <h1 className="text-xl font-bold tracking-tight truncate" data-testid="text-client-name">
+                      {currentClient.name}
+                    </h1>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-sm text-muted-foreground">
+                    {currentClient.mainContactName && (
+                      <span className="flex items-center gap-1.5">
+                        <User className="w-3.5 h-3.5 shrink-0" />
+                        {currentClient.mainContactName}
+                      </span>
+                    )}
+                    {currentClient.email && (
+                      <a href={`mailto:${currentClient.email}`} className="flex items-center gap-1.5 hover:text-foreground" data-testid="link-client-email">
+                        <Mail className="w-3.5 h-3.5 shrink-0" />
+                        {currentClient.email}
+                      </a>
+                    )}
+                    {currentClient.phone && (
+                      <a href={`tel:${currentClient.phone}`} className="flex items-center gap-1.5 hover:text-foreground" data-testid="link-client-phone">
+                        <Phone className="w-3.5 h-3.5 shrink-0" />
+                        {currentClient.phone}
+                      </a>
+                    )}
+                    {currentClient.website && (
+                      <a href={currentClient.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 hover:text-foreground" data-testid="link-client-website">
+                        <Globe className="w-3.5 h-3.5 shrink-0" />
+                        {currentClient.website}
+                      </a>
+                    )}
+                    {(currentClient.address || currentClient.city) && (
+                      <span className="flex items-center gap-1.5">
+                        <MapPin className="w-3.5 h-3.5 shrink-0" />
+                        {[currentClient.address, currentClient.city, currentClient.province, currentClient.postalCode].filter(Boolean).join(", ")}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 shrink-0">
+                  <div className="text-center px-3 py-1.5 rounded-lg bg-muted/50" data-testid="stat-total-sites">
+                    <p className="text-lg font-bold">{totalSites}</p>
+                    <p className="text-xs text-muted-foreground">{language === "fr" ? "Sites" : "Sites"}</p>
+                  </div>
+                  <div className="text-center px-3 py-1.5 rounded-lg bg-muted/50" data-testid="stat-roof-validated">
+                    <p className="text-lg font-bold">{sites.filter(s => s.roofAreaValidated).length}</p>
+                    <p className="text-xs text-muted-foreground">{language === "fr" ? "Toits" : "Roofs"}</p>
+                  </div>
+                  <div className="text-center px-3 py-1.5 rounded-lg bg-muted/50" data-testid="stat-analysis-ready">
+                    <p className="text-lg font-bold">{sites.filter(s => s.analysisAvailable).length}</p>
+                    <p className="text-xs text-muted-foreground">{language === "fr" ? "Analyses" : "Analyses"}</p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
 
-      {/* Unified Documents Section - HQ Bills + Procurations */}
-      {currentClient && documents && documents.length > 0 && (
-        <Card>
-          <Collapsible defaultOpen={true}>
-            <CollapsibleTrigger asChild>
-              <CardContent className="p-4 cursor-pointer hover-elevate flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                    <FolderOpen className="w-5 h-5 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold">
-                      {language === "fr" ? "Documents" : "Documents"}
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      {documents.length} {language === "fr" ? "document(s)" : "document(s)"}
-                    </p>
-                  </div>
-                </div>
-                <ChevronDown className="w-4 h-4 text-muted-foreground" />
-              </CardContent>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <div className="px-4 pb-4 space-y-2">
-                {documents.map((doc) => (
-                  <div 
-                    key={doc.id} 
-                    className="flex items-center justify-between p-3 rounded-lg border bg-card"
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      {doc.type === 'procuration' ? (
-                        <FileSignature className="w-4 h-4 text-green-600 shrink-0" />
-                      ) : (
-                        <FileText className="w-4 h-4 text-blue-600 shrink-0" />
-                      )}
-                      <div className="min-w-0">
-                        <p className="font-medium truncate">
-                          {doc.name}
-                        </p>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <Badge variant="secondary" className="text-xs">
-                            {doc.type === 'procuration' 
-                              ? (language === "fr" ? "Procuration" : "Authorization")
-                              : (language === "fr" ? "Facture Hydro-Québec" : "Hydro-Québec Bill")
-                            }
-                          </Badge>
-                          {doc.metadata?.hqAccountNumber && (
-                            <>
-                              <span>•</span>
-                              <span>{doc.metadata.hqAccountNumber}</span>
-                            </>
-                          )}
-                          {doc.uploadedAt && (
-                            <>
-                              <span>•</span>
-                              <Calendar className="w-3 h-3" />
-                              <span>
-                                {new Date(doc.uploadedAt).toLocaleDateString(language === "fr" ? "fr-CA" : "en-CA")}
-                                {" "}
-                                {new Date(doc.uploadedAt).toLocaleTimeString(language === "fr" ? "fr-CA" : "en-CA", { hour: '2-digit', minute: '2-digit' })}
-                              </span>
-                            </>
-                          )}
-                        </div>
+      {currentClient && documents && documents.length > 0 && (() => {
+        const hqBills = documents.filter(d => d.type === 'hq_bill');
+        const procurations = documents.filter(d => d.type === 'procuration');
+        return (
+          <Card>
+            <Collapsible defaultOpen={false}>
+              <CollapsibleTrigger asChild>
+                <CardContent className="p-4 cursor-pointer hover-elevate flex items-center justify-between gap-2" data-testid="button-toggle-documents">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                      <FolderOpen className="w-4 h-4 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-sm">Documents</h3>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        {hqBills.length > 0 && (
+                          <span>{hqBills.length} {language === "fr" ? "facture(s) HQ" : "HQ bill(s)"}</span>
+                        )}
+                        {hqBills.length > 0 && procurations.length > 0 && <span>·</span>}
+                        {procurations.length > 0 && (
+                          <span>{procurations.length} {language === "fr" ? "procuration(s)" : "authorization(s)"}</span>
+                        )}
                       </div>
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={async () => {
-                        try {
-                          if (doc.type === 'procuration') {
-                            const filename = `${doc.name.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
-                            await downloadWithAuth(doc.downloadPath, filename);
-                          } else {
-                            const filename = doc.name;
-                            await downloadWithAuth(`/api/hq-bills/download?path=${encodeURIComponent(doc.downloadPath)}`, filename);
-                          }
-                        } catch (error) {
-                          console.error('Download failed:', error);
-                        }
-                      }}
-                      data-testid={`button-download-doc-${doc.id}`}
-                    >
-                      <Download className="w-4 h-4 mr-1" />
-                      PDF
-                    </Button>
                   </div>
-                ))}
-              </div>
-            </CollapsibleContent>
-          </Collapsible>
-        </Card>
-      )}
+                  <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
+                </CardContent>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div className="px-4 pb-4 space-y-3">
+                  {hqBills.length > 0 && (
+                    <div className="space-y-1">
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-1">
+                        {language === "fr" ? "Factures Hydro-Québec" : "Hydro-Québec Bills"}
+                      </p>
+                      <div className="space-y-1">
+                        {hqBills.map((doc) => (
+                          <div key={doc.id} className="flex items-center justify-between py-2 px-3 rounded-md border text-sm" data-testid={`row-doc-${doc.id}`}>
+                            <div className="flex items-center gap-2 min-w-0">
+                              <FileText className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                              <span className="font-medium truncate">{doc.name}</span>
+                              {doc.metadata?.hqAccountNumber && (
+                                <span className="text-xs text-muted-foreground hidden sm:inline">#{doc.metadata.hqAccountNumber}</span>
+                              )}
+                              {doc.uploadedAt && (
+                                <span className="text-xs text-muted-foreground hidden md:inline">
+                                  {new Date(doc.uploadedAt).toLocaleDateString(language === "fr" ? "fr-CA" : "en-CA")}
+                                </span>
+                              )}
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              aria-label={language === "fr" ? "Télécharger le document" : "Download document"}
+                              onClick={async () => {
+                                try {
+                                  await downloadWithAuth(`/api/hq-bills/download?path=${encodeURIComponent(doc.downloadPath)}`, doc.name);
+                                } catch (error) { console.error('Download failed:', error); }
+                              }}
+                              data-testid={`button-download-doc-${doc.id}`}
+                            >
+                              <Download className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {procurations.length > 0 && (
+                    <div className="space-y-1">
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-1">
+                        {language === "fr" ? "Procurations" : "Authorizations"}
+                      </p>
+                      <div className="space-y-1">
+                        {procurations.map((doc) => (
+                          <div key={doc.id} className="flex items-center justify-between py-2 px-3 rounded-md border text-sm" data-testid={`row-doc-${doc.id}`}>
+                            <div className="flex items-center gap-2 min-w-0">
+                              <FileSignature className="w-3.5 h-3.5 text-green-600 shrink-0" />
+                              <span className="font-medium truncate">{doc.name}</span>
+                              {doc.metadata?.hqAccountNumber && (
+                                <span className="text-xs text-muted-foreground hidden sm:inline">#{doc.metadata.hqAccountNumber}</span>
+                              )}
+                              {doc.uploadedAt && (
+                                <span className="text-xs text-muted-foreground hidden md:inline">
+                                  {new Date(doc.uploadedAt).toLocaleDateString(language === "fr" ? "fr-CA" : "en-CA")}
+                                </span>
+                              )}
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              aria-label={language === "fr" ? "Télécharger le document" : "Download document"}
+                              onClick={async () => {
+                                try {
+                                  const filename = `${doc.name.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
+                                  await downloadWithAuth(doc.downloadPath, filename);
+                                } catch (error) { console.error('Download failed:', error); }
+                              }}
+                              data-testid={`button-download-doc-${doc.id}`}
+                            >
+                              <Download className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+          </Card>
+        );
+      })()}
 
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            {currentClient 
-              ? `${t("sites.title")} - ${currentClient.name}`
-              : t("sites.title")
-            }
+          <h1 className={`font-bold tracking-tight ${currentClient ? 'text-xl' : 'text-3xl'}`}>
+            {currentClient ? t("sites.title") : t("sites.title")}
           </h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-sm text-muted-foreground">
             {currentClient 
-              ? `${totalSites} site(s) pour ce client`
+              ? `${totalSites} site(s)`
               : language === "fr" 
                 ? `${totalSites} site(s) au total`
                 : `${totalSites} site(s) total`
@@ -911,21 +983,9 @@ export default function SitesPage() {
         </div>
         
         <div className="flex items-center gap-2">
-          {sites.length > 0 && (
-            <div className="flex items-center gap-2 mr-2">
-              <Checkbox
-                checked={selectedSites.size > 0 && selectedSites.size === sites.length}
-                onCheckedChange={toggleSelectAll}
-                data-testid="checkbox-select-all-sites"
-              />
-              <span className="text-sm text-muted-foreground">
-                {language === "fr" ? "Tout" : "All"}
-              </span>
-            </div>
-          )}
           <Select value={sortBy} onValueChange={(val) => { setSortBy(val); setPage(0); }}>
-            <SelectTrigger className="w-[180px]" data-testid="select-sort-sites">
-              <ArrowUpDown className="w-4 h-4 mr-2 shrink-0" />
+            <SelectTrigger className="w-[150px]" data-testid="select-sort-sites">
+              <ArrowUpDown className="w-3.5 h-3.5 mr-1.5 shrink-0" />
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -943,69 +1003,70 @@ export default function SitesPage() {
               </SelectItem>
             </SelectContent>
           </Select>
-          <div className="flex border rounded-md">
-            <Button
-              variant="ghost"
-              size="icon"
-              className={`rounded-r-none ${viewMode === "grid" ? "bg-muted" : ""}`}
-              onClick={() => { setViewMode("grid"); localStorage.setItem("sites-view-mode", "grid"); }}
-              data-testid="button-view-grid"
-            >
-              <LayoutGrid className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className={`rounded-l-none ${viewMode === "list" ? "bg-muted" : ""}`}
-              onClick={() => { setViewMode("list"); localStorage.setItem("sites-view-mode", "list"); }}
-              data-testid="button-view-list"
-            >
-              <List className="w-4 h-4" />
-            </Button>
-          </div>
-          <Button
-            variant={showArchived ? "default" : "outline"}
-            size="sm"
-            onClick={() => {
-              setShowArchived(!showArchived);
-              setPage(0);
-            }}
-            className="gap-2"
-            data-testid="button-toggle-archived-sites"
-          >
-            {showArchived ? (
-              <>
-                <Eye className="w-4 h-4" />
-                {language === "fr" ? "Archivés visibles" : "Showing archived"}
-              </>
-            ) : (
-              <>
-                <EyeOff className="w-4 h-4" />
-                {language === "fr" ? "Afficher archivés" : "Show archived"}
-              </>
-            )}
-          </Button>
-          
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon" data-testid="button-sites-options">
+                <Settings2 className="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem onClick={toggleSelectAll} data-testid="menu-select-all">
+                <Checkbox
+                  checked={selectedSites.size > 0 && selectedSites.size === sites.length}
+                  className="mr-2 pointer-events-none"
+                  tabIndex={-1}
+                  data-testid="checkbox-select-all-sites"
+                />
+                {language === "fr" ? "Tout sélectionner" : "Select all"}
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={() => { setShowArchived(!showArchived); setPage(0); }}
+                data-testid="menu-toggle-archived"
+              >
+                {showArchived ? <Eye className="w-4 h-4 mr-2" /> : <EyeOff className="w-4 h-4 mr-2" />}
+                {showArchived 
+                  ? (language === "fr" ? "Masquer archivés" : "Hide archived")
+                  : (language === "fr" ? "Voir archivés" : "Show archived")
+                }
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={() => { 
+                  const next = viewMode === "grid" ? "list" : "grid";
+                  setViewMode(next);
+                  localStorage.setItem("sites-view-mode", next);
+                }}
+                data-testid="menu-toggle-view"
+              >
+                {viewMode === "grid" ? <List className="w-4 h-4 mr-2" /> : <LayoutGrid className="w-4 h-4 mr-2" />}
+                {viewMode === "grid"
+                  ? (language === "fr" ? "Vue liste" : "List view")
+                  : (language === "fr" ? "Vue grille" : "Grid view")
+                }
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="gap-2" disabled={!clients || clients.length === 0} data-testid="button-add-site">
-              <Plus className="w-4 h-4" />
-              {t("sites.add")}
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-lg">
-            <DialogHeader>
-              <DialogTitle>{t("sites.add")}</DialogTitle>
-            </DialogHeader>
-            <SiteForm
-              site={clientId ? { clientId } as Site : undefined}
-              clients={clientId ? clients?.filter(c => c.id === clientId) || [] : clients || []}
-              onSubmit={handleCreateWithClient}
-              onCancel={() => setDialogOpen(false)}
-              isLoading={createMutation.isPending}
-            />
-          </DialogContent>
-        </Dialog>
+            <DialogTrigger asChild>
+              <Button className="gap-2" disabled={!clients || clients.length === 0} data-testid="button-add-site">
+                <Plus className="w-4 h-4" />
+                {t("sites.add")}
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-lg">
+              <DialogHeader>
+                <DialogTitle>{t("sites.add")}</DialogTitle>
+              </DialogHeader>
+              <SiteForm
+                site={clientId ? { clientId } as Site : undefined}
+                clients={clientId ? clients?.filter(c => c.id === clientId) || [] : clients || []}
+                onSubmit={handleCreateWithClient}
+                onCancel={() => setDialogOpen(false)}
+                isLoading={createMutation.isPending}
+              />
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
