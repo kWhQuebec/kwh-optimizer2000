@@ -572,52 +572,56 @@ function buildProjectSnapshotPage(
       </div>`;
 
   return `
-  <div class="page">
-    <h2>${t("Aper&ccedil;u du projet", "Project Snapshot")}</h2>
-    <div class="metrics-grid">
-      <div class="metric-card metric-highlight">
-        <span class="metric-label">${t("Puissance syst&egrave;me", "System Power")}</span>
-        <span class="metric-value">${fmt(sim.pvSizeKW)} kW</span>
-      </div>
-      <div class="metric-card">
-        <span class="metric-label">${t("Production", "Production")}</span>
-        <span class="metric-value">${fmt(totalProductionKWh)} kWh/${t("an", "yr")}</span>
-      </div>
-      <div class="metric-card">
-        <span class="metric-label">${t("Couverture &eacute;nerg&eacute;tique", "Energy Coverage")}</span>
-        <span class="metric-value">${Math.round(sim.selfSufficiencyPercent)}%</span>
-      </div>
-    </div>
-    <div class="two-column">
-      <div class="section">
-        <h3>${t("Informations du site", "Site Information")}</h3>
-        <div class="info-box">
-          <p><strong>${t("Adresse:", "Address:")}</strong> ${sim.site.address || t("&Agrave; d&eacute;terminer", "To be determined")}</p>
-          <p><strong>${t("Consommation annuelle:", "Annual consumption:")}</strong> ${fmt(sim.annualConsumptionKWh)} kWh</p>
-          <p><strong>${t("Pointe de demande:", "Peak demand:")}</strong> ${fmt(sim.peakDemandKW)} kW</p>
-          ${sim.assumptions ? `<p><strong>${t("Surface toiture:", "Roof area:")}</strong> ${fmt(sim.assumptions.roofAreaSqFt)} pi&sup2;</p>` : ""}
+  <div class="page" style="padding-left: 0; padding-right: 0;">
+    <div style="padding: 0 20mm;">
+      <h2>${t("Aper&ccedil;u du projet", "Project Snapshot")}</h2>
+      <div class="metrics-grid">
+        <div class="metric-card metric-highlight">
+          <span class="metric-label">${t("Puissance syst&egrave;me", "System Power")}</span>
+          <span class="metric-value">${fmt(sim.pvSizeKW)} kW</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-label">${t("Production", "Production")}</span>
+          <span class="metric-value">${fmt(totalProductionKWh)} kWh/${t("an", "yr")}</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-label">${t("Couverture &eacute;nerg&eacute;tique", "Energy Coverage")}</span>
+          <span class="metric-value">${Math.round(sim.selfSufficiencyPercent)}%</span>
         </div>
       </div>
-      <div class="section">
-        <h3>${t("Impact environnemental", "Environmental Impact")}</h3>
-        <div class="info-box">
-          <p><strong>${t("CO2 &eacute;vit&eacute; (25 ans):", "CO2 avoided (25 yr):")}</strong> ${fmt(Math.round(co2Total25yr))} ${t("tonnes", "tonnes")}</p>
-          <p><strong>${t("&Eacute;quivalent arbres:", "Equivalent trees:")}</strong> ${fmt(co2Trees)} ${t("arbres", "trees")}</p>
-          <p><strong>${t("&Eacute;quivalent voitures:", "Equivalent cars:")}</strong> ${co2Cars} ${t("v&eacute;hicules retir&eacute;s", "vehicles removed")}</p>
-          <p style="font-size: 7.5pt; color: #6b7280; margin-top: 2mm; border-top: 1px solid #e5e7eb; padding-top: 2mm;">
-            ${t(
-              "Facteur d'&eacute;mission: 2 g CO&sub2;e/kWh (Environnement Canada). Le r&eacute;seau qu&eacute;b&eacute;cois est parmi les plus propres au monde (hydro&eacute;lectricit&eacute; &gt;94%). La valeur principale du solaire est &eacute;conomique et de r&eacute;silience &eacute;nerg&eacute;tique.",
-              "Emission factor: 2 g CO&sub2;e/kWh (Environment Canada). Qu&eacute;bec's grid is among the cleanest in the world (hydroelectricity &gt;94%). The primary value of solar is economic and energy resilience."
-            )}
-          </p>
+      <div class="two-column">
+        <div class="section">
+          <h3>${t("Informations du site", "Site Information")}</h3>
+          <div class="info-box">
+            <p><strong>${t("Adresse:", "Address:")}</strong> ${sim.site.address || t("&Agrave; d&eacute;terminer", "To be determined")}</p>
+            <p><strong>${t("Consommation annuelle:", "Annual consumption:")}</strong> ${fmt(sim.annualConsumptionKWh)} kWh</p>
+            <p><strong>${t("Pointe de demande:", "Peak demand:")}</strong> ${fmt(sim.peakDemandKW)} kW</p>
+            ${sim.assumptions ? `<p><strong>${t("Surface toiture:", "Roof area:")}</strong> ${fmt(sim.assumptions.roofAreaSqFt)} pi&sup2;</p>` : ""}
+          </div>
+        </div>
+        <div class="section">
+          <h3>${t("Impact environnemental", "Environmental Impact")}</h3>
+          <div class="info-box">
+            <p><strong>${t("CO2 &eacute;vit&eacute; (25 ans):", "CO2 avoided (25 yr):")}</strong> ${fmt(Math.round(co2Total25yr))} ${t("tonnes", "tonnes")}</p>
+            <p><strong>${t("&Eacute;quivalent arbres:", "Equivalent trees:")}</strong> ${fmt(co2Trees)} ${t("arbres", "trees")}</p>
+            <p><strong>${t("&Eacute;quivalent voitures:", "Equivalent cars:")}</strong> ${co2Cars} ${t("v&eacute;hicules retir&eacute;s", "vehicles removed")}</p>
+            <p style="font-size: 7.5pt; color: #6b7280; margin-top: 2mm; border-top: 1px solid #e5e7eb; padding-top: 2mm;">
+              ${t(
+                "Facteur d'&eacute;mission: 2 g CO&sub2;e/kWh (Environnement Canada). Le r&eacute;seau qu&eacute;b&eacute;cois est parmi les plus propres au monde (hydro&eacute;lectricit&eacute; &gt;94%). La valeur principale du solaire est &eacute;conomique et de r&eacute;silience &eacute;nerg&eacute;tique.",
+                "Emission factor: 2 g CO&sub2;e/kWh (Environment Canada). Qu&eacute;bec's grid is among the cleanest in the world (hydroelectricity &gt;94%). The primary value of solar is economic and energy resilience."
+              )}
+            </p>
+          </div>
         </div>
       </div>
     </div>
-    <div style="position: relative; left: -21mm; width: 212mm; padding: 0; overflow: hidden;">
-      <div class="chart-title" style="padding: 2mm 21mm 2mm 21mm;">${t("Image satellite du site", "Site Satellite Image")}</div>
+    <div style="width: 100%;">
+      <div class="chart-title" style="padding: 2mm 20mm;">${t("Image satellite du site", "Site Satellite Image")}</div>
       ${satelliteHtml}
     </div>
-    ${footerHtml(t, pageNum)}
+    <div style="padding: 0 20mm;">
+      ${footerHtml(t, pageNum)}
+    </div>
   </div>`;
 }
 
