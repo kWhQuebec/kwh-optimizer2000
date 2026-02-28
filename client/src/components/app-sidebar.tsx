@@ -372,7 +372,7 @@ export function AppSidebar({ forceClientView, previewClientName }: { forceClient
   return (
     <Sidebar>
       <SidebarHeader className="border-b border-sidebar-border px-3 py-3 md:px-4 md:py-4">
-        <a href="/">
+        <a href="/" onClick={(e) => { e.preventDefault(); window.location.href = "/"; }} data-testid="link-logo-home">
           <img 
             src={currentLogo} 
             alt={language === "fr" ? "Logo kWh Québec – CRM solaire" : "kWh Québec Logo – Solar CRM"} 
