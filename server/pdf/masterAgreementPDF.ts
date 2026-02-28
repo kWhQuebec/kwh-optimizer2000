@@ -379,7 +379,9 @@ function buildFinancialFrameworkPage(data: MasterAgreementData, t: (fr: string, 
     const fm = site.financialModel;
     const pvKw = fm?.projectSpecs?.projectSizeDcKw ?? site.pvSizeKW;
     const cost = fm?.projectCosts?.totalProjectCost ?? site.totalProjectCost;
-    const dollarPerW = (pvKw && cost) ? (cost / (pvKw * 1000)).toFixed(2) : "&mdash;";
+    const dollarPerW = fm?.projectCosts?.installCostPerW
+      ? fm.projectCosts.installCostPerW.toFixed(2)
+      : (pvKw && cost) ? (cost / (pvKw * 1000)).toFixed(2) : "&mdash;";
     return `<tr>
       <td>${site.siteName}</td>
       <td class="number">${pvKw ? fmt(pvKw) : "&mdash;"}</td>
@@ -766,9 +768,6 @@ function buildScopeOfWorkPages(t: (fr: string, en: string) => string, dateStr: s
     ${footerHtml(t, dateStr, startPage + 4)}
   </div>`);
 
-  const gpPage1 = generalProvisions.slice(0, 3);
-  const gpPage2 = generalProvisions.slice(3);
-
   pages.push(`
   <div class="page">
     <h3>${t("5.3 &mdash; Dispositions G&eacute;n&eacute;rales", "5.3 &mdash; General Provisions")}</h3>
@@ -781,25 +780,13 @@ function buildScopeOfWorkPages(t: (fr: string, en: string) => string, dateStr: s
     <table class="scope-table">
       <thead><tr><th>${t("Cat&eacute;gorie", "Category")}</th><th>${t("Description", "Description")}</th></tr></thead>
       <tbody>
-        ${gpPage1.map(s => `<tr><td class="scope-cat">${s.cat}</td><td>${s.desc}</td></tr>`).join("")}
-      </tbody>
-    </table>
-    ${footerHtml(t, dateStr, startPage + 5)}
-  </div>`);
-
-  pages.push(`
-  <div class="page">
-    <h3>${t("5.3 &mdash; Dispositions G&eacute;n&eacute;rales (suite)", "5.3 &mdash; General Provisions (cont'd)")}</h3>
-    <table class="scope-table">
-      <thead><tr><th>${t("Cat&eacute;gorie", "Category")}</th><th>${t("Description", "Description")}</th></tr></thead>
-      <tbody>
-        ${gpPage2.map(s => `<tr><td class="scope-cat">${s.cat}</td><td>${s.desc}</td></tr>`).join("")}
+        ${generalProvisions.map(s => `<tr><td class="scope-cat">${s.cat}</td><td>${s.desc}</td></tr>`).join("")}
       </tbody>
     </table>
     <p style="font-size: 8.5pt; color: var(--gray); text-align: center; margin-top: 3mm; font-style: italic;">
       *${t("FIN DES DISPOSITIONS G&Eacute;N&Eacute;RALES", "END OF GENERAL PROVISIONS")}*
     </p>
-    ${footerHtml(t, dateStr, startPage + 6)}
+    ${footerHtml(t, dateStr, startPage + 5)}
   </div>`);
 
   return pages;
