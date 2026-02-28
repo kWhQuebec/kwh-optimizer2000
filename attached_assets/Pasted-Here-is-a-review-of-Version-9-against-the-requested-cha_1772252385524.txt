@@ -1,0 +1,75 @@
+Here is a review of Version 9 against the requested changes from Etienne and Oleg. Most of the revisions have been successfully implemented, but there are a few important discrepancies—most notably regarding the target pricing.
+
+### ✅ Successfully Implemented Changes
+
+* 
+**Executive Summary:** The "Year 1 kWh" metric was removed from the summary table. The "Economies of scale on development fees" line was removed from the Portfolio Benefits.
+
+
+* 
+**Parties & Roles:** "Municipal permits" was successfully removed from the Owner's scope of responsibility.
+
+
+* 
+**Commercial Terms:** The commercial model was updated to "Design-Build Agreement". The lines for PPA Duration, Annual Escalation, Performance Guarantee, Underperformance Penalty, and Ownership Transfer were entirely removed.
+
+
+* 
+**Financial Framework Columns:** The "Year 1 Prod. (kWh)" column was removed and replaced with a "$/W" column.
+
+
+* 
+**Scope of Work Clean-Up:** Value-add items like daily logs and waste management were kept , while unrequested items (Weather Station, Rapid Shutdown, Arc Fault Detection) were removed.
+
+
+* 
+**Thermography:** "Drone Thermography" was changed to "Thermography".
+
+
+* 
+**ITC Scope:** Facilitating the federal ITC application through LCAB was successfully added to the Design-Builder's Scope of Work.
+
+
+* 
+**Schedule of Values:** The milestones were successfully updated to match Oleg's targets, including 15% upon Contract Execution, 25% for 50% Installation Complete, and 20% at Mechanically Complete.
+
+
+* 
+**Legal Terminology:** "Legal hypothec" was successfully changed to "construction legal hypothec" throughout the document, including in the payment terms and supplementary conditions.
+
+
+* 
+**Pricing Assumptions:** The line regarding "Extended warranty pricing (inverters 25 years) included" was removed.
+
+
+* 
+**Annex A Adjustments:** * Annual Degradation was corrected from 50.0% to 0.5%.
+
+
+* The requested footnote regarding DOT interconnection fees being indicative and assumed by Hydro-Québec was added.
+
+
+* The "Effective ITC Rebate" was changed to "Estimated ITC Rebate".
+
+
+* O&M pricing remained at the requested 12.00 rate.
+
+
+
+
+
+---
+
+### ❌ Missed or Incomplete Changes
+
+* **$1.65/W Pricing (Critical):** Oleg explicitly requested that the Financial Framework reflect costs based on **$1.65/W**. While the individual Annex A schedule for site MON7028 shows $1.65/W , the consolidated "Financial Framework" table on pages 5-6 lists **1.75 $/W** for almost all sites, and **1.97 $/W** for the final site.
+
+
+* **Page Consolidation:** Etienne requested that pages 12-13 (General Provisions) be consolidated into a single page. They still span multiple pages in the updated version.
+
+
+* **Entity Name Check:** Etienne requested checking the "right entity name" on the title page. It currently remains exactly the same as Version 8 ("Dream REIT" and "kWh Québec"). You may need to verify if full legal entity names (e.g., *Dream Industrial REIT*) were intended here.
+
+
+
+Would you like me to draft an email reply to Etienne and James summarizing these remaining corrections so they can finalize the document?
