@@ -263,13 +263,11 @@ function buildTocPage(t: (fr: string, en: string) => string, dateStr: string): s
 
 function buildExecutiveSummaryPage(data: MasterAgreementData, t: (fr: string, en: string) => string, dateStr: string): string {
   const totalKw = data.totalPvSizeKW ? fmt(data.totalPvSizeKW) : "&mdash;";
-  const totalKwh = data.totalFirstYearKwh ? fmt(data.totalFirstYearKwh) : "&mdash;";
   const totalInvest = data.totalCapexNet ? cur(data.totalCapexNet) : "&mdash;";
 
   const benefits = [
     t("Rabais volume sur l'approvisionnement en &eacute;quipement et la main-d'&oelig;uvre", "Volume discount on equipment procurement and labour"),
     t("Gestion de projet unifi&eacute;e avec un seul point de contact", "Unified project management with a single point of contact"),
-    t("&Eacute;conomies d'&eacute;chelle sur les frais de d&eacute;veloppement", "Economies of scale on development fees"),
     t("Contrat global d'exploitation et maintenance (O&amp;M)", "Global operations &amp; maintenance (O&amp;M) contract"),
     t("Rapport consolid&eacute; et suivi centralis&eacute; de la performance", "Consolidated reporting and centralized performance monitoring"),
   ];
@@ -287,7 +285,6 @@ function buildExecutiveSummaryPage(data: MasterAgreementData, t: (fr: string, en
     <div class="kpi-grid">
       <div class="kpi-card"><span class="kpi-value">${data.numBuildings}</span><span class="kpi-label">Sites</span></div>
       <div class="kpi-card"><span class="kpi-value">${totalKw}</span><span class="kpi-label">Total kW DC</span></div>
-      <div class="kpi-card"><span class="kpi-value">${totalKwh}</span><span class="kpi-label">${t("kWh An 1", "Year 1 kWh")}</span></div>
       <div class="kpi-card"><span class="kpi-value">${totalInvest}</span><span class="kpi-label">${t("Investissement Total", "Total Investment")}</span></div>
     </div>
     <h3>${t("Avantages du Portfolio", "Portfolio Benefits")}</h3>
@@ -308,8 +305,8 @@ function buildPartiesPage(t: (fr: string, en: string) => string, dateStr: string
         <div class="role-type">${t("Propri&eacute;taire", "Owner")}</div>
         <div class="role-name">Dream Industrial REIT</div>
         <div class="role-desc">${t(
-          "Propri&eacute;taire des b&acirc;timents et b&eacute;n&eacute;ficiaire de l'&eacute;nergie produite. Responsable des frais d'interconnexion (Hydro-Qu&eacute;bec), permis municipaux et acc&egrave;s au toit.",
-          "Property owner and beneficiary of produced energy. Responsible for interconnection fees (Hydro-Qu&eacute;bec), municipal permits and roof access."
+          "Propri&eacute;taire des b&acirc;timents et b&eacute;n&eacute;ficiaire de l'&eacute;nergie produite. Responsable des frais d'interconnexion (Hydro-Qu&eacute;bec) et de l'acc&egrave;s au toit.",
+          "Property owner and beneficiary of produced energy. Responsible for interconnection fees (Hydro-Qu&eacute;bec) and roof access."
         )}</div>
       </div>
       <div class="role-card">
@@ -341,14 +338,9 @@ function buildPartiesPage(t: (fr: string, en: string) => string, dateStr: string
 function buildCommercialTermsPage(t: (fr: string, en: string) => string, dateStr: string): string {
   const terms = [
     { clause: t("Structure du Contrat", "Contract Structure"), details: t("Entente cadre CCDC&nbsp;14 avec conditions suppl&eacute;mentaires et annexes par site", "CCDC&nbsp;14 master agreement with supplementary conditions and per-site annexes") },
-    { clause: t("Mod&egrave;le Commercial", "Commercial Model"), details: t("PPA (Power Purchase Agreement) &mdash; vente d'&eacute;nergie", "PPA (Power Purchase Agreement) &mdash; energy sale") },
-    { clause: t("Dur&eacute;e du PPA", "PPA Duration"), details: t("25 ans, avec option de prolongation", "25 years, with extension option") },
-    { clause: t("Indexation Annuelle", "Annual Escalation"), details: t("Selon l'indice d&eacute;fini par site", "Per site-defined escalation index") },
-    { clause: t("Garantie de Performance", "Performance Guarantee"), details: t("Ratio de performance minimum de 80&nbsp;% garanti", "Minimum 80% performance ratio guaranteed") },
-    { clause: t("P&eacute;nalit&eacute; de Sous-Performance", "Underperformance Penalty"), details: t("Cr&eacute;dit &eacute;nerg&eacute;tique pour production sous 80&nbsp;% du P50", "Energy credit for production below 80% of P50") },
+    { clause: t("Mod&egrave;le Commercial", "Commercial Model"), details: t("Contrat de conception-construction (Design-Build)", "Design-Build Agreement") },
     { clause: t("Assurance", "Insurance"), details: t("Couverture tous risques construction + responsabilit&eacute; professionnelle (min. 5&nbsp;M$)", "All-risk construction coverage + professional liability (min. $5M)") },
-    { clause: t("Cr&eacute;dit d'Imp&ocirc;t (CII)", "Investment Tax Credit (ITC)"), details: t("&Eacute;ligibilit&eacute; au CII f&eacute;d&eacute;ral &mdash; montant par site", "Federal ITC eligibility &mdash; amount per site") },
-    { clause: t("Transfert de Propri&eacute;t&eacute;", "Ownership Transfer"), details: t("L'&eacute;quipement devient propri&eacute;t&eacute; de Dream &agrave; la fin du PPA", "Equipment becomes Dream's property at end of PPA") },
+    { clause: t("Cr&eacute;dit d'Imp&ocirc;t (CII)", "Investment Tax Credit (ITC)"), details: t("&Eacute;ligibilit&eacute; au CII f&eacute;d&eacute;ral &mdash; montant estim&eacute; par site", "Federal ITC eligibility &mdash; estimated amount per site") },
     { clause: t("Calendrier de Construction", "Construction Schedule"), details: t("D&eacute;ploiement progressif &mdash; phases d&eacute;finies par site", "Progressive deployment &mdash; site-defined phases") },
   ];
 
@@ -369,7 +361,6 @@ function buildCommercialTermsPage(t: (fr: string, en: string) => string, dateStr
 function buildFinancialFrameworkPage(data: MasterAgreementData, t: (fr: string, en: string) => string, dateStr: string): string[] {
 
   const totalPv = data.totalPvSizeKW ? fmt(data.totalPvSizeKW) : "&mdash;";
-  const totalKwh = data.totalFirstYearKwh ? fmt(data.totalFirstYearKwh) : "&mdash;";
   const totalCost = data.totalCapexNet ? cur(data.totalCapexNet) : "&mdash;";
 
   const allRows = data.sites;
@@ -380,19 +371,19 @@ function buildFinancialFrameworkPage(data: MasterAgreementData, t: (fr: string, 
   const tableHead = `<thead><tr>
         <th>${t("Site", "Site")}</th>
         <th style="text-align:right">${t("Taille DC (kW)", "DC Size (kW)")}</th>
-        <th style="text-align:right">${t("Prod. An 1 (kWh)", "Year 1 Prod. (kWh)")}</th>
+        <th style="text-align:right">$/W</th>
         <th style="text-align:right">${t("Co&ucirc;t Total", "Total Cost")}</th>
       </tr></thead>`;
 
   const makeRows = (sites: typeof allRows) => sites.map(site => {
     const fm = site.financialModel;
     const pvKw = fm?.projectSpecs?.projectSizeDcKw ?? site.pvSizeKW;
-    const yr1 = fm?.projectSpecs?.firstYearKwh ?? site.firstYearKwh;
     const cost = fm?.projectCosts?.totalProjectCost ?? site.totalProjectCost;
+    const dollarPerW = (pvKw && cost) ? (cost / (pvKw * 1000)).toFixed(2) : "&mdash;";
     return `<tr>
       <td>${site.siteName}</td>
       <td class="number">${pvKw ? fmt(pvKw) : "&mdash;"}</td>
-      <td class="number">${yr1 ? fmt(yr1) : "&mdash;"}</td>
+      <td class="number">${dollarPerW !== "&mdash;" ? `${dollarPerW}&nbsp;$/W` : "&mdash;"}</td>
       <td class="number">${cost ? cur(cost) : "&mdash;"}</td>
     </tr>`;
   }).join("");
@@ -429,7 +420,7 @@ function buildFinancialFrameworkPage(data: MasterAgreementData, t: (fr: string, 
         <tr class="total-row">
           <td>TOTAL / AVG.</td>
           <td class="number">${totalPv}</td>
-          <td class="number">${totalKwh}</td>
+          <td class="number">${data.totalPvSizeKW && data.totalCapexNet ? `${(data.totalCapexNet / (data.totalPvSizeKW * 1000)).toFixed(2)}&nbsp;$/W` : "&mdash;"}</td>
           <td class="number">${totalCost}</td>
         </tr>
       </tbody>
@@ -442,7 +433,7 @@ function buildFinancialFrameworkPage(data: MasterAgreementData, t: (fr: string, 
         <tr class="total-row">
           <td>TOTAL / AVG.</td>
           <td class="number">${totalPv}</td>
-          <td class="number">${totalKwh}</td>
+          <td class="number">${data.totalPvSizeKW && data.totalCapexNet ? `${(data.totalCapexNet / (data.totalPvSizeKW * 1000)).toFixed(2)}&nbsp;$/W` : "&mdash;"}</td>
           <td class="number">${totalCost}</td>
         </tr>
       </tbody>`);
@@ -627,41 +618,6 @@ function buildScopeOfWorkPages(t: (fr: string, en: string) => string, dateStr: s
       ),
     },
     {
-      cat: t("Station m&eacute;t&eacute;orologique", "Weather Station"),
-      desc: t(
-        "Installer une station m&eacute;t&eacute;orologique sur chaque site comprenant : capteur d'irradiance dans le plan des modules (POA), capteur d'irradiance horizontale (GHI), capteur de temp&eacute;rature ambiante et capteur de temp&eacute;rature de module. Les donn&eacute;es seront int&eacute;gr&eacute;es au syst&egrave;me de surveillance.",
-        "Install a weather station at each site comprising: plane-of-array (POA) irradiance sensor, global horizontal irradiance (GHI) sensor, ambient temperature sensor and module temperature sensor. Data shall be integrated into the monitoring system."
-      ),
-    },
-    {
-      cat: t("Surveillance par cha&icirc;ne", "String-Level Monitoring"),
-      desc: t(
-        "Fournir et installer un syst&egrave;me de surveillance au niveau de la cha&icirc;ne (string-level) permettant la d&eacute;tection rapide des d&eacute;faillances de modules individuels, des probl&egrave;mes de c&acirc;blage et des ombrages partiels. Les donn&eacute;es seront accessibles via le portail de surveillance en ligne.",
-        "Supply and install a string-level monitoring system enabling rapid detection of individual module failures, wiring issues and partial shading. Data shall be accessible via the online monitoring portal."
-      ),
-    },
-    {
-      cat: t("Pare-neige et dissuasifs aviaires", "Snow Guards &amp; Bird Deterrents"),
-      desc: t(
-        "Installer des pare-neige sur les rang&eacute;es de modules situ&eacute;es au-dessus des entr&eacute;es de b&acirc;timent, des zones de circulation pi&eacute;tonni&egrave;re et des quais de chargement. Installer des filets ou grillages de protection aviaire sous les modules pour pr&eacute;venir la nidification.",
-        "Install snow guards on module rows located above building entrances, pedestrian walkways and loading docks. Install bird netting or wire mesh under modules to prevent nesting."
-      ),
-    },
-    {
-      cat: t("D&eacute;tection d'arc &eacute;lectrique", "Arc Fault Detection"),
-      desc: t(
-        "Fournir et installer des dispositifs de d&eacute;tection d'arc &eacute;lectrique (AFCI) conform&eacute;ment au Code de construction du Qu&eacute;bec et &agrave; la norme CSA&nbsp;C22.10. Les dispositifs seront int&eacute;gr&eacute;s au syst&egrave;me de surveillance pour notification en temps r&eacute;el.",
-        "Supply and install arc fault circuit interrupter (AFCI) devices in accordance with the Code de construction du Qu&eacute;bec and CSA&nbsp;C22.10. Devices shall be integrated into the monitoring system for real-time notification."
-      ),
-    },
-    {
-      cat: t("Arr&ecirc;t rapide", "Rapid Shutdown"),
-      desc: t(
-        "Concevoir et installer un syst&egrave;me d'arr&ecirc;t rapide (rapid shutdown) conforme aux exigences du Code de construction du Qu&eacute;bec, Chapitre V &mdash; &Eacute;lectricit&eacute;, et &agrave; la norme NEC&nbsp;2020 Section&nbsp;690.12. Le syst&egrave;me r&eacute;duira la tension DC &agrave; 80&nbsp;V ou moins dans les 30&nbsp;secondes suivant l'activation.",
-        "Design and install a rapid shutdown system compliant with the Code de construction du Qu&eacute;bec, Chapter V &mdash; Electricity, and NEC&nbsp;2020 Section&nbsp;690.12. The system shall reduce DC voltage to 80&nbsp;V or less within 30&nbsp;seconds of activation."
-      ),
-    },
-    {
       cat: t("Essais de courbe I-V", "IV Curve Testing"),
       desc: t(
         "&Agrave; la mise en service, effectuer des essais de courbe I-V sur 100&nbsp;% des cha&icirc;nes de modules pour v&eacute;rifier la performance &eacute;lectrique et d&eacute;tecter les modules d&eacute;fectueux, les connexions d&eacute;ficientes et les probl&egrave;mes de mismatch. Les r&eacute;sultats seront inclus dans le dossier de mise en service.",
@@ -669,10 +625,10 @@ function buildScopeOfWorkPages(t: (fr: string, en: string) => string, dateStr: s
       ),
     },
     {
-      cat: t("Thermographie par drone", "Drone Thermography"),
+      cat: t("Thermographie", "Thermography"),
       desc: t(
-        "&Agrave; l'ach&egrave;vement substantiel, r&eacute;aliser une inspection thermographique a&eacute;rienne par drone (infrarouge) de l'ensemble de l'installation pour d&eacute;tecter les cellules chaudes, les connexions d&eacute;ficientes et les d&eacute;fauts de diode bypass. Fournir un rapport avec images annot&eacute;es et recommandations correctives.",
-        "At substantial completion, perform an aerial drone thermographic (infrared) inspection of the entire installation to detect hot cells, poor connections and bypass diode failures. Provide a report with annotated images and corrective recommendations."
+        "&Agrave; l'ach&egrave;vement substantiel, r&eacute;aliser une inspection thermographique (infrarouge) de l'ensemble de l'installation pour d&eacute;tecter les cellules chaudes, les connexions d&eacute;ficientes et les d&eacute;fauts de diode bypass. Fournir un rapport avec images annot&eacute;es et recommandations correctives.",
+        "At substantial completion, perform a thermographic (infrared) inspection of the entire installation to detect hot cells, poor connections and bypass diode failures. Provide a report with annotated images and corrective recommendations."
       ),
     },
     {
@@ -680,6 +636,13 @@ function buildScopeOfWorkPages(t: (fr: string, en: string) => string, dateStr: s
       desc: t(
         "Fournir un manuel complet d'exploitation et maintenance (O&amp;M) incluant : calendrier de maintenance pr&eacute;ventive, proc&eacute;dures de remplacement des composants, protocoles de s&eacute;curit&eacute; pour le travail sur les syst&egrave;mes DC, instructions de nettoyage des modules, sch&eacute;mas unifilaires et contacts d'urgence.",
         "Provide a comprehensive Operations &amp; Maintenance (O&amp;M) manual including: preventive maintenance schedule, component replacement procedures, safety protocols for working on DC systems, module cleaning instructions, single-line diagrams and emergency contacts."
+      ),
+    },
+    {
+      cat: t("Cr&eacute;dit d'imp&ocirc;t &agrave; l'investissement (CII)", "Investment Tax Credit (ITC)"),
+      desc: t(
+        "Coordonner et faciliter le processus de demande du Cr&eacute;dit d'imp&ocirc;t &agrave; l'investissement (CII) f&eacute;d&eacute;ral via LCAB, incluant la pr&eacute;paration de la documentation requise, le suivi des d&eacute;lais et la fourniture de toute attestation n&eacute;cessaire relative aux salaires courants et au contenu canadien.",
+        "Coordinate and facilitate the federal Investment Tax Credit (ITC) application process through LCAB, including preparation of required documentation, timeline management and provision of all necessary attestations related to prevailing wages and Canadian content."
       ),
     },
   ];
@@ -849,7 +812,7 @@ function buildScheduleOfValuesPages(t: (fr: string, en: string) => string, dateS
     {
       num: "1",
       desc: t("Ex&eacute;cution du contrat", "Contract Execution"),
-      pct: "10,0&nbsp;%",
+      pct: "15,0&nbsp;%",
       deliverables: t(
         "Signature de l'entente cadre; d&eacute;p&ocirc;t du cautionnement d'ex&eacute;cution et du cautionnement de main-d'&oelig;uvre et mat&eacute;riaux; preuve d'assurance conforme.",
         "Signed master agreement; submission of performance bond and labour &amp; material bond; proof of compliant insurance coverage."
@@ -866,74 +829,47 @@ function buildScheduleOfValuesPages(t: (fr: string, en: string) => string, dateS
     },
     {
       num: "3",
-      desc: t("Bons de commande &eacute;mis", "Purchase Orders Issued"),
+      desc: t("Approvisionnement et mobilisation", "Procurement &amp; Mobilization"),
       pct: "15,0&nbsp;%",
       deliverables: t(
-        "Bons de commande confirm&eacute;s pour modules, onduleurs, racking et transformateurs; confirmations de livraison des fournisseurs; permis de construire obtenu.",
-        "Confirmed purchase orders for modules, inverters, racking and transformers; supplier delivery confirmations; building permit obtained."
+        "Bons de commande confirm&eacute;s pour modules, onduleurs, racking et transformateurs; mat&eacute;riaux livr&eacute;s et v&eacute;rifi&eacute;s sur site; plan de sant&eacute; et s&eacute;curit&eacute; accept&eacute;; permis de construire obtenu.",
+        "Confirmed purchase orders for modules, inverters, racking and transformers; materials delivered and verified on site; health &amp; safety plan accepted; building permit obtained."
       ),
     },
     {
       num: "4",
-      desc: t("Mobilisation et livraison", "Mobilization &amp; Delivery"),
-      pct: "10,0&nbsp;%",
+      desc: t("50&nbsp;% de l'installation compl&eacute;t&eacute;e", "50% Installation Complete"),
+      pct: "25,0&nbsp;%",
       deliverables: t(
-        "Plan de mobilisation approuv&eacute;; mat&eacute;riaux livr&eacute;s et v&eacute;rifi&eacute;s sur site; plan de sant&eacute; et s&eacute;curit&eacute; accept&eacute;; r&eacute;union de pr&eacute;-construction compl&eacute;t&eacute;e.",
-        "Approved mobilization plan; materials delivered and verified on site; health &amp; safety plan accepted; pre-construction meeting completed."
+        "Racking install&eacute; et ancr&eacute;; 50&nbsp;% des modules pos&eacute;s et c&acirc;bl&eacute;s; onduleurs install&eacute;s; rapports d'avancement hebdomadaires fournis; photos de progression.",
+        "Racking installed and anchored; 50% of modules placed and wired; inverters installed; weekly progress reports provided; progress photographs."
       ),
     },
     {
       num: "5",
-      desc: t("25&nbsp;% de l'installation compl&eacute;t&eacute;e", "25% Installation Complete"),
-      pct: "10,0&nbsp;%",
+      desc: t("M&eacute;caniquement complet", "Mechanically Complete"),
+      pct: "20,0&nbsp;%",
       deliverables: t(
-        "Racking install&eacute; et ancr&eacute; conform&eacute;ment aux plans; 25&nbsp;% des modules pos&eacute;s; rapports d'avancement hebdomadaires fournis; photos de progression.",
-        "Racking installed and anchored per drawings; 25% of modules placed; weekly progress reports provided; progress photographs."
+        "Installation physique 100&nbsp;% compl&eacute;t&eacute;e; c&acirc;blage AC et DC compl&eacute;t&eacute;; mise &agrave; la terre install&eacute;e; syst&egrave;me de surveillance configur&eacute;; inspection RBQ r&eacute;ussie.",
+        "Physical installation 100% complete; AC and DC wiring complete; grounding installed; monitoring system configured; RBQ inspection passed."
       ),
     },
     {
       num: "6",
-      desc: t("50&nbsp;% de l'installation compl&eacute;t&eacute;e", "50% Installation Complete"),
-      pct: "15,0&nbsp;%",
+      desc: t("Mise en service et acceptation provisoire", "Commissioning &amp; Provisional Acceptance"),
+      pct: "10,0&nbsp;%",
       deliverables: t(
-        "50&nbsp;% des modules pos&eacute;s et c&acirc;bl&eacute;s; onduleurs install&eacute;s; c&acirc;blage DC en cours; inspection interne de qualit&eacute; compl&eacute;t&eacute;e.",
-        "50% of modules placed and wired; inverters installed; DC wiring underway; internal quality inspection completed."
+        "Syst&egrave;me &eacute;nergis&eacute; et connect&eacute; au r&eacute;seau; tests de performance IV-curve compl&eacute;t&eacute;s; thermographie r&eacute;alis&eacute;e; certificat d'acceptation provisoire sign&eacute;.",
+        "System energized and grid-connected; IV-curve performance testing completed; thermography performed; provisional acceptance certificate signed."
       ),
     },
     {
       num: "7",
-      desc: t("75&nbsp;% de l'installation compl&eacute;t&eacute;e", "75% Installation Complete"),
-      pct: "10,0&nbsp;%",
-      deliverables: t(
-        "75&nbsp;% des modules pos&eacute;s; c&acirc;blage AC et DC substantiellement compl&eacute;t&eacute;; mise &agrave; la terre install&eacute;e; syst&egrave;me de surveillance configur&eacute;.",
-        "75% of modules placed; AC and DC wiring substantially complete; grounding installed; monitoring system configured."
-      ),
-    },
-    {
-      num: "8",
-      desc: t("M&eacute;caniquement complet", "Mechanically Complete"),
-      pct: "10,0&nbsp;%",
-      deliverables: t(
-        "Installation physique 100&nbsp;% compl&eacute;t&eacute;e; tests de mise en service r&eacute;ussis; inspection RBQ r&eacute;ussie; coordination Hydro-Qu&eacute;bec pour date de mise en service.",
-        "Physical installation 100% complete; commissioning tests passed; RBQ inspection passed; Hydro-Qu&eacute;bec coordination for in-service date."
-      ),
-    },
-    {
-      num: "9",
-      desc: t("Mise en service et acceptation provisoire", "Commissioning &amp; Provisional Acceptance"),
-      pct: "5,0&nbsp;%",
-      deliverables: t(
-        "Syst&egrave;me &eacute;nergis&eacute; et connect&eacute; au r&eacute;seau; tests de performance IV-curve compl&eacute;t&eacute;s; thermographie par drone r&eacute;alis&eacute;e; certificat d'acceptation provisoire sign&eacute;.",
-        "System energized and grid-connected; IV-curve performance testing completed; drone thermography performed; provisional acceptance certificate signed."
-      ),
-    },
-    {
-      num: "10",
       desc: t("Documentation de cl&ocirc;ture et paiement final*", "Close-Out Documentation &amp; Final Payment*"),
       pct: "5,0&nbsp;%",
       deliverables: t(
-        "Plans tel que construit (sceau OIQ); manuel O&amp;M; donn&eacute;es de mise en service; liste de d&eacute;ficiences compl&eacute;t&eacute;e; renonciation d'hypoth&egrave;que l&eacute;gale fournie.",
-        "As-built drawings (OIQ stamped); O&amp;M manual; commissioning data; punch list completed; legal hypothec waiver provided."
+        "Plans tel que construit (sceau OIQ); manuel O&amp;M; donn&eacute;es de mise en service; liste de d&eacute;ficiences compl&eacute;t&eacute;e; renonciation d'hypoth&egrave;que l&eacute;gale de construction fournie.",
+        "As-built drawings (OIQ stamped); O&amp;M manual; commissioning data; punch list completed; construction legal hypothec waiver provided."
       ),
     },
   ];
@@ -956,7 +892,6 @@ function buildScheduleOfValuesPages(t: (fr: string, en: string) => string, dateS
     t("Coordination avec les op&eacute;rations du b&acirc;timent (acc&egrave;s, bruit, stationnement) incluse", "Coordination with building operations (access, noise, parking) included"),
     t("Relev&eacute; tel que construit et arpentage final inclus", "As-built survey and final survey included"),
     t("Agent de mise en service inclus", "Commissioning agent included"),
-    t("Prix des garanties prolonge&eacute;es (onduleurs 25 ans) inclus", "Extended warranty pricing (inverters 25 years) included"),
     t("Cautionnement de d&eacute;mant&egrave;lement / retrait en fin de vie exclu (n&eacute;goci&eacute; s&eacute;par&eacute;ment)", "Decommissioning / end-of-life removal bond excluded (negotiated separately)"),
     t("Taxes de vente applicables (TPS/TVQ) en sus du Prix du Contrat", "Applicable sales taxes (GST/QST) in addition to the Contract Price"),
   ];
@@ -972,9 +907,6 @@ function buildScheduleOfValuesPages(t: (fr: string, en: string) => string, dateS
     t("Co&ucirc;ts d'obtention de servitudes ou droits de passage", "Costs of obtaining easements or rights-of-way"),
     t("Am&eacute;lioration de la capacit&eacute; du r&eacute;seau de distribution d'Hydro-Qu&eacute;bec au-del&agrave; du point de raccordement", "Hydro-Qu&eacute;bec distribution network capacity upgrades beyond point of interconnection"),
   ];
-
-  const milestonesPage1 = milestones.slice(0, 5);
-  const milestonesPage2 = milestones.slice(5);
 
   const sovTableHeader = `<thead><tr>
         <th>#</th>
@@ -1003,19 +935,7 @@ function buildScheduleOfValuesPages(t: (fr: string, en: string) => string, dateS
     <table class="sov-table">
       ${sovTableHeader}
       <tbody>
-        ${milestonesPage1.map(milestoneRow).join("")}
-      </tbody>
-    </table>
-    ${footerHtml(t, dateStr, startPage)}
-  </div>`);
-
-  pages.push(`
-  <div class="page">
-    <h3>${t("&Eacute;ch&eacute;ancier de Paiement (suite)", "Schedule of Values (cont'd)")}</h3>
-    <table class="sov-table">
-      ${sovTableHeader}
-      <tbody>
-        ${milestonesPage2.map(milestoneRow).join("")}
+        ${milestones.map(milestoneRow).join("")}
         <tr class="total-row">
           <td></td>
           <td>Total</td>
@@ -1026,11 +946,11 @@ function buildScheduleOfValuesPages(t: (fr: string, en: string) => string, dateS
     </table>
     <p style="font-size: 8pt; color: var(--gray); margin-top: 2mm; line-height: 1.5;">
       *${t(
-        "Requis pour le paiement final : (a) D&eacute;claration confirmant qu'aucun avis d'hypoth&egrave;que l&eacute;gale n'a &eacute;t&eacute; re&ccedil;u; (b) D&eacute;claration confirmant que tous les comptes ont &eacute;t&eacute; pay&eacute;s, sauf les retenues l&eacute;gitimes; (c) Renonciation finale d'hypoth&egrave;que sign&eacute;e par le Concepteur-Constructeur et tous les sous-traitants.",
-        "Required for Final Payment: (a) Declaration confirming no written notices of legal hypothec have been received; (b) Declaration confirming all accounts for labour, subcontracts, products and services have been paid in full, except for lawfully retained holdbacks; (c) Final hypothec waiver signed by the Design-Builder and all subcontractors."
+        "Requis pour le paiement final : (a) D&eacute;claration confirmant qu'aucun avis d'hypoth&egrave;que l&eacute;gale de construction n'a &eacute;t&eacute; re&ccedil;u; (b) D&eacute;claration confirmant que tous les comptes ont &eacute;t&eacute; pay&eacute;s, sauf les retenues l&eacute;gitimes; (c) Renonciation finale d'hypoth&egrave;que de construction sign&eacute;e par le Concepteur-Constructeur et tous les sous-traitants.",
+        "Required for Final Payment: (a) Declaration confirming no written notices of construction legal hypothec have been received; (b) Declaration confirming all accounts for labour, subcontracts, products and services have been paid in full, except for lawfully retained holdbacks; (c) Final construction hypothec waiver signed by the Design-Builder and all subcontractors."
       )}
     </p>
-    ${footerHtml(t, dateStr, startPage + 1)}
+    ${footerHtml(t, dateStr, startPage)}
   </div>`);
 
   pages.push(`
@@ -1056,15 +976,15 @@ function buildScheduleOfValuesPages(t: (fr: string, en: string) => string, dateS
         <tr>
           <td class="clause">${t("Retenue statutaire", "Statutory Holdback")}</td>
           <td>${t(
-            "Conform&eacute;ment aux articles 2726&ndash;2728 du Code civil du Qu&eacute;bec, une retenue de dix pour cent (10&nbsp;%) sera appliqu&eacute;e sur chaque paiement progressif. La retenue sera lib&eacute;r&eacute;e trente (30) jours apr&egrave;s l'expiration du d&eacute;lai de publication des hypoth&egrave;ques l&eacute;gales, sous r&eacute;serve qu'aucune hypoth&egrave;que n'ait &eacute;t&eacute; inscrite.",
-            "In accordance with Articles 2726&ndash;2728 of the Civil Code of Qu&eacute;bec, a holdback of ten percent (10%) shall be applied on each progress payment. The holdback shall be released thirty (30) days after the expiry of the legal hypothec registration period, provided no legal hypothec has been registered."
+            "Conform&eacute;ment aux articles 2726&ndash;2728 du Code civil du Qu&eacute;bec, une retenue de dix pour cent (10&nbsp;%) sera appliqu&eacute;e sur chaque paiement progressif. La retenue sera lib&eacute;r&eacute;e trente (30) jours apr&egrave;s l'expiration du d&eacute;lai de publication des hypoth&egrave;ques l&eacute;gales de construction, sous r&eacute;serve qu'aucune hypoth&egrave;que n'ait &eacute;t&eacute; inscrite.",
+            "In accordance with Articles 2726&ndash;2728 of the Civil Code of Qu&eacute;bec, a holdback of ten percent (10%) shall be applied on each progress payment. The holdback shall be released thirty (30) days after the expiry of the construction legal hypothec registration period, provided no construction legal hypothec has been registered."
           )}</td>
         </tr>
         <tr>
           <td class="clause">${t("Renonciation d'hypoth&egrave;que", "Lien Waiver Requirements")}</td>
           <td>${t(
-            "Chaque demande de paiement progressif doit &ecirc;tre accompagn&eacute;e d'une renonciation d'hypoth&egrave;que l&eacute;gale conditionnelle du Concepteur-Constructeur et de chaque sous-traitant pour la p&eacute;riode factur&eacute;e. Le paiement final n&eacute;cessite des renonciations inconditionnelles de toutes les parties.",
-            "Each application for progress payment must be accompanied by a conditional legal hypothec waiver from the Design-Builder and each subcontractor for the invoiced period. Final payment requires unconditional waivers from all parties."
+            "Chaque demande de paiement progressif doit &ecirc;tre accompagn&eacute;e d'une renonciation d'hypoth&egrave;que l&eacute;gale de construction conditionnelle du Concepteur-Constructeur et de chaque sous-traitant pour la p&eacute;riode factur&eacute;e. Le paiement final n&eacute;cessite des renonciations inconditionnelles de toutes les parties.",
+            "Each application for progress payment must be accompanied by a conditional construction legal hypothec waiver from the Design-Builder and each subcontractor for the invoiced period. Final payment requires unconditional waivers from all parties."
           )}</td>
         </tr>
         <tr>
@@ -1083,7 +1003,7 @@ function buildScheduleOfValuesPages(t: (fr: string, en: string) => string, dateS
         </tr>
       </tbody>
     </table>
-    ${footerHtml(t, dateStr, startPage + 2)}
+    ${footerHtml(t, dateStr, startPage + 1)}
   </div>`);
 
   pages.push(`
@@ -1092,7 +1012,7 @@ function buildScheduleOfValuesPages(t: (fr: string, en: string) => string, dateS
     <ul class="assumptions-list">
       ${assumptions.map(a => `<li>${a}</li>`).join("")}
     </ul>
-    ${footerHtml(t, dateStr, startPage + 3)}
+    ${footerHtml(t, dateStr, startPage + 2)}
   </div>`);
 
   pages.push(`
@@ -1114,7 +1034,7 @@ function buildScheduleOfValuesPages(t: (fr: string, en: string) => string, dateS
         "Note: Any additional work not covered by the Contract Price shall be subject to the Change Order procedure described in Section&nbsp;8, including a detailed estimate and the Owner's written approval prior to execution."
       )}
     </p>
-    ${footerHtml(t, dateStr, startPage + 4)}
+    ${footerHtml(t, dateStr, startPage + 3)}
   </div>`);
 
   return pages;
@@ -1144,7 +1064,12 @@ function buildAnnexPage(site: MasterAgreementSiteData, siteIndex: number, totalS
         ${row(t("Taille AC (kW)", "AC Size (kW)"), `${fmt(fm.projectSpecs.projectSizeAcKw)}&nbsp;kW`, "kwh")}
         ${row(t("Rendement (kWh/kWp)", "Yield (kWh/kWp)"), `${fmt(fm.projectSpecs.yieldKwhPerKwp)}`, "kwh")}
         ${row(t("Prod. an 1", "1st Year Production"), `${fmt(fm.projectSpecs.firstYearKwh)}&nbsp;kWh`, "kwh")}
-        ${row(t("D&eacute;gradation annuelle", "Annual Degradation"), pct(fm.projectSpecs.degradationPct), "kwh")}
+        ${row(t("D&eacute;gradation annuelle", "Annual Degradation"), (() => {
+          const d = fm.projectSpecs.degradationPct;
+          if (d === null || d === undefined || isNaN(d)) return "&mdash;";
+          const val = d < 0.05 ? (d * 100).toFixed(1) : d.toFixed(1);
+          return `${val}&nbsp;%`;
+        })(), "kwh")}
         ${row(t("Hypoth&egrave;se de disponibilit&eacute;", "Availability Assumption"), pct(fm.projectSpecs.availabilityPct), "kwh")}
         ${row(t("Dur&eacute;e de vie utile", "Useful Life"), `${fm.projectSpecs.usefulLifeYears || "&mdash;"}&nbsp;${t("ans", "yrs")}`, "kwh")}
       </div>
@@ -1157,8 +1082,14 @@ function buildAnnexPage(site: MasterAgreementSiteData, siteIndex: number, totalS
         ${row(t("Co&ucirc;t install. ($/W)", "Install Cost ($/W)"), `${fm.projectCosts.installCostPerW?.toFixed(2) || "&mdash;"}&nbsp;$/W`, "kwh")}
         ${row(t("Co&ucirc;ts de construction", "Construction Costs"), cur(fm.projectCosts.constructionCosts), "kwh")}
         ${row(t("Frais municipaux", "Municipal Fees"), cur(fm.projectCosts.municipalFees), "dream")}
-        ${row(t("Interconnexion (HQ)", "Interconnection (HQ)"), cur(fm.projectCosts.interconnectionCost), "dream")}
+        ${row(t("Interconnexion (HQ)*", "Interconnection (HQ)*"), cur(fm.projectCosts.interconnectionCost), "dream")}
         ${row(t("Co&ucirc;t total du projet", "Total Project Cost"), cur(fm.projectCosts.totalProjectCost), "computed")}
+        <div style="font-size: 7.5pt; color: var(--gray); font-style: italic; margin-top: 1mm; padding: 0 2mm;">
+          *${t(
+            "Les frais d'interconnexion du DOT sont indicatifs et seront assum&eacute;s par Hydro-Qu&eacute;bec dans le cadre de l'appel d'offres.",
+            "Interconnection fees from the DOT are indicative and will be assumed by Hydro-Qu&eacute;bec as part of the RFP."
+          )}
+        </div>
       </div>
     </div>`;
 
@@ -1179,7 +1110,7 @@ function buildAnnexPage(site: MasterAgreementSiteData, siteIndex: number, totalS
       <div class="annex-box-body">
         ${row(t("&Eacute;ligibilit&eacute; CII", "ITC Eligible"), fm.itc.itcEligible ? t("Oui", "Yes") : t("Non", "No"), "kwh")}
         ${row(t("Taux CII", "ITC Rate"), pct(fm.itc.itcRate), "kwh")}
-        ${row(t("Rabais CII effectif", "Effective ITC Rebate"), cur(fm.itc.effectiveItcRebate), "computed")}
+        ${row(t("Rabais CII estim&eacute;", "Estimated ITC Rebate"), cur(fm.itc.effectiveItcRebate), "computed")}
       </div>
     </div>`;
 
@@ -1292,10 +1223,10 @@ function buildSupplementaryConditionsPages(t: (fr: string, en: string) => string
     },
     {
       ref: "SC-7 &mdash; Art. 2726-2728 CCQ",
-      title: t("Retenue &mdash; Hypoth&egrave;ques l&eacute;gales", "Holdback &mdash; Legal Hypothecs"),
+      title: t("Retenue &mdash; Hypoth&egrave;ques l&eacute;gales de construction", "Holdback &mdash; Construction Legal Hypothecs"),
       text: t(
-        "Conform&eacute;ment aux articles 2726 &agrave; 2728 du Code civil du Qu&eacute;bec, une retenue de dix pour cent (10&nbsp;%) sera appliqu&eacute;e sur chaque paiement progressif. La retenue sera lib&eacute;r&eacute;e trente (30) jours apr&egrave;s l'expiration du d&eacute;lai de publication des hypoth&egrave;ques l&eacute;gales, sous r&eacute;serve qu'aucune hypoth&egrave;que n'ait &eacute;t&eacute; inscrite. Le Concepteur-Constructeur fournira un certificat du Registre foncier confirmant l'absence d'hypoth&egrave;ques l&eacute;gales avant la lib&eacute;ration de la retenue.",
-        "In accordance with Articles 2726 to 2728 of the Civil Code of Qu&eacute;bec, a holdback of ten percent (10%) shall be applied on each progress payment. The holdback shall be released thirty (30) days after the expiry of the legal hypothec registration period, provided no legal hypothec has been registered. The Design-Builder shall provide a certificate from the Land Registry confirming the absence of legal hypothecs prior to release of the holdback."
+        "Conform&eacute;ment aux articles 2726 &agrave; 2728 du Code civil du Qu&eacute;bec, une retenue de dix pour cent (10&nbsp;%) sera appliqu&eacute;e sur chaque paiement progressif. La retenue sera lib&eacute;r&eacute;e trente (30) jours apr&egrave;s l'expiration du d&eacute;lai de publication des hypoth&egrave;ques l&eacute;gales de construction, sous r&eacute;serve qu'aucune hypoth&egrave;que n'ait &eacute;t&eacute; inscrite. Le Concepteur-Constructeur fournira un certificat du Registre foncier confirmant l'absence d'hypoth&egrave;ques l&eacute;gales de construction avant la lib&eacute;ration de la retenue.",
+        "In accordance with Articles 2726 to 2728 of the Civil Code of Qu&eacute;bec, a holdback of ten percent (10%) shall be applied on each progress payment. The holdback shall be released thirty (30) days after the expiry of the construction legal hypothec registration period, provided no construction legal hypothec has been registered. The Design-Builder shall provide a certificate from the Land Registry confirming the absence of construction legal hypothecs prior to release of the holdback."
       ),
     },
     {
@@ -1356,10 +1287,10 @@ function buildSupplementaryConditionsPages(t: (fr: string, en: string) => string
     },
     {
       ref: "SC-15 &mdash; Art. 2724-2728 CCQ",
-      title: t("Hypoth&egrave;ques l&eacute;gales et r&eacute;clamations", "Liens and Claims"),
+      title: t("Hypoth&egrave;ques l&eacute;gales de construction et r&eacute;clamations", "Construction Legal Hypothecs and Claims"),
       text: t(
-        "Le Concepteur-Constructeur s'engage &agrave; maintenir les Lieux de Travail libres de toute hypoth&egrave;que l&eacute;gale de construction (art.&nbsp;2724(2) CCQ). En cas d'inscription d'une hypoth&egrave;que l&eacute;gale par un sous-traitant ou fournisseur, le Concepteur-Constructeur devra, dans les quinze (15) jours suivant l'avis du Propri&eacute;taire : (a) obtenir la mainlev&eacute;e de l'hypoth&egrave;que; (b) d&eacute;poser un cautionnement de radiation (art.&nbsp;2731 CCQ) &eacute;quivalent &agrave; 150&nbsp;% du montant r&eacute;clam&eacute;; ou (c) fournir au Propri&eacute;taire une garantie &eacute;quivalente jug&eacute;e acceptable. Le d&eacute;lai de publication est de trente (30) jours apr&egrave;s la fin des travaux (art.&nbsp;2727 CCQ).",
-        "The Design-Builder shall keep the Place of the Work free of all legal construction hypothecs (art.&nbsp;2724(2) CCQ). If a legal hypothec is registered by a subcontractor or supplier, the Design-Builder shall, within fifteen (15) days of notice from the Owner: (a) obtain discharge of the hypothec; (b) post a discharge bond (art.&nbsp;2731 CCQ) equal to 150% of the amount claimed; or (c) provide the Owner with equivalent security deemed acceptable. The registration period is thirty (30) days after completion of the work (art.&nbsp;2727 CCQ)."
+        "Le Concepteur-Constructeur s'engage &agrave; maintenir les Lieux de Travail libres de toute hypoth&egrave;que l&eacute;gale de construction (art.&nbsp;2724(2) CCQ). En cas d'inscription d'une hypoth&egrave;que l&eacute;gale de construction par un sous-traitant ou fournisseur, le Concepteur-Constructeur devra, dans les quinze (15) jours suivant l'avis du Propri&eacute;taire : (a) obtenir la mainlev&eacute;e de l'hypoth&egrave;que; (b) d&eacute;poser un cautionnement de radiation (art.&nbsp;2731 CCQ) &eacute;quivalent &agrave; 150&nbsp;% du montant r&eacute;clam&eacute;; ou (c) fournir au Propri&eacute;taire une garantie &eacute;quivalente jug&eacute;e acceptable. Le d&eacute;lai de publication est de trente (30) jours apr&egrave;s la fin des travaux (art.&nbsp;2727 CCQ).",
+        "The Design-Builder shall keep the Place of the Work free of all construction legal hypothecs (art.&nbsp;2724(2) CCQ). If a construction legal hypothec is registered by a subcontractor or supplier, the Design-Builder shall, within fifteen (15) days of notice from the Owner: (a) obtain discharge of the hypothec; (b) post a discharge bond (art.&nbsp;2731 CCQ) equal to 150% of the amount claimed; or (c) provide the Owner with equivalent security deemed acceptable. The registration period is thirty (30) days after completion of the work (art.&nbsp;2727 CCQ)."
       ),
     },
     {
@@ -1390,8 +1321,8 @@ function buildSupplementaryConditionsPages(t: (fr: string, en: string) => string
       ref: "SC-19",
       title: t("Mise en service et essais d'acceptation", "Commissioning and Acceptance Testing"),
       text: t(
-        "(a) Protocole d'essai : Le Concepteur-Constructeur soumettra un protocole d'essai de performance au Propri&eacute;taire pour approbation au moins trente (30) jours avant la mise en service pr&eacute;vue. (b) Essai de performance : Le syst&egrave;me devra d&eacute;montrer un ratio de performance (PR) minimum de quatre-vingts pour cent (80&nbsp;%) pendant une p&eacute;riode d'essai continue de sept (7) jours. (c) Ajustement saisonnier : Si la mise en service survient durant les mois d'hiver (novembre &agrave; mars), le ratio de performance sera ajust&eacute; selon les facteurs saisonniers reconnus (effet de temp&eacute;rature, neige, irradiation r&eacute;duite) et un essai de confirmation sera r&eacute;alis&eacute; entre mai et septembre. (d) Test de courbes I-V : Des mesures de courbes I-V seront r&eacute;alis&eacute;es sur un &eacute;chantillon repr&eacute;sentatif (minimum 10&nbsp;%) des cha&icirc;nes de modules. (e) Thermographie par drone : Une inspection par thermographie infrarouge a&eacute;rienne sera r&eacute;alis&eacute;e &agrave; l'ach&egrave;vement substantiel pour d&eacute;tecter les cellules d&eacute;fectueuses.",
-        "(a) Test Protocol: The Design-Builder shall submit a performance test protocol to the Owner for approval at least thirty (30) days prior to planned commissioning. (b) Performance Test: The system shall demonstrate a minimum performance ratio (PR) of eighty percent (80%) during a continuous test period of seven (7) days. (c) Seasonal Adjustment: If commissioning occurs during winter months (November to March), the performance ratio shall be adjusted using recognized seasonal factors (temperature effect, snow, reduced irradiation) and a confirmation test shall be conducted between May and September. (d) IV Curve Testing: IV curve measurements shall be performed on a representative sample (minimum 10%) of module strings. (e) Drone Thermography: An aerial infrared thermography inspection shall be performed at Substantial Completion to detect defective cells."
+        "(a) Protocole d'essai : Le Concepteur-Constructeur soumettra un protocole d'essai de performance au Propri&eacute;taire pour approbation au moins trente (30) jours avant la mise en service pr&eacute;vue. (b) Essai de performance : Le syst&egrave;me devra d&eacute;montrer un ratio de performance (PR) minimum de quatre-vingts pour cent (80&nbsp;%) pendant une p&eacute;riode d'essai continue de sept (7) jours. (c) Ajustement saisonnier : Si la mise en service survient durant les mois d'hiver (novembre &agrave; mars), le ratio de performance sera ajust&eacute; selon les facteurs saisonniers reconnus (effet de temp&eacute;rature, neige, irradiation r&eacute;duite) et un essai de confirmation sera r&eacute;alis&eacute; entre mai et septembre. (d) Test de courbes I-V : Des mesures de courbes I-V seront r&eacute;alis&eacute;es sur un &eacute;chantillon repr&eacute;sentatif (minimum 10&nbsp;%) des cha&icirc;nes de modules. (e) Thermographie : Une inspection par thermographie infrarouge sera r&eacute;alis&eacute;e &agrave; l'ach&egrave;vement substantiel pour d&eacute;tecter les cellules d&eacute;fectueuses.",
+        "(a) Test Protocol: The Design-Builder shall submit a performance test protocol to the Owner for approval at least thirty (30) days prior to planned commissioning. (b) Performance Test: The system shall demonstrate a minimum performance ratio (PR) of eighty percent (80%) during a continuous test period of seven (7) days. (c) Seasonal Adjustment: If commissioning occurs during winter months (November to March), the performance ratio shall be adjusted using recognized seasonal factors (temperature effect, snow, reduced irradiation) and a confirmation test shall be conducted between May and September. (d) IV Curve Testing: IV curve measurements shall be performed on a representative sample (minimum 10%) of module strings. (e) Thermography: An infrared thermography inspection shall be performed at Substantial Completion to detect defective cells."
       ),
     },
     {
