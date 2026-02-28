@@ -220,7 +220,7 @@ function RouteRestorer() {
   useEffect(() => {
     if (!isAuthenticated) return;
     const saved = sessionStorage.getItem('kwh_last_route');
-    if (saved && saved !== location && saved.startsWith('/app') && (location === '/app/dashboard' || location === '/app/sites' || location === '/')) {
+    if (saved && saved !== location && saved.startsWith('/app') && (location === '/app/dashboard' || location === '/app/sites')) {
       setLocation(saved);
     }
   }, [isAuthenticated]);
