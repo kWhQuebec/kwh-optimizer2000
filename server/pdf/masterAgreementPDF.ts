@@ -245,9 +245,8 @@ function buildTocPage(t: (fr: string, en: string) => string, dateStr: string): s
     { num: "4", title: t("Cadre Financier", "Financial Framework") },
     { num: "5", title: t("&Eacute;tendue des Travaux", "Scope of Work") },
     { num: "6", title: t("&Eacute;ch&eacute;ancier de Paiement", "Schedule of Values") },
-    { num: "7", title: t("Annexe A &mdash; Fiches par Site", "Annex A &mdash; Per-Site Schedules") },
-    { num: "8", title: t("Conditions Suppl&eacute;mentaires au CCDC&nbsp;14", "Supplementary Conditions to CCDC&nbsp;14") },
-    { num: "9", title: t("Signatures", "Signatures") },
+    { num: "7", title: t("Conditions Suppl&eacute;mentaires au CCDC&nbsp;14", "Supplementary Conditions to CCDC&nbsp;14") },
+    { num: "8", title: t("Signatures", "Signatures") },
   ];
   const tocItems = sections.map(s => `
     <div class="toc-item">
@@ -400,8 +399,8 @@ function buildFinancialFrameworkPage(data: MasterAgreementData, t: (fr: string, 
     <h2>${t("Cadre Financier", "Financial Framework")}</h2>
     <p style="font-size: 9pt; color: var(--gray); margin-bottom: 4mm;">
       ${t(
-        "Le tableau suivant pr&eacute;sente un sommaire financier consolid&eacute; du portfolio. Les d&eacute;tails par site sont pr&eacute;sent&eacute;s &agrave; l'Annexe&nbsp;A.",
-        "The following table presents a consolidated financial summary of the entire portfolio. Site-specific details are presented in Annex&nbsp;A."
+        "Le tableau suivant pr&eacute;sente un sommaire financier consolid&eacute; du portfolio. Les fiches d&eacute;taill&eacute;es par site seront fournies dans un addenda ult&eacute;rieur.",
+        "The following table presents a consolidated financial summary of the entire portfolio. Detailed per-site schedules will be provided in a subsequent addendum."
       )}
     </p>
     <table class="site-table">
@@ -1406,7 +1405,7 @@ function buildSupplementaryConditionsPages(t: (fr: string, en: string) => string
     const isFirstPage = p === 0;
 
     const headerHtml = isFirstPage ? `
-    <div class="section-num">8</div>
+    <div class="section-num">7</div>
     <h2>${t("Conditions Suppl&eacute;mentaires au CCDC&nbsp;14 (2013)", "Supplementary Conditions to CCDC&nbsp;14 (2013)")}</h2>
     <p style="font-size: 9pt; color: var(--gray); margin-bottom: 4mm;">
       ${t(
@@ -1435,7 +1434,7 @@ function buildSupplementaryConditionsPages(t: (fr: string, en: string) => string
 function buildSignaturesPage(t: (fr: string, en: string) => string, dateStr: string, pageNum: number): string {
   return `
   <div class="page">
-    <div class="section-num">9</div>
+    <div class="section-num">8</div>
     <h2>${t("Signatures", "Signatures")}</h2>
     <p style="font-size: 10pt; color: var(--gray); margin-bottom: 8mm;">
       ${t(
@@ -1509,12 +1508,6 @@ export async function generateMasterAgreementPDFBuffer(
   const sovPages = buildScheduleOfValuesPages(t, dateStr, pageNum);
   pages.push(...sovPages);
   pageNum += sovPages.length;
-
-  const sitesWithFm = data.sites.filter(s => !!s.financialModel);
-  sitesWithFm.forEach((site, idx) => {
-    pages.push(buildAnnexPage(site, idx, sitesWithFm.length, t, dateStr, pageNum));
-    pageNum++;
-  });
 
   const scPages = buildSupplementaryConditionsPages(t, dateStr, pageNum);
   pages.push(...scPages);
