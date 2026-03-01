@@ -1087,7 +1087,7 @@ function buildAnnexPage(site: MasterAgreementSiteData, siteIndex: number, totalS
     <div class="annex-box">
       <div class="annex-box-header">${t("Exploitation", "Operations")}</div>
       <div class="annex-box-body">
-        ${row(t("O&amp;M ($/kW)", "O&amp;M ($/kW)"), `${fm.operatingCosts.omRatePerKw?.toFixed(2) || "&mdash;"}&nbsp;$/W`, "kwh")}
+        ${row(t("O&amp;M ($/kW)", "O&amp;M ($/kW)"), `${fm.operatingCosts.omRatePerKw?.toFixed(2) || "&mdash;"}&nbsp;$/kW`, "kwh")}
         ${row(t("Co&ucirc;t O&amp;M", "O&amp;M Cost"), cur(fm.operatingCosts.omCost), "kwh")}
         ${row(t("Total op&eacute;rations an 1", "Total Operations Yr 1"), cur(fm.operatingCosts.totalOperationsCostYr1), "computed")}
         ${row(t("Inflation", "Inflation"), pct(fm.operatingCosts.inflationRate), "kwh")}
