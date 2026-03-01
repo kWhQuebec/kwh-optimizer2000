@@ -210,9 +210,11 @@ p { margin-bottom: 2mm; color: var(--dark); }
 `;
 }
 
+let _currentClientName = "";
+
 function footerHtml(t: (fr: string, en: string) => string, dateStr: string, pageNum: number): string {
   return `<div class="page-footer">
-    <span>${t("Confidentiel", "Confidential")} &mdash; kWh Qu&eacute;bec &amp; Dream Industrial REIT</span>
+    <span>${t("Confidentiel", "Confidential")} &mdash; kWh Qu&eacute;bec &amp; ${_currentClientName}</span>
     <span>${dateStr} &mdash; Page ${pageNum}</span>
   </div>`;
 }
@@ -303,7 +305,7 @@ function buildPartiesPage(t: (fr: string, en: string) => string, dateStr: string
     <div class="role-grid">
       <div class="role-card">
         <div class="role-type">${t("Propri&eacute;taire", "Owner")}</div>
-        <div class="role-name">Dream Industrial REIT</div>
+        <div class="role-name">${_currentClientName}</div>
         <div class="role-desc">${t(
           "Propri&eacute;taire des b&acirc;timents et b&eacute;n&eacute;ficiaire de l'&eacute;nergie produite. Responsable des frais d'interconnexion (Hydro-Qu&eacute;bec) et de l'acc&egrave;s au toit.",
           "Property owner and beneficiary of produced energy. Responsible for interconnection fees (Hydro-Qu&eacute;bec) and roof access."
@@ -321,8 +323,8 @@ function buildPartiesPage(t: (fr: string, en: string) => string, dateStr: string
         <div class="role-type">${t("Consultant RFP", "RFP Consultant")}</div>
         <div class="role-name">ScaleClean Tech</div>
         <div class="role-desc">${t(
-          "Consultant ind&eacute;pendant mandat&eacute; par Dream Industrial REIT pour la gestion du RFP, l'&eacute;valuation technique et la recommandation de fournisseurs.",
-          "Independent consultant mandated by Dream Industrial REIT for RFP management, technical evaluation and vendor recommendation."
+          `Consultant ind&eacute;pendant mandat&eacute; par ${_currentClientName} pour la gestion du RFP, l'&eacute;valuation technique et la recommandation de fournisseurs.`,
+          `Independent consultant mandated by ${_currentClientName} for RFP management, technical evaluation and vendor recommendation.`
         )}</div>
       </div>
     </div>
@@ -881,6 +883,7 @@ function buildScheduleOfValuesPages(t: (fr: string, en: string) => string, dateS
     t("Agent de mise en service inclus", "Commissioning agent included"),
     t("Cautionnement de d&eacute;mant&egrave;lement / retrait en fin de vie exclu (n&eacute;goci&eacute; s&eacute;par&eacute;ment)", "Decommissioning / end-of-life removal bond excluded (negotiated separately)"),
     t("Taxes de vente applicables (TPS/TVQ) en sus du Prix du Contrat", "Applicable sales taxes (GST/QST) in addition to the Contract Price"),
+    t("Exploitation et maintenance (O&amp;M)&nbsp;: 11,25&nbsp;$/kW/an install&eacute; plus consommables estim&eacute;s &agrave; ~0,80&nbsp;$/kW/an", "Operations &amp; Maintenance (O&amp;M): $11.25/kW/yr installed plus consumables estimated at ~$0.80/kW/yr"),
   ];
 
   const exclusions = [
@@ -1442,7 +1445,7 @@ function buildSignaturesPage(t: (fr: string, en: string) => string, dateStr: str
     </p>
     <div class="sig-grid">
       <div class="sig-block">
-        <div class="sig-org">Dream Industrial REIT</div>
+        <div class="sig-org">${_currentClientName}</div>
         <div class="sig-line"></div><div class="sig-label">${t("Nom", "Name")}</div>
         <div class="sig-line"></div><div class="sig-label">${t("Titre", "Title")}</div>
         <div class="sig-line"></div><div class="sig-label">Date</div>
@@ -1468,6 +1471,7 @@ export async function generateMasterAgreementPDFBuffer(
   data: MasterAgreementData,
   lang: "fr" | "en" = "fr"
 ): Promise<Buffer> {
+  _currentClientName = data.clientName;
   const t = (fr: string, en: string) => (lang === "fr" ? fr : en);
   const dateStr = new Date().toLocaleDateString(lang === "fr" ? "fr-CA" : "en-CA", {
     year: "numeric", month: "long", day: "numeric",
