@@ -200,7 +200,7 @@ const glossary: Record<Lang, GlossaryEntry[]> = {
     { term: 'EPC', definition: "Engineering, Procurement, Construction — contrat clé en main couvrant l'ingénierie, l'approvisionnement et la construction." },
     { term: 'Fit Score', definition: "Score de compatibilité projet (0-100). Green (70+): projet idéal. Yellow (40-69): viable avec ajustements. Red (<40): obstacles majeurs." },
     { term: 'HQ', definition: "Hydro-Québec — fournisseur d'électricité provincial et gestionnaire du réseau de distribution." },
-    { term: 'ITC', definition: "Investment Tax Credit — crédit d'impôt fédéral de 30% sur le coût total du système solaire." },
+    { term: 'ITC', definition: "Investment Tax Credit — crédit d'impôt fédéral pouvant atteindre 30% du coût total du système solaire pour les entreprises admissibles." },
     { term: 'IRR', definition: 'Internal Rate of Return — taux de rendement interne annualisé sur la durée de vie du système.' },
     { term: 'kWh/kWp', definition: "Kilowatt-heure produit par kilowatt-crête installé — mesure de productivité solaire (baseline Québec: 1 150 kWh/kWp)." },
     { term: 'LCOE', definition: "Levelized Cost of Energy — coût moyen actualisé de l'énergie sur 25 ans, en ¢/kWh." },
@@ -216,7 +216,7 @@ const glossary: Record<Lang, GlossaryEntry[]> = {
     { term: 'EPC', definition: 'Engineering, Procurement, Construction — turnkey contract covering design through installation.' },
     { term: 'Fit Score', definition: 'Project compatibility score (0-100). Green (70+): ideal project. Yellow (40-69): viable with adjustments. Red (<40): major obstacles.' },
     { term: 'HQ', definition: "Hydro-Québec — Quebec's provincial electricity utility and grid operator." },
-    { term: 'ITC', definition: 'Investment Tax Credit — 30% federal tax credit on total solar system cost.' },
+    { term: 'ITC', definition: 'Investment Tax Credit — up to 30% federal tax credit on total solar system cost for eligible businesses.' },
     { term: 'IRR', definition: 'Internal Rate of Return — annualized return rate over the system lifetime.' },
     { term: 'kWh/kWp', definition: 'Kilowatt-hours produced per kilowatt-peak installed — solar productivity metric (Quebec baseline: 1,150 kWh/kWp).' },
     { term: 'LCOE', definition: 'Levelized Cost of Energy — average discounted energy cost over 25 years, in ¢/kWh.' },
@@ -232,7 +232,7 @@ const references: Record<Lang, string[]> = {
   fr: [
     'Hydro-Québec — Tarifs et conditions de service (2025)',
     "Hydro-Québec — Programme d'autoproduction (mesurage net)",
-    "Gouvernement du Canada — Crédit d'impôt à l'investissement pour technologies propres (ITC 30%)",
+    "Gouvernement du Canada — Crédit d'impôt à l'investissement pour technologies propres (ITC jusqu'à 30% pour les entreprises admissibles)",
     'NREL — PVWatts Calculator (rendement solaire estimé)',
     'Régie de l\'énergie du Québec — Décisions tarifaires',
     'CCQ — Convention collective de la construction',
@@ -241,7 +241,7 @@ const references: Record<Lang, string[]> = {
   en: [
     'Hydro-Québec — Rates and Conditions of Service (2025)',
     'Hydro-Québec — Self-Generation Program (Net Metering)',
-    'Government of Canada — Clean Technology Investment Tax Credit (ITC 30%)',
+    'Government of Canada — Clean Technology Investment Tax Credit (ITC up to 30% for eligible businesses)',
     'NREL — PVWatts Calculator (estimated solar yield)',
     "Régie de l'énergie du Québec — Rate Decisions",
     'CCQ — Construction Industry Collective Agreement',
@@ -305,7 +305,7 @@ export function buildMethodologyPage(lang: Lang = 'fr'): string {
         <h3>2. Analyse financière</h3>
         <p>Le moteur financier (cashflowEngine) projette les flux sur 25 ans en intégrant:</p>
         <ul>
-          <li>ITC fédéral 30% (crédit d'impôt à l'investissement, technologies propres)</li>
+          <li>ITC fédéral jusqu'à 30% pour les entreprises admissibles (crédit d'impôt à l'investissement, technologies propres)</li>
           <li>Incitatif HQ de 1 000 $/kW (programme autoproduction)</li>
           <li>Amortissement fiscal accéléré (CCA classe 43.1/43.2)</li>
           <li>Coûts O&M estimés à 15 $/kW/an avec escalade de 2%/an</li>
@@ -351,7 +351,7 @@ export function buildMethodologyPage(lang: Lang = 'fr'): string {
         <h3>2. Financial Analysis</h3>
         <p>The financial engine (cashflowEngine) projects cash flows over 25 years including:</p>
         <ul>
-          <li>Federal ITC 30% (Clean Technology Investment Tax Credit)</li>
+          <li>Federal ITC up to 30% for eligible businesses (Clean Technology Investment Tax Credit)</li>
           <li>HQ incentive of $1,000/kW (self-generation program)</li>
           <li>Accelerated capital cost allowance (CCA class 43.1/43.2)</li>
           <li>O&M costs estimated at $15/kW/year with 2%/year escalation</li>

@@ -53,7 +53,7 @@ const upload = multer({
 // Quick estimate endpoint for landing page calculator (no auth required)
 // Consumption-based sizing with 3 offset scenarios (70%, 85%, 100%)
 router.post("/api/quick-estimate", estimateLimiter, asyncHandler(async (req, res) => {
-  const { address, email, clientName, monthlyBill, buildingType, tariffCode, annualConsumptionKwh, roofAgeYears, ownershipType, utm_source, utm_medium, utm_campaign, utm_term, utm_content } = req.body;
+  const { address, email, clientName, phone, monthlyBill, buildingType, tariffCode, annualConsumptionKwh, roofAgeYears, ownershipType, utm_source, utm_medium, utm_campaign, utm_term, utm_content } = req.body;
 
   // Either annualConsumptionKwh or monthlyBill is required
   if (!annualConsumptionKwh && !monthlyBill) {
@@ -440,7 +440,7 @@ router.post("/api/quick-estimate", estimateLimiter, asyncHandler(async (req, res
       companyName,
       contactName,
       email: leadEmail,
-      phone: null,
+      phone: phone || null,
       streetAddress: address || null,
       city: null,
       province: "Québec",
@@ -467,7 +467,7 @@ router.post("/api/quick-estimate", estimateLimiter, asyncHandler(async (req, res
       name: companyName,
       mainContactName: contactName,
       email: leadEmail !== 'quick-estimate@placeholder.local' ? leadEmail : null,
-      phone: null,
+      phone: phone || null,
       address: address || null,
       city: null,
       province: "Québec",
@@ -1134,7 +1134,7 @@ router.post("/api/detailed-analysis-request", leadSubmissionLimiter, upload.any(
     // Build CRM link - use the opportunity if created, otherwise link to pipeline
     const baseUrl = process.env.REPLIT_DEV_DOMAIN
       ? `https://${process.env.REPLIT_DEV_DOMAIN}`
-      : 'https://kwh.quebec';
+      : 'https://www.kwh.quebec';
     const crmLink = createdOpportunityId
       ? `${baseUrl}/pipeline?opportunityId=${createdOpportunityId}`
       : `${baseUrl}/pipeline`;
@@ -1222,7 +1222,7 @@ router.post("/api/detailed-analysis-request", leadSubmissionLimiter, upload.any(
           </div>
 
           <p style="text-align: center; margin-top: 20px; font-size: 14px; color: #6b7280;">
-            <a href="https://kwh.quebec" style="color: #003DA6; font-weight: 600;">kWh Québec</a> | 514.427.8871 | info@kwh.quebec
+            <a href="https://www.kwh.quebec" style="color: #003DA6; font-weight: 600;">kWh Québec</a> | 514.427.8871 | info@kwh.quebec
           </p>
         </div>
       `,

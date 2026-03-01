@@ -1241,7 +1241,7 @@ export async function generatePresentationPPTX(
       x: 0.5, y: 3.9, w: 4.2, h: 0.25,
       fontSize: 8, color: COLORS.darkGray
     });
-    slide5.addText([{ text: "kwh.quebec/analyse-detaillee", options: { hyperlink: { url: "https://kwh.quebec/analyse-detaillee" }, color: COLORS.blue, underline: true } }], {
+    slide5.addText([{ text: "kwh.quebec/analyse-detaillee", options: { hyperlink: { url: "https://www.kwh.quebec/analyse-detaillee" }, color: COLORS.blue, underline: true } }], {
       x: 0.5, y: 4.15, w: 4.2, h: 0.25,
       fontSize: 8
     });
@@ -1260,7 +1260,7 @@ export async function generatePresentationPPTX(
       x: 5.3, y: 3.9, w: 4.2, h: 0.25,
       fontSize: 8, color: COLORS.darkGray
     });
-    slide5.addText([{ text: t("Voir le guide étape par étape", "See the step-by-step guide"), options: { hyperlink: { url: "https://kwh.quebec/blog/telecharger-donnees-espace-client-hydro-quebec" }, color: COLORS.blue, underline: true } }], {
+    slide5.addText([{ text: t("Voir le guide étape par étape", "See the step-by-step guide"), options: { hyperlink: { url: "https://www.kwh.quebec/blog/telecharger-donnees-espace-client-hydro-quebec" }, color: COLORS.blue, underline: true } }], {
       x: 5.3, y: 4.15, w: 4.2, h: 0.25,
       fontSize: 8
     });

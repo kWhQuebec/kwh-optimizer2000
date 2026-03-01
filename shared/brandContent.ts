@@ -76,7 +76,7 @@ export const BRAND_CONTENT = {
   // IMPORTANT: Ces valeurs doivent correspondre à shared/schema.ts > defaultAnalysisAssumptions
   assumptions: {
     utilityEscalation: { value: "3.5%/an", labelFr: "Escalade prix électricité", labelEn: "Utility price escalation" },
-    pvDegradation: { value: "0.4%/an", labelFr: "Dégradation panneaux", labelEn: "Panel degradation" },
+    pvDegradation: { value: "0.35-0.5%/an", labelFr: "Dégradation panneaux (après année 1; initiale ~1-2% selon fabricant)", labelEn: "Panel degradation (after Year 1; initial ~1-2% per manufacturer)" },
     dcAcRatio: { value: "1.45", labelFr: "Ratio DC:AC (ILR)", labelEn: "DC:AC ratio (ILR)" },
     systemLosses: { value: "~5.4%", labelFr: "Pertes système nettes (PVSyst)", labelEn: "Net system losses (PVSyst)" },
     systemLife: { value: "25 ans", labelFr: "Durée de vie système", labelEn: "System lifespan" },
@@ -416,8 +416,8 @@ export const BRAND_CONTENT = {
         labelEn: "Hydro-Québec Incentives — Up to $1,000/kW",
       },
       {
-        labelFr: "Crédit d'impôt fédéral (CII) 30%",
-        labelEn: "Federal Investment Tax Credit (ITC) 30%",
+        labelFr: "Crédit d'impôt fédéral (CII) jusqu'à 30% pour les entreprises admissibles",
+        labelEn: "Federal Investment Tax Credit (ITC) up to 30% for eligible businesses",
       },
       {
         labelFr: "Hausses de coûts énergétiques",
@@ -432,8 +432,8 @@ export const BRAND_CONTENT = {
         labelEn: "Net metering — 24-month credit bank",
       },
       {
-        labelFr: "Amortissement fiscal accéléré (DPA 43.1/43.2)",
-        labelEn: "Accelerated depreciation (CCA 43.1/43.2)",
+        labelFr: "Amortissement fiscal accéléré (DPA 43.1/43.2 — sous réserve d'éligibilité, consultez votre comptable)",
+        labelEn: "Accelerated depreciation (CCA 43.1/43.2 — subject to eligibility, consult your accountant)",
       },
     ],
     winterTitle: {
@@ -507,8 +507,8 @@ export const BRAND_CONTENT = {
     tax_capital: {
       headlineFr: "Optimisez votre fiscalité avec l'accélération de l'amortissement",
       headlineEn: "Optimize your tax position with accelerated depreciation",
-      sublineFr: "Profitez de la DPA catégorie 43.1/43.2 et du crédit d'impôt fédéral pour maximiser le rendement net de votre investissement.",
-      sublineEn: "Leverage CCA Class 43.1/43.2 and the federal ITC to maximize the net return on your investment.",
+      sublineFr: "Profitez de la DPA catégorie 43.1/43.2 (sous réserve des conditions d'éligibilité en vigueur — consultez votre comptable) et du crédit d'impôt fédéral (jusqu'à 30% pour les entreprises admissibles) pour maximiser le rendement net de votre investissement.",
+      sublineEn: "Leverage CCA Class 43.1/43.2 (subject to current eligibility conditions — consult your accountant) and the federal ITC (up to 30% for eligible businesses) to maximize the net return on your investment.",
       iconEmoji: "📊",
       color: "#7C3AED",
     },

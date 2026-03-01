@@ -27,13 +27,13 @@ export const SEO_PAGES = {
       title: "Installation Solaire Commerciale Québec | kWh Québec",
       description: "Réduisez vos coûts d'énergie avec le solaire commercial. Estimation gratuite en 2 minutes. Plus de 47 projets complétés au Québec.",
       keywords: "solaire commercial québec, panneaux solaires entreprise, stockage batterie industriel, hydro-québec autoproduction, incitatifs solaire québec, installation solaire",
-      canonical: "https://kwh.quebec",
+      canonical: "https://www.kwh.quebec",
     },
     en: {
       title: "Commercial Solar Installation Quebec | kWh Québec",
       description: "Reduce your energy costs with commercial solar. Free estimate in 2 minutes. 47+ projects completed in Quebec.",
       keywords: "commercial solar quebec, business solar panels, industrial battery storage, hydro-quebec self-generation, quebec solar incentives, solar installation",
-      canonical: "https://kwh.quebec/en",
+      canonical: "https://www.kwh.quebec/en",
     },
   },
   services: {
@@ -41,13 +41,13 @@ export const SEO_PAGES = {
       title: "Services EPC Solaire | kWh Québec",
       description: "Services clé en main pour projets solaires commerciaux: analyse, ingénierie, construction et maintenance. Expertise québécoise en énergie solaire.",
       keywords: "EPC solaire québec, installation panneaux solaires, ingénierie solaire, maintenance système solaire, conception système PV",
-      canonical: "https://kwh.quebec/services",
+      canonical: "https://www.kwh.quebec/services",
     },
     en: {
       title: "Solar EPC Services | kWh Québec",
       description: "Turnkey services for commercial solar projects: analysis, engineering, construction and maintenance. Quebec solar energy expertise.",
       keywords: "solar EPC quebec, solar panel installation, solar engineering, solar system maintenance, PV system design",
-      canonical: "https://kwh.quebec/en/services",
+      canonical: "https://www.kwh.quebec/en/services",
     },
   },
   howItWorks: {
@@ -55,13 +55,13 @@ export const SEO_PAGES = {
       title: "Comment ça marche | Processus d'analyse solaire | kWh Québec",
       description: "Découvrez notre processus en 6 étapes: de l'analyse gratuite à l'installation clé en main. Analyse GRATUITE en 2 minutes.",
       keywords: "processus solaire, analyse gratuite, installation solaire étapes, projet solaire commercial, how solar works",
-      canonical: "https://kwh.quebec/comment-ca-marche",
+      canonical: "https://www.kwh.quebec/comment-ca-marche",
     },
     en: {
       title: "How It Works | Solar Analysis Process | kWh Québec",
       description: "Discover our 6-step process: from free analysis to turnkey installation. FREE analysis in 2 minutes.",
       keywords: "solar process, free analysis, solar installation steps, commercial solar project, how solar works",
-      canonical: "https://kwh.quebec/en/how-it-works",
+      canonical: "https://www.kwh.quebec/en/how-it-works",
     },
   },
   resources: {
@@ -69,13 +69,13 @@ export const SEO_PAGES = {
       title: "Ressources et FAQ Solaire | kWh Québec",
       description: "Guides, FAQ et informations sur le solaire commercial au Québec: incitatifs, tarifs Hydro-Québec, retour sur investissement.",
       keywords: "FAQ solaire québec, guide incitatifs solaire, tarifs hydro-québec, ROI solaire commercial, ressources énergie",
-      canonical: "https://kwh.quebec/ressources",
+      canonical: "https://www.kwh.quebec/ressources",
     },
     en: {
       title: "Solar Resources and FAQ | kWh Québec",
       description: "Guides, FAQ and information about commercial solar in Quebec: incentives, Hydro-Québec rates, return on investment.",
       keywords: "quebec solar FAQ, solar incentives guide, hydro-quebec rates, commercial solar ROI, energy resources",
-      canonical: "https://kwh.quebec/en/resources",
+      canonical: "https://www.kwh.quebec/en/resources",
     },
   },
   mandat: {
@@ -83,13 +83,13 @@ export const SEO_PAGES = {
       title: "Mandat de Conception Préliminaire | kWh Québec",
       description: "Validation technique et financière de votre projet solaire commercial. Montant crédité intégralement sur contrat EPC.",
       keywords: "mandat conception, faisabilité solaire, étude préliminaire, analyse site solaire, devis gratuit",
-      canonical: "https://kwh.quebec/mandat-conception",
+      canonical: "https://www.kwh.quebec/mandat-conception",
     },
     en: {
       title: "Preliminary Design Mandate | kWh Québec",
       description: "Technical and financial validation of your commercial solar project. Amount fully credited toward EPC contract.",
       keywords: "design mandate, solar feasibility, preliminary study, site analysis, free quote",
-      canonical: "https://kwh.quebec/en/design-mandate",
+      canonical: "https://www.kwh.quebec/en/design-mandate",
     },
   },
 } as const;
@@ -140,9 +140,9 @@ export function generateBreadcrumbs(items: Array<{ label: string; url: string }>
 export function getAlternateLanguageUrls(basePath: string = "") {
   const cleanPath = basePath.replace(/\/$/, "");
   return {
-    fr: `https://kwh.quebec${cleanPath || "/"}`,
-    en: `https://kwh.quebec/en${cleanPath || "/"}`,
-    default: `https://kwh.quebec${cleanPath || "/"}`,
+    fr: `https://www.kwh.quebec${cleanPath || "/"}`,
+    en: `https://www.kwh.quebec/en${cleanPath || "/"}`,
+    default: `https://www.kwh.quebec${cleanPath || "/"}`,
   };
 }
 
@@ -188,7 +188,7 @@ export const COMPANY_INFO = {
     region: "QC",
     country: "CA",
   },
-  website: "https://kwh.quebec",
+  website: "https://www.kwh.quebec",
   languages: ["fr", "en"],
 };
 

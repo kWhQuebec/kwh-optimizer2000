@@ -251,7 +251,10 @@ Sitemap: https://www.kwh.quebec/sitemap.xml`
       { path: "/blog", priority: "0.7", changefreq: "daily" },
       { path: "/analyse-detaillee", priority: "0.7", changefreq: "monthly" },
       { path: "/autorisation-hq", priority: "0.5", changefreq: "monthly" },
+      { path: "/stockage-energie", priority: "0.7", changefreq: "monthly" },
       { path: "/portfolio", priority: "0.6", changefreq: "monthly" },
+      { path: "/nouvelles", priority: "0.7", changefreq: "daily" },
+      { path: "/mandat-de-conception-preliminaire", priority: "0.6", changefreq: "monthly" },
       { path: "/privacy", priority: "0.3", changefreq: "yearly" },
       { path: "/conditions", priority: "0.3", changefreq: "yearly" },
     ];

@@ -7,7 +7,7 @@ import { Link, useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { useDropzone } from "react-dropzone";
 import {
-  Building2, Factory, School, HelpCircle,
+  Building2, Factory, HelpCircle,
   CheckCircle2, ArrowRight, BarChart3, Zap, Clock, DollarSign,
   TrendingUp, Shield, Award, Target, Wrench, HardHat,
   BatteryCharging, MapPin,
@@ -33,7 +33,7 @@ import { useToast } from "@/hooks/use-toast";
 import { FunnelEvents, getStoredUTMParams } from "@/lib/analytics";
 import { SEOHead, seoContent, getLocalBusinessSchema, getServiceSchema, getFAQSchema, organizationSchema } from "@/components/seo-head";
 import { TIMELINE_GRADIENT, BRAND } from "@shared/colors";
-import { getWhySolarNow, getTimeline } from "@shared/brandContent";
+import { getWhySolarNow, getTimeline, BRAND_CONTENT } from "@shared/brandContent";
 import logoFr from "@assets/kWh_Quebec_Logo-01_-_Rectangulaire_1764799021536.png";
 import logoEn from "@assets/kWh_Quebec_Logo-02_-_Rectangle_1764799021536.png";
 import installationPhoto from "@assets/hero-optimized.jpg";
@@ -63,14 +63,14 @@ import labSpaceLogo from "@assets/Logo_full_1769527493871.png";
 import scaleCleantechLogo from "@assets/scale-cleantech-color_small-VSYW5GJE_1769527536419.webp";
 import hqLogo from "@assets/Screenshot_2026-01-27_at_5.26.14_PM_1769552778826.png";
 
-// Complete form with all fields
+// Simplified form: only Company, Email, Address required; Phone optional; other fields collected later
 const leadFormSchema = z.object({
   companyName: z.string().min(1, "Ce champ est requis"),
-  contactName: z.string().min(1, "Ce champ est requis"),
+  contactName: z.string().optional(),
   email: z.string().email("Courriel invalide"),
   phone: z.string().optional(),
   streetAddress: z.string().min(1, "Ce champ est requis"),
-  city: z.string().min(1, "Ce champ est requis"),
+  city: z.string().optional(),
   province: z.string().optional(),
   postalCode: z.string().optional(),
   estimatedMonthlyBill: z.coerce.number().optional(),
@@ -179,6 +179,9 @@ export default function LandingPage() {
   const [parsedBillData, setParsedBillData] = useState<HQBillData | null>(null);
   const [parseError, setParseError] = useState<string | null>(null);
   const [quickEmail, setQuickEmail] = useState('');
+  const [quickCompany, setQuickCompany] = useState('');
+  const [quickPhone, setQuickPhone] = useState('');
+  const [quickAddress, setQuickAddress] = useState('');
   const [manualKwh, setManualKwh] = useState('');
   const [quickAnalysisResult, setQuickAnalysisResult] = useState<any>(null);
   // Qualification fields
@@ -317,7 +320,6 @@ export default function LandingPage() {
   const buildingTypes = [
     { value: "industrial", label: t("form.buildingType.industrial"), icon: Factory },
     { value: "commercial", label: t("form.buildingType.commercial"), icon: Building2 },
-    { value: "institutional", label: t("form.buildingType.institutional"), icon: School },
     { value: "other", label: t("form.buildingType.other"), icon: HelpCircle },
   ];
 
@@ -368,8 +370,9 @@ export default function LandingPage() {
           throw new Error('Failed to parse bill data');
         }
         setParsedBillData(result.data as HQBillData);
+        if (result.data.clientName) setQuickCompany(result.data.clientName);
+        if (result.data.serviceAddress) setQuickAddress(result.data.serviceAddress);
         setFlowStep('extracted');
-        // Track successful bill parsing
         FunnelEvents.billParsed(result.data.annualConsumptionKwh || 0, result.data.confidence || 0);
       })
       .catch(() => {
@@ -397,6 +400,7 @@ export default function LandingPage() {
       annualKwh: number;
       clientName?: string;
       address?: string;
+      phone?: string;
       roofAgeYears?: number;
       ownershipType?: string;
     }) => {
@@ -408,6 +412,7 @@ export default function LandingPage() {
           email: data.email,
           clientName: data.clientName || '',
           address: data.address || '',
+          phone: data.phone || '',
           roofAgeYears: data.roofAgeYears,
           ownershipType: data.ownershipType,
           ...getStoredUTMParams(),
@@ -465,8 +470,9 @@ export default function LandingPage() {
     quickAnalysisMutation.mutate({
       email: quickEmail,
       annualKwh,
-      clientName: parsedBillData?.clientName || undefined,
-      address: parsedBillData?.serviceAddress || undefined,
+      clientName: quickCompany || parsedBillData?.clientName || undefined,
+      address: quickAddress || parsedBillData?.serviceAddress || undefined,
+      phone: quickPhone || undefined,
       roofAgeYears: roofAgeYears ? parseInt(roofAgeYears) : undefined,
       ownershipType: ownershipType || undefined,
     });
@@ -481,6 +487,9 @@ export default function LandingPage() {
       localStorage.setItem('kwhquebec_bill_data', JSON.stringify({
         ...parsedBillData,
         email: quickEmail,
+        companyName: quickCompany,
+        phone: quickPhone,
+        address: quickAddress || parsedBillData.serviceAddress,
       }));
     }
     navigate('/analyse-detaillee');
@@ -492,6 +501,9 @@ export default function LandingPage() {
     setParsedBillData(null);
     setParseError(null);
     setQuickEmail('');
+    setQuickCompany('');
+    setQuickPhone('');
+    setQuickAddress('');
     setManualKwh('');
     setQuickAnalysisResult(null);
     setRoofAgeYears('');
@@ -516,7 +528,7 @@ export default function LandingPage() {
         keywords={seo.keywords}
         structuredData={schemas}
         locale={language}
-        canonical="https://kwh.quebec"
+        canonical="https://www.kwh.quebec"
         includeHreflang={true}
       />
       {/* Fixed Header */}
@@ -528,6 +540,9 @@ export default function LandingPage() {
                 src={currentLogo} 
                 alt={language === "fr" ? "Logo kWh Québec – Énergie solaire commerciale" : "kWh Québec Logo – Commercial Solar Energy"} 
                 className="h-[50px] sm:h-[3.75rem] w-auto"
+                loading="eager"
+                fetchPriority="high"
+                decoding="async"
                 data-testid="logo-header"
               />
             </Link>
@@ -575,23 +590,17 @@ export default function LandingPage() {
           >
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-white mb-4" data-testid="hero-headline">
               {language === "fr" 
-                ? <>Panneaux solaires <span className="inline-flex items-center justify-center bg-yellow-400 text-white w-[0.9em] h-[0.9em] rounded-sm text-[0.8em] font-bold align-middle">+</span> stockage</> 
-                : <>Solar panels <span className="inline-flex items-center justify-center bg-yellow-400 text-white w-[0.9em] h-[0.9em] rounded-sm text-[0.8em] font-bold align-middle">+</span> storage</>}
+                ? "Réduisez votre facture énergétique de 30-50%" 
+                : "Cut Your Energy Bill by 30-50%"}
             </h1>
             
             <p className="text-2xl sm:text-3xl text-white/90 font-medium mb-2" data-testid="hero-subtitle">
               {language === "fr" 
-                ? "Commercial & Industriel" 
-                : "Commercial & Industrial"}
+                ? "Solaire commercial & industriel — Partout au Québec" 
+                : "Commercial & Industrial Solar — Across Quebec"}
             </p>
             
-            <p className="text-2xl sm:text-3xl text-white/90 font-medium mb-6" data-testid="hero-location">
-              {language === "fr" 
-                ? "Partout au Québec" 
-                : "Across Quebec"}
-            </p>
-            
-            <p className="text-xl text-yellow-400 font-semibold mb-8" data-testid="hero-value-prop">
+            <p className="text-xl text-yellow-400 font-semibold mt-4 mb-8" data-testid="hero-value-prop">
               {language === "fr" 
                 ? "Incitatifs financiers jusqu'à 60% du projet." 
                 : "Financial incentives up to 60% of project."}
@@ -615,7 +624,7 @@ export default function LandingPage() {
                   data-testid="button-hero-cta"
                 >
                   <Sun className="w-5 h-5" />
-                  {language === "fr" ? "Obtenir mon analyse" : "Get my analysis"}
+                  {language === "fr" ? "Voir mon potentiel solaire — Gratuit, 2 min" : "See my solar potential — Free, 2 min"}
                   <ArrowRight className="w-5 h-5" />
                 </Button>
               </div>
@@ -659,6 +668,36 @@ export default function LandingPage() {
               />
             </div>
           </motion.div>
+        </div>
+      </section>
+      {/* ========== SOCIAL PROOF STATS BAND ========== */}
+      <section className="relative z-10 bg-card border-b" data-testid="section-social-proof">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex flex-wrap items-center justify-center gap-8 sm:gap-12 md:gap-16">
+            <div className="flex flex-col items-center text-center" data-testid="stat-years-experience">
+              <Award className="w-6 h-6 text-primary mb-1" />
+              <span className="text-2xl sm:text-3xl font-bold text-foreground">{BRAND_CONTENT.stats.yearsExperience.value}</span>
+              <span className="text-sm text-muted-foreground">
+                {language === "fr" ? BRAND_CONTENT.stats.yearsExperience.labelFr : BRAND_CONTENT.stats.yearsExperience.labelEn}
+              </span>
+            </div>
+            <div className="hidden sm:block w-px h-12 bg-border" aria-hidden="true" />
+            <div className="flex flex-col items-center text-center" data-testid="stat-mw-installed">
+              <Zap className="w-6 h-6 text-primary mb-1" />
+              <span className="text-2xl sm:text-3xl font-bold text-foreground">{BRAND_CONTENT.stats.mwInstalled.value}+</span>
+              <span className="text-sm text-muted-foreground">
+                {language === "fr" ? BRAND_CONTENT.stats.mwInstalled.labelFr : BRAND_CONTENT.stats.mwInstalled.labelEn}
+              </span>
+            </div>
+            <div className="hidden sm:block w-px h-12 bg-border" aria-hidden="true" />
+            <div className="flex flex-col items-center text-center" data-testid="stat-ci-projects">
+              <Building2 className="w-6 h-6 text-primary mb-1" />
+              <span className="text-2xl sm:text-3xl font-bold text-foreground">{BRAND_CONTENT.stats.projectsCI.value}</span>
+              <span className="text-sm text-muted-foreground">
+                {language === "fr" ? BRAND_CONTENT.stats.projectsCI.labelFr : BRAND_CONTENT.stats.projectsCI.labelEn}
+              </span>
+            </div>
+          </div>
         </div>
       </section>
       {/* ========== UPLOAD/ANALYSIS SECTION ========== */}
@@ -874,24 +913,46 @@ export default function LandingPage() {
                         </div>
                       )}
 
-                      {/* Email gate */}
+                      {/* Contact fields gate */}
                       <div className="space-y-3 pt-2 border-t">
                         <p className="text-sm font-medium text-center">
                           {language === "fr"
                             ? "Recevez votre rapport complet avec les options de financement"
                             : "Get your full report with financing options"}
                         </p>
-                        <Input
-                          type="email"
-                          placeholder={language === "fr" ? "votre@courriel.com" : "your@email.com"}
-                          value={quickEmail}
-                          onChange={(e) => setQuickEmail(e.target.value)}
-                          className="text-center"
-                          data-testid="input-quick-email"
-                        />
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <Input
+                            type="text"
+                            placeholder={language === "fr" ? "Nom de l'entreprise *" : "Company name *"}
+                            value={quickCompany}
+                            onChange={(e) => setQuickCompany(e.target.value)}
+                            data-testid="input-quick-company"
+                          />
+                          <Input
+                            type="email"
+                            placeholder={language === "fr" ? "Courriel *" : "Email *"}
+                            value={quickEmail}
+                            onChange={(e) => setQuickEmail(e.target.value)}
+                            data-testid="input-quick-email"
+                          />
+                          <Input
+                            type="tel"
+                            placeholder={language === "fr" ? "Téléphone (optionnel)" : "Phone (optional)"}
+                            value={quickPhone}
+                            onChange={(e) => setQuickPhone(e.target.value)}
+                            data-testid="input-quick-phone"
+                          />
+                          <Input
+                            type="text"
+                            placeholder={language === "fr" ? "Adresse du bâtiment *" : "Building address *"}
+                            value={quickAddress}
+                            onChange={(e) => setQuickAddress(e.target.value)}
+                            data-testid="input-quick-address"
+                          />
+                        </div>
                         <Button
                           onClick={handleQuickAnalysis}
-                          disabled={quickAnalysisMutation.isPending}
+                          disabled={quickAnalysisMutation.isPending || !quickEmail || !quickCompany}
                           className="w-full gap-2 h-11"
                           data-testid="button-submit-quick"
                         >
@@ -1259,12 +1320,12 @@ export default function LandingPage() {
                     >
                       <div className="text-center space-y-1">
                         <h3 className="text-lg font-semibold">
-                          {language === "fr" ? "Entrez votre consommation" : "Enter your consumption"}
+                          {language === "fr" ? "Entrez vos informations" : "Enter your information"}
                         </h3>
                         <p className="text-sm text-muted-foreground">
                           {language === "fr" 
-                            ? "Trouvez cette info sur votre facture Hydro-Québec" 
-                            : "Find this on your Hydro-Québec bill"}
+                            ? "Trouvez votre consommation sur votre facture Hydro-Québec" 
+                            : "Find your consumption on your Hydro-Québec bill"}
                         </p>
                       </div>
                       
@@ -1282,17 +1343,39 @@ export default function LandingPage() {
                             data-testid="input-manual-kwh"
                           />
                         </div>
-                        <Input
-                          type="email"
-                          placeholder={language === "fr" ? "votre@courriel.com" : "your@email.com"}
-                          value={quickEmail}
-                          onChange={(e) => setQuickEmail(e.target.value)}
-                          className="text-center"
-                          data-testid="input-manual-email"
-                        />
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <Input
+                            type="text"
+                            placeholder={language === "fr" ? "Nom de l'entreprise *" : "Company name *"}
+                            value={quickCompany}
+                            onChange={(e) => setQuickCompany(e.target.value)}
+                            data-testid="input-manual-company"
+                          />
+                          <Input
+                            type="email"
+                            placeholder={language === "fr" ? "Courriel *" : "Email *"}
+                            value={quickEmail}
+                            onChange={(e) => setQuickEmail(e.target.value)}
+                            data-testid="input-manual-email"
+                          />
+                          <Input
+                            type="tel"
+                            placeholder={language === "fr" ? "Téléphone (optionnel)" : "Phone (optional)"}
+                            value={quickPhone}
+                            onChange={(e) => setQuickPhone(e.target.value)}
+                            data-testid="input-manual-phone"
+                          />
+                          <Input
+                            type="text"
+                            placeholder={language === "fr" ? "Adresse du bâtiment *" : "Building address *"}
+                            value={quickAddress}
+                            onChange={(e) => setQuickAddress(e.target.value)}
+                            data-testid="input-manual-address"
+                          />
+                        </div>
                         <Button 
                           onClick={handleQuickAnalysis}
-                          disabled={quickAnalysisMutation.isPending || !manualKwh}
+                          disabled={quickAnalysisMutation.isPending || !manualKwh || !quickEmail || !quickCompany}
                           className="w-full gap-2"
                           data-testid="button-submit-manual"
                         >
@@ -1301,7 +1384,7 @@ export default function LandingPage() {
                           ) : (
                             <ArrowRight className="w-4 h-4" />
                           )}
-                          {language === "fr" ? "Obtenir mon estimation" : "Get my estimate"}
+                          {language === "fr" ? "Voir mon potentiel solaire" : "See my solar potential"}
                         </Button>
                       </div>
                       
@@ -1599,7 +1682,7 @@ export default function LandingPage() {
               </p>
               <a href="#analyse">
                 <Button size="lg" className="gap-2" data-testid="button-start-journey">
-                  {language === "fr" ? "Commencer mon analyse" : "Start my analysis"}
+                  {language === "fr" ? "Voir mon potentiel solaire — Gratuit" : "See my solar potential — Free"}
                   <ArrowRight className="w-4 h-4" />
                 </Button>
               </a>

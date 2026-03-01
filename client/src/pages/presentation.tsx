@@ -1050,7 +1050,7 @@ function AssumptionsCollapsible({ simulation, language }: { simulation: Simulati
 
   const marketingAssumptions = [
     { label: language === 'fr' ? 'Escalade prix électricité' : 'Utility price escalation', value: '3.5%/yr' },
-    { label: language === 'fr' ? 'Dégradation panneaux' : 'Panel degradation', value: '0.4%/yr' },
+    { label: language === 'fr' ? 'Dégradation panneaux (après année 1; initiale ~1-2%)' : 'Panel degradation (after Year 1; initial ~1-2%)', value: '0.35-0.5%/yr' },
     { label: language === 'fr' ? 'Ratio DC:AC' : 'DC:AC ratio', value: '1.40–1.47' },
     { label: language === 'fr' ? 'Durée de vie système' : 'System lifespan', value: '25 years' },
     { label: language === 'fr' ? 'Autoconsommation estimée' : 'Est. self-consumption', value: '~90%' },

@@ -42,6 +42,20 @@ The backend uses a centralized error handling system with custom `AppError` clas
 ### UI/UX - Standardized Color Palette
 A centralized color palette defined in `shared/colors.ts` ensures consistent branding across UI, charts, and generated documents, utilizing brand colors (Primary Blue, Dark Blue, Accent Gold) and semantic colors (Positive, Negative, Neutral, Info).
 
+### Website Audit (Completed)
+All 16 audit tasks implemented: ROI payback corrected to "5-9 ans avec incitatifs", degradation text includes year-1 context (~1-2%), CCA 43.2 qualified with "consultez votre comptable", ITC qualified as "up to 30% for eligible businesses", institutional removed from public-facing selectors (kept in backend engine), hero headline benefit-focused ("Réduisez votre facture de 30-50%"), lead form simplified to 5 fields, CTAs updated to "Voir mon potentiel solaire", phone number added to header, portfolio metrics enriched, ÉcoPerformance FAQ added, battery storage page created at `/stockage-energie`, FAQ JSON-LD expanded to 21 questions, image lazy loading verified, canonical URLs standardized to `www.kwh.quebec`, sitemap updated with new routes.
+
+### Public Pages & Routes
+- `/` — Landing page (hero, social proof band, lead form, process timeline)
+- `/services` — Services page (commercial + industrial sectors only)
+- `/stockage-energie` — Battery/storage page (peak shaving, Tarif M, backup, ROI)
+- `/ressources` — Resources page with 21 FAQ items across 4 categories
+- `/ressources/calculateur-roi-solaire` — ROI calculator with 4 educational sections
+- `/portfolio` — Public portfolio grid with production/savings metrics
+- `/portfolio/:id` — Project detail pages
+- `/nouvelles` — Blog/news page
+- `/mandat-de-conception-preliminaire` — Design mandate form
+
 ## External Dependencies
 
 ### Third-Party Services

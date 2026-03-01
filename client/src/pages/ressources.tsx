@@ -34,8 +34,8 @@ export default function RessourcesPage() {
         ? "Quels sont les incitatifs disponibles pour le solaire au Québec?"
         : "What incentives are available for solar in Quebec?",
       answer: language === "fr"
-        ? "Au Québec, les principaux incitatifs incluent: le programme d'autoproduction d'Hydro-Québec (mesurage net), le crédit d'impôt fédéral de 30% pour les technologies propres (ITC, sous conditions d'éligibilité), et la déduction pour amortissement accéléré (CCA Catégorie 43.2). L'éligibilité et les montants varient selon votre situation - notre analyse calcule les incitatifs applicables à votre projet."
-        : "In Quebec, main incentives include: Hydro-Québec's self-generation program (net metering), the 30% federal clean technology investment tax credit (ITC, subject to eligibility), and accelerated capital cost allowance (CCA Class 43.2). Eligibility and amounts vary by situation - our analysis calculates incentives applicable to your project."
+        ? "Au Québec, les principaux incitatifs incluent: le programme d'autoproduction d'Hydro-Québec (mesurage net), le crédit d'impôt fédéral de 30% pour les technologies propres (ITC, sous conditions d'éligibilité), et la déduction pour amortissement accéléré (CCA Catégorie 43.2, sous réserve des conditions d'éligibilité en vigueur — consultez votre comptable). L'éligibilité et les montants varient selon votre situation - notre analyse calcule les incitatifs applicables à votre projet."
+        : "In Quebec, main incentives include: Hydro-Québec's self-generation program (net metering), the 30% federal clean technology investment tax credit (ITC, subject to eligibility), and accelerated capital cost allowance (CCA Class 43.2, subject to current eligibility conditions — consult your accountant). Eligibility and amounts vary by situation - our analysis calculates incentives applicable to your project."
     },
     {
       category: "incentives",
@@ -52,8 +52,8 @@ export default function RessourcesPage() {
         ? "Comment fonctionne la déduction pour amortissement (CCA 43.2)?"
         : "How does capital cost allowance (CCA Class 43.2) work?",
       answer: language === "fr"
-        ? "La Catégorie 43.2 permet une déduction accélérée à un taux de 50% par année (solde dégressif). Des mesures temporaires d'amortissement immédiat peuvent permettre une déduction plus rapide sous certaines conditions. Consultez votre comptable pour les règles actuelles applicables à votre entreprise."
-        : "Class 43.2 allows accelerated depreciation at 50% per year (declining balance). Temporary immediate expensing measures may allow faster deduction under certain conditions. Consult your accountant for current rules applicable to your business."
+        ? "La Catégorie 43.2 permet une déduction accélérée à un taux de 50% par année (solde dégressif), sous réserve des conditions d'éligibilité en vigueur. Des mesures temporaires d'amortissement immédiat peuvent permettre une déduction plus rapide sous certaines conditions. Consultez votre comptable pour les règles actuelles applicables à votre entreprise."
+        : "Class 43.2 allows accelerated depreciation at 50% per year (declining balance), subject to current eligibility conditions. Temporary immediate expensing measures may allow faster deduction under certain conditions. Consult your accountant for current rules applicable to your business."
     },
     {
       category: "incentives",
@@ -72,6 +72,16 @@ export default function RessourcesPage() {
       answer: language === "fr"
         ? "Le programme d'autoproduction permet d'injecter votre surplus solaire sur le réseau et de le récupérer sous forme de crédits sur votre facture (jusqu'à 24 mois). Le surplus non utilisé après cette période est compensé au tarif de référence. La capacité maximale est de 1 MW par site. C'est un programme de mesurage net, pas une subvention directe."
         : "The self-generation program lets you inject solar surplus onto the grid and recover it as credits on your bill (up to 24 months). Unused surplus after this period is compensated at the reference rate. Maximum capacity is 1 MW per site. This is a net metering program, not a direct subsidy."
+    },
+
+    {
+      category: "incentives",
+      question: language === "fr"
+        ? "Qu'est-ce que le programme ÉcoPerformance de TEQ?"
+        : "What is TEQ's ÉcoPerformance program?",
+      answer: language === "fr"
+        ? "Le programme ÉcoPerformance de Transition énergétique Québec (TEQ) peut couvrir jusqu'à 75% des coûts d'efficacité énergétique complémentaires au solaire, comme l'amélioration de l'enveloppe du bâtiment ou la mise à niveau des systèmes mécaniques. C'est un incitatif provincial distinct du crédit fédéral ITC et du programme d'autoproduction Hydro-Québec. L'éligibilité et les montants dépendent du type de projet et des économies d'énergie démontrées — notre équipe peut vous accompagner dans le processus de demande."
+        : "TEQ's (Transition énergétique Québec) ÉcoPerformance program can cover up to 75% of energy efficiency costs complementary to solar, such as building envelope improvements or mechanical system upgrades. It is a provincial incentive separate from the federal ITC credit and the Hydro-Québec self-generation program. Eligibility and amounts depend on project type and demonstrated energy savings — our team can assist you through the application process."
     },
 
     // TECHNICAL (5 questions)
@@ -128,8 +138,8 @@ export default function RessourcesPage() {
         ? "Quel est le retour sur investissement typique?"
         : "What is the typical return on investment?",
       answer: language === "fr"
-        ? "Avec les incitatifs actuels, le temps de retour typique est de 4-7 ans pour les projets commerciaux au Québec. Le TRI (taux de rendement interne) se situe généralement entre 12% et 20%, selon la taille du système et le profil de consommation. La VAN sur 25 ans peut atteindre 2-3x l'investissement initial."
-        : "With current incentives, typical payback is 4-7 years for commercial projects in Quebec. IRR (internal rate of return) generally ranges between 12% and 20%, depending on system size and consumption profile. NPV over 25 years can reach 2-3x the initial investment."
+        ? "Avec les incitatifs actuels, le temps de retour typique est de 5-9 ans avec incitatifs pour les projets commerciaux au Québec. Le TRI (taux de rendement interne) se situe généralement entre 12% et 20%, selon la taille du système et le profil de consommation. La VAN sur 25 ans peut atteindre 2-3x l'investissement initial."
+        : "With current incentives, typical payback is 5-9 years with incentives for commercial projects in Quebec. IRR (internal rate of return) generally ranges between 12% and 20%, depending on system size and consumption profile. NPV over 25 years can reach 2-3x the initial investment."
     },
     {
       category: "financial",
@@ -202,8 +212,8 @@ export default function RessourcesPage() {
         ? "Quelle maintenance est requise pour un système solaire?"
         : "What maintenance is required for a solar system?",
       answer: language === "fr"
-        ? "Les systèmes solaires nécessitent très peu de maintenance. Inspection visuelle annuelle, nettoyage occasionnel si accumulation importante de débris, et vérification des connexions électriques tous les 2-3 ans. Les panneaux sont garantis 25 ans avec dégradation <0,4%/an. Le monitoring à distance permet de détecter rapidement tout problème."
-        : "Solar systems require very little maintenance. Annual visual inspection, occasional cleaning if significant debris accumulation, and electrical connection check every 2-3 years. Panels are warranted 25 years with degradation <0.4%/year. Remote monitoring allows quick detection of any issues."
+        ? "Les systèmes solaires nécessitent très peu de maintenance. Inspection visuelle annuelle, nettoyage occasionnel si accumulation importante de débris, et vérification des connexions électriques tous les 2-3 ans. Les panneaux sont garantis 25 ans avec dégradation de 0,35-0,5%/an après la première année (dégradation initiale ~1-2% selon le fabricant). Le monitoring à distance permet de détecter rapidement tout problème."
+        : "Solar systems require very little maintenance. Annual visual inspection, occasional cleaning if significant debris accumulation, and electrical connection check every 2-3 years. Panels are warranted 25 years with degradation of 0.35-0.5%/yr after Year 1 (initial degradation ~1-2% per manufacturer). Remote monitoring allows quick detection of any issues."
     },
     {
       category: "process",
@@ -326,8 +336,8 @@ export default function RessourcesPage() {
     {
       term: language === "fr" ? "CCA Catégorie 43.2" : "CCA Class 43.2",
       definition: language === "fr"
-        ? "Catégorie de déduction pour amortissement accéléré au Canada. Taux de base de 50%/an (solde dégressif). Des mesures temporaires peuvent permettre une déduction plus rapide sous conditions."
-        : "Accelerated capital cost allowance category in Canada. Base rate of 50%/year (declining balance). Temporary measures may allow faster deduction under certain conditions."
+        ? "Catégorie de déduction pour amortissement accéléré au Canada. Taux de base de 50%/an (solde dégressif). Des mesures temporaires peuvent permettre une déduction plus rapide sous conditions. Sous réserve des conditions d'éligibilité en vigueur — consultez votre comptable."
+        : "Accelerated capital cost allowance category in Canada. Base rate of 50%/year (declining balance). Temporary measures may allow faster deduction under certain conditions. Subject to current eligibility conditions — consult your accountant."
     },
   ];
 
@@ -365,8 +375,8 @@ export default function RessourcesPage() {
       criterion: language === "fr" ? "Entreprise imposable (pour le crédit fiscal)" : "Taxable business (for tax credit)",
       required: false,
       info: language === "fr"
-        ? "Le bouclier fiscal CCA 43.2 ne s'applique qu'aux entreprises payant de l'impôt."
-        : "CCA 43.2 tax shield only applies to businesses paying taxes."
+        ? "Le bouclier fiscal CCA 43.2 ne s'applique qu'aux entreprises payant de l'impôt. Sous réserve des conditions d'éligibilité en vigueur — consultez votre comptable."
+        : "CCA 43.2 tax shield only applies to businesses paying taxes. Subject to current eligibility conditions — consult your accountant."
     },
     {
       criterion: language === "fr" ? "Capacité d'investissement ou accès au financement" : "Investment capacity or financing access",
@@ -648,7 +658,7 @@ export default function RessourcesPage() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/#paths">
               <Button size="lg" className="gap-2" data-testid="button-get-analysis">
-                {language === "fr" ? "Obtenir mon analyse gratuite" : "Get my free analysis"}
+                {language === "fr" ? "Voir mon potentiel solaire — Gratuit" : "See my solar potential — Free"}
                 <ArrowRight className="w-4 h-4" />
               </Button>
             </Link>

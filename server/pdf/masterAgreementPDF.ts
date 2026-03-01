@@ -869,7 +869,7 @@ function buildScheduleOfValuesPages(t: (fr: string, en: string) => string, dateS
     t("Frais de permis de construire inclus", "Building permit fees included"),
     t("Garanties standard des fabricants incluses (sauf indication contraire)", "Standard manufacturer warranties included (unless otherwise noted)"),
     t("&Eacute;quipement majeur sujet &agrave; changement selon disponibilit&eacute; au moment de l'approvisionnement", "Major equipment subject to change based on commercial availability at time of procurement"),
-    t("Salaires courants (requis pour le CII 30&nbsp;%) inclus (sujet &agrave; la l&eacute;gislation finale)", "Prevailing wages (required for 30% ITC) included (subject to final legislation)"),
+    t("Salaires courants (requis pour le CII jusqu'&agrave; 30&nbsp;%) inclus (sujet &agrave; la l&eacute;gislation finale)", "Prevailing wages (required for up to 30% ITC) included (subject to final legislation)"),
     t("Primes hivernales, heures suppl&eacute;mentaires incluses", "Winter premiums, overtime and premium time included"),
     t("Cautionnement d'ex&eacute;cution 50&nbsp;% et cautionnement de main-d'&oelig;uvre et mat&eacute;riaux 50&nbsp;% inclus", "50% Performance and 50% Labour &amp; Material Bonds included"),
     t("2&nbsp;% de modules de rechange inclus", "2% spare modules included"),

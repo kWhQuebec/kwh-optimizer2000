@@ -1484,7 +1484,7 @@ function buildAssumptionsPage(
   const assumptions = [
     t("Tarif Hydro-Qu&eacute;bec en vigueur (&eacute;nergie + puissance)", "Current Hydro-Qu&eacute;bec rate (energy + demand)"),
     t("Inflation &eacute;nerg&eacute;tique annuelle: 3,5%", "Annual energy inflation: 3.5%"),
-    t("D&eacute;gradation panneaux: 0,4%/an", "Panel degradation: 0.4%/yr"),
+    t("D&eacute;gradation panneaux: 0,35-0,5%/an apr&egrave;s ann&eacute;e 1 (initiale ~1-2% selon fabricant)", "Panel degradation: 0.35-0.5%/yr after Year 1 (initial ~1-2% per manufacturer)"),
     t("Dur&eacute;e de vie syst&egrave;me: 25 ans minimum", "System life: 25 years minimum"),
     t("Taux d'actualisation: 7%", "Discount rate: 7%"),
     t("Rendement solaire: ~1 035 kWh/kWc (base Qu&eacute;bec)", "Solar yield: ~1,035 kWh/kWp (Quebec baseline)"),
@@ -1662,12 +1662,12 @@ function buildNextStepsPage(
           <div style="flex: 1; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 2mm; padding: 3mm;">
             <p style="font-size: 9pt; font-weight: 700; color: #16a34a; margin: 0 0 2mm 0;">${t("Option A &mdash; Procuration (2 min)", "Option A &mdash; Authorization (2 min)")}</p>
             <p style="font-size: 8pt; margin: 0 0 2mm 0;">${t("Signez en ligne et nous nous occupons de tout.", "Sign online and we handle everything.")}</p>
-            <p style="font-size: 8pt; margin: 0;"><a href="https://kwh.quebec/analyse-detaillee" style="color: #003DA6; text-decoration: underline;">kwh.quebec/analyse-detaillee</a></p>
+            <p style="font-size: 8pt; margin: 0;"><a href="https://www.kwh.quebec/analyse-detaillee" style="color: #003DA6; text-decoration: underline;">kwh.quebec/analyse-detaillee</a></p>
           </div>
           <div style="flex: 1; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 2mm; padding: 3mm;">
             <p style="font-size: 9pt; font-weight: 700; color: #003DA6; margin: 0 0 2mm 0;">${t("Option B &mdash; T&eacute;l&eacute;chargement CSV (~30 min)", "Option B &mdash; CSV Download (~30 min)")}</p>
             <p style="font-size: 8pt; margin: 0 0 2mm 0;">${t("T&eacute;l&eacute;chargez vos fichiers depuis l'Espace Client Hydro-Qu&eacute;bec.", "Download your files from Hydro-Qu&eacute;bec's Online Portal.")}</p>
-            <p style="font-size: 8pt; margin: 0;"><a href="https://kwh.quebec/blog/telecharger-donnees-espace-client-hydro-quebec" style="color: #003DA6; text-decoration: underline;">${t("Voir le guide &eacute;tape par &eacute;tape", "See the step-by-step guide")}</a></p>
+            <p style="font-size: 8pt; margin: 0;"><a href="https://www.kwh.quebec/blog/telecharger-donnees-espace-client-hydro-quebec" style="color: #003DA6; text-decoration: underline;">${t("Voir le guide &eacute;tape par &eacute;tape", "See the step-by-step guide")}</a></p>
           </div>
         </div>
         <p style="font-size: 8pt; color: #6b7280; margin: 0;">${t("R&eacute;sultat en 7 jours ouvrables apr&egrave;s r&eacute;ception des donn&eacute;es. Gratuit et sans engagement.", "Results within 7 business days after data reception. Free and without commitment.")}</p>
@@ -1703,9 +1703,9 @@ function buildNextStepsPage(
       <h3>${t("Pr&ecirc;t &agrave; passer &agrave; l'action?", "Ready to take action?")}</h3>
       <p>${t("Signez la procuration ou t&eacute;l&eacute;chargez vos donn&eacute;es pour d&eacute;marrer votre analyse d&eacute;taill&eacute;e gratuite", "Sign the authorization or download your data to start your free detailed analysis")}</p>
       <p style="font-size: 10pt; margin-top: 3mm;">
-        <a href="https://kwh.quebec/analyse-detaillee" style="color: white; text-decoration: underline;">${t("Signer la procuration", "Sign authorization")}</a>
+        <a href="https://www.kwh.quebec/analyse-detaillee" style="color: white; text-decoration: underline;">${t("Signer la procuration", "Sign authorization")}</a>
         &nbsp;&nbsp;|&nbsp;&nbsp;
-        <a href="https://kwh.quebec/blog/telecharger-donnees-espace-client-hydro-quebec" style="color: white; text-decoration: underline;">${t("Guide CSV", "CSV Guide")}</a>
+        <a href="https://www.kwh.quebec/blog/telecharger-donnees-espace-client-hydro-quebec" style="color: white; text-decoration: underline;">${t("Guide CSV", "CSV Guide")}</a>
       </p>
       <p style="font-size: 14pt; margin-top: 3mm;">
         <strong>info@kwh.quebec</strong> &nbsp;|&nbsp; <strong>514-427-8871</strong>

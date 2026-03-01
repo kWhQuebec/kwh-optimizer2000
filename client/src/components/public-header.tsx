@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LanguageToggle } from "@/components/language-toggle";
 import { useI18n } from "@/lib/i18n";
+import { Phone } from "lucide-react";
 import logoFr from "@assets/kWh_Quebec_Logo-01_-_Rectangulaire_1764799021536.png";
 import logoEn from "@assets/kWh_Quebec_Logo-02_-_Rectangle_1764799021536.png";
 
@@ -57,7 +58,25 @@ export function PublicHeader() {
             })}
           </nav>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <a
+              href="tel:+15144278871"
+              className="hidden sm:flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              data-testid="link-header-phone"
+            >
+              <Phone className="h-4 w-4" />
+              <span>514.427.8871</span>
+            </a>
+            <a
+              href="tel:+15144278871"
+              className="sm:hidden"
+              aria-label={language === "fr" ? "Appeler 514.427.8871" : "Call 514.427.8871"}
+              data-testid="link-header-phone-mobile"
+            >
+              <Button variant="ghost" size="icon">
+                <Phone className="h-4 w-4" />
+              </Button>
+            </a>
             <LanguageToggle />
             <ThemeToggle />
             <Link href="/login">

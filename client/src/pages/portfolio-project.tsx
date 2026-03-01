@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useRoute, Link } from "wouter";
-import { ArrowLeft, Building2, MapPin, Zap, Ruler, Calendar, Users, Building, Loader2, Sun } from "lucide-react";
+import { ArrowLeft, Building2, MapPin, Zap, Ruler, Calendar, Users, Building, Loader2, Sun, BarChart3, DollarSign } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,8 @@ interface ProjectDetails {
   longitude: number | null;
   systemSizeKwDc: number | null;
   roofAreaSqM: number | null;
+  annualProductionKwh: number | null;
+  estimatedAnnualSavings: number | null;
   buildingType: string | null;
   roofType: string | null;
   visualizationUrl: string | null;
@@ -119,6 +121,8 @@ export default function PortfolioProjectPage() {
       projectDetails: "Détails du projet",
       projectAddress: "Adresse du projet",
       projectSize: "Taille du projet",
+      annualProduction: "Production annuelle estimée",
+      estimatedSavings: "Valeur annuelle estimée",
       roofArea: "Surface de toiture",
       buildingType: "Type de bâtiment",
       constructionStart: "Début de construction prévu",
@@ -136,6 +140,8 @@ export default function PortfolioProjectPage() {
       projectDetails: "Project Details",
       projectAddress: "Project Address",
       projectSize: "Project Size",
+      annualProduction: "Estimated Annual Production",
+      estimatedSavings: "Estimated Annual Value",
       roofArea: "Roof Area",
       buildingType: "Building Type",
       constructionStart: "Planned Construction Start",
@@ -210,6 +216,14 @@ export default function PortfolioProjectPage() {
     ? `${project.systemSizeKwDc.toLocaleString()} ${t.kWdc}` 
     : null;
   
+  const annualProductionDisplay = project.annualProductionKwh 
+    ? `${(project.annualProductionKwh / 1000).toLocaleString(language === "fr" ? "fr-CA" : "en-CA", { maximumFractionDigits: 0 })} MWh`
+    : null;
+
+  const estimatedSavingsDisplay = project.estimatedAnnualSavings
+    ? project.estimatedAnnualSavings.toLocaleString(language === "fr" ? "fr-CA" : "en-CA", { style: "currency", currency: "CAD", maximumFractionDigits: 0 })
+    : null;
+
   const roofAreaDisplay = project.roofAreaSqM 
     ? `${project.roofAreaSqM.toLocaleString()} ${t.sqm}` 
     : null;
@@ -296,6 +310,22 @@ export default function PortfolioProjectPage() {
                   value={systemSizeDisplay}
                   highlight
                 />
+                {annualProductionDisplay && (
+                  <DetailItem 
+                    icon={BarChart3} 
+                    label={t.annualProduction} 
+                    value={annualProductionDisplay}
+                    highlight
+                  />
+                )}
+                {estimatedSavingsDisplay && (
+                  <DetailItem 
+                    icon={DollarSign} 
+                    label={t.estimatedSavings} 
+                    value={estimatedSavingsDisplay}
+                    highlight
+                  />
+                )}
                 <DetailItem 
                   icon={Ruler} 
                   label={t.roofArea} 

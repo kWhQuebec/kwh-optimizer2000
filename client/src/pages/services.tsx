@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { Link } from "wouter";
 import { 
   Sun, HardHat, Wrench, FileBarChart, Shield, 
-  CheckCircle2, ArrowRight, Building2, Factory, School,
+  CheckCircle2, ArrowRight, Building2, Factory,
   Zap, Clock, DollarSign, Award, Phone, Mail
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -65,7 +65,6 @@ export default function ServicesPage() {
   const sectors = [
     { icon: Building2, name: language === "fr" ? "Commercial" : "Commercial", examples: language === "fr" ? "Bureaux, centres d'achat, hôtels" : "Offices, shopping centers, hotels" },
     { icon: Factory, name: language === "fr" ? "Industriel" : "Industrial", examples: language === "fr" ? "Usines, entrepôts, centres de distribution" : "Factories, warehouses, distribution centers" },
-    { icon: School, name: language === "fr" ? "Institutionnel" : "Institutional", examples: language === "fr" ? "Écoles, hôpitaux, bâtiments gouvernementaux" : "Schools, hospitals, government buildings" },
   ];
 
   const seo = language === "fr" ? seoContent.services.fr : seoContent.services.en;
@@ -139,7 +138,7 @@ export default function ServicesPage() {
             </p>
             <Link href="/#paths">
               <Button size="lg" className="gap-2" data-testid="button-get-analysis">
-                {language === "fr" ? "Obtenir mon analyse gratuite" : "Get my free analysis"}
+                {language === "fr" ? "Voir mon potentiel solaire — Gratuit" : "See my solar potential — Free"}
                 <ArrowRight className="w-4 h-4" />
               </Button>
             </Link>
@@ -200,7 +199,7 @@ export default function ServicesPage() {
             </p>
           </div>
           
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-2 gap-6 max-w-2xl mx-auto">
             {sectors.map((sector) => (
               <Card key={sector.name} className="text-center">
                 <CardContent className="p-6">

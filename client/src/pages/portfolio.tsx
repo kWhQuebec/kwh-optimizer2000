@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Sun, MapPin, Zap, Building2, ArrowRight, ChevronDown } from "lucide-react";
+import { Sun, MapPin, Zap, Building2, ArrowRight, ChevronDown, DollarSign, BarChart3 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -18,6 +18,8 @@ interface PortfolioSite {
   longitude: number;
   roof_area_sqm: number | null;
   visualization_url: string | null;
+  annual_production_kwh: number | null;
+  estimated_annual_savings: number | null;
 }
 
 const ITEMS_PER_PAGE = 6;
@@ -115,8 +117,40 @@ function ProjectCard({ site }: { site: PortfolioSite }) {
                 <p className="text-xs text-muted-foreground">
                   {language === "fr" ? "Puissance" : "Capacity"}
                 </p>
-                <p className="font-semibold text-sm">
+                <p className="font-semibold text-sm" data-testid={`text-capacity-${site.id}`}>
                   {Math.round((site.kb_kw_dc || 0) / 100) * 100} kW
+                </p>
+              </div>
+            </div>
+          )}
+          
+          {site.annual_production_kwh && (
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+                <BarChart3 className="w-4 h-4 text-primary" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">
+                  {language === "fr" ? "Production/an" : "Annual prod."}
+                </p>
+                <p className="font-semibold text-sm" data-testid={`text-production-${site.id}`}>
+                  {(site.annual_production_kwh / 1000).toLocaleString(language === "fr" ? "fr-CA" : "en-CA", { maximumFractionDigits: 0 })} MWh
+                </p>
+              </div>
+            </div>
+          )}
+
+          {site.estimated_annual_savings && (
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+                <DollarSign className="w-4 h-4 text-primary" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">
+                  {language === "fr" ? "Valeur/an" : "Annual value"}
+                </p>
+                <p className="font-semibold text-sm" data-testid={`text-savings-${site.id}`}>
+                  {site.estimated_annual_savings.toLocaleString(language === "fr" ? "fr-CA" : "en-CA", { style: "currency", currency: "CAD", maximumFractionDigits: 0 })}
                 </p>
               </div>
             </div>
@@ -230,6 +264,7 @@ export default function Portfolio() {
   };
 
   const totalCapacity = sites?.reduce((sum, site) => sum + (site.kb_kw_dc || 0), 0) || 0;
+  const totalProductionMwh = sites?.reduce((sum, site) => sum + (site.annual_production_kwh || 0), 0) || 0;
   const projectCount = sites?.length || 0;
 
   return (
@@ -272,6 +307,16 @@ export default function Portfolio() {
                   </p>
                   <p className="text-sm text-muted-foreground">kW DC</p>
                 </div>
+                {totalProductionMwh > 0 && (
+                  <div className="text-center">
+                    <p className="text-3xl md:text-4xl font-bold text-primary" data-testid="text-total-production">
+                      {Math.round(totalProductionMwh / 1000).toLocaleString(language === "fr" ? "fr-CA" : "en-CA")}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {language === "fr" ? "MWh/an estimés" : "Est. MWh/year"}
+                    </p>
+                  </div>
+                )}
               </div>
             )}
           </div>

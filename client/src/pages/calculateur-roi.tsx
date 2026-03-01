@@ -19,31 +19,31 @@ const SEO_CONTENT = {
     section1Title: "Pourquoi investir dans le solaire commercial au Québec en 2026?",
     section1Content: `Le solaire commercial au Québec offre un retour sur investissement de 15 à 25% annuellement, surpassant la plupart des investissements traditionnels. Avec les tarifs d'Hydro-Québec qui augmentent en moyenne de 3,5% par année et les coûts des panneaux solaires en baisse constante, le moment optimal pour investir est maintenant.
 
-Le programme de mesurage net d'Hydro-Québec permet aux entreprises de créditer leur surproduction solaire sur leur facture, éliminant le besoin de batteries coûteuses. Combiné au crédit d'impôt fédéral de 30% (ITC) et à l'incitatif d'Hydro-Québec de 1 000$/kW, le coût net d'un système solaire commercial peut être réduit de 50 à 60%.
+Le programme de mesurage net d'Hydro-Québec permet aux entreprises de créditer leur surproduction solaire sur leur facture, éliminant le besoin de batteries coûteuses. Combiné au crédit d'impôt fédéral pouvant atteindre 30% pour les entreprises admissibles (ITC) et à l'incitatif d'Hydro-Québec de 1 000$/kW, le coût net d'un système solaire commercial peut être réduit de 50 à 60%.
 
 Les panneaux solaires modernes sont conçus pour résister aux conditions climatiques extrêmes du Québec. Le froid améliore réellement leur efficacité, et contrairement aux idées reçues, la neige fond rapidement sur les surfaces inclinées. Même en hiver, Montréal reçoit suffisamment de lumière pour une production significative. Les données historiques montrent que les installations solaires commerciales au Québec produisent environ 1 250 kWh par kilowatt installé par année, comparable aux meilleures installations en Europe du Nord.`,
     section2Title: "Comment fonctionne le calcul du ROI solaire?",
     section2Content: `Le retour sur investissement d'un système solaire se calcule en comparant le coût net de l'installation aux économies cumulatives sur la durée de vie du système (25+ ans). Notre calculateur utilise la méthodologie financière standard de l'industrie solaire, reconnue par les institutions financières et les auditeurs externes.
 
-Les facteurs clés incluent: la production solaire annuelle (environ 1 250 kWh/kWc à Montréal), le taux de dégradation des panneaux (0,4%/an pour les panneaux TOPCon modernes), l'inflation des tarifs d'électricité (historiquement 3,5%/an au Québec), et les coûts d'exploitation et de maintenance (environ 1% du CAPEX par année).
+Les facteurs clés incluent: la production solaire annuelle (environ 1 250 kWh/kWc à Montréal), le taux de dégradation des panneaux (0,35-0,5%/an après la première année, avec une dégradation initiale de ~1-2% selon le fabricant, pour les panneaux TOPCon modernes), l'inflation des tarifs d'électricité (historiquement 3,5%/an au Québec), et les coûts d'exploitation et de maintenance (environ 1% du CAPEX par année).
 
-Le retour simple sur investissement (payback) se situe typiquement entre 4 et 7 ans pour les projets commerciaux au Québec, après quoi l'énergie produite est essentiellement gratuite pendant les 18-21 années restantes de la garantie. Cela signifie qu'une entreprise installe un système en 2026, le récupère financièrement avant 2033, et bénéficie d'énergie gratuite ou presque jusqu'en 2051.
+Le retour simple sur investissement (payback) se situe typiquement entre 5 et 9 ans avec incitatifs pour les projets commerciaux au Québec, après quoi l'énergie produite est essentiellement gratuite pendant les 16-20 années restantes de la garantie. Cela signifie qu'une entreprise installe un système en 2026, le récupère financièrement avant 2035, et bénéficie d'énergie gratuite ou presque jusqu'en 2051.
 
 La plupart des organisations commerciales considèrent qu'un retour sur investissement inférieur à 7 ans représente une excellente opportunité d'investissement, rendant le solaire très compétitif par rapport aux autres projets d'efficacité énergétique.`,
     section3Title: "Incitatifs et subventions disponibles au Québec",
     section3Content: `Plusieurs programmes réduisent significativement le coût d'une installation solaire commerciale, rendant les projets marginalement viables soudainement très rentables.
 
-Le Crédit d'impôt à l'investissement (ITC) fédéral offre un remboursement de 30% du coût admissible du système. Pour un système de 100 kW coûtant 185 000$, cela représente 55 500$ de crédit d'impôt utilisable immédiatement. Les entreprises avec suffisamment de revenus imposables peuvent appliquer ce crédit dans les années fiscales courantes ou futures.
+Le Crédit d'impôt à l'investissement (ITC) fédéral offre un remboursement pouvant atteindre 30% du coût admissible du système pour les entreprises admissibles. Pour un système de 100 kW coûtant 185 000$, cela représente 55 500$ de crédit d'impôt utilisable immédiatement. Les entreprises avec suffisamment de revenus imposables peuvent appliquer ce crédit dans les années fiscales courantes ou futures.
 
 Le programme d'Hydro-Québec offre 1 000$/kW installé, plafonné à 40% du coût du projet et à 1 MW de capacité. Pour un système de 100 kW, cela signifie potentiellement 74 000$ de réduction (le minimum entre 100 000$, 40% du coût total, et 1 000 000$). Ces fonds proviennent du fonds de développement des énergies renouvelables de la province.
 
-L'amortissement accéléré (DPA classe 43.1/43.2) permet de déduire jusqu'à 50% du coût résiduel chaque année, créant un bouclier fiscal substantiel dès la première année. Une entreprise avec taux d'impôt marginal de 26% économise donc 26% du coût du système simplement en déductions fiscales supplémentaires.
+L'amortissement accéléré (DPA classe 43.1/43.2, sous réserve des conditions d'éligibilité en vigueur — consultez votre comptable) permet de déduire jusqu'à 50% du coût résiduel chaque année, créant un bouclier fiscal substantiel dès la première année. Une entreprise avec taux d'impôt marginal de 26% économise donc 26% du coût du système simplement en déductions fiscales supplémentaires.
 
-Au total, ces incitatifs peuvent réduire le coût net de 50 à 60%, ramenant le retour sur investissement simple à aussi peu que 3-4 ans pour les projets les plus favorables. C'est comparable à un investissement immobilier, mais avec beaucoup moins de capital requis et une liquidité supérieure.`,
+Au total, ces incitatifs peuvent réduire le coût net de 50 à 60%, ramenant le retour sur investissement simple à aussi peu que 5-6 ans avec incitatifs pour les projets les plus favorables. C'est comparable à un investissement immobilier, mais avec beaucoup moins de capital requis et une liquidité supérieure.`,
     section4Title: "Solaire commercial vs autres investissements",
     section4Content: `Comparé à d'autres investissements d'entreprise, le solaire offre un profil risque/rendement exceptionnellement favorable. Le rendement annualisé de 15-25% dépasse largement les certificats de placement garanti (CPG) à 4-5%, les obligations d'entreprise à 5-7%, et rivalise avec les meilleurs investissements immobiliers.
 
-Le risque est minimal car la production solaire est prévisible: les données d'irradiation solaires sont fiables sur 25+ ans basées sur les satellites météorologiques, Hydro-Québec garantit constitutionnellement l'accès au réseau et le rachat via le mesurage net, et les panneaux modernes sont garantis 25-30 ans avec une dégradation maximale de 0,4% par année.
+Le risque est minimal car la production solaire est prévisible: les données d'irradiation solaires sont fiables sur 25+ ans basées sur les satellites météorologiques, Hydro-Québec garantit constitutionnellement l'accès au réseau et le rachat via le mesurage net, et les panneaux modernes sont garantis 25-30 ans avec une dégradation de 0,35-0,5% par année après la première année (dégradation initiale ~1-2% selon le fabricant).
 
 De plus, l'investissement solaire augmente la valeur de revente du bâtiment (immédiatement évaluée en capitalisant les économies d'énergie), améliore la cote ESG de l'entreprise (pertinent pour les contrats avec les grandes organisations), et protège contre les futures hausses de tarifs d'électricité. Les organisations comme Microsoft, Google et Amazon font passer le dossier ESG avant dans leurs critères de sélection des fournisseurs.
 
@@ -56,7 +56,7 @@ L'énergie solaire est également pratiquement à l'épreuve de l'inflation. Tan
       },
       {
         q: "Combien de temps durent les panneaux solaires?",
-        a: "Les panneaux solaires modernes (TOPCon N-type comme ceux de Jinko Solar ou Canadian Solar) sont garantis 25-30 ans avec une dégradation maximale de 0,4% par année. Après 25 ans, ils produisent encore environ 87% de leur capacité initiale. Nombreux panneaux installés dans les années 1980 produisent toujours efficacement aujourd'hui. Les onduleurs, les composants électriques, durent typiquement 10-15 ans et sont remplaçables économiquement. Le système global peut fonctionner 40-50 ans avec les remplacements mineurs."
+        a: "Les panneaux solaires modernes (TOPCon N-type comme ceux de Jinko Solar ou Canadian Solar) sont garantis 25-30 ans avec une dégradation de 0,35-0,5% par année après la première année (dégradation initiale ~1-2% selon le fabricant). Après 25 ans, ils produisent encore environ 87% de leur capacité initiale. Nombreux panneaux installés dans les années 1980 produisent toujours efficacement aujourd'hui. Les onduleurs, les composants électriques, durent typiquement 10-15 ans et sont remplaçables économiquement. Le système global peut fonctionner 40-50 ans avec les remplacements mineurs."
       },
       {
         q: "Qu'est-ce que le mesurage net d'Hydro-Québec?",
@@ -82,31 +82,31 @@ L'énergie solaire est également pratiquement à l'épreuve de l'inflation. Tan
     section1Title: "Why invest in commercial solar in Québec in 2026?",
     section1Content: `Commercial solar in Québec offers annual returns of 15 to 25%, outperforming most traditional investments. With Hydro-Québec rates increasing an average of 3.5% per year and solar panel costs continuously declining, the optimal time to invest is now.
 
-Hydro-Québec's net metering program allows businesses to credit their solar surplus on their bill, eliminating the need for expensive batteries. Combined with the 30% federal Investment Tax Credit (ITC) and Hydro-Québec's $1,000/kW incentive, the net cost of a commercial solar system can be reduced by 50 to 60%.
+Hydro-Québec's net metering program allows businesses to credit their solar surplus on their bill, eliminating the need for expensive batteries. Combined with the federal Investment Tax Credit (ITC) of up to 30% for eligible businesses and Hydro-Québec's $1,000/kW incentive, the net cost of a commercial solar system can be reduced by 50 to 60%.
 
 Modern solar panels are engineered to withstand Québec's extreme climate conditions. Cold actually improves panel efficiency - semiconductor physics shows better performance at low temperatures. Snow melts quickly on angled surfaces thanks to their smooth, dark finish. Despite misconceptions, even in winter, Montréal receives sufficient light for significant production. Historical data shows commercial solar installations in Québec produce approximately 1,250 kWh per kilowatt installed annually, comparable to the best installations across Northern Europe.`,
     section2Title: "How is solar ROI calculated?",
     section2Content: `Solar system return on investment is calculated by comparing the net installation cost to cumulative savings over the system's lifetime (25+ years). Our calculator uses the standard financial methodology of the solar industry, recognized by financial institutions and external auditors.
 
-Key factors include: annual solar production (approximately 1,250 kWh/kWp in Montréal), panel degradation rate (0.4%/year for modern N-type TOPCon panels), electricity rate inflation (historically 3.5%/year in Québec), and operations & maintenance costs (approximately 1% of CAPEX per year).
+Key factors include: annual solar production (approximately 1,250 kWh/kWp in Montréal), panel degradation rate (0.35-0.5%/year after Year 1, with initial degradation of ~1-2% per manufacturer, for modern N-type TOPCon panels), electricity rate inflation (historically 3.5%/year in Québec), and operations & maintenance costs (approximately 1% of CAPEX per year).
 
-Simple payback typically ranges from 4 to 7 years for commercial projects in Québec, after which the energy produced is essentially free for the remaining 18-21 years of the warranty. This means a company installing a system in 2026 would recover it financially before 2033 and benefit from free or nearly free energy through 2051.
+Simple payback typically ranges from 5 to 9 years with incentives for commercial projects in Québec, after which the energy produced is essentially free for the remaining 16-20 years of the warranty. This means a company installing a system in 2026 would recover it financially before 2035 and benefit from free or nearly free energy through 2051.
 
 Most commercial organizations consider a return on investment under 7 years to represent an excellent investment opportunity, making solar highly competitive compared to other energy efficiency projects.`,
     section3Title: "Available incentives and subsidies in Québec",
     section3Content: `Several government programs significantly reduce the cost of a commercial solar installation, transforming marginally viable projects into highly profitable ones.
 
-The federal Investment Tax Credit (ITC) offers a 30% refund of the eligible system cost. For a 100 kW system costing $185,000, this represents $55,500 in immediate tax credits. Businesses with sufficient taxable income can apply this credit in current or future fiscal years.
+The federal Investment Tax Credit (ITC) offers up to a 30% refund of the eligible system cost for eligible businesses. For a 100 kW system costing $185,000, this represents $55,500 in immediate tax credits. Businesses with sufficient taxable income can apply this credit in current or future fiscal years.
 
 Hydro-Québec's program offers $1,000/kW installed, capped at 40% of project cost and 1 MW capacity. For a 100 kW system, this means potentially $74,000 in savings (the minimum of $100,000, 40% of total cost, and $1 million). These funds come from the province's renewable energy development fund.
 
-Accelerated depreciation (CCA class 43.1/43.2) allows deducting up to 50% of residual cost each year, creating a substantial tax shield from year one. A company with a 26% marginal tax rate therefore saves 26% of system cost through additional tax deductions alone.
+Accelerated depreciation (CCA class 43.1/43.2, subject to current eligibility conditions — consult your accountant) allows deducting up to 50% of residual cost each year, creating a substantial tax shield from year one. A company with a 26% marginal tax rate therefore saves 26% of system cost through additional tax deductions alone.
 
-In total, these incentives can reduce the net cost by 50 to 60%, bringing simple payback to as low as 3-4 years for the most favorable projects. This rivals real estate investments but requires significantly less capital and offers superior liquidity.`,
+In total, these incentives can reduce the net cost by 50 to 60%, bringing simple payback to as low as 5-6 years with incentives for the most favorable projects. This rivals real estate investments but requires significantly less capital and offers superior liquidity.`,
     section4Title: "Commercial solar vs other investments",
     section4Content: `Compared to other business investments, solar offers an exceptionally favorable risk/return profile. The annualized return of 15-25% far exceeds GICs (4-5%), corporate bonds (5-7%) and rivals the best real estate investments.
 
-Risk is minimal because solar production is predictable: solar irradiation data is reliable over 25+ years based on meteorological satellites, Hydro-Québec constitutionally guarantees grid access and buyback via net metering, and modern panels are warranted 25-30 years with maximum degradation of 0.4% per year.
+Risk is minimal because solar production is predictable: solar irradiation data is reliable over 25+ years based on meteorological satellites, Hydro-Québec constitutionally guarantees grid access and buyback via net metering, and modern panels are warranted 25-30 years with degradation of 0.35-0.5% per year after Year 1 (initial degradation ~1-2% per manufacturer).
 
 Additionally, solar investment immediately increases building resale value (valued by capitalizing energy savings), improves the company's ESG rating (increasingly relevant for contracts with major organizations), and protects against future electricity rate increases. Organizations like Microsoft, Google, and Amazon prioritize ESG criteria in their supplier selection process.
 
@@ -119,7 +119,7 @@ Solar energy is also inflation-proof. While energy costs increase with inflation
       },
       {
         q: "How long do solar panels last?",
-        a: "Modern solar panels (TOPCon N-type like Jinko Solar or Canadian Solar) are warranted 25-30 years with maximum degradation of 0.4% per year. After 25 years, they still produce about 87% of initial capacity. Many panels installed in the 1980s operate efficiently today. Inverters, the electrical components, typically last 10-15 years and are economically replaceable. The overall system can operate 40-50 years with minor component replacements."
+        a: "Modern solar panels (TOPCon N-type like Jinko Solar or Canadian Solar) are warranted 25-30 years with degradation of 0.35-0.5% per year after Year 1 (initial degradation ~1-2% per manufacturer). After 25 years, they still produce about 87% of initial capacity. Many panels installed in the 1980s operate efficiently today. Inverters, the electrical components, typically last 10-15 years and are economically replaceable. The overall system can operate 40-50 years with minor component replacements."
       },
       {
         q: "What is Hydro-Québec net metering?",

@@ -80,6 +80,7 @@ const NouvelleDetailPage = lazy(() => import("@/pages/nouvelle-detail"));
 const RoofCapturePage = lazy(() => import("@/pages/roof-capture"));
 
 import NouvellesPage from "@/pages/nouvelles";
+import StockageEnergiePage from "@/pages/stockage-energie";
 
 function PortalPreviewRoute() {
   const params = useParams<{ clientId: string }>();
@@ -310,6 +311,7 @@ function AppRoutes() {
       <Route path="/autorisation-hq" component={AutorisationHQPage} />
       <Route path="/merci" component={ThankYouPage} />
       <Route path="/mandat-de-conception-preliminaire" component={MandatConceptionPage} />
+      <Route path="/stockage-energie" component={StockageEnergiePage} />
       <Route path="/portfolio" component={PortfolioPage} />
       <Route path="/portfolio/:id" component={PortfolioProjectPage} />
       <Route path="/privacy" component={PrivacyPage} />

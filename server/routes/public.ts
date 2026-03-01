@@ -282,6 +282,10 @@ router.get("/api/public/portfolio", asyncHandler(async (req, res) => {
           roofAreaSqM = Math.round(site.buildingSqFt / 10.764);
         }
 
+        const roundedSize = systemSizeKw ? Math.round(systemSizeKw / 100) * 100 : null;
+        const annualProductionKwh = roundedSize ? Math.round(roundedSize * 1150) : null;
+        const estimatedAnnualSavings = annualProductionKwh ? Math.round(annualProductionKwh * 0.07) : null;
+
         return {
           id: site.id,
           city: site.city || "Unknown",
@@ -291,6 +295,8 @@ router.get("/api/public/portfolio", asyncHandler(async (req, res) => {
           longitude: site.longitude,
           roof_area_sqm: roofAreaSqM,
           visualization_url: visualizationUrl,
+          annual_production_kwh: annualProductionKwh,
+          estimated_annual_savings: estimatedAnnualSavings,
         };
       })
   );
@@ -337,6 +343,9 @@ router.get("/api/public/portfolio/:id", asyncHandler(async (req, res) => {
 
   const roundedSystemSize = systemSizeKw ? Math.round(systemSizeKw / 100) * 100 : null;
 
+  const annualProductionKwh = roundedSystemSize ? Math.round(roundedSystemSize * 1150) : null;
+  const estimatedAnnualSavings = annualProductionKwh ? Math.round(annualProductionKwh * 0.07) : null;
+
   res.json({
     id: site.id,
     city: site.city || null,
@@ -347,6 +356,8 @@ router.get("/api/public/portfolio/:id", asyncHandler(async (req, res) => {
     longitude: site.longitude,
     systemSizeKwDc: roundedSystemSize,
     roofAreaSqM: roofAreaSqM ? Math.round(roofAreaSqM) : null,
+    annualProductionKwh: annualProductionKwh,
+    estimatedAnnualSavings: estimatedAnnualSavings,
     buildingType: site.buildingType || null,
     roofType: site.roofType || null,
     visualizationUrl: visualizationUrl,

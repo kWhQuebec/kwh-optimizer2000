@@ -1056,7 +1056,7 @@ const fr = {
           name: "Production Solaire",
           items: [
             { label: "Rendement système", value: "85%" },
-            { label: "Dégradation annuelle", value: "0.4%/an" },
+            { label: "Dégradation annuelle (après année 1; initiale ~1-2%)", value: "0.35-0.5%/an" },
             { label: "Irradiation de référence", value: "Québec moyen" },
           ],
         },
@@ -1104,7 +1104,7 @@ const fr = {
           { symbol: "Geff(h)", description: "Irradiation effective à l'heure h (W/m²)" },
           { symbol: "Gstc", description: "Irradiation aux conditions standard (1000 W/m²)" },
           { symbol: "ηsys", description: "Rendement système global (85%)" },
-          { symbol: "δ", description: "Taux de dégradation annuel (0.4%)" },
+          { symbol: "δ", description: "Taux de dégradation annuel (0.35-0.5% après année 1; initiale ~1-2% selon fabricant)" },
         ],
       },
       seasonal: {
@@ -1160,8 +1160,8 @@ const fr = {
         },
         {
           name: "Taux de Dégradation",
-          description: "Dégradation annuelle des panneaux appliquée dans tous les calculs financiers.",
-          default: "0.4%/an",
+          description: "Dégradation annuelle des panneaux appliquée dans tous les calculs financiers (après année 1; dégradation initiale ~1-2% selon fabricant).",
+          default: "0.35-0.5%/an",
           formula: "Revenus_année_Y = Économies_base × (1 - dégradation)^(Y-1) × (1 + inflation)^(Y-1)",
           note: "Affecte le LCOE et la VAN sur 25 ans.",
         },
@@ -1449,7 +1449,7 @@ const fr = {
         title: "Impact de la Dégradation",
         description: "Les revenus annuels diminuent selon le taux de dégradation des panneaux.",
         formula: "Revenus(an) = Économies_base × (1 - dégradation)^(an-1) × (1 + inflation)^(an-1)",
-        example: "Avec 0.4%/an de dégradation: An 1 = 100%, An 10 = 96.1%, An 25 = 90.3%",
+        example: "Avec 0.35-0.5%/an de dégradation (après année 1; initiale ~1-2% selon fabricant): An 1 = 100%, An 10 = ~96%, An 25 = ~90%",
       },
     },
     financing: {
@@ -1629,7 +1629,7 @@ const en = {
           name: "Solar Production",
           items: [
             { label: "System efficiency", value: "85%" },
-            { label: "Annual degradation", value: "0.4%/year" },
+            { label: "Annual degradation (after Year 1; initial ~1-2%)", value: "0.35-0.5%/year" },
             { label: "Reference irradiation", value: "Quebec average" },
           ],
         },
@@ -1677,7 +1677,7 @@ const en = {
           { symbol: "Geff(h)", description: "Effective irradiation at hour h (W/m²)" },
           { symbol: "Gstc", description: "Standard test conditions irradiation (1000 W/m²)" },
           { symbol: "ηsys", description: "Overall system efficiency (85%)" },
-          { symbol: "δ", description: "Annual degradation rate (0.4%)" },
+          { symbol: "δ", description: "Annual degradation rate (0.35-0.5% after Year 1; initial ~1-2% per manufacturer)" },
         ],
       },
       seasonal: {
@@ -1733,8 +1733,8 @@ const en = {
         },
         {
           name: "Degradation Rate",
-          description: "Annual panel degradation applied in all financial calculations.",
-          default: "0.4%/year",
+          description: "Annual panel degradation applied in all financial calculations (after Year 1; initial degradation ~1-2% per manufacturer).",
+          default: "0.35-0.5%/year",
           formula: "Revenue_year_Y = Base_savings × (1 - degradation)^(Y-1) × (1 + inflation)^(Y-1)",
           note: "Affects LCOE and 25-year NPV.",
         },
@@ -2022,7 +2022,7 @@ const en = {
         title: "Degradation Impact",
         description: "Annual revenue decreases according to panel degradation rate.",
         formula: "Revenue(year) = Base_savings × (1 - degradation)^(year-1) × (1 + inflation)^(year-1)",
-        example: "With 0.4%/year degradation: Year 1 = 100%, Year 10 = 96.1%, Year 25 = 90.3%",
+        example: "With 0.35-0.5%/year degradation (after Year 1; initial ~1-2% per manufacturer): Year 1 = 100%, Year 10 = ~96%, Year 25 = ~90%",
       },
     },
     financing: {

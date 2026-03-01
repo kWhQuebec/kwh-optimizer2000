@@ -33,14 +33,14 @@ const translations: Translations = {
   "nav.mySites": { fr: "Mes sites", en: "My Sites" },
 
   // Landing Page - Hero
-  "landing.hero.title": { fr: "Réduisez vos coûts d'énergie avec le solaire commercial", en: "Cut Your Energy Costs with Commercial Solar" },
-  "landing.hero.subtitle": { fr: "Incitatifs jusqu'à 40% du projet.", en: "Incentives up to 40% of project cost." },
+  "landing.hero.title": { fr: "Réduisez votre facture énergétique de 30-50%", en: "Cut Your Energy Bill by 30-50%" },
+  "landing.hero.subtitle": { fr: "Solaire commercial & industriel — Partout au Québec", en: "Commercial & Industrial Solar — Across Quebec" },
   "landing.hero.subtitle2": { fr: "Analyse gratuite.", en: "Free analysis." },
   "landing.hero.description": {
-    fr: "Vos coûts d'énergie augmentent chaque année. Le solaire les réduit dès le jour 1 — avec un retour sur investissement de 3 à 6 ans et des incitatifs couvrant jusqu'à 60% du projet.",
-    en: "Your energy costs rise every year. Solar cuts them from day 1 — with a 3 to 6 year payback and incentives covering up to 60% of the project."
+    fr: "Vos coûts d'énergie augmentent chaque année. Le solaire les réduit dès le jour 1 — avec un retour sur investissement de 5 à 9 ans avec incitatifs et des incitatifs couvrant jusqu'à 60% du projet.",
+    en: "Your energy costs rise every year. Solar cuts them from day 1 — with a 5 to 9 year payback with incentives and incentives covering up to 60% of the project."
   },
-  "landing.hero.cta": { fr: "Calculer mes économies gratuitement", en: "Calculate my savings for free" },
+  "landing.hero.cta": { fr: "Voir mon potentiel solaire — Gratuit, 2 min", en: "See my solar potential — Free, 2 min" },
   "landing.hero.ctaSecondary": { fr: "Accès client", en: "Client access" },
   
   // Landing Page - Why Now Section (3 items only)
@@ -191,7 +191,7 @@ const translations: Translations = {
   "form.buildingType.institutional": { fr: "Institutionnel", en: "Institutional" },
   "form.buildingType.other": { fr: "Autre", en: "Other" },
   "form.notes": { fr: "Commentaires / Particularités", en: "Comments / Notes" },
-  "form.submit": { fr: "Obtenir une analyse préliminaire", en: "Get a preliminary analysis" },
+  "form.submit": { fr: "Voir mon potentiel solaire", en: "See my solar potential" },
   "form.submitting": { fr: "Envoi en cours...", en: "Submitting..." },
   "form.success.title": { fr: "Merci!", en: "Thank you!" },
   "form.success.message": { 
@@ -1046,7 +1046,7 @@ const translations: Translations = {
   "faq.item5.answer": { fr: "Oui! Si vous préférez ne pas nous donner de procuration, vous pouvez télécharger vous-même vos fichiers CSV depuis votre Espace Client Hydro-Québec. Comptez environ 30 minutes pour télécharger les 12 à 24 fichiers nécessaires (un par période de facturation). Nous avons préparé un guide détaillé pour vous accompagner.", en: "Yes! If you prefer not to give us authorization, you can download your CSV files yourself from Hydro-Québec's Online Portal. Allow approximately 30 minutes to download the 12 to 24 required files (one per billing period). We've prepared a detailed guide to walk you through the process." },
 
   "faq.item6.question": { fr: "Quelle est la durée de vie des panneaux solaires?", en: "What is the lifespan of solar panels?" },
-  "faq.item6.answer": { fr: "Les panneaux solaires modernes (TOPCon N-type) ont une durée de vie de 25-30 ans avec une garantie de performance. Avec une dégradation de seulement 0,4% par année, ils produisent encore environ 90% de leur capacité initiale après 25 ans. L'onduleur, qui convertit l'électricité CC en CA, dure généralement 10-15 ans et peut être remplacé au besoin. Les onduleurs modernes sont très fiables et nécessitent rarement de la maintenance.", en: "Modern solar panels (TOPCon N-type) have a lifespan of 25-30 years with a performance warranty. With degradation of only 0.4% per year, they still produce about 90% of initial capacity after 25 years. The inverter, which converts DC to AC power, typically lasts 10-15 years and can be replaced if needed. Modern inverters are highly reliable and rarely require maintenance." },
+  "faq.item6.answer": { fr: "Les panneaux solaires modernes (TOPCon N-type) ont une durée de vie de 25-30 ans avec une garantie de performance. Avec une dégradation de seulement 0,35-0,5% par année après la première année (dégradation initiale ~1-2% selon le fabricant), ils produisent encore environ 90% de leur capacité initiale après 25 ans. L'onduleur, qui convertit l'électricité CC en CA, dure généralement 10-15 ans et peut être remplacé au besoin. Les onduleurs modernes sont très fiables et nécessitent rarement de la maintenance.", en: "Modern solar panels (TOPCon N-type) have a lifespan of 25-30 years with a performance warranty. With degradation of only 0.35-0.5% per year after Year 1 (initial degradation ~1-2% per manufacturer), they still produce about 90% of initial capacity after 25 years. The inverter, which converts DC to AC power, typically lasts 10-15 years and can be replaced if needed. Modern inverters are highly reliable and rarely require maintenance." },
 
   "faq.item7.question": { fr: "Le solaire augmente-t-il la valeur de mon bâtiment?", en: "Does solar increase my building's property value?" },
   "faq.item7.answer": { fr: "Oui. Les études montrent que les bâtiments avec systèmes solaires se vendent entre 3-4% plus cher, soit environ 1 000$/kW installé en valeur ajoutée. Au-delà de la valeur immédiate, les acheteurs apprécient les factures énergétiques réduites et les faibles coûts d'exploitation. Si vous louez des espaces, les locataires sont de plus en plus attirés par les bâtiments durables et à faible consommation énergétique.", en: "Yes. Studies show that buildings with solar systems sell for 3-4% more, representing approximately $1,000/kW installed in added value. Beyond immediate value, buyers appreciate reduced energy bills and low operating costs. If you lease space, tenants are increasingly attracted to sustainable, low-energy buildings." },
