@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Audit Complet — Site Web kWh Québec</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: #0f172a;
+    color: #e2e8f0;
+    line-height: 1.6;
+    padding: 0;
+  }
+
+  .header-bar {
+    background: linear-gradient(135deg, #003DA6, #0052cc);
+    padding: 40px 60px;
+    border-bottom: 4px solid #FFB005;
+  }
+  .header-bar h1 { font-size: 32px; font-weight: 800; color: white; margin-bottom: 8px; }
+  .header-bar .subtitle { color: #FFB005; font-size: 16px; font-weight: 600; }
+  .header-bar .date { color: rgba(255,255,255,0.6); font-size: 13px; margin-top: 4px; }
+
+  .container { max-width: 1100px; margin: 0 auto; padding: 40px 60px; }
+
+  .exec-summary {
+    background: linear-gradient(135deg, #1e293b, #334155);
+    border: 1px solid #475569;
+    border-radius: 12px;
+    padding: 32px;
+    margin-bottom: 40px;
+  }
+  .exec-summary h2 { color: #FFB005; font-size: 20px; font-weight: 700; margin-bottom: 16px; }
+  .exec-summary p { color: #cbd5e1; font-size: 15px; margin-bottom: 12px; }
+
+  .score-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    margin: 24px 0;
+  }
+  .score-card {
+    background: #0f172a;
+    border-radius: 10px;
+    padding: 24px;
+    text-align: center;
+    border: 1px solid #334155;
+  }
+  .score-card .score {
+    font-size: 48px;
+    font-weight: 800;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .score-card .label { font-size: 13px; color: #94a3b8; font-weight: 500; }
+  .score-card .detail { font-size: 11px; color: #64748b; margin-top: 4px; }
+  .score-green .score { color: #22c55e; }
+  .score-yellow .score { color: #eab308; }
+  .score-red .score { color: #ef4444; }
+
+  .section {
+    margin-bottom: 48px;
+  }
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #334155;
+  }
+  .section-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+  .icon-ux { background: #7c3aed20; color: #a78bfa; }
+  .icon-seo { background: #059669; color: white; }
+  .icon-solar { background: #f59e0b20; color: #fbbf24; }
+  .icon-critical { background: #ef444420; color: #f87171; }
+
+  .section-header h2 { font-size: 22px; font-weight: 700; color: white; }
+  .section-header .tag {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 600;
+    margin-left: auto;
+  }
+  .tag-p1 { background: #ef444430; color: #fca5a5; }
+  .tag-p2 { background: #f59e0b30; color: #fcd34d; }
+  .tag-p3 { background: #3b82f630; color: #93c5fd; }
+
+  .finding {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin-bottom: 16px;
+    transition: border-color 0.2s;
+  }
+  .finding:hover { border-color: #475569; }
+  .finding-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .priority-badge {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 4px;
+    letter-spacing: 0.5px;
+  }
+  .p-critical { background: #ef4444; color: white; }
+  .p-high { background: #f59e0b; color: #1e293b; }
+  .p-medium { background: #3b82f6; color: white; }
+  .p-low { background: #6b7280; color: white; }
+
+  .finding h3 { font-size: 15px; font-weight: 600; color: #f1f5f9; }
+  .finding .issue { color: #94a3b8; font-size: 13px; margin-bottom: 8px; }
+  .finding .fix {
+    background: #0f172a;
+    border-left: 3px solid #22c55e;
+    padding: 10px 14px;
+    border-radius: 0 6px 6px 0;
+    font-size: 13px;
+    color: #86efac;
+  }
+  .finding .impact {
+    font-size: 12px;
+    color: #64748b;
+    margin-top: 8px;
+    font-style: italic;
+  }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+  .action-plan {
+    background: linear-gradient(135deg, #003DA620, #003DA610);
+    border: 1px solid #003DA650;
+    border-radius: 12px;
+    padding: 32px;
+    margin-top: 40px;
+  }
+  .action-plan h2 { color: #FFB005; font-size: 22px; font-weight: 700; margin-bottom: 20px; }
+
+  .sprint {
+    background: #1e293b;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 16px;
+    border-left: 4px solid;
+  }
+  .sprint-1 { border-left-color: #ef4444; }
+  .sprint-2 { border-left-color: #f59e0b; }
+  .sprint-3 { border-left-color: #3b82f6; }
+  .sprint h3 { font-size: 15px; font-weight: 700; color: white; margin-bottom: 4px; }
+  .sprint .timeline { font-size: 12px; color: #94a3b8; margin-bottom: 10px; }
+  .sprint ul { padding-left: 20px; }
+  .sprint li { font-size: 13px; color: #cbd5e1; margin-bottom: 6px; }
+  .sprint li strong { color: #f1f5f9; }
+
+  .warning-box {
+    background: #ef444415;
+    border: 1px solid #ef444440;
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin-bottom: 16px;
+  }
+  .warning-box h3 { color: #fca5a5; font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+  .warning-box p { color: #fecaca; font-size: 13px; }
+
+  .good-box {
+    background: #22c55e10;
+    border: 1px solid #22c55e30;
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin-bottom: 16px;
+  }
+  .good-box h3 { color: #86efac; font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+  .good-box ul { padding-left: 20px; }
+  .good-box li { color: #bbf7d0; font-size: 13px; margin-bottom: 4px; }
+
+  .metric-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid #1e293b;
+    font-size: 13px;
+  }
+  .metric-row:last-child { border-bottom: none; }
+  .metric-label { color: #94a3b8; }
+  .metric-value { color: #f1f5f9; font-weight: 600; }
+  .metric-good { color: #22c55e; }
+  .metric-warn { color: #f59e0b; }
+  .metric-bad { color: #ef4444; }
+
+  @media (max-width: 768px) {
+    .container { padding: 20px; }
+    .header-bar { padding: 24px 20px; }
+    .score-grid { grid-template-columns: 1fr; }
+    .two-col { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header-bar">
+  <h1>Audit Complet — Site Web kWh Québec</h1>
+  <div class="subtitle">UX/UI · SEO · Contenu solaire/batterie/EPC</div>
+  <div class="date">28 février 2026 — Pré-lancement</div>
+</div>
+
+<div class="container">
+
+<!-- EXECUTIVE SUMMARY -->
+<div class="exec-summary">
+  <h2>Résumé exécutif</h2>
+  <p>Le site kWh Québec est <strong>techniquement solide</strong> — architecture React SPA avec SSR-ready SEO, composant SEOHead unifié, schema markup JSON-LD, bilinguisme fr-CA/en-CA, funnel d'upload de facture avec analyse AI, et self-qualification automatisée. C'est au-dessus de 90% des sites d'EPC solaire au Canada.</p>
+  <p>Cependant, l'audit révèle <strong>4 problèmes critiques</strong> qui peuvent nuire à la crédibilité, <strong>8 améliorations UX à fort impact</strong> sur la conversion, et <strong>12 optimisations SEO</strong> qui pourraient doubler le trafic organique en 6 mois.</p>
+
+  <div class="score-grid">
+    <div class="score-card score-green">
+      <div class="score">B+</div>
+      <div class="label">UX / Conversion</div>
+      <div class="detail">Funnel innovant, bon flow. Manque de social proof et page speed.</div>
+    </div>
+    <div class="score-card score-yellow">
+      <div class="score">C+</div>
+      <div class="label">SEO / Visibilité</div>
+      <div class="detail">Fondations OK mais contenu mince, pas de blog actif, pas de local SEO.</div>
+    </div>
+    <div class="score-card score-red">
+      <div class="score">C-</div>
+      <div class="label">Contenu technique</div>
+      <div class="detail">4 claims à risque juridique/crédibilité. Lacunes batterie et institutionnel.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SECTION 1: CONTENU TECHNIQUE CRITIQUE -->
+<!-- ============================================================ -->
+<div class="section">
+  <div class="section-header">
+    <div class="section-icon icon-critical">⚠️</div>
+    <h2>Contenu technique — Corrections urgentes</h2>
+    <span class="tag tag-p1">PRIORITÉ 1</span>
+  </div>
+
+  <div class="warning-box">
+    <h3>Ces erreurs peuvent détruire la crédibilité avec un décideur technique ou un CFO</h3>
+    <p>Un prospect C&I qui fait sa due diligence va comparer vos claims avec les chiffres réels. Des ROI trop agressifs ou des claims ITC incorrects sont des deal-breakers immédiats.</p>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header">
+      <span class="priority-badge p-critical">CRITIQUE</span>
+      <h3>Claim ROI « 4-7 ans » — Trop agressif pour le Québec</h3>
+    </div>
+    <div class="issue">Le hero et plusieurs sections mentionnent un ROI de 4-7 ans. Au Québec, avec les tarifs Hydro-Québec parmi les plus bas en Amérique du Nord (~6¢/kWh), le payback réaliste pour du C&I est de <strong>8-15 ans</strong> sans incitatifs, et 5-9 ans avec CT ITC 30%. Un CFO qui vérifie ce chiffre perd confiance immédiatement.</div>
+    <div class="fix">
+      <strong>Fix:</strong> Remplacer par « ROI typique de 5-9 ans avec incitatifs » ou mieux, utiliser une fourchette contextuelle: « Selon votre profil, payback de X à Y ans — notre analyse le calcule précisément. » Le calculateur ROI existant peut driver le messaging dynamiquement.
+    </div>
+    <div class="impact">Impact: Crédibilité auprès de 100% des prospects financiers.</div>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header">
+      <span class="priority-badge p-critical">CRITIQUE</span>
+      <h3>ITC 30% — Pas de segmentation CT vs CE</h3>
+    </div>
+    <div class="issue">Le site mentionne « crédit d'impôt fédéral de 30% » comme universellement applicable. En réalité: le <strong>CT ITC (Clean Technology)</strong> est à 30% pour les entreprises imposables. Le <strong>CE ITC (Clean Electricity)</strong> est à 15% pour les organismes exonérés d'impôt (institutions, OBNL). Cette confusion peut mener à des attentes irréalistes chez les prospects institutionnels.</div>
+    <div class="fix">
+      <strong>Fix:</strong> Dans la page Ressources et le FAQ, ajouter la distinction: « Le taux varie: 30% pour les entreprises (CT ITC) et 15% pour les organismes exonérés (CE ITC). Notre analyse identifie automatiquement votre éligibilité. » Aussi: vérifier les conditions de main-d'œuvre pour les projets >1 MW.
+    </div>
+    <div class="impact">Impact: Segment institutionnel entier (écoles, hôpitaux, gouvernements).</div>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header">
+      <span class="priority-badge p-high">ÉLEVÉ</span>
+      <h3>CCA 43.2 — Taux potentiellement expirant</h3>
+    </div>
+    <div class="issue">Le FAQ mentionne CCA 43.2 à 50% avec « mesures temporaires d'amortissement immédiat ». Ces mesures AIIP (Accelerated Investment Incentive Property) étaient disponibles mais ont des dates d'expiration. Il faut vérifier et qualifier le language.</div>
+    <div class="fix">
+      <strong>Fix:</strong> Ajouter une mention « sous réserve des conditions en vigueur — consultez votre comptable » et mettre à jour selon le dernier budget fédéral. Créer un mécanisme de mise à jour annuelle pour ce contenu.
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header">
+      <span class="priority-badge p-high">ÉLEVÉ</span>
+      <h3>Dégradation panneaux 0.4%/an — Contexte manquant</h3>
+    </div>
+    <div class="issue">La valeur de 0.4%/an n'est correcte que pour des panneaux bifaciaux de tier-1 après la première année (dégradation initiale ~2% année 1). Sans ce contexte, c'est trompeur.</div>
+    <div class="fix">
+      <strong>Fix:</strong> Ajouter « 0.35-0.5%/an après la première année (dégradation initiale ~1-2% selon le fabricant). Nos simulations utilisent les courbes réelles par fabricant. »
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header">
+      <span class="priority-badge p-high">ÉLEVÉ</span>
+      <h3>Lacune majeure: Stockage par batterie quasi-absent</h3>
+    </div>
+    <div class="issue">Le hero mentionne « Panneaux solaires + stockage » mais le contenu du site ne traite pratiquement pas du stockage. Pas de page dédiée, pas d'explication du peak shaving, pas de comparaison solaire-seul vs solaire+batterie, pas de mention des cas d'usage (backup, demand charge reduction, arbitrage tarifaire).</div>
+    <div class="fix">
+      <strong>Fix:</strong> Créer une section ou page dédiée « Stockage d'énergie » couvrant: peak shaving pour réduction des frais de pointe (Tarif M), backup en cas de panne, intégration avec le solaire, ROI du stockage seul vs combo, et les incitatifs applicables au stockage.
+    </div>
+    <div class="impact">Impact: Le stockage est le #1 différenciateur B2B solaire en 2026. Ne pas en parler = crédibilité réduite.</div>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header">
+      <span class="priority-badge p-medium">MOYEN</span>
+      <h3>Programme ÉcoPerformance absent</h3>
+    </div>
+    <div class="issue">Aucune mention du programme ÉcoPerformance de TEQ (Transition énergétique Québec) qui offre jusqu'à 75% des coûts pour les mesures d'efficacité énergétique, incluant potentiellement les systèmes de gestion de l'énergie couplés au solaire.</div>
+    <div class="fix">
+      <strong>Fix:</strong> Ajouter dans la section Incitatifs du FAQ et dans la page services: « Le programme ÉcoPerformance peut couvrir jusqu'à 75% des coûts de mesures d'efficacité énergétique complémentaires au solaire. Vérifiez votre éligibilité avec notre équipe. »
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SECTION 2: UX/UI -->
+<!-- ============================================================ -->
+<div class="section">
+  <div class="section-header">
+    <div class="section-icon icon-ux">🎨</div>
+    <h2>UX / UI — Optimisations de conversion</h2>
+    <span class="tag tag-p2">PRIORITÉ 2</span>
+  </div>
+
+  <div class="good-box">
+    <h3>Ce qui fonctionne déjà très bien</h3>
+    <ul>
+      <li>Funnel upload facture → analyse AI → résultats instantanés → email gate: <strong>excellent design</strong>, au-dessus de l'industrie</li>
+      <li>Self-qualification client-side (green/yellow/red) — réduit les leads non-qualifiés automatiquement</li>
+      <li>Carousel de screenshots du logiciel d'analyse — montre la sophistication technique</li>
+      <li>Logos partenaires dans le hero (Dream Industrial, LabSpace, Scale Cleantech, HQ)</li>
+      <li>Bilinguisme complet fr-CA/en-CA avec toggle propre</li>
+      <li>Dark/light mode</li>
+      <li>Analytics funnel détaillé (scroll depth, form events, UTM tracking)</li>
+    </ul>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header">
+      <span class="priority-badge p-high">ÉLEVÉ</span>
+      <h3>Hero headline trop générique</h3>
+    </div>
+    <div class="issue">« Panneaux solaires + stockage | Commercial & Industriel | Partout au Québec » est descriptif mais pas persuasif. Aucune proposition de valeur unique, aucun bénéfice client. Comparé aux best practices: le headline devrait être <8 mots et axé sur le résultat business.</div>
+    <div class="fix">
+      <strong>Fix:</strong> Exemples de headlines plus percutants: « Réduisez votre facture Hydro de 30-50% » ou « L'énergie solaire qui se paie elle-même » ou « Votre toit produit de l'argent — on vous montre combien ». Garder les détails (C&I, Québec, stockage) en sous-titre.
+    </div>
+    <div class="impact">Impact: Le hero headline est vu par 100% des visiteurs. +15-25% de scroll-to-CTA estimé.</div>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header">
+      <span class="priority-badge p-high">ÉLEVÉ</span>
+      <h3>Formulaire lead trop long (11 champs)</h3>
+    </div>
+    <div class="issue">Le formulaire complet demande: entreprise, nom, courriel, téléphone, adresse, ville, province, code postal, facture mensuelle, type de bâtiment, notes. C'est 11 champs. Best practice B2B: <strong>3-5 champs max</strong> pour la première interaction. Chaque champ supplémentaire réduit la conversion de ~5-10%.</div>
+    <div class="fix">
+      <strong>Fix:</strong> Le quick analysis flow (upload → email) est déjà le bon pattern. Supprimer ou rendre optionnel le formulaire long. Progression: (1) Email seul → (2) Upload facture → (3) Quick qualification → (4) Compléter le profil après le premier contact humain.
+    </div>
+    <div class="impact">Impact: +30-50% de conversion formulaire estimé.</div>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header">
+      <span class="priority-badge p-high">ÉLEVÉ</span>
+      <h3>Pas de preuve sociale quantifiée</h3>
+    </div>
+    <div class="issue">Le site a des logos partenaires mais aucun chiffre de réalisation, aucun témoignage client, aucune étude de cas avec des métriques. Les décideurs C&I veulent voir: « Client X a économisé Y$ en Z mois » ou « 120 MW installés | 25+ projets ». Le fichier IMPROVEMENTS_TODO.md mentionne déjà ce problème.</div>
+    <div class="fix">
+      <strong>Fix:</strong> Ajouter une bande de social proof sous le hero: « 15+ ans d'expérience | 120 MW installés | 25+ projets C&I ». Ajouter 2-3 testimonials avec nom, entreprise, et résultat quantifié. Même un seul témoignage crédible vaut plus que 10 features.
+    </div>
+    <div class="impact">Impact: Trust signal #1 pour le B2B. +20-40% de conversion sur les leads qualifiés.</div>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header">
+      <span class="priority-badge p-medium">MOYEN</span>
+      <h3>CTA « Obtenir mon analyse » — pas assez urgent</h3>
+    </div>
+    <div class="issue">Le CTA principal est « Obtenir mon analyse ». C'est correct mais pas urgent. Il manque un élément de rareté ou de timing. La mention « GRATUIT · 2 minutes » est bien mais pourrait être amplifiée.</div>
+    <div class="fix">
+      <strong>Fix:</strong> Tester: « Voir mon potentiel solaire — 2 min, gratuit » ou « Découvrir combien mon toit peut générer ». Ajouter un micro-copy sous le CTA: « Plus de 200 bâtiments analysés au Québec » (si véridique).
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header">
+      <span class="priority-badge p-medium">MOYEN</span>
+      <h3>Navigation trop minimaliste</h3>
+    </div>
+    <div class="issue">La nav publique a seulement: Accueil, Ressources, Portfolio, Login. Il manque: Services, Comment ça marche, Contact. Ces pages existent (/services, /comment-ca-marche) mais ne sont pas dans la nav principale.</div>
+    <div class="fix">
+      <strong>Fix:</strong> Ajouter « Services » et « Comment ça marche » dans la nav. Le lien « Contact » peut être un scroll-to-form ou un mailto. Ne pas surcharger — 5-6 items max.
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header">
+      <span class="priority-badge p-medium">MOYEN</span>
+      <h3>Pas de numéro de téléphone visible dans le header</h3>
+    </div>
+    <div class="issue">En B2B C&I, le téléphone est encore un canal majeur de conversion. Les décideurs veulent pouvoir appeler directement. Aucun numéro visible dans le header ou le hero.</div>
+    <div class="fix">
+      <strong>Fix:</strong> Ajouter un numéro de téléphone cliquable dans le header (ex: « 📞 514-XXX-XXXX ») ou à minima dans le footer et la page de contact. Si le volume d'appels n'est pas souhaité, utiliser un Calendly/cal.com embedded.
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header">
+      <span class="priority-badge p-medium">MOYEN</span>
+      <h3>Page Portfolio — Pas de métriques de résultats</h3>
+    </div>
+    <div class="issue">La page portfolio montre des projets mais sans les résultats: pas de kWh produits, pas d'économies réalisées, pas de ROI obtenu. C'est une galerie, pas une preuve de performance.</div>
+    <div class="fix">
+      <strong>Fix:</strong> Pour chaque projet portfolio, ajouter: taille du système (kW), production annuelle (kWh), économies annuelles ($), payback estimé. Même des estimations sont mieux que rien.
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header">
+      <span class="priority-badge p-low">BAS</span>
+      <h3>Page speed — Risque de lenteur avec les images carousel</h3>
+    </div>
+    <div class="issue">7 screenshots de carousel (FR) + 4 (EN) + images hero + logos partenaires. Vérifier que le lazy loading fonctionne correctement et que les images sont optimisées (WebP, compression). Le hero image « hero-optimized.jpg » est un bon signe mais les screenshots du carousel peuvent être lourds.</div>
+    <div class="fix">
+      <strong>Fix:</strong> Vérifier le bundle size avec `npx vite-bundle-visualizer`. Convertir les screenshots en WebP. S'assurer que seules les images above-the-fold chargent en eager, le reste en lazy.
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SECTION 3: SEO -->
+<!-- ============================================================ -->
+<div class="section">
+  <div class="section-header">
+    <div class="section-icon icon-seo">🔍</div>
+    <h2>SEO — Visibilité et trafic organique</h2>
+    <span class="tag tag-p2">PRIORITÉ 2</span>
+  </div>
+
+  <div class="good-box">
+    <h3>Fondations SEO déjà en place</h3>
+    <ul>
+      <li>SEOHead component unifié: title, description, keywords, OG tags, Twitter cards, canonical, hreflang, JSON-LD</li>
+      <li>Schema markup: Organization, LocalBusiness, Service, FAQ — excellent</li>
+      <li>Hreflang fr-CA / en-CA avec x-default</li>
+      <li>Robots meta tags avec max-snippet, max-image-preview</li>
+      <li>Analytics funnel avec scroll depth et UTM tracking</li>
+    </ul>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header">
+      <span class="priority-badge p-critical">CRITIQUE</span>
+      <h3>SPA sans SSR = Google peut ne pas indexer le contenu</h3>
+    </div>
+    <div class="issue">React SPA avec client-side rendering. Google peut crawler le JS mais le contenu dynamique (FAQ, portfolio, blog) risque de ne pas être indexé correctement. Les meta tags sont injectés via useEffect (client-side), pas côté serveur. C'est le <strong>plus gros risque SEO</strong> du site.</div>
+    <div class="fix">
+      <strong>Fix — Option A (rapide):</strong> Utiliser un service de pre-rendering (Prerender.io, Rendertron) qui sert le HTML statique aux crawlers. <strong>Option B (meilleure):</strong> Migrer vers un framework SSR/SSG (Next.js ou Astro) pour les pages publiques. <strong>Option C (minimum):</strong> Vérifier l'indexation actuelle dans Google Search Console et faire un test de rendu mobile.
+    </div>
+    <div class="impact">Impact: 100% du trafic organique. Sans ça, les optimisations SEO ci-dessous seront inutiles.</div>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header">
+      <span class="priority-badge p-high">ÉLEVÉ</span>
+      <h3>Blog/Nouvelles — Aucun contenu actif</h3>
+    </div>
+    <div class="issue">Les pages /blog et /nouvelles existent mais semblent être des coquilles vides ou des pages admin-driven sans contenu publié. Le contenu régulier est le <strong>moteur #1 du SEO organique</strong>. Sans articles, Google n'a aucune raison de crawler régulièrement le site.</div>
+    <div class="fix">
+      <strong>Fix:</strong> Publier 2-4 articles par mois sur des sujets à haute intention de recherche:<br>
+      — « Solaire commercial au Québec: guide 2026 des incitatifs » (pillar page)<br>
+      — « Combien coûte une installation solaire pour un entrepôt? » (long-tail)<br>
+      — « Solaire + batterie: comment réduire vos frais de pointe Hydro-Québec » (batterie)<br>
+      — « Étude de cas: [Client X] économise Y$ avec le solaire » (case study)
+    </div>
+    <div class="impact">Impact: Un blog actif peut générer 500-2000 visiteurs/mois en 6-12 mois.</div>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header">
+      <span class="priority-badge p-high">ÉLEVÉ</span>
+      <h3>Pas de Google Business Profile optimisé</h3>
+    </div>
+    <div class="issue">Pour le SEO local (recherches « solaire commercial Montréal », « installation panneaux solaires Laval »), un Google Business Profile optimisé est essentiel. Pas de données sur son état actuel.</div>
+    <div class="fix">
+      <strong>Fix:</strong> Créer/optimiser le GBP avec: catégorie « Solar Energy Equipment Supplier » + « Solar Energy Contractor », photos d'installations, heures d'ouverture, zone de service (tout le Québec), et encourager les avis clients. Viser 10+ avis 5 étoiles.
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header">
+      <span class="priority-badge p-high">ÉLEVÉ</span>
+      <h3>Mots-clés bilingues — Stratégie à développer</h3>
+    </div>
+    <div class="issue">Le site est bilingue mais la stratégie de mots-clés n'est pas optimisée. Les recherches fr-CA sont très différentes des recherches en-CA. Exemples de mots-clés à fort volume:</div>
+    <div class="fix">
+      <strong>Mots-clés FR prioritaires:</strong> « panneaux solaires commercial québec », « installation solaire industriel prix », « subvention solaire entreprise québec 2026 », « retour sur investissement solaire commercial »<br><br>
+      <strong>Mots-clés EN prioritaires:</strong> « commercial solar panels quebec cost », « industrial solar installation montreal », « solar incentives quebec business 2026 », « solar roi calculator commercial »<br><br>
+      <strong>Long-tail décisionnels:</strong> « combien coûte le solaire pour un entrepôt au québec » / « is commercial solar worth it in quebec »
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header">
+      <span class="priority-badge p-medium">MOYEN</span>
+      <h3>Pas de pages d'atterrissage géographiques</h3>
+    </div>
+    <div class="issue">Aucune page spécifique par ville/région. Les recherches locales (« solaire commercial Laval », « installation solaire Sherbrooke ») ne trouvent aucune page dédiée.</div>
+    <div class="fix">
+      <strong>Fix:</strong> Créer des landing pages par région principale: Montréal, Laval, Rive-Sud, Québec, Sherbrooke, Gatineau. Chacune avec contenu localisé (conditions d'ensoleillement, projets locaux, réglementations municipales spécifiques).
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header">
+      <span class="priority-badge p-medium">MOYEN</span>
+      <h3>Aucun sitemap.xml ni robots.txt visible</h3>
+    </div>
+    <div class="issue">Pas de mention de sitemap.xml dans le code. Pour un SPA, le sitemap est encore plus critique car Google peut ne pas découvrir toutes les routes.</div>
+    <div class="fix">
+      <strong>Fix:</strong> Générer un sitemap.xml statique avec toutes les URLs publiques (FR + EN). Ajouter un robots.txt pointant vers le sitemap. Soumettre dans Google Search Console.
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header">
+      <span class="priority-badge p-medium">MOYEN</span>
+      <h3>FAQ schema — Bon mais pourrait être enrichi</h3>
+    </div>
+    <div class="issue">Le FAQ schema est implémenté via getFAQSchema() — excellent. Mais il semble limité aux questions de la page d'accueil. Les 20+ questions de la page Ressources ne sont pas toutes dans le schema.</div>
+    <div class="fix">
+      <strong>Fix:</strong> S'assurer que toutes les FAQ de /ressources sont dans le schema JSON-LD de cette page. Google peut afficher ces FAQ directement dans les résultats de recherche (featured snippets).
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header">
+      <span class="priority-badge p-low">BAS</span>
+      <h3>Canonical URL inconsistance</h3>
+    </div>
+    <div class="issue">Le canonical de la home est « https://kwh.quebec » (sans www). S'assurer que www.kwh.quebec redirige correctement vers kwh.quebec (ou l'inverse) et que c'est cohérent partout.</div>
+    <div class="fix">
+      <strong>Fix:</strong> Vérifier la redirection 301 www → non-www (ou inverse). Configurer dans le DNS/CDN.
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SECTION 4: CONTENU MANQUANT -->
+<!-- ============================================================ -->
+<div class="section">
+  <div class="section-header">
+    <div class="section-icon icon-solar">☀️</div>
+    <h2>Contenu manquant — Opportunités de conversion</h2>
+    <span class="tag tag-p3">PRIORITÉ 3</span>
+  </div>
+
+  <div class="two-col">
+    <div class="finding">
+      <div class="finding-header">
+        <span class="priority-badge p-high">ÉLEVÉ</span>
+        <h3>Page dédiée « Stockage d'énergie »</h3>
+      </div>
+      <div class="issue">Le hero promet stockage mais aucune page ne l'explique. Contenu nécessaire: peak shaving, backup, demand charge reduction, intégration solaire+batterie, technologies (Li-ion, LFP), sizing, ROI, incitatifs.</div>
+    </div>
+
+    <div class="finding">
+      <div class="finding-header">
+        <span class="priority-badge p-high">ÉLEVÉ</span>
+        <h3>Segment institutionnel</h3>
+      </div>
+      <div class="issue">Le header mentionne « Écoles, hôpitaux, gouvernements » mais aucune page dédiée au segment institutionnel avec CE ITC 15%, processus d'approvisionnement public, PPP, obligations ESG gouvernementales.</div>
+    </div>
+
+    <div class="finding">
+      <div class="finding-header">
+        <span class="priority-badge p-medium">MOYEN</span>
+        <h3>Comparaison LCOE solaire vs Hydro-Québec</h3>
+      </div>
+      <div class="issue">La page /lcoe-comparison existe mais est-elle publique et visible? C'est un argument de vente majeur: montrer que le LCOE solaire est maintenant comparable au tarif HQ pour les gros consommateurs.</div>
+    </div>
+
+    <div class="finding">
+      <div class="finding-header">
+        <span class="priority-badge p-medium">MOYEN</span>
+        <h3>Positionnement ESG / carboneutralité</h3>
+      </div>
+      <div class="issue">Aucune mention des bénéfices ESG, crédits carbone, rapports de développement durable. En 2026, c'est un driver d'achat majeur pour les grandes entreprises et les institutions.</div>
+    </div>
+
+    <div class="finding">
+      <div class="finding-header">
+        <span class="priority-badge p-medium">MOYEN</span>
+        <h3>Guide des étapes d'un projet solaire</h3>
+      </div>
+      <div class="issue">La page /comment-ca-marche existe mais n'est pas dans la nav. Les prospects veulent comprendre le processus avant de s'engager: étude → design → permis → construction → mise en service → monitoring.</div>
+    </div>
+
+    <div class="finding">
+      <div class="finding-header">
+        <span class="priority-badge p-low">BAS</span>
+        <h3>Page « Pourquoi kWh Québec »</h3>
+      </div>
+      <div class="issue">Pas de page dédiée aux différenciateurs: technologie d'analyse propriétaire, expérience 15+ ans, 120 MW installés, approche data-driven, licence RBQ, couverture tout-Québec.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- PLAN D'ACTION -->
+<!-- ============================================================ -->
+<div class="action-plan">
+  <h2>Plan d'action — 3 sprints</h2>
+
+  <div class="sprint sprint-1">
+    <h3>Sprint 1 — Crédibilité immédiate (1-2 semaines)</h3>
+    <div class="timeline">Impact: Élimine les risques juridiques et de crédibilité</div>
+    <ul>
+      <li><strong>Corriger le claim ROI</strong> — Remplacer « 4-7 ans » par une fourchette réaliste avec qualification</li>
+      <li><strong>Segmenter ITC</strong> — Distinguer CT ITC 30% vs CE ITC 15% dans le FAQ et les pages concernées</li>
+      <li><strong>Qualifier CCA 43.2</strong> — Ajouter les conditions d'éligibilité et dates d'expiration</li>
+      <li><strong>Corriger dégradation panneaux</strong> — Ajouter le contexte année 1 vs années subséquentes</li>
+      <li><strong>Ajouter bande social proof</strong> — « 15+ ans | 120 MW installés | 25+ projets C&I » sous le hero</li>
+      <li><strong>Ajouter 1-2 testimonials</strong> — Même courts, avec nom et entreprise</li>
+    </ul>
+  </div>
+
+  <div class="sprint sprint-2">
+    <h3>Sprint 2 — Conversion et SEO (2-4 semaines)</h3>
+    <div class="timeline">Impact: +30-50% de conversion, fondations SEO solides</div>
+    <ul>
+      <li><strong>Tester nouveau hero headline</strong> — Axé sur le résultat business, pas sur la description du service</li>
+      <li><strong>Simplifier le formulaire</strong> — Max 5 champs, progression multi-step</li>
+      <li><strong>Résoudre le problème SSR/pre-rendering</strong> — Prerender.io ou migration partielle vers SSG</li>
+      <li><strong>Générer sitemap.xml + robots.txt</strong></li>
+      <li><strong>Optimiser Google Business Profile</strong></li>
+      <li><strong>Ajouter Services et Comment ça marche dans la nav</strong></li>
+      <li><strong>Enrichir le Portfolio</strong> — Métriques de résultats par projet</li>
+      <li><strong>Ajouter numéro de téléphone</strong> dans le header ou footer</li>
+    </ul>
+  </div>
+
+  <div class="sprint sprint-3">
+    <h3>Sprint 3 — Contenu et croissance (4-8 semaines)</h3>
+    <div class="timeline">Impact: Trafic organique x2-3, nouveaux segments de marché</div>
+    <ul>
+      <li><strong>Créer page Stockage d'énergie</strong> — Peak shaving, backup, ROI, incitatifs</li>
+      <li><strong>Créer page Segment institutionnel</strong> — CE ITC, processus d'approvisionnement public</li>
+      <li><strong>Lancer le blog</strong> — 2-4 articles/mois, pillar pages + long-tail</li>
+      <li><strong>Landing pages géographiques</strong> — Montréal, Laval, Rive-Sud, Québec, Sherbrooke</li>
+      <li><strong>Contenu ESG/carboneutralité</strong></li>
+      <li><strong>Comparaison LCOE publique</strong> — Rendre /lcoe-comparison accessible</li>
+      <li><strong>Enrichir les FAQ</strong> — Toutes dans le schema JSON-LD</li>
+    </ul>
+  </div>
+</div>
+
+<!-- MÉTRIQUES ACTUELLES -->
+<div class="section" style="margin-top: 40px;">
+  <div class="section-header">
+    <div class="section-icon" style="background: #33415520; color: #94a3b8;">📊</div>
+    <h2>Inventaire technique du site</h2>
+  </div>
+
+  <div class="two-col">
+    <div style="background: #1e293b; border-radius: 10px; padding: 20px; border: 1px solid #334155;">
+      <h3 style="color: #94a3b8; font-size: 13px; font-weight: 600; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px;">Pages publiques</h3>
+      <div class="metric-row"><span class="metric-label">Landing (home)</span><span class="metric-value metric-good">✓ Complet</span></div>
+      <div class="metric-row"><span class="metric-label">Services</span><span class="metric-value metric-good">✓ Complet (pas dans nav)</span></div>
+      <div class="metric-row"><span class="metric-label">Ressources (FAQ)</span><span class="metric-value metric-good">✓ 20+ Q&As</span></div>
+      <div class="metric-row"><span class="metric-label">Portfolio</span><span class="metric-value metric-warn">⚠ Manque métriques</span></div>
+      <div class="metric-row"><span class="metric-label">Blog / Nouvelles</span><span class="metric-value metric-bad">✗ Contenu vide</span></div>
+      <div class="metric-row"><span class="metric-label">Calculateur ROI</span><span class="metric-value metric-good">✓ Complet</span></div>
+      <div class="metric-row"><span class="metric-label">Comment ça marche</span><span class="metric-value metric-good">✓ Complet (pas dans nav)</span></div>
+      <div class="metric-row"><span class="metric-label">Méthodologie</span><span class="metric-value metric-good">✓ Complet</span></div>
+      <div class="metric-row"><span class="metric-label">Stockage / Batterie</span><span class="metric-value metric-bad">✗ Inexistant</span></div>
+      <div class="metric-row"><span class="metric-label">Institutionnel</span><span class="metric-value metric-bad">✗ Inexistant</span></div>
+    </div>
+
+    <div style="background: #1e293b; border-radius: 10px; padding: 20px; border: 1px solid #334155;">
+      <h3 style="color: #94a3b8; font-size: 13px; font-weight: 600; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px;">Infrastructure SEO</h3>
+      <div class="metric-row"><span class="metric-label">SEOHead component</span><span class="metric-value metric-good">✓ Unifié</span></div>
+      <div class="metric-row"><span class="metric-label">Hreflang fr-CA/en-CA</span><span class="metric-value metric-good">✓ Implémenté</span></div>
+      <div class="metric-row"><span class="metric-label">JSON-LD schemas</span><span class="metric-value metric-good">✓ 4 types</span></div>
+      <div class="metric-row"><span class="metric-label">Open Graph tags</span><span class="metric-value metric-good">✓ Complet</span></div>
+      <div class="metric-row"><span class="metric-label">Canonical URLs</span><span class="metric-value metric-warn">⚠ www inconsistant</span></div>
+      <div class="metric-row"><span class="metric-label">Sitemap.xml</span><span class="metric-value metric-bad">✗ Manquant</span></div>
+      <div class="metric-row"><span class="metric-label">Robots.txt</span><span class="metric-value metric-bad">✗ Manquant</span></div>
+      <div class="metric-row"><span class="metric-label">SSR / Pre-rendering</span><span class="metric-value metric-bad">✗ Client-only</span></div>
+      <div class="metric-row"><span class="metric-label">Google Search Console</span><span class="metric-value metric-warn">⚠ Non vérifié</span></div>
+      <div class="metric-row"><span class="metric-label">Google Business Profile</span><span class="metric-value metric-warn">⚠ Non vérifié</span></div>
+    </div>
+  </div>
+</div>
+
+</div><!-- end container -->
+
+</body>
+</html>
