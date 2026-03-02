@@ -55,6 +55,11 @@ export function FinancingCalculator({ simulation, displayedScenario }: { simulat
   const scenarioBreakdown = displayedScenario.scenarioBreakdown;
   const assumptions = simulation.assumptions as AnalysisAssumptions | null;
 
+  // Pull engine assumptions for consistency (inflation, O&M, escalation)
+  const inflationRate = assumptions?.inflationRate ?? 0.035; // HQ tariff inflation 3.5%/yr
+  const omPerKwc = assumptions?.omPerKwc ?? 15; // $15/kW/year O&M
+  const omEscalation = assumptions?.omEscalation ?? 0.025; // 2.5%/yr O&M escalation
+
   const baseCapexNet = simulation.capexNet || 0;
 
   const capexNet = displayedScenario.capexNet || 0;
@@ -125,10 +130,18 @@ export function FinancingCalculator({ simulation, displayedScenario }: { simulat
   // Use consistent 25-year horizon for all financing comparisons
   const analysisHorizon = 25;
 
-  // Total degraded savings over analysis horizon (accounts for 0.4%/yr panel degradation)
-  const totalDegradedSavings = Array.from({ length: analysisHorizon }, (_, i) =>
-    annualSavings * Math.pow(1 - degradationRate, i)
-  ).reduce((a, b) => a + b, 0);
+  // O&M base cost (annual, consistent with simulationEngine)
+  const omBaseAnnual = omPerKwc * pvSizeKW;
+
+  // Total net savings over analysis horizon — consistent with simulationEngine:
+  // Revenue = annualSavings × degradation × inflation (savings grow with HQ tariffs)
+  // O&M = omBaseAnnual × omEscalation (costs grow with inflation)
+  // Net = Revenue - O&M
+  const totalDegradedSavings = Array.from({ length: analysisHorizon }, (_, i) => {
+    const revenue = annualSavings * Math.pow(1 - degradationRate, i) * Math.pow(1 + inflationRate, i);
+    const om = omBaseAnnual * Math.pow(1 + omEscalation, i);
+    return revenue - om;
+  }).reduce((a, b) => a + b, 0);
 
   // Capital Lease: payments with incentives, then free energy after lease term (you own the system)
   // Net savings = Total degraded savings over 25 years - effective cost (lease payments - incentives)
@@ -166,10 +179,12 @@ export function FinancingCalculator({ simulation, displayedScenario }: { simulat
   const ppaProviderKeepsIncentives = totalIncentives;
   // Buyout cost at end of PPA term (fair market value, typically 10% of original CAPEX)
   const ppaBuyoutCost = capexGross * (ppaBuyoutPct / 100);
-  // Post-PPA savings: After buyout, client owns system — same total savings as ownership
+  // Post-PPA savings: After buyout, client owns system — same net savings as ownership (with inflation, minus O&M)
   let postPpaSavings = 0;
   for (let y = ppaTerm + 1; y <= analysisHorizon; y++) {
-    postPpaSavings += annualSavings * Math.pow(1 - degradationRate, y - 1);
+    const rev = annualSavings * Math.pow(1 - degradationRate, y - 1) * Math.pow(1 + inflationRate, y - 1);
+    const om = omBaseAnnual * Math.pow(1 + omEscalation, y - 1);
+    postPpaSavings += rev - om;
   }
   // PPA net during term = HQ cost avoided + surplus credits - PPA payments
   const ppaSavingsDuringTerm = hqCostAvoided + surplusCredits - ppaTotalPayments;
@@ -260,8 +275,11 @@ export function FinancingCalculator({ simulation, displayedScenario }: { simulat
           ppa: ppaCumulative / 1000,
         });
       } else {
-        // Add degraded savings each year for ownership options (cash, loan, lease)
-        const degradedSavings = annualSavings * Math.pow(1 - degradationRate, year - 1);
+        // Net savings each year = revenue (with inflation) - O&M (with escalation)
+        // Consistent with simulationEngine: savings × degradation × inflation - O&M × escalation
+        const yearRevenue = annualSavings * Math.pow(1 - degradationRate, year - 1) * Math.pow(1 + inflationRate, year - 1);
+        const yearOm = omBaseAnnual * Math.pow(1 + omEscalation, year - 1);
+        const degradedSavings = yearRevenue - yearOm;
         cashCumulative += degradedSavings;
         loanCumulative += degradedSavings;
         leaseCumulative += degradedSavings;
