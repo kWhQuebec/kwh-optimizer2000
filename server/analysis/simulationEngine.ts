@@ -983,6 +983,83 @@ export function runSensitivityAnalysis(
     }
   }
 
+  if (maxPVFromRoof > effectivePvCap * 1.1) {
+    const indepSteps = 6;
+    const indepStart = effectivePvCap;
+    const indepEnd = maxPVFromRoof;
+    const indepStep = Math.max(10, Math.round((indepEnd - indepStart) / indepSteps / 10) * 10);
+
+    for (let pv = Math.round(indepStart); pv <= indepEnd; pv += indepStep) {
+      const pvRounded = Math.round(pv);
+      const configs: Array<{ batt: number; battPower: number }> = [
+        { batt: 0, battPower: 0 },
+      ];
+      if (configuredBattEnergyKWh > 0) {
+        configs.push({ batt: configuredBattEnergyKWh, battPower: Math.round(configuredBattEnergyKWh / 2) });
+      }
+
+      for (const cfg of configs) {
+        const key = `${pvRounded}-${cfg.batt}`;
+        if (existingFrontierKeys.has(key)) continue;
+        existingFrontierKeys.add(key);
+
+        const result = runScenarioWithSizing(
+          hourlyData, pvRounded, cfg.batt, cfg.battPower,
+          peakKW, annualConsumptionKWh, assumptions
+        );
+
+        const hasBatt = cfg.batt > 0;
+        frontier.push({
+          id: hasBatt ? `indep-hybrid-pv${pvRounded}-batt${cfg.batt}` : `indep-solar-${pvRounded}`,
+          type: hasBatt ? 'hybrid' : 'solar',
+          label: hasBatt ? `${pvRounded}kW PV + ${cfg.batt}kWh` : `${pvRounded}kW solar only`,
+          pvSizeKW: pvRounded,
+          battEnergyKWh: cfg.batt,
+          battPowerKW: cfg.battPower,
+          capexNet: result.capexNet,
+          npv25: result.npv25,
+          isOptimal: false,
+          sweepSource: 'independenceSweep' as any,
+          irr25: result.irr25,
+          simplePaybackYears: result.simplePaybackYears,
+          selfSufficiencyPercent: result.selfSufficiencyPercent,
+          annualSavings: result.annualSavings,
+          totalProductionKWh: result.totalProductionKWh,
+          co2AvoidedTonnesPerYear: result.co2AvoidedTonnesPerYear,
+        });
+      }
+    }
+
+    const roofCapKey = `${Math.round(maxPVFromRoof)}-${configuredBattEnergyKWh}`;
+    if (!existingFrontierKeys.has(roofCapKey)) {
+      const battPower = Math.round(configuredBattEnergyKWh / 2);
+      const result = runScenarioWithSizing(
+        hourlyData, Math.round(maxPVFromRoof), configuredBattEnergyKWh, battPower,
+        peakKW, annualConsumptionKWh, assumptions
+      );
+      frontier.push({
+        id: `indep-max-roof`,
+        type: configuredBattEnergyKWh > 0 ? 'hybrid' : 'solar',
+        label: configuredBattEnergyKWh > 0
+          ? `${Math.round(maxPVFromRoof)}kW PV + ${configuredBattEnergyKWh}kWh`
+          : `${Math.round(maxPVFromRoof)}kW solar only`,
+        pvSizeKW: Math.round(maxPVFromRoof),
+        battEnergyKWh: configuredBattEnergyKWh,
+        battPowerKW: battPower,
+        capexNet: result.capexNet,
+        npv25: result.npv25,
+        isOptimal: false,
+        sweepSource: 'independenceSweep' as any,
+        irr25: result.irr25,
+        simplePaybackYears: result.simplePaybackYears,
+        selfSufficiencyPercent: result.selfSufficiencyPercent,
+        annualSavings: result.annualSavings,
+        totalProductionKWh: result.totalProductionKWh,
+        co2AvoidedTonnesPerYear: result.co2AvoidedTonnesPerYear,
+      });
+    }
+  }
+
   for (const point of frontier) {
     const hasPV = point.pvSizeKW > 0;
     const hasBatt = point.battEnergyKWh > 0;
