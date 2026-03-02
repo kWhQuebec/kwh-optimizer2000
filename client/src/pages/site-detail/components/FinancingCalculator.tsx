@@ -41,12 +41,14 @@ export function FinancingCalculator({ simulation, displayedScenario }: { simulat
   const [leaseImplicitRate, setLeaseImplicitRate] = useState(8.5);
   const [leaseTerm, setLeaseTerm] = useState(15); // Default 15-year lease term
 
-  // PPA (Third-Party Power Purchase Agreement) - TRC Solar model defaults
-  // Note: More conservative defaults to show realistic competitor comparison
-  const [ppaTerm, setPpaTerm] = useState(15); // 15 years typical for TRC
-  const [ppaYear1Rate, setPpaYear1Rate] = useState(100); // Year 1: 100% of HQ rate (no savings)
-  const [ppaYear2Rate, setPpaYear2Rate] = useState(85); // Year 2+: 85% of HQ rate (15% savings - conservative)
+  // PPA (Third-Party Power Purchase Agreement) - TRC Solar actual terms from Market Intelligence
+  // TRC offers 40% discount off HQ rate = client pays 60% of HQ rate
+  // Billing on PRODUCTION (not consumption) = client pays for energy they may not fully use
+  const [ppaTerm, setPpaTerm] = useState(16); // 16 years per TRC proposal #112525a
+  const [ppaYear1Rate, setPpaYear1Rate] = useState(60); // 60% of HQ rate = 40% discount (TRC actual)
+  const [ppaYear2Rate, setPpaYear2Rate] = useState(60); // Same 40% discount all years (TRC actual)
   const [ppaBuyoutPct, setPpaBuyoutPct] = useState(10); // Buyout cost as % of original CAPEX at end of term
+  const [ppaSelfConsumptionPct, setPpaSelfConsumptionPct] = useState(70); // % of production actually consumed on-site
 
   const degradationRate = 0.004; // 0.4% per year panel degradation
 
@@ -133,33 +135,46 @@ export function FinancingCalculator({ simulation, displayedScenario }: { simulat
   const leaseNetSavings = totalDegradedSavings - effectiveLeaseCost;
 
   // PPA (Third-Party Power Purchase Agreement) calculation:
-  // Based on TRC Solar model - client pays for electricity, not the system
-  // Year 1: 100% of HQ rate (no savings in year 1)
-  // Year 2+: 85% of HQ rate (15% savings vs HQ)
-  // After term: Client must buy out system at fair market value (~10% of original CAPEX)
-  // Post-buyout: Client owns system and gets 100% energy savings
-  // IMPORTANT: All incentives (HQ rebates, federal ITC, tax shield) are RETAINED by PPA provider
+  // Based on TRC Solar ACTUAL terms from Market Intelligence DB:
+  // - Client pays ppaYear1Rate% of HQ rate for electricity produced (not consumed!)
+  // - TRC bills on PRODUCTION, not consumption → overproduction risk
+  // - After term: Client must buy out system at fair market value (~10% of original CAPEX)
+  // - Post-buyout: Client owns system and gets full savings
+  // - IMPORTANT: All incentives (HQ rebates, federal ITC, tax shield) are RETAINED by PPA provider
   const hqTariffRate = assumptions?.tariffCode === "M" ? 0.06061 : 0.11933; // $/kWh based on tariff
+  const selfConsumptionRatio = ppaSelfConsumptionPct / 100; // What % of production is actually consumed on-site
+  const surplusCreditRate = 0.046; // HQ net metering surplus compensation $/kWh (cost of supply)
+
   // Compute degradation-aware PPA totals
-  let ppaTotalPayments = 0;
-  let hqCostDuringPpa = 0;
+  // KEY: PPA provider bills on TOTAL PRODUCTION, but client only avoids HQ costs on self-consumed portion
+  let ppaTotalPayments = 0; // What client pays PPA provider (based on production)
+  let hqCostAvoided = 0; // What client would have paid HQ (based on self-consumption only)
+  let surplusCredits = 0; // Net metering credits for overproduction
   for (let y = 1; y <= ppaTerm; y++) {
     const degradedProd = totalAnnualProductionKWh * Math.pow(1 - degradationRate, y - 1);
+    const selfConsumedKWh = degradedProd * selfConsumptionRatio;
+    const surplusKWh = degradedProd * (1 - selfConsumptionRatio);
     const ppaRate = y === 1 ? (ppaYear1Rate / 100) : (ppaYear2Rate / 100);
+    // Client pays PPA provider for ALL production (TRC billing model)
     ppaTotalPayments += degradedProd * hqTariffRate * ppaRate;
-    hqCostDuringPpa += degradedProd * hqTariffRate;
+    // Client avoids paying HQ only for self-consumed portion
+    hqCostAvoided += selfConsumedKWh * hqTariffRate;
+    // Surplus credits at HQ cost-of-supply rate (much lower than retail)
+    surplusCredits += surplusKWh * surplusCreditRate;
   }
   // PPA provider keeps ALL incentives - this is where they profit
   const ppaProviderKeepsIncentives = totalIncentives;
   // Buyout cost at end of PPA term (fair market value, typically 10% of original CAPEX)
   const ppaBuyoutCost = capexGross * (ppaBuyoutPct / 100);
-  // Post-PPA savings: After buyout, client owns system — same total savings as ownership (includes demand savings, surplus credits, etc.)
+  // Post-PPA savings: After buyout, client owns system — same total savings as ownership
   let postPpaSavings = 0;
   for (let y = ppaTerm + 1; y <= analysisHorizon; y++) {
     postPpaSavings += annualSavings * Math.pow(1 - degradationRate, y - 1);
   }
-  // PPA savings during term = what they would have paid HQ - what they pay PPA provider
-  const ppaSavingsDuringTerm = hqCostDuringPpa - ppaTotalPayments;
+  // PPA net during term = HQ cost avoided + surplus credits - PPA payments
+  const ppaSavingsDuringTerm = hqCostAvoided + surplusCredits - ppaTotalPayments;
+  // Overproduction risk: amount client pays PPA for energy they don't directly consume at retail value
+  const ppaOverproductionCost = ppaTotalPayments - (totalAnnualProductionKWh * selfConsumptionRatio * hqTariffRate * ppaTerm * (ppaYear2Rate / 100));
   // Total PPA "cost" = payments to PPA provider + buyout cost
   const ppaEffectiveCost = ppaTotalPayments + ppaBuyoutCost;
   // Net savings over 25 years = savings during PPA + free electricity after PPA - buyout cost
@@ -251,20 +266,28 @@ export function FinancingCalculator({ simulation, displayedScenario }: { simulat
         loanCumulative += degradedSavings;
         leaseCumulative += degradedSavings;
 
-        // PPA: During term, client saves vs HQ rate but pays PPA provider (energy-only, with degradation)
+        // PPA: During term, client pays PPA provider for ALL production (billing on production)
+        // but only avoids HQ costs on self-consumed portion + surplus credits at low rate
         // At end of term, client must buy out system at fair market value
-        // After buyout, client gets energy-only savings (consistent with during-term basis)
+        // After buyout, client owns system — same savings as other ownership options
         if (year <= ppaTerm) {
           const degradedProduction = totalAnnualProductionKWh * Math.pow(1 - degradationRate, year - 1);
+          const selfConsumedKWh = degradedProduction * selfConsumptionRatio;
+          const surplusKWh = degradedProduction * (1 - selfConsumptionRatio);
           const ppaRateThisYear = year === 1 ? (ppaYear1Rate / 100) : (ppaYear2Rate / 100);
-          const hqCostThisYear = degradedProduction * hqTariffRate;
+          // Client pays PPA provider for ALL production
           const ppaCostThisYear = degradedProduction * hqTariffRate * ppaRateThisYear;
-          ppaCumulative += (hqCostThisYear - ppaCostThisYear);
+          // Client avoids HQ costs only on self-consumed portion
+          const hqCostAvoidedThisYear = selfConsumedKWh * hqTariffRate;
+          // Surplus credits at net metering cost-of-supply rate
+          const surplusCreditsThisYear = surplusKWh * surplusCreditRate;
+          // Net = what client avoids paying HQ + surplus credits - what they pay PPA
+          ppaCumulative += (hqCostAvoidedThisYear + surplusCreditsThisYear - ppaCostThisYear);
           if (year === ppaTerm) {
             ppaCumulative -= ppaBuyoutCost;
           }
         } else {
-          // After buyout: client owns system — same total savings as ownership options (includes demand savings, surplus credits, etc.)
+          // After buyout: client owns system — same total savings as ownership options
           ppaCumulative += degradedSavings;
         }
 
@@ -524,7 +547,32 @@ export function FinancingCalculator({ simulation, displayedScenario }: { simulat
                     <span className="text-sm font-mono w-12">{ppaBuyoutPct}%</span>
                   </div>
                 </div>
+                <div className="space-y-2">
+                  <Label>{language === "fr" ? "Autoconsommation %" : "Self-consumption %"}</Label>
+                  <div className="flex items-center gap-2">
+                    <Slider
+                      value={[ppaSelfConsumptionPct]}
+                      onValueChange={([v]) => setPpaSelfConsumptionPct(v)}
+                      min={40}
+                      max={100}
+                      step={5}
+                      data-testid="slider-ppa-self-consumption"
+                    />
+                    <span className="text-sm font-mono w-12">{ppaSelfConsumptionPct}%</span>
+                  </div>
+                </div>
               </div>
+
+              {/* Overproduction Risk Warning */}
+              {ppaSelfConsumptionPct < 100 && (
+                <div className="p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg">
+                  <p className="text-xs text-red-700 dark:text-red-300 leading-relaxed">
+                    {language === "fr"
+                      ? `⚠️ Risque de surproduction: TRC facture sur la PRODUCTION totale, mais vous ne consommez que ${ppaSelfConsumptionPct}% sur site. Les ${100 - ppaSelfConsumptionPct}% de surplus ne génèrent que ${formatCurrency(surplusCredits / ppaTerm)}/an en crédits HQ (au lieu de ${formatCurrency((totalAnnualProductionKWh * (1 - selfConsumptionRatio) * hqTariffRate))}/an au tarif plein).`
+                      : `⚠️ Overproduction risk: TRC bills on TOTAL production, but you only consume ${ppaSelfConsumptionPct}% on-site. The ${100 - ppaSelfConsumptionPct}% surplus only generates ${formatCurrency(surplusCredits / ppaTerm)}/yr in HQ credits (instead of ${formatCurrency((totalAnnualProductionKWh * (1 - selfConsumptionRatio) * hqTariffRate))}/yr at full rate).`}
+                  </p>
+                </div>
+              )}
 
               {/* PPA Cost Breakdown */}
               <div className="text-sm space-y-1 text-muted-foreground pt-2 border-t">
@@ -537,8 +585,22 @@ export function FinancingCalculator({ simulation, displayedScenario }: { simulat
                   <span className="font-mono">{formatCurrency(ppaYear2Annual)}{language === "fr" ? "/an" : "/yr"}</span>
                 </p>
                 <p className="flex justify-between gap-2 pt-2 border-t font-medium">
-                  <span>{language === "fr" ? `Total ${ppaTerm} ans:` : `Total ${ppaTerm} years:`}</span>
+                  <span>{language === "fr" ? `Total payé au fournisseur PPA (${ppaTerm} ans):` : `Total paid to PPA provider (${ppaTerm} years):`}</span>
                   <span className="font-mono font-semibold">{formatCurrency(ppaTotalPayments)}</span>
+                </p>
+                <p className="flex justify-between gap-2 text-xs">
+                  <span>{language === "fr" ? `Coûts HQ évités (autoconsommation ${ppaSelfConsumptionPct}%):` : `HQ costs avoided (self-consumption ${ppaSelfConsumptionPct}%):`}</span>
+                  <span className="font-mono text-[#16A34A]">+{formatCurrency(hqCostAvoided)}</span>
+                </p>
+                {surplusCredits > 0 && (
+                  <p className="flex justify-between gap-2 text-xs">
+                    <span>{language === "fr" ? `Crédits surplus (${100 - ppaSelfConsumptionPct}% @ ${surplusCreditRate}$/kWh):` : `Surplus credits (${100 - ppaSelfConsumptionPct}% @ $${surplusCreditRate}/kWh):`}</span>
+                    <span className="font-mono text-[#16A34A]">+{formatCurrency(surplusCredits)}</span>
+                  </p>
+                )}
+                <p className="flex justify-between gap-2 pt-1 border-t text-xs font-medium">
+                  <span>{language === "fr" ? `Économie nette pendant PPA:` : `Net savings during PPA:`}</span>
+                  <span className={`font-mono font-semibold ${ppaSavingsDuringTerm >= 0 ? "text-[#16A34A]" : "text-red-600"}`}>{formatCurrency(ppaSavingsDuringTerm)}</span>
                 </p>
                 <p className="flex justify-between gap-2 pt-2 border-t text-xs text-red-600 dark:text-red-400">
                   <span>{t("financing.ppaNoIncentives")}:</span>
