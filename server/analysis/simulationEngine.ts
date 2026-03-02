@@ -615,7 +615,7 @@ export function runScenarioWithSizing(
   const equityInitial = capexGross - incentivesHQSolar - batterySubY0;
   // FIX: use omPerKwc ($/kW/year) if available, otherwise fall back to % of CAPEX
   const omSolarBase = h.omPerKwc
-    ? h.omPerKwc * pvSizeKw
+    ? h.omPerKwc * pvSizeKW
     : capexPV * h.omSolarPercent;
   const opexBase = omSolarBase + (capexBattery * h.omBatteryPercent);
 
