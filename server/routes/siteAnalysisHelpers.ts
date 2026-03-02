@@ -654,7 +654,7 @@ export function runPotentialAnalysis(
   const MAX_ANALYSIS_YEARS = 30;
   const cashflows: CashflowEntry[] = [];
   const omSolarBase = h.omPerKwc
-    ? h.omPerKwc * pvSizeKw
+    ? h.omPerKwc * pvSizeKW
     : capexPV * h.omSolarPercent;
   const opexBase = omSolarBase + (capexBattery * h.omBatteryPercent);
   let cumulative = -equityInitial;

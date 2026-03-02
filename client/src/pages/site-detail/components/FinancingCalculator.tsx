@@ -6,6 +6,7 @@ import {
   Zap,
   Clock,
   TrendingUp,
+  Info,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -47,7 +48,7 @@ export function FinancingCalculator({ simulation, displayedScenario }: { simulat
   const [ppaTerm, setPpaTerm] = useState(16); // 16 years per TRC proposal #112525a
   const [ppaYear1Rate, setPpaYear1Rate] = useState(60); // 60% of HQ rate = 40% discount (TRC actual)
   const [ppaYear2Rate, setPpaYear2Rate] = useState(60); // Same 40% discount all years (TRC actual)
-  const [ppaBuyoutPct, setPpaBuyoutPct] = useState(10); // Buyout cost as % of original CAPEX at end of term
+  const [ppaBuyoutPct, setPpaBuyoutPct] = useState(15); // Buyout cost as % of original CAPEX at end of term (conservative FMV)
   const [ppaSelfConsumptionPct, setPpaSelfConsumptionPct] = useState(70); // % of production actually consumed on-site
 
   const degradationRate = 0.004; // 0.4% per year panel degradation
@@ -350,6 +351,9 @@ export function FinancingCalculator({ simulation, displayedScenario }: { simulat
   };
 
   const cumulativeCashflowData = calculateCumulativeCashflows();
+
+  const finalYear = cumulativeCashflowData[cumulativeCashflowData.length - 1];
+  const ppaOutperformsCash = finalYear && finalYear.ppa > finalYear.cash;
 
   return (
     <Card id="pdf-section-financing" data-testid="card-financing-calculator">
@@ -849,6 +853,16 @@ export function FinancingCalculator({ simulation, displayedScenario }: { simulat
                 ? "Flux de trésorerie cumulatif incluant tous les coûts, économies et incitatifs"
                 : "Cumulative cash flow including all costs, savings, and incentives"}
             </p>
+            {ppaOutperformsCash && (
+              <div className="flex items-start gap-3 mt-4 p-3 rounded-lg bg-muted/60 border border-muted-foreground/20" data-testid="banner-ppa-warning">
+                <Info className="w-5 h-5 text-muted-foreground shrink-0 mt-0.5" />
+                <p className="text-sm text-muted-foreground">
+                  {language === "fr"
+                    ? "Le PPA apparaît plus rentable que l'achat comptant, ce qui indique généralement un système surdimensionné. En pratique, un fournisseur PPA n'offrirait probablement pas ce projet."
+                    : "PPA appears more profitable than cash purchase, typically indicating an oversized system. In practice, a PPA provider would likely not offer this project."}
+                </p>
+              </div>
+            )}
           </div>
         )}
       </CardContent>

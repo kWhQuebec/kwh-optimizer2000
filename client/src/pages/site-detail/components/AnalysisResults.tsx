@@ -639,9 +639,13 @@ export function AnalysisResults({
                 {language === "fr" ? "Configuration optimale" : "Optimal Configuration"}
               </CardTitle>
               <CardDescription>
-                {language === "fr"
-                  ? "Sélectionnez votre objectif d'optimisation"
-                  : "Select your optimization objective"}
+                {optimizationScenarios
+                  ? (language === "fr"
+                    ? "Sélectionnez votre objectif d'optimisation"
+                    : "Select your optimization objective")
+                  : (language === "fr"
+                    ? "Dimensionnement personnalisé — relancez l'analyse standard pour les options d'optimisation"
+                    : "Custom sizing — run standard analysis for optimization options")}
               </CardDescription>
             </div>
 
