@@ -399,6 +399,23 @@ export function AnalysisResults({
   const dashboardIrr25 = displayedScenario.irr25 ?? simulation.irr25 ?? 0;
   const dashboardCo2Tonnes = displayedScenario.co2AvoidedTonnesPerYear ?? simulation.co2AvoidedTonnesPerYear ?? 0;
 
+  const dashboardAccountingProfit = useMemo(() => {
+    const degradation = assumptions?.degradationRatePercent ?? 0.004;
+    const inflation = assumptions?.inflationRate ?? 0.035;
+    const omRate = assumptions?.omPerKwc ?? 15;
+    const omEsc = assumptions?.omEscalation ?? 0.025;
+    const pvKW = displayedScenario.pvSizeKW || simulation.pvSizeKW || 0;
+    const omBase = omRate * pvKW;
+    const annualRev = dashboardAnnualSavings;
+    let total = 0;
+    for (let y = 0; y < 25; y++) {
+      const rev = annualRev * Math.pow(1 - degradation, y) * Math.pow(1 + inflation, y);
+      const om = omBase * Math.pow(1 + omEsc, y);
+      total += rev - om;
+    }
+    return total - (displayedScenario.capexNet || 0);
+  }, [dashboardAnnualSavings, displayedScenario, simulation, assumptions]);
+
   const waterfallData = useMemo(() => {
     const sb = displayedScenario.scenarioBreakdown;
     if (!sb) return null;
@@ -850,14 +867,16 @@ export function AnalysisResults({
             <div className="flex items-center gap-2 mb-2">
               <TrendingUp className="w-4 h-4 text-blue-500" />
               <p className="text-xs text-muted-foreground uppercase tracking-wide">
-                {language === "fr" ? "Profit net sur 25 ans" : "Net profit over 25 years"}
+                {language === "fr" ? "Profit comptable 25 ans" : "Accounting Profit 25 yrs"}
               </p>
             </div>
-            <p className="text-2xl font-bold font-mono text-blue-600 dark:text-blue-400" data-testid="text-npv">
-              {formatSmartCurrency(dashboardNpv25 || 0, language)}
+            <p className="text-2xl font-bold font-mono text-blue-600 dark:text-blue-400" data-testid="text-accounting-profit">
+              {formatSmartCurrency(dashboardAccountingProfit || 0, language)}
             </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              {language === "fr" ? "après 25 ans" : "after 25 years"}
+            <p className="text-xs text-muted-foreground mt-1" data-testid="text-npv">
+              {language === "fr"
+                ? `VAN: ${formatSmartCurrency(dashboardNpv25 || 0, language)} (actualisée à ${((assumptions?.discountRate ?? 0.07) * 100).toFixed(0)}%)`
+                : `NPV: ${formatSmartCurrency(dashboardNpv25 || 0, language)} (discounted at ${((assumptions?.discountRate ?? 0.07) * 100).toFixed(0)}%)`}
             </p>
           </CardContent>
         </Card>
@@ -1268,8 +1287,8 @@ export function AnalysisResults({
                 <DollarSign className="w-4 h-4 text-primary" />
                 <p className="text-sm text-muted-foreground">
                   {language === "fr"
-                    ? `Profit net ${showExtendedLifeAnalysis ? "30" : "25"} ans`
-                    : `Net Profit ${showExtendedLifeAnalysis ? "30" : "25"} years`}
+                    ? `VAN ${showExtendedLifeAnalysis ? "30" : "25"} ans`
+                    : `NPV ${showExtendedLifeAnalysis ? "30" : "25"} years`}
                 </p>
               </div>
               <p className="text-2xl font-bold font-mono text-primary">
