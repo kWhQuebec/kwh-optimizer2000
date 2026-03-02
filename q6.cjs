@@ -1,0 +1,3 @@
+const {Pool}=require('pg');
+const p=new Pool({connectionString:process.env.DATABASE_URL});
+p.query(`SELECT sr.pv_size_kw,sr.batt_energy_kwh,sr.batt_power_kw,sr.npv_25,sr.irr_25,sr.simple_payback_years,sr.lcoe,sr.annual_savings,sr.capex_gross,sr.capex_net,sr.incentives_hq,sr.incentives_federal,sr.tax_shield,sr.total_incentives,sr.total_production_kwh,sr.self_sufficiency_percent,sr.co2_avoided_tonnes_per_year,sr.annual_consumption_kwh,sr.peak_demand_kw,sr.capex_pv,sr.capex_battery,sr.created_at FROM simulation_runs sr WHERE sr.id='7e1295be-666a-4d78-897e-4c8e8f5210cc'`).then(r=>{console.log(JSON.stringify(r.rows[0],null,2));p.end()}).catch(e=>{console.error(e.message);p.end()});
