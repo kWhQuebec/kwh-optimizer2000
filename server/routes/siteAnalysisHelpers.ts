@@ -835,16 +835,18 @@ export function runPotentialAnalysis(
     capexNet: capexNet,
   };
   
-  const sensitivity = runSensitivityAnalysis(
-    hourlyData,
-    pvSizeKW,
-    battEnergyKWh,
-    battPowerKW,
-    peakKW,
-    annualConsumptionKWh,
-    h,
-    npv25
-  );
+  const sensitivity = forcedSizing
+    ? null
+    : runSensitivityAnalysis(
+        hourlyData,
+        pvSizeKW,
+        battEnergyKWh,
+        battPowerKW,
+        peakKW,
+        annualConsumptionKWh,
+        h,
+        npv25
+      );
   
   return {
     pvSizeKW,
