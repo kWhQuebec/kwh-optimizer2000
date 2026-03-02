@@ -2527,7 +2527,8 @@ export const defaultAnalysisAssumptions: AnalysisAssumptions = {
   solarCostPerW: 2.25, // $2.25/Wc
   batteryCapacityCost: 540, // $540/kWh (supplier cost $350/kWh + 35% gross margin)
   batteryPowerCost: 800, // $800/kW
-  omSolarPercent: 0.01, // 1% of solar CAPEX
+  omSolarPercent: 0.01, // 1% of solar CAPEX (legacy fallback)
+  omPerKwc: 15, // $15/kW/year — industry standard for commercial solar O&M
   omBatteryPercent: 0.005, // 0.5% of battery CAPEX
   omEscalation: 0.025, // 2.5% annual O&M escalation
   roofAreaSqFt: 100000, // Default roof area (100,000 sq ft for large C&I buildings)
@@ -2924,19 +2925,19 @@ export function getBifacialConfigFromRoofColor(roofColorType: RoofColorType | st
   switch (roofColorType) {
     case 'white_membrane':
       return {
-        boost: 1.15,
-        boostPercent: 15,
+        boost: 1.08,
+        boostPercent: 8,
         albedo: 0.70,
         recommended: true,
         reason: {
-          fr: 'Membrane blanche détectée (albédo ~70%) - Bifacial recommandé (+15%)',
-          en: 'White membrane detected (albedo ~70%) - Bifacial recommended (+15%)'
+          fr: 'Membrane blanche détectée (albédo ~70%) - Bifacial recommandé (+8%)',
+          en: 'White membrane detected (albedo ~70%) - Bifacial recommended (+8%)'
         }
       };
     case 'light':
       return {
-        boost: 1.10,
-        boostPercent: 10,
+        boost: 1.06,
+        boostPercent: 6,
         albedo: 0.50,
         recommended: true,
         reason: {

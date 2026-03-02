@@ -613,7 +613,11 @@ export function runScenarioWithSizing(
 
   const batterySubY0 = incentivesHQBattery * 0.5;
   const equityInitial = capexGross - incentivesHQSolar - batterySubY0;
-  const opexBase = (capexPV * h.omSolarPercent) + (capexBattery * h.omBatteryPercent);
+  // FIX: use omPerKwc ($/kW/year) if available, otherwise fall back to % of CAPEX
+  const omSolarBase = h.omPerKwc
+    ? h.omPerKwc * pvSizeKw
+    : capexPV * h.omSolarPercent;
+  const opexBase = omSolarBase + (capexBattery * h.omBatteryPercent);
 
   const cashflowValues: number[] = [-equityInitial];
   const degradationRate = h.degradationRatePercent || 0.004;
@@ -623,9 +627,8 @@ export function runScenarioWithSizing(
     const degradationFactor = Math.pow(1 - degradationRate, y - 1);
     const savingsRevenue = annualSavings * degradationFactor * Math.pow(1 + h.inflationRate, y - 1);
 
-    const surplusRevenue = y >= 3
-      ? annualSurplusRevenue * degradationFactor * Math.pow(1 + h.inflationRate, y - 1)
-      : 0;
+    // FIX: surplus revenue applies from Y1 (no regulatory basis for Y3 delay)
+    const surplusRevenue = annualSurplusRevenue * degradationFactor * Math.pow(1 + h.inflationRate, y - 1);
 
     const revenue = savingsRevenue + surplusRevenue;
     const opex = opexBase * Math.pow(1 + h.omEscalation, y - 1);

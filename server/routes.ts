@@ -897,7 +897,10 @@ function runPotentialAnalysis(
   // Years 26-30: continue revenue with degradation, OPEX with escalation, no new incentives
   const MAX_ANALYSIS_YEARS = 30;
   const cashflows: CashflowEntry[] = [];
-  const opexBase = (capexPV * h.omSolarPercent) + (capexBattery * h.omBatteryPercent);
+  const omSolarBase = h.omPerKwc
+    ? h.omPerKwc * pvSizeKw
+    : capexPV * h.omSolarPercent;
+  const opexBase = omSolarBase + (capexBattery * h.omBatteryPercent);
   let cumulative = -equityInitial;
   
   // Year 0
@@ -922,11 +925,8 @@ function runPotentialAnalysis(
     // Revenue = base savings * degradation * tariff inflation
     const savingsRevenue = annualSavings * degradationFactor * Math.pow(1 + h.inflationRate, y - 1);
     
-    // HQ surplus revenue starts after 24 months (year 3+)
-    // After first 24-month cycle, HQ pays for accumulated surplus in the bank
-    const surplusRevenue = y >= 3 
-      ? annualSurplusRevenue * degradationFactor * Math.pow(1 + h.inflationRate, y - 1)
-      : 0;
+    // FIX: Surplus has economic value from Y1 (credits offset consumption monthly).
+    const surplusRevenue = annualSurplusRevenue * degradationFactor * Math.pow(1 + h.inflationRate, y - 1);
     
     const revenue = savingsRevenue + surplusRevenue;
     const opex = opexBase * Math.pow(1 + h.omEscalation, y - 1);
@@ -1163,7 +1163,10 @@ function runPotentialAnalysis(
     
     // Build cashflows for optimal scenario
     const optCashflows: CashflowEntry[] = [];
-    const optOpexBase = optCapexPV * h.omSolarPercent + optCapexBattery * h.omBatteryPercent;
+    const optOmSolarBase = h.omPerKwc
+      ? h.omPerKwc * optPvSizeKW
+      : optCapexPV * h.omSolarPercent;
+    const optOpexBase = optOmSolarBase + optCapexBattery * h.omBatteryPercent;
     let optCumulative = -optEquityInitial;
     optCashflows.push({
       year: 0,
@@ -1195,11 +1198,8 @@ function runPotentialAnalysis(
       // Revenue from self-consumption savings
       const savingsRevenue = optAnnualSavings * degradationFactor * Math.pow(1 + h.inflationRate, y - 1);
       
-      // HQ surplus revenue starts after 24 months (year 3+)
-      // Surplus kWh compensated at HQ cost of supply rate (4.54¢/kWh per R-4270-2024)
-      const surplusRevenue = y >= 3 
-        ? optAnnualSurplusRevenue * degradationFactor * Math.pow(1 + h.inflationRate, y - 1)
-        : 0;
+      // FIX: Surplus has economic value from Y1 (credits offset consumption monthly).
+      const surplusRevenue = optAnnualSurplusRevenue * degradationFactor * Math.pow(1 + h.inflationRate, y - 1);
       
       const revenue = savingsRevenue + surplusRevenue;
       const opex = optOpexBase * Math.pow(1 + h.omEscalation, y - 1);

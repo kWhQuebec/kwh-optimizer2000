@@ -653,7 +653,10 @@ export function runPotentialAnalysis(
   
   const MAX_ANALYSIS_YEARS = 30;
   const cashflows: CashflowEntry[] = [];
-  const opexBase = (capexPV * h.omSolarPercent) + (capexBattery * h.omBatteryPercent);
+  const omSolarBase = h.omPerKwc
+    ? h.omPerKwc * pvSizeKw
+    : capexPV * h.omSolarPercent;
+  const opexBase = omSolarBase + (capexBattery * h.omBatteryPercent);
   let cumulative = -equityInitial;
   
   cashflows.push({
@@ -673,9 +676,8 @@ export function runPotentialAnalysis(
     const degradationFactor = Math.pow(1 - degradationRate, y - 1);
     const savingsRevenue = annualSavings * degradationFactor * Math.pow(1 + h.inflationRate, y - 1);
     
-    const surplusRevenue = y >= 3 
-      ? annualSurplusRevenue * degradationFactor * Math.pow(1 + h.inflationRate, y - 1)
-      : 0;
+    // FIX: surplus revenue applies from Y1 (no regulatory basis for Y3 delay)
+    const surplusRevenue = annualSurplusRevenue * degradationFactor * Math.pow(1 + h.inflationRate, y - 1);
     
     const revenue = savingsRevenue + surplusRevenue;
     const opex = opexBase * Math.pow(1 + h.omEscalation, y - 1);

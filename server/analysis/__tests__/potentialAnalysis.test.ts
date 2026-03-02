@@ -106,8 +106,8 @@ describe("resolveYieldStrategy", () => {
 
   it("applies bifacial boost when enabled", () => {
     const strategy = resolveYieldStrategy({ bifacialEnabled: true });
-    expect(strategy.bifacialBoost).toBe(1.15);
-    expect(strategy.effectiveYield).toBe(BASELINE_YIELD * 1.15);
+    expect(strategy.bifacialBoost).toBe(1.08);
+    expect(strategy.effectiveYield).toBe(BASELINE_YIELD * 1.08);
   });
 
   it("no bifacial boost when explicitly disabled", () => {

@@ -134,8 +134,8 @@ export const QUEBEC_MONTHLY_TEMPS = [
 // Baseline yield for normalization (kWh/kWp/year)
 export const BASELINE_YIELD = 1150;
 
-// Legacy constant for backward compatibility
-export const BIFACIAL_BOOST = 1.15;
+// FIX: 15%→8% for commercial rooftop (ballasted/low-tilt). 15% only realistic for ground-mount.
+export const BIFACIAL_BOOST = 1.08;
 
 // Re-export from shared for backward compatibility
 export { getBifacialConfigFromRoofColor, type RoofColorType, type BifacialConfig } from "@shared/schema";
@@ -218,15 +218,15 @@ export function resolveYieldStrategy(
   let bifacialConfig: BifacialConfig;
   
   if (assumptions.bifacialEnabled === true) {
-    // User explicitly enabled bifacial - use maximum boost
+    // User explicitly enabled bifacial - rooftop-realistic boost
     bifacialConfig = {
       boost: BIFACIAL_BOOST,
-      boostPercent: 15,
+      boostPercent: 8,
       albedo: 0.70,
       recommended: true,
       reason: {
-        fr: 'Bifacial activé manuellement (+15%)',
-        en: 'Bifacial manually enabled (+15%)'
+        fr: 'Bifacial activé manuellement (+8% toiture commerciale)',
+        en: 'Bifacial manually enabled (+8% commercial rooftop)'
       }
     };
   } else if (assumptions.bifacialEnabled === false) {
