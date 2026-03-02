@@ -40,10 +40,23 @@ app.use(helmet({
   crossOriginEmbedderPolicy: false,
 }));
 
-// CORS configuration
+// CORS configuration — explicit whitelist (no regex bypass)
+const ALLOWED_ORIGINS = [
+  "https://kwhoptimizer.replit.app",
+  "https://kwh.quebec",
+  "https://www.kwh.quebec",
+  "https://app.kwh.quebec",
+  "https://dashboard.kwh.quebec",
+];
 app.use(cors({
   origin: env.NODE_ENV === "production"
-    ? [/\.kwh\.quebec$/, /\.replit\.dev$/, /\.repl\.co$/]
+    ? (origin, callback) => {
+        if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+          callback(null, true);
+        } else {
+          callback(new Error("CORS not allowed"));
+        }
+      }
     : true,
   credentials: true,
 }));

@@ -1,9 +1,11 @@
 import { Router } from "express";
+import { authMiddleware, requireStaff, type AuthRequest } from "../middleware/auth";
 import { db } from "../db";
 import { scorecardMetrics, rocks, eosIssues, eosTodos, eosVto } from "@shared/schema";
 import { eq, desc, and } from "drizzle-orm";
 
 const router = Router();
+router.use(authMiddleware);
 
 // ─── SCORECARD ───────────────────────────────────────────
 router.get("/api/eos/scorecard", async (_req, res) => {

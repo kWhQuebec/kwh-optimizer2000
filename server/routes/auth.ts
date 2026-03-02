@@ -1,5 +1,5 @@
 import { Router, Response } from "express";
-import { authMiddleware, signToken, AuthRequest } from "../middleware/auth";
+import { authMiddleware, signToken, signRefreshToken, verifyRefreshToken, AuthRequest } from "../middleware/auth";
 import { storage } from "../storage";
 import bcrypt from "bcrypt";
 import { z } from "zod";
@@ -196,6 +196,22 @@ router.post("/api/auth/forgot-password", forgotPasswordLimiter, asyncHandler(asy
   log.info(`Password reset email sent to: ${normalizedEmail}`);
   
   res.json({ success: true, message: "If an account exists, a password reset email has been sent." });
+}));
+
+
+// POST /api/auth/refresh — exchange refresh token for new access token
+router.post("/api/auth/refresh", asyncHandler(async (req, res) => {
+  const { refreshToken } = req.body;
+  if (!refreshToken) {
+    return res.status(400).json({ error: "refreshToken required" });
+  }
+  try {
+    const { userId } = verifyRefreshToken(refreshToken);
+    const newToken = signToken(userId);
+    res.json({ token: newToken });
+  } catch (e) {
+    return res.status(401).json({ error: "Invalid or expired refresh token" });
+  }
 }));
 
 export default router;

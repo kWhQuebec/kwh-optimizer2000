@@ -51,5 +51,16 @@ export function requireAdmin(req: AuthRequest, res: Response, next: NextFunction
 }
 
 export function signToken(userId: string): string {
-  return jwt.sign({ userId }, JWT_SECRET, { expiresIn: "7d" });
+  return jwt.sign({ userId }, JWT_SECRET, { expiresIn: "15m" });
+}
+
+
+export function signRefreshToken(userId: string): string {
+  return jwt.sign({ userId, type: "refresh" }, JWT_SECRET, { expiresIn: "7d" });
+}
+
+export function verifyRefreshToken(token: string): { userId: string } {
+  const decoded = jwt.verify(token, JWT_SECRET) as { userId: string; type?: string };
+  if (decoded.type !== "refresh") throw new Error("Not a refresh token");
+  return { userId: decoded.userId };
 }
