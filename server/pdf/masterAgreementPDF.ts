@@ -331,7 +331,6 @@ function buildPartiesPage(t: (fr: string, en: string) => string, dateStr: string
     <div class="badge-row">
       <span class="badge badge-kwh">${t("Responsabilit&eacute; kWh", "kWh Responsibility")}</span>
       <span class="badge badge-dream">${t("Responsabilit&eacute; Dream", "Dream Responsibility")}</span>
-      <span class="badge badge-computed">${t("Valeur Calcul&eacute;e", "Computed Value")}</span>
     </div>
     ${footerHtml(t, dateStr, 3)}
   </div>`;
@@ -346,6 +345,12 @@ function buildCommercialTermsPage(t: (fr: string, en: string) => string, dateStr
     { clause: t("Calendrier de Construction", "Construction Schedule"), details: t("D&eacute;ploiement progressif &mdash; phases d&eacute;finies par site", "Progressive deployment &mdash; site-defined phases") },
   ];
 
+  const equipment = [
+    { item: t("Modules PV", "PV Modules"), spec: "Jinko 625W bifacial" },
+    { item: t("Structure de montage", "Racking"), spec: "KB Racking Aero Grid 10&deg;" },
+    { item: t("Onduleurs", "Inverters"), spec: "Siemens Kaco 375&nbsp;kW, 155&nbsp;kW, 125&nbsp;kW" },
+  ];
+
   return `
   <div class="page">
     <div class="section-num">3</div>
@@ -356,6 +361,19 @@ function buildCommercialTermsPage(t: (fr: string, en: string) => string, dateStr
         ${terms.map(term => `<tr><td class="clause">${term.clause}</td><td>${term.details}</td></tr>`).join("")}
       </tbody>
     </table>
+    <h3 style="color: var(--primary); margin-top: 6mm; margin-bottom: 2mm;">${t("&Eacute;quipement Majeur", "Major Equipment")}</h3>
+    <table class="terms-table">
+      <thead><tr><th>${t("Composant", "Component")}</th><th>${t("Sp&eacute;cification", "Specification")}</th></tr></thead>
+      <tbody>
+        ${equipment.map(e => `<tr><td class="clause">${e.item}</td><td>${e.spec}</td></tr>`).join("")}
+      </tbody>
+    </table>
+    <p style="font-size: 8pt; color: var(--gray); margin-top: 2mm; font-style: italic;">
+      *${t(
+        "L'&eacute;quipement peut varier au moment de l'approvisionnement pour un &eacute;quipement comparable ou sup&eacute;rieur.",
+        "Equipment may vary at time of procurement to comparable or better equipment."
+      )}
+    </p>
     ${footerHtml(t, dateStr, 4)}
   </div>`;
 }
@@ -453,8 +471,8 @@ function buildScopeOfWorkPages(t: (fr: string, en: string) => string, dateStr: s
     {
       cat: t("Frais de service public", "Utility Fees"),
       desc: t(
-        "Payer tous les frais relatifs &agrave; Hydro-Qu&eacute;bec, tels que requis pour le Projet. Le Concepteur-Constructeur facilitera ce paiement.",
-        "Pay all fees related to Hydro-Qu&eacute;bec, as required for the Project. The Design-Builder will facilitate this payment."
+        "Payer tous les frais relatifs &agrave; Hydro-Qu&eacute;bec, tels que requis pour le Projet. Le Concepteur-Constructeur facilitera ce paiement. Tous les projets se raccordent en basse tension (BT)&nbsp;; si un projet n&eacute;cessite un ou plusieurs nouveaux transformateurs pour le raccordement BT, le prix du Concepteur-Constructeur ne doit pas inclure la fourniture ou l'installation du ou des transformateur(s) ni de l'appareillage de commutation d'interconnexion, ceux-ci &eacute;tant fournis par Hydro-Qu&eacute;bec.",
+        "Pay all fees related to Hydro-Qu&eacute;bec, as required for the Project. The Design-Builder will facilitate this payment. All projects connect to Low Voltage (LV); if a project requires one or more new transformers for the LV interconnection, the Design-Builder's price shall not include the supply or installation of the transformer(s) or the interconnection switchgear, as these are provided by Hydro-Qu&eacute;bec."
       ),
     },
     {
@@ -521,6 +539,13 @@ function buildScopeOfWorkPages(t: (fr: string, en: string) => string, dateStr: s
       ),
     },
     {
+      cat: t("Ing&eacute;nierie structurelle", "Structural Engineering"),
+      desc: t(
+        "Engager un ing&eacute;nieur en structure (membre de l'OIQ) pour r&eacute;aliser une &eacute;tude de faisabilit&eacute; structurelle et fournir le rapport. Si des ancrages sismiques sont jug&eacute;s n&eacute;cessaires, les co&ucirc;ts seront &agrave; la charge du Propri&eacute;taire.",
+        "Engage a structural engineer (OIQ member) to perform a structural feasibility study and provide the report. If seismic anchors are deemed required, costs to be borne by Owner."
+      ),
+    },
+    {
       cat: t("Communication locataires", "Tenant Communication"),
       desc: t(
         "Informer tous les locataires des perturbations potentielles li&eacute;es aux travaux (bruit, vibrations, coupures temporaires d'&eacute;lectricit&eacute;) au moins dix (10) jours ouvrables avant la mobilisation. Coordonner avec le Concepteur-Constructeur pour minimiser l'impact sur les op&eacute;rations des locataires.",
@@ -530,13 +555,6 @@ function buildScopeOfWorkPages(t: (fr: string, en: string) => string, dateStr: s
   ];
 
   const dbScope = [
-    {
-      cat: t("Ing&eacute;nierie structurelle", "Structural Engineering"),
-      desc: t(
-        "Engager un ing&eacute;nieur en structure (membre de l'OIQ) pour r&eacute;aliser une &eacute;tude de faisabilit&eacute; structurelle et fournir le rapport. Si des ancrages sismiques sont n&eacute;cessaires, les co&ucirc;ts seront &agrave; la charge du Propri&eacute;taire.",
-        "Engage a structural engineer (OIQ member) to perform a structural feasibility study and provide the report. If seismic anchors are deemed required, costs to be borne by Owner."
-      ),
-    },
     {
       cat: t("Avis &agrave; Hydro-Qu&eacute;bec", "Utility Notice"),
       desc: t(
@@ -872,9 +890,9 @@ function buildScheduleOfValuesPages(t: (fr: string, en: string) => string, dateS
     t("Salaires courants (requis pour le CII jusqu'&agrave; 30&nbsp;%) inclus (sujet &agrave; la l&eacute;gislation finale)", "Prevailing wages (required for up to 30% ITC) included (subject to final legislation)"),
     t("Primes hivernales, heures suppl&eacute;mentaires incluses", "Winter premiums, overtime and premium time included"),
     t("Cautionnement d'ex&eacute;cution 50&nbsp;% et cautionnement de main-d'&oelig;uvre et mat&eacute;riaux 50&nbsp;% inclus", "50% Performance and 50% Labour &amp; Material Bonds included"),
-    t("2&nbsp;% de modules de rechange inclus", "2% spare modules included"),
+    t("2&nbsp;% de modules de rechange inclus (inclus dans le prix $/W)", "2% spare modules included (included in $/W pricing)"),
     t("Droits de douane et surcharges inclus dans le prix", "Tariffs and surcharges are included in price"),
-    t("Mobilisation de grue et &eacute;quipement de levage inclus", "Crane mobilization and rigging equipment included"),
+    t("Mobilisation de grue et &eacute;quipement de levage inclus (co&ucirc;ts variables selon la taille du site)", "Crane mobilization and rigging equipment included (costs vary by site size)"),
     t("Alimentation &eacute;lectrique temporaire de chantier incluse", "Temporary construction power supply included"),
     t("S&eacute;curit&eacute; de chantier durant la construction incluse", "Site security during construction included"),
     t("Protection de la membrane de toiture existante durant l'installation incluse", "Protection of existing roofing membrane during installation included"),
