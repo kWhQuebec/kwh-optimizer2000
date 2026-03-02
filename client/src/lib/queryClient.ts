@@ -32,7 +32,7 @@ export async function apiRequest<T = unknown>(
     ...(data ? { "Content-Type": "application/json" } : {}),
   };
 
-  const res = await fetch(url, {
+  const res = await authFetch(url, {
     method,
     headers,
     body: data ? JSON.stringify(data) : undefined,
@@ -55,7 +55,7 @@ export const getQueryFn: <T>(options: {
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
     const url = queryKey.join("/") as string;
-    const res = await fetch(url, {
+    const res = await authFetch(url, {
       credentials: "include",
       headers: getAuthHeaders(),
     });

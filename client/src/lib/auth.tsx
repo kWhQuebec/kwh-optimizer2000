@@ -103,6 +103,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const data = await response.json();
     localStorage.setItem("token", data.token);
+    if (data.refreshToken) {
+      localStorage.setItem("refreshToken", data.refreshToken);
+    }
     setToken(data.token);
     setUser({
       ...data.user,
@@ -114,6 +117,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(() => {
     localStorage.removeItem("token");
+    localStorage.removeItem("refreshToken");
     setToken(null);
     setUser(null);
   }, []);
