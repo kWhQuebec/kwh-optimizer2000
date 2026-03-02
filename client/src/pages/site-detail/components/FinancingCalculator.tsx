@@ -65,6 +65,7 @@ export function FinancingCalculator({ simulation, displayedScenario }: { simulat
   const capexNet = displayedScenario.capexNet || 0;
   const capexGross = scenarioBreakdown?.capexGross || baseCapexNet;
   const annualSavings = displayedScenario.annualSavings || simulation.annualSavings || 0;
+  const annualSurplusRevenue = (scenarioBreakdown as Record<string, unknown>)?.annualSurplusRevenue as number || 0;
   const selfConsumptionKWh = scenarioBreakdown?.annualEnergySavingsKWh || simulation.annualEnergySavingsKWh || 0;
 
   const pvSizeKW = displayedScenario.pvSizeKW || 0;
@@ -133,12 +134,16 @@ export function FinancingCalculator({ simulation, displayedScenario }: { simulat
   // O&M base cost (annual, consistent with simulationEngine)
   const omBaseAnnual = omPerKwc * pvSizeKW;
 
+  // Total annual revenue = annualSavings (self-consumption + demand) + surplus revenue
+  // This matches the engine's: revenue = savingsRevenue + surplusRevenue
+  const totalAnnualRevenue = annualSavings + annualSurplusRevenue;
+
   // Total net savings over analysis horizon — consistent with simulationEngine:
-  // Revenue = annualSavings × degradation × inflation (savings grow with HQ tariffs)
+  // Revenue = totalAnnualRevenue × degradation × inflation (savings grow with HQ tariffs)
   // O&M = omBaseAnnual × omEscalation (costs grow with inflation)
   // Net = Revenue - O&M
   const totalDegradedSavings = Array.from({ length: analysisHorizon }, (_, i) => {
-    const revenue = annualSavings * Math.pow(1 - degradationRate, i) * Math.pow(1 + inflationRate, i);
+    const revenue = totalAnnualRevenue * Math.pow(1 - degradationRate, i) * Math.pow(1 + inflationRate, i);
     const om = omBaseAnnual * Math.pow(1 + omEscalation, i);
     return revenue - om;
   }).reduce((a, b) => a + b, 0);
@@ -182,7 +187,7 @@ export function FinancingCalculator({ simulation, displayedScenario }: { simulat
   // Post-PPA savings: After buyout, client owns system — same net savings as ownership (with inflation, minus O&M)
   let postPpaSavings = 0;
   for (let y = ppaTerm + 1; y <= analysisHorizon; y++) {
-    const rev = annualSavings * Math.pow(1 - degradationRate, y - 1) * Math.pow(1 + inflationRate, y - 1);
+    const rev = totalAnnualRevenue * Math.pow(1 - degradationRate, y - 1) * Math.pow(1 + inflationRate, y - 1);
     const om = omBaseAnnual * Math.pow(1 + omEscalation, y - 1);
     postPpaSavings += rev - om;
   }
@@ -277,7 +282,7 @@ export function FinancingCalculator({ simulation, displayedScenario }: { simulat
       } else {
         // Net savings each year = revenue (with inflation) - O&M (with escalation)
         // Consistent with simulationEngine: savings × degradation × inflation - O&M × escalation
-        const yearRevenue = annualSavings * Math.pow(1 - degradationRate, year - 1) * Math.pow(1 + inflationRate, year - 1);
+        const yearRevenue = totalAnnualRevenue * Math.pow(1 - degradationRate, year - 1) * Math.pow(1 + inflationRate, year - 1);
         const yearOm = omBaseAnnual * Math.pow(1 + omEscalation, year - 1);
         const degradedSavings = yearRevenue - yearOm;
         cashCumulative += degradedSavings;
