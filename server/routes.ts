@@ -369,7 +369,7 @@ Sitemap: https://www.kwh.quebec/sitemap.xml`
   app.use(hqDataRouter);
   // Gamification API
   app.use(gamificationRouter);
-  app.use(eosRouter);
+  app.use("/api/eos", eosRouter);
 
   // ==================== ROOF POLYGON STANDALONE ROUTES ====================
   // PUT /api/roof-polygons/:id and DELETE /api/roof-polygons/:id are handled via sitesRouter

@@ -8,7 +8,7 @@ const router = Router();
 router.use(authMiddleware);
 
 // ─── SCORECARD ───────────────────────────────────────────
-router.get("/api/eos/scorecard", async (_req, res) => {
+router.get("/scorecard", async (_req, res) => {
   try {
     const metrics = await db.select().from(scorecardMetrics)
       .where(eq(scorecardMetrics.isActive, true))
@@ -20,7 +20,7 @@ router.get("/api/eos/scorecard", async (_req, res) => {
   }
 });
 
-router.post("/api/eos/scorecard", async (req, res) => {
+router.post("/scorecard", async (req, res) => {
   try {
     const { name, target, unit, owner, category } = req.body;
     const currentWeek = Math.ceil((Date.now() - new Date(new Date().getFullYear(), 0, 1).getTime()) / (7 * 24 * 60 * 60 * 1000));
@@ -40,7 +40,7 @@ router.post("/api/eos/scorecard", async (req, res) => {
   }
 });
 
-router.patch("/api/eos/scorecard/:id", async (req, res) => {
+router.patch("/scorecard/:id", async (req, res) => {
   try {
     const { actual, target, trend } = req.body;
     const updates: any = { updatedAt: new Date() };
@@ -59,7 +59,7 @@ router.patch("/api/eos/scorecard/:id", async (req, res) => {
 });
 
 // ─── ROCKS ───────────────────────────────────────────────
-router.get("/api/eos/rocks", async (_req, res) => {
+router.get("/rocks", async (_req, res) => {
   try {
     const allRocks = await db.select().from(rocks).orderBy(desc(rocks.createdAt));
     res.json(allRocks);
@@ -69,7 +69,7 @@ router.get("/api/eos/rocks", async (_req, res) => {
   }
 });
 
-router.post("/api/eos/rocks", async (req, res) => {
+router.post("/rocks", async (req, res) => {
   try {
     const { title, owner, quarter, priority, description } = req.body;
     const [rock] = await db.insert(rocks).values({
@@ -87,7 +87,7 @@ router.post("/api/eos/rocks", async (req, res) => {
   }
 });
 
-router.patch("/api/eos/rocks/:id", async (req, res) => {
+router.patch("/rocks/:id", async (req, res) => {
   try {
     const { status, progress, title } = req.body;
     const updates: any = { updatedAt: new Date() };
@@ -107,7 +107,7 @@ router.patch("/api/eos/rocks/:id", async (req, res) => {
 });
 
 // ─── ISSUES ──────────────────────────────────────────────
-router.get("/api/eos/issues", async (_req, res) => {
+router.get("/issues", async (_req, res) => {
   try {
     const issues = await db.select().from(eosIssues).orderBy(desc(eosIssues.votes));
     res.json(issues);
@@ -117,7 +117,7 @@ router.get("/api/eos/issues", async (_req, res) => {
   }
 });
 
-router.post("/api/eos/issues", async (req, res) => {
+router.post("/issues", async (req, res) => {
   try {
     const { title, priority, description } = req.body;
     const [issue] = await db.insert(eosIssues).values({
@@ -132,7 +132,7 @@ router.post("/api/eos/issues", async (req, res) => {
   }
 });
 
-router.patch("/api/eos/issues/:id", async (req, res) => {
+router.patch("/issues/:id", async (req, res) => {
   try {
     const { status, votes, resolution, priority } = req.body;
     const updates: any = { updatedAt: new Date() };
@@ -152,7 +152,7 @@ router.patch("/api/eos/issues/:id", async (req, res) => {
   }
 });
 
-router.post("/api/eos/issues/:id/vote", async (req, res) => {
+router.post("/issues/:id/vote", async (req, res) => {
   try {
     const id = Number(req.params.id);
     const [current] = await db.select().from(eosIssues).where(eq(eosIssues.id, id));
@@ -169,7 +169,7 @@ router.post("/api/eos/issues/:id/vote", async (req, res) => {
 });
 
 // ─── TODOS (L10) ─────────────────────────────────────────
-router.get("/api/eos/todos", async (_req, res) => {
+router.get("/todos", async (_req, res) => {
   try {
     const todos = await db.select().from(eosTodos).orderBy(desc(eosTodos.createdAt));
     res.json(todos);
@@ -179,7 +179,7 @@ router.get("/api/eos/todos", async (_req, res) => {
   }
 });
 
-router.post("/api/eos/todos", async (req, res) => {
+router.post("/todos", async (req, res) => {
   try {
     const { text, owner, dueDate } = req.body;
     const [todo] = await db.insert(eosTodos).values({
@@ -194,7 +194,7 @@ router.post("/api/eos/todos", async (req, res) => {
   }
 });
 
-router.patch("/api/eos/todos/:id", async (req, res) => {
+router.patch("/todos/:id", async (req, res) => {
   try {
     const { done, text } = req.body;
     const updates: any = {};
@@ -214,7 +214,7 @@ router.patch("/api/eos/todos/:id", async (req, res) => {
   }
 });
 
-router.delete("/api/eos/todos/:id", async (req, res) => {
+router.delete("/todos/:id", async (req, res) => {
   try {
     await db.delete(eosTodos).where(eq(eosTodos.id, Number(req.params.id)));
     res.json({ success: true });
@@ -225,7 +225,7 @@ router.delete("/api/eos/todos/:id", async (req, res) => {
 });
 
 // ─── V/TO ────────────────────────────────────────────────
-router.get("/api/eos/vto", async (_req, res) => {
+router.get("/vto", async (_req, res) => {
   try {
     const sections = await db.select().from(eosVto).orderBy(eosVto.section);
     res.json(sections);
@@ -235,7 +235,7 @@ router.get("/api/eos/vto", async (_req, res) => {
   }
 });
 
-router.put("/api/eos/vto/:section", async (req, res) => {
+router.put("/vto/:section", async (req, res) => {
   try {
     const { content, updatedBy } = req.body;
     const section = req.params.section;
