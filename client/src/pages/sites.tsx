@@ -23,6 +23,7 @@ import { useI18n } from "@/lib/i18n";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Client, Site, ProcurationSignature } from "@shared/schema";
 import { getBuildingTypesByCategory } from "@shared/buildingTypes";
+import { AddressAutocomplete } from "@/components/address-autocomplete";
 
 // Helper function to download files with authentication
 async function downloadWithAuth(url: string, filename: string): Promise<void> {
@@ -359,7 +360,19 @@ function SiteForm({
             <FormItem>
               <FormLabel>{t("sites.address")}</FormLabel>
               <FormControl>
-                <Input {...field} data-testid="input-site-address" />
+                <AddressAutocomplete
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  data-testid="input-site-address"
+                  onPlaceSelected={(components) => {
+                    form.setValue("city", components.city, { shouldDirty: true });
+                    form.setValue("province", components.province, { shouldDirty: true });
+                    form.setValue("postalCode", components.postalCode, { shouldDirty: true });
+                    if (components.lat) form.setValue("latitude", components.lat, { shouldDirty: true });
+                    if (components.lng) form.setValue("longitude", components.lng, { shouldDirty: true });
+                  }}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>

@@ -24,6 +24,7 @@ import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Client, Site } from "@shared/schema";
+import { AddressAutocomplete } from "@/components/address-autocomplete";
 import { GrantPortalAccessDialog, type ClientWithSites } from "@/components/grant-portal-access-dialog";
 
 const clientFormSchema = z.object({
@@ -419,7 +420,17 @@ function ClientForm({
                 <FormItem>
                   <FormLabel>{t("sites.address")}</FormLabel>
                   <FormControl>
-                    <Input {...field} data-testid="input-client-address" />
+                    <AddressAutocomplete
+                      value={field.value}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      data-testid="input-client-address"
+                      onPlaceSelected={(components) => {
+                        form.setValue("city", components.city, { shouldDirty: true });
+                        form.setValue("province", components.province, { shouldDirty: true });
+                        form.setValue("postalCode", components.postalCode, { shouldDirty: true });
+                      }}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

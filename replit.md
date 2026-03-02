@@ -36,6 +36,9 @@ The Dream Master Agreement PDF (`server/pdf/masterAgreementPDF.ts`) generates a 
 ### Building Types (CUBF-Aligned)
 All building type data is centralized in `shared/buildingTypes.ts`, aligned with Quebec's CUBF (Code d'Utilisation des Biens-Fonds) standard. Each type includes CUBF code range, bilingual labels, energy intensity, operating schedule, load factors, monthly shape factors, and industry benchmarks. Legacy values (`commercial`, `institutional`, `other`) auto-resolve via aliases. Consumers: `syntheticProfile.ts`, `industryBenchmarks.ts`, `consumption-tools.tsx`, `QuickInfoForm.tsx`, `analyse-detaillee.tsx`, `emailService.ts`, `kbProposalPdfGenerator.ts`.
 
+### Google Places Address Autocomplete
+Site and Client creation forms use Google Places Autocomplete (`client/src/components/address-autocomplete.tsx`) to auto-fill city, province, postal code, and coordinates when an address is selected. The component uses the Google Maps JavaScript API with the `places` library (included alongside `drawing` and `geometry` in all Google Maps script loaders). The autocomplete dropdown is restricted to Canadian addresses. All three Google Maps script loaders (RoofVisualization, RoofDrawingModal, AddressAutocomplete) include `places` in their library list for compatibility.
+
 ### Error Handling
 The backend uses a centralized error handling system with custom `AppError` classes and an `asyncHandler` wrapper for consistent error responses.
 
