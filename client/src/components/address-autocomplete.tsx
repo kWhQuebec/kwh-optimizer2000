@@ -114,7 +114,12 @@ export function AddressAutocomplete({
 }: AddressAutocompleteProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
+  const onChangeRef = useRef(onChange);
+  const onPlaceSelectedRef = useRef(onPlaceSelected);
   const [isReady, setIsReady] = useState(false);
+
+  onChangeRef.current = onChange;
+  onPlaceSelectedRef.current = onPlaceSelected;
 
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
@@ -137,14 +142,14 @@ export function AddressAutocomplete({
     const parsed = parsePlace(place);
 
     const streetAddress = [parsed.streetNumber, parsed.route].filter(Boolean).join(" ");
-    if (onChange && streetAddress) {
-      onChange(streetAddress);
+    if (onChangeRef.current && streetAddress) {
+      onChangeRef.current(streetAddress);
     }
 
-    if (onPlaceSelected) {
-      onPlaceSelected(parsed);
+    if (onPlaceSelectedRef.current) {
+      onPlaceSelectedRef.current(parsed);
     }
-  }, [onChange, onPlaceSelected]);
+  }, []);
 
   useEffect(() => {
     if (!isReady || !inputRef.current || autocompleteRef.current) return;

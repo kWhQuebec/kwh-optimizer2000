@@ -26,6 +26,7 @@ import {
   TrendingDown
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AddressAutocomplete } from "@/components/address-autocomplete";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -766,6 +767,16 @@ export default function PipelinePage() {
   const [isCreatingNewClient, setIsCreatingNewClient] = useState(false);
   const [isEditCreatingNewClient, setIsEditCreatingNewClient] = useState(false);
   const [isCreatingNewSite, setIsCreatingNewSite] = useState(false);
+  const [editSiteMode, setEditSiteMode] = useState<"select" | "create" | null>(null);
+  const [editSiteId, setEditSiteId] = useState<string>("");
+  const [editNewSiteName, setEditNewSiteName] = useState("");
+  const [editNewSiteAddress, setEditNewSiteAddress] = useState("");
+  const [editNewSiteCity, setEditNewSiteCity] = useState("");
+  const [editNewSiteProvince, setEditNewSiteProvince] = useState("Québec");
+  const [editNewSitePostalCode, setEditNewSitePostalCode] = useState("");
+  const [editNewSiteLat, setEditNewSiteLat] = useState<number | null>(null);
+  const [editNewSiteLng, setEditNewSiteLng] = useState<number | null>(null);
+  const [isLinkingSite, setIsLinkingSite] = useState(false);
   
   // Stage advance modal state
   const [isAdvanceModalOpen, setIsAdvanceModalOpen] = useState(false);
@@ -866,7 +877,7 @@ export default function PipelinePage() {
   });
 
   const createSiteMutation = useMutation({
-    mutationFn: async (data: { name: string; clientId: string; address?: string; city?: string; province?: string }) => {
+    mutationFn: async (data: { name: string; clientId: string; address?: string; city?: string; province?: string; postalCode?: string; latitude?: number; longitude?: number }) => {
       return apiRequest<{ id: string; name: string }>("POST", "/api/sites", data);
     },
   });
@@ -1026,11 +1037,17 @@ export default function PipelinePage() {
   // Watch clientId for site selection
   const watchClientId = addForm.watch("clientId");
   
-  // Get sites for selected client
+  // Get sites for selected client (add dialog)
   const clientSites = useMemo(() => {
     if (!watchClientId || watchClientId === CREATE_NEW_CLIENT_VALUE) return [];
     return sites.filter(s => s.clientId === watchClientId && !s.isArchived);
   }, [watchClientId, sites]);
+
+  // Get sites for selected opportunity's client (edit dialog)
+  const editClientSites = useMemo(() => {
+    if (!selectedOpportunity?.clientId) return [];
+    return sites.filter(s => s.clientId === selectedOpportunity.clientId && !s.isArchived);
+  }, [selectedOpportunity?.clientId, sites]);
 
   // Smart stage change handler - shows modal for advancing stages
   const handleStageChange = (id: string, stage: Stage) => {
@@ -1116,7 +1133,71 @@ export default function PipelinePage() {
       newClientPhone: "",
     });
     setIsEditCreatingNewClient(false);
+    setEditSiteMode(null);
+    setEditSiteId("");
+    setEditNewSiteName("");
+    setEditNewSiteAddress("");
+    setEditNewSiteCity("");
+    setEditNewSiteProvince("Québec");
+    setEditNewSitePostalCode("");
+    setEditNewSiteLat(null);
+    setEditNewSiteLng(null);
     setIsDetailOpen(true);
+  };
+
+  const handleLinkSiteFromEdit = async () => {
+    if (!selectedOpportunity) return;
+    setIsLinkingSite(true);
+    try {
+      let siteIdToLink = editSiteId;
+      
+      if (editSiteMode === "create") {
+        if (!editNewSiteName.trim()) {
+          toast({ title: language === "fr" ? "Nom du site requis" : "Site name required", variant: "destructive" });
+          setIsLinkingSite(false);
+          return;
+        }
+        const newSite = await createSiteMutation.mutateAsync({
+          name: editNewSiteName.trim(),
+          clientId: selectedOpportunity.clientId!,
+          address: editNewSiteAddress || undefined,
+          city: editNewSiteCity || undefined,
+          province: editNewSiteProvince || "Québec",
+          postalCode: editNewSitePostalCode || undefined,
+          latitude: editNewSiteLat || undefined,
+          longitude: editNewSiteLng || undefined,
+        });
+        siteIdToLink = newSite.id;
+      }
+
+      if (!siteIdToLink) {
+        setIsLinkingSite(false);
+        return;
+      }
+
+      await apiRequest("PATCH", `/api/opportunities/${selectedOpportunity.id}`, { siteId: siteIdToLink });
+      queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
+      const updatedOpps = await queryClient.fetchQuery<OpportunityWithRelations[]>({ queryKey: ["/api/opportunities"] });
+      if (updatedOpps) {
+        const refreshed = updatedOpps.find(o => o.id === selectedOpportunity.id);
+        if (refreshed) setSelectedOpportunity(refreshed);
+      }
+      
+      toast({ title: language === "fr" ? "Site lié avec succès" : "Site linked successfully" });
+      setEditSiteMode(null);
+      setEditSiteId("");
+      setEditNewSiteName("");
+      setEditNewSiteAddress("");
+      setEditNewSiteCity("");
+      setEditNewSiteProvince("Québec");
+      setEditNewSitePostalCode("");
+      setEditNewSiteLat(null);
+      setEditNewSiteLng(null);
+    } catch (err: any) {
+      toast({ title: language === "fr" ? "Erreur lors de la liaison du site" : "Error linking site", description: err?.message, variant: "destructive" });
+    } finally {
+      setIsLinkingSite(false);
+    }
   };
 
   // Split portfolio opportunities with mixed RFP eligibility into two virtual cards
@@ -2184,19 +2265,131 @@ export default function PipelinePage() {
                           )}
                         </div>
                       </div>
-                    ) : (
+                    ) : !selectedOpportunity?.clientId ? (
                       <div className="text-center py-8 space-y-4">
                         <Building2 className="w-12 h-12 mx-auto text-muted-foreground opacity-50" />
                         <p className="text-muted-foreground">
                           {language === "fr" 
-                            ? "Aucun site lié à cette opportunité" 
-                            : "No site linked to this opportunity"}
+                            ? "Sélectionnez un client dans l'onglet Général d'abord" 
+                            : "Select a client in the General tab first"}
                         </p>
-                        <p className="text-xs text-muted-foreground">
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <p className="text-sm text-muted-foreground">
                           {language === "fr" 
-                            ? "Créez un client d'abord, puis ajoutez un site depuis la page client" 
-                            : "Create a client first, then add a site from the client page"}
+                            ? "Aucun site lié. Sélectionnez un site existant ou créez-en un nouveau." 
+                            : "No site linked. Select an existing site or create a new one."}
                         </p>
+
+                        <Select 
+                          value={editSiteMode === "create" ? CREATE_NEW_SITE_VALUE : editSiteId} 
+                          onValueChange={(val) => {
+                            if (val === CREATE_NEW_SITE_VALUE) {
+                              setEditSiteMode("create");
+                              setEditSiteId("");
+                            } else {
+                              setEditSiteMode("select");
+                              setEditSiteId(val);
+                            }
+                          }}
+                        >
+                          <SelectTrigger data-testid="select-edit-site">
+                            <SelectValue placeholder={language === "fr" ? "Choisir un site..." : "Choose a site..."} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value={CREATE_NEW_SITE_VALUE}>
+                              <span className="flex items-center gap-2">
+                                <Plus className="h-3 w-3" />
+                                {language === "fr" ? "Créer un nouveau site" : "Create new site"}
+                              </span>
+                            </SelectItem>
+                            {editClientSites.map((site) => (
+                              <SelectItem key={site.id} value={site.id}>
+                                {site.name} {site.city && `(${site.city})`}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+
+                        {editSiteMode === "create" && (
+                          <div className="space-y-3 p-3 border rounded-md bg-muted/30">
+                            <p className="text-xs font-medium text-muted-foreground">
+                              {language === "fr" ? "Nouveau site" : "New Site"}
+                            </p>
+                            <div className="space-y-2">
+                              <label className="text-sm font-medium">{language === "fr" ? "Nom du site" : "Site Name"} *</label>
+                              <Input
+                                value={editNewSiteName}
+                                onChange={(e) => setEditNewSiteName(e.target.value)}
+                                placeholder={language === "fr" ? "Ex: Entrepôt Montréal" : "Ex: Montreal Warehouse"}
+                                data-testid="input-edit-new-site-name"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-sm font-medium">{language === "fr" ? "Adresse" : "Address"}</label>
+                              <AddressAutocomplete
+                                value={editNewSiteAddress}
+                                onChange={(val) => setEditNewSiteAddress(val)}
+                                onPlaceSelected={(components) => {
+                                  if (components.city) setEditNewSiteCity(components.city);
+                                  if (components.province) setEditNewSiteProvince(components.province);
+                                  if (components.postalCode) setEditNewSitePostalCode(components.postalCode);
+                                  if (components.lat) setEditNewSiteLat(components.lat);
+                                  if (components.lng) setEditNewSiteLng(components.lng);
+                                }}
+                                placeholder="123 rue Example"
+                                data-testid="input-edit-new-site-address"
+                              />
+                            </div>
+                            <div className="grid grid-cols-3 gap-3">
+                              <div className="space-y-2">
+                                <label className="text-sm font-medium">{language === "fr" ? "Ville" : "City"}</label>
+                                <Input
+                                  value={editNewSiteCity}
+                                  onChange={(e) => setEditNewSiteCity(e.target.value)}
+                                  placeholder="Montréal"
+                                  data-testid="input-edit-new-site-city"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <label className="text-sm font-medium">{language === "fr" ? "Province" : "Province"}</label>
+                                <Input
+                                  value={editNewSiteProvince}
+                                  onChange={(e) => setEditNewSiteProvince(e.target.value)}
+                                  data-testid="input-edit-new-site-province"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <label className="text-sm font-medium">{language === "fr" ? "Code postal" : "Postal Code"}</label>
+                                <Input
+                                  value={editNewSitePostalCode}
+                                  onChange={(e) => setEditNewSitePostalCode(e.target.value)}
+                                  placeholder="H2X 1Y4"
+                                  data-testid="input-edit-new-site-postal"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {(editSiteMode === "select" || editSiteMode === "create") && (
+                          <Button
+                            type="button"
+                            onClick={handleLinkSiteFromEdit}
+                            disabled={isLinkingSite || (editSiteMode === "select" && !editSiteId) || (editSiteMode === "create" && !editNewSiteName.trim())}
+                            data-testid="button-link-site"
+                          >
+                            {isLinkingSite ? (
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            ) : (
+                              <Building2 className="w-4 h-4 mr-2" />
+                            )}
+                            {editSiteMode === "create"
+                              ? (language === "fr" ? "Créer et lier le site" : "Create & Link Site")
+                              : (language === "fr" ? "Lier le site" : "Link Site")}
+                          </Button>
+                        )}
                       </div>
                     )}
                   </TabsContent>
