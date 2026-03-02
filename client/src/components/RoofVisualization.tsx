@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Slider } from "@/components/ui/slider";
-import { Home, Sun, Zap, Maximize2, Layers, AlertTriangle, RefreshCw, PencilRuler, ChevronDown } from "lucide-react";
+import { Home, Sun, Zap, Maximize2, Layers, AlertTriangle, RefreshCw, PencilRuler, ChevronDown, Play, Loader2 } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
 import type { RoofPolygon } from "@shared/schema";
@@ -61,6 +61,8 @@ interface RoofVisualizationProps {
   onVisualizationReady?: (captureFunction: () => Promise<string | null>) => void;
   onOpenRoofDrawing?: () => void;
   captureMode?: boolean;
+  onAnalyzeSize?: (capacityKW: number) => void;
+  isAnalyzing?: boolean;
 }
 
 interface PanelPosition {
@@ -1089,6 +1091,8 @@ export function RoofVisualization({
   onVisualizationReady,
   onOpenRoofDrawing,
   captureMode,
+  onAnalyzeSize,
+  isAnalyzing,
 }: RoofVisualizationProps) {
   const { language } = useI18n();
   const { toast } = useToast();
@@ -2403,6 +2407,29 @@ export function RoofVisualization({
               </div>
             )}
           </div>
+
+          {hasUserAdjusted && onAnalyzeSize && Math.abs(selectedCapacityKW - (currentPVSizeKW || 0)) > 1 && (
+            <div className="mt-2">
+              <Button
+                variant="default"
+                className="w-full gap-2"
+                onClick={() => onAnalyzeSize(selectedCapacityKW)}
+                disabled={isAnalyzing}
+                data-testid="button-analyze-size"
+              >
+                {isAnalyzing ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Play className="w-4 h-4" />
+                )}
+                {isAnalyzing
+                  ? (language === "fr" ? "Analyse en cours..." : "Analyzing...")
+                  : (language === "fr" 
+                    ? `Analyser ${Math.round(selectedCapacityKW)} kWc` 
+                    : `Analyze ${Math.round(selectedCapacityKW)} kWc`)}
+              </Button>
+            </div>
+          )}
 
           <div className="flex flex-col gap-2 mt-1">
             {/* Technical Parameters Row 1 */}

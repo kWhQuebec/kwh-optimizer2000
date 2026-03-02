@@ -984,6 +984,7 @@ export function runSensitivityAnalysis(
   }
 
   if (maxPVFromRoof > effectivePvCap * 1.1) {
+    console.log(`[SimEngine] Independence sweep: maxPVFromRoof=${maxPVFromRoof.toFixed(0)}kW, effectivePvCap=${effectivePvCap.toFixed(0)}kW, peakKW=${peakKW.toFixed(0)}kW`);
     const indepSteps = 6;
     const indepStart = effectivePvCap;
     const indepEnd = maxPVFromRoof;

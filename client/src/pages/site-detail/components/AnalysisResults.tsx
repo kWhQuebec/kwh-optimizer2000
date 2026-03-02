@@ -82,6 +82,8 @@ export function AnalysisResults({
   onCompareScenarios,
   onGeometryUpdate,
   onVisualizationCaptureReady,
+  onAnalyzeSize,
+  isAnalyzing,
 }: {
   simulation: SimulationRun;
   site: SiteWithDetails;
@@ -94,6 +96,8 @@ export function AnalysisResults({
   onCompareScenarios?: () => void;
   onGeometryUpdate?: (data: { maxCapacityKW: number; panelCount: number; realisticCapacityKW: number; constraintAreaSqM: number; arrays?: any[] }) => void;
   onVisualizationCaptureReady?: (captureFunc: (() => Promise<string | null>) | null) => void;
+  onAnalyzeSize?: (capacityKW: number) => void;
+  isAnalyzing?: boolean;
 }) {
   const { t, language } = useI18n();
   const [showBreakdown, setShowBreakdown] = useState(true);
@@ -782,6 +786,8 @@ export function AnalysisResults({
             }}
             onVisualizationReady={(captureFunc) => { visualizationCaptureRef.current = captureFunc; onVisualizationCaptureReady?.(captureFunc); }}
             onOpenRoofDrawing={onOpenRoofDrawing}
+            onAnalyzeSize={onAnalyzeSize}
+            isAnalyzing={isAnalyzing}
           />
         </>
       )}

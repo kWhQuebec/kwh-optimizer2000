@@ -368,16 +368,20 @@ export default function SiteDetailPage() {
   }, [site]);
 
   const runAnalysisMutation = useMutation({
-    mutationFn: async (customAssumptionsOverrides: Partial<AnalysisAssumptions>) => {
+    mutationFn: async (customAssumptionsOverrides: Partial<AnalysisAssumptions> & { _forcedSizing?: { forcePvSize?: number; forceBatterySize?: number; forceBatteryPower?: number } }) => {
+      const { _forcedSizing, ...assumptionOverrides } = customAssumptionsOverrides;
       const mergedAssumptions: AnalysisAssumptions = {
         ...defaultAnalysisAssumptions,
-        ...customAssumptionsOverrides
+        ...assumptionOverrides
       };
       delete (mergedAssumptions as any).yieldSource;
 
-      const result = await apiRequest<{ simulationId?: string; id?: string }>("POST", `/api/sites/${id}/run-potential-analysis`, { 
-        assumptions: mergedAssumptions,
-      });
+      const body: any = { assumptions: mergedAssumptions };
+      if (_forcedSizing) {
+        body.forcedSizing = _forcedSizing;
+      }
+
+      const result = await apiRequest<{ simulationId?: string; id?: string }>("POST", `/api/sites/${id}/run-potential-analysis`, body);
       return result;
     },
     onSuccess: (data) => {
@@ -1979,6 +1983,7 @@ export default function SiteDetailPage() {
               longitude={site.longitude}
               roofAreaSqFt={quickPotential.roofAnalysis.totalRoofAreaSqM * 10.764}
               maxPVCapacityKW={quickPotential.systemSizing.maxCapacityKW}
+              currentPVSizeKW={latestSimulation?.pvSizeKW || undefined}
               onGeometryCalculated={(data) => {
                 setGeometryCapacity(data);
                 if (data.maxCapacityKW != null && data.maxCapacityKW > 0 && !isNaN(data.maxCapacityKW)) {
@@ -1995,6 +2000,23 @@ export default function SiteDetailPage() {
                 }
               }}
               onVisualizationReady={(captureFunc) => { visualizationCaptureRef.current = captureFunc; }}
+              onAnalyzeSize={(capacityKW) => {
+                if (site.meterFiles && site.meterFiles.length > 0 && site.roofAreaValidated) {
+                  runAnalysisMutation.mutate({
+                    ...customAssumptions,
+                    _forcedSizing: { forcePvSize: Math.round(capacityKW) },
+                  } as any);
+                } else {
+                  toast({
+                    title: language === "fr" ? "Données insuffisantes" : "Insufficient data",
+                    description: language === "fr"
+                      ? "Importez des données de consommation et validez le toit avant de lancer l'analyse."
+                      : "Import consumption data and validate the roof before running analysis.",
+                    variant: "destructive",
+                  });
+                }
+              }}
+              isAnalyzing={runAnalysisMutation.isPending}
             />
           )}
 
@@ -2419,6 +2441,15 @@ export default function SiteDetailPage() {
                 onCompareScenarios={(site.simulationRuns?.length ?? 0) > 1 ? () => setActiveTab("compare") : undefined}
                 onGeometryUpdate={(data) => setGeometryCapacity(data)}
                 onVisualizationCaptureReady={(captureFunc) => { visualizationCaptureRef.current = captureFunc; }}
+                onAnalyzeSize={(capacityKW) => {
+                  if (site.meterFiles && site.meterFiles.length > 0 && site.roofAreaValidated) {
+                    runAnalysisMutation.mutate({
+                      ...customAssumptions,
+                      _forcedSizing: { forcePvSize: Math.round(capacityKW) },
+                    } as any);
+                  }
+                }}
+                isAnalyzing={runAnalysisMutation.isPending}
               />
               {isStaff && latestSimulation && (
                 <Collapsible>
