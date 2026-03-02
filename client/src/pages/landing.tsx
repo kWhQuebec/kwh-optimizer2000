@@ -590,8 +590,8 @@ export default function LandingPage() {
           >
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-white mb-4" data-testid="hero-headline">
               {language === "fr" 
-                ? "Réduisez votre facture énergétique de 30-50%" 
-                : "Cut Your Energy Bill by 30-50%"}
+                ? "Jusqu'à 15% de rendement" 
+                : "Up to 15% ROI"}
             </h1>
             
             <p className="text-2xl sm:text-3xl text-white/90 font-medium mb-2" data-testid="hero-subtitle">
