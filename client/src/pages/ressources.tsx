@@ -34,8 +34,8 @@ export default function RessourcesPage() {
         ? "Quels sont les incitatifs disponibles pour le solaire au Québec?"
         : "What incentives are available for solar in Quebec?",
       answer: language === "fr"
-        ? "Au Québec, les principaux incitatifs incluent: le programme d'autoproduction d'Hydro-Québec (mesurage net), le crédit d'impôt fédéral de 30% pour les technologies propres (ITC, sous conditions d'éligibilité), et la déduction pour amortissement accéléré (CCA Catégorie 43.2, sous réserve des conditions d'éligibilité en vigueur — consultez votre comptable). L'éligibilité et les montants varient selon votre situation - notre analyse calcule les incitatifs applicables à votre projet."
-        : "In Quebec, main incentives include: Hydro-Québec's self-generation program (net metering), the 30% federal clean technology investment tax credit (ITC, subject to eligibility), and accelerated capital cost allowance (CCA Class 43.2, subject to current eligibility conditions — consult your accountant). Eligibility and amounts vary by situation - our analysis calculates incentives applicable to your project."
+        ? "Au Québec, les principaux incitatifs incluent: l'appui financier de 1 000 $/kW du programme Solutions efficaces d'Hydro-Québec (OSE 6.0, en vigueur depuis le 31 mars 2026, plafonné à 40% du CAPEX et 1 MW), le programme de mesurage net (crédits sur votre facture), le crédit d'impôt fédéral de 30% pour les technologies propres (ITC, sous conditions d'éligibilité), et la déduction pour amortissement accéléré (CCA Catégorie 43.2, sous réserve des conditions d'éligibilité en vigueur — consultez votre comptable). L'éligibilité et les montants varient selon votre situation - notre analyse calcule les incitatifs applicables à votre projet."
+        : "In Quebec, main incentives include: the $1,000/kW financial support from Hydro-Québec's Solutions efficaces program (OSE 6.0, effective March 31, 2026, capped at 40% of CAPEX and 1 MW), the net metering program (credits on your bill), the 30% federal clean technology investment tax credit (ITC, subject to eligibility), and accelerated capital cost allowance (CCA Class 43.2, subject to current eligibility conditions — consult your accountant). Eligibility and amounts vary by situation - our analysis calculates incentives applicable to your project."
     },
     {
       category: "incentives",
@@ -70,18 +70,27 @@ export default function RessourcesPage() {
         ? "Qu'est-ce que le programme d'autoproduction d'Hydro-Québec?"
         : "What is Hydro-Québec's self-generation program?",
       answer: language === "fr"
-        ? "Le programme d'autoproduction permet d'injecter votre surplus solaire sur le réseau et de le récupérer sous forme de crédits sur votre facture (jusqu'à 24 mois). Le surplus non utilisé après cette période est compensé au tarif de référence. La capacité maximale est de 1 MW par site. C'est un programme de mesurage net, pas une subvention directe."
-        : "The self-generation program lets you inject solar surplus onto the grid and recover it as credits on your bill (up to 24 months). Unused surplus after this period is compensated at the reference rate. Maximum capacity is 1 MW per site. This is a net metering program, not a direct subsidy."
+        ? "Le programme d'autoproduction (mesurage net) permet d'injecter votre surplus solaire sur le réseau et de le récupérer sous forme de crédits sur votre facture (jusqu'à 24 mois). Le solde de la banque de surplus est rémunéré au coût moyen de fourniture d'électricité le 31 mars de l'année paire suivante. Depuis 2025, le Tarif M est admissible et la capacité maximale est passée de 50 kW à 1 MW (sans dépasser la puissance maximale appelée de l'abonnement). L'adhésion au mesurage net n'est pas obligatoire pour recevoir l'appui financier de 1 000 $/kW du programme Solutions efficaces."
+        : "The self-generation program (net metering) lets you inject solar surplus onto the grid and recover it as credits on your bill (up to 24 months). The surplus bank balance is compensated at the average cost of electricity supply on March 31 of the following even year. Since 2025, Rate M is eligible and maximum capacity increased from 50 kW to 1 MW (not exceeding the subscription's peak demand). Net metering enrollment is not required to receive the $1,000/kW financial support from the Solutions efficaces program."
     },
 
     {
       category: "incentives",
       question: language === "fr"
-        ? "Qu'est-ce que le programme ÉcoPerformance de TEQ?"
-        : "What is TEQ's ÉcoPerformance program?",
+        ? "Qu'est-ce que le programme Solutions efficaces d'Hydro-Québec?"
+        : "What is Hydro-Québec's Solutions efficaces program?",
       answer: language === "fr"
-        ? "Le programme ÉcoPerformance de Transition énergétique Québec (TEQ) peut couvrir jusqu'à 75% des coûts d'efficacité énergétique complémentaires au solaire, comme l'amélioration de l'enveloppe du bâtiment ou la mise à niveau des systèmes mécaniques. C'est un incitatif provincial distinct du crédit fédéral ITC et du programme d'autoproduction Hydro-Québec. L'éligibilité et les montants dépendent du type de projet et des économies d'énergie démontrées — notre équipe peut vous accompagner dans le processus de demande."
-        : "TEQ's (Transition énergétique Québec) ÉcoPerformance program can cover up to 75% of energy efficiency costs complementary to solar, such as building envelope improvements or mechanical system upgrades. It is a provincial incentive separate from the federal ITC credit and the Hydro-Québec self-generation program. Eligibility and amounts depend on project type and demonstrated energy savings — our team can assist you through the application process."
+        ? "Le programme Solutions efficaces d'Hydro-Québec (anciennement lié à ÉcoPerformance / TEQ) offre des appuis financiers pour l'efficacité énergétique et l'autoproduction solaire. Pour le solaire photovoltaïque, l'appui est de 1 000 $/kW installé, plafonné à 40% des coûts admissibles et à 1 MW par abonnement (OSE 6.0, en vigueur le 31 mars 2026). Le programme couvre aussi d'autres mesures d'efficacité énergétique (enveloppe thermique, récupération de chaleur, automatisation) pouvant atteindre 75-100% des coûts admissibles selon la mesure. Notre équipe peut vous accompagner dans le processus de demande."
+        : "Hydro-Québec's Solutions efficaces program (formerly linked to ÉcoPerformance / TEQ) provides financial support for energy efficiency and solar self-generation. For solar PV, the incentive is $1,000/kW installed, capped at 40% of admissible costs and 1 MW per subscription (OSE 6.0, effective March 31, 2026). The program also covers other energy efficiency measures (building envelope, heat recovery, automation) that can cover 75-100% of admissible costs depending on the measure. Our team can assist you through the application process."
+    },
+    {
+      category: "incentives",
+      question: language === "fr"
+        ? "Quelles sont les exigences pour l'incitatif solaire OSE 6.0?"
+        : "What are the requirements for the OSE 6.0 solar incentive?",
+      answer: language === "fr"
+        ? "Pour bénéficier de l'appui financier de 1 000 $/kW (plafonné à 40% des coûts admissibles), les panneaux doivent être certifiés CSA 22.2 No 61730 et CAN/CAS-IEC 61215. L'installateur doit détenir une licence adéquate de la RBQ (Régie du bâtiment du Québec). L'achat d'équipements doit être effectué après le 31 mars 2026 (date de lancement). Il est fortement recommandé d'attendre l'acceptation conditionnelle d'Hydro-Québec avant tout achat. Tous les tarifs sont admissibles sauf le tarif L et les contrats particuliers. L'autorisation officielle de raccordement au réseau est requise."
+        : "To receive the $1,000/kW financial support (capped at 40% of admissible costs), panels must be CSA 22.2 No 61730 and CAN/CAS-IEC 61215 certified. The installer must hold a proper RBQ (Régie du bâtiment du Québec) license. Equipment purchase must be made after March 31, 2026 (launch date). It is strongly recommended to wait for Hydro-Québec's conditional acceptance before purchasing. All tariffs are eligible except Rate L and special contracts. Official grid connection authorization is required."
     },
 
     // TECHNICAL (5 questions)

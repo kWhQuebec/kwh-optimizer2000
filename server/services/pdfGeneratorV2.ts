@@ -765,15 +765,15 @@ function buildNetInvestmentPage(
         <tr><th>${t("&Eacute;l&eacute;ment", "Item")}</th><th style="text-align: right;">${t("Montant", "Amount")}</th></tr>
         <tr><td><span style="color: #6B7280; margin-right: 4px;">&#9679;</span>${t("Co&ucirc;t du syst&egrave;me (installation compl&egrave;te cl&eacute; en main)", "System cost (complete turnkey installation)")}</td><td class="number">${cur(sim.capexGross)}</td></tr>
         <tr><td><span style="color: #3B82F6; margin-right: 4px;">&#9679;</span>${t("Cr&eacute;dit d'imp&ocirc;t &agrave; l'investissement f&eacute;d&eacute;ral (ITC)", "Federal Investment Tax Credit (ITC)")}</td><td class="number" style="color: #3B82F6;">-${cur(sim.incentivesFederal)}</td></tr>
-        <tr><td><span style="color: #FFB005; margin-right: 4px;">&#9679;</span>${t("Incitatif Hydro-Qu&eacute;bec autoproduction", "Hydro-Qu&eacute;bec Self-Production Incentive")}${sim.incentivesHQSolar > 0 && sim.incentivesHQBattery > 0 ? ` (${t("Solaire", "Solar")}: ${cur(sim.incentivesHQSolar)}, ${t("Batterie", "Battery")}: ${cur(sim.incentivesHQBattery)})` : ""}</td><td class="number" style="color: #FFB005;">-${cur(sim.incentivesHQ)}</td></tr>
+        <tr><td><span style="color: #FFB005; margin-right: 4px;">&#9679;</span>${t("Incitatif Hydro-Qu&eacute;bec Solutions efficaces", "Hydro-Qu&eacute;bec Solutions efficaces Incentive")}${sim.incentivesHQSolar > 0 && sim.incentivesHQBattery > 0 ? ` (${t("Solaire", "Solar")}: ${cur(sim.incentivesHQSolar)}, ${t("Batterie", "Battery")}: ${cur(sim.incentivesHQBattery)})` : ""}</td><td class="number" style="color: #FFB005;">-${cur(sim.incentivesHQ)}</td></tr>
         ${sim.taxShield > 0 ? `<tr><td><span style="color: #3B82F6; margin-right: 4px;">&#9679;</span>${t("Bouclier fiscal (amortissement acc&eacute;l&eacute;r&eacute;)", "Tax shield (accelerated depreciation)")}</td><td class="number" style="color: #3B82F6;">-${cur(sim.taxShield)}</td></tr>` : ""}
         <tr class="total-row"><td><span style="color: white; margin-right: 4px;">&#9679;</span><strong>${t("INVESTISSEMENT NET", "NET INVESTMENT")}</strong></td><td class="number"><strong>${cur(sim.capexNet)}</strong></td></tr>
       </table>
     </div>
     <div class="info-box" style="background: #FFF8E1; border-left: 4px solid var(--accent); border-radius: 0;">
       <p style="font-size: 9pt; margin: 0;"><strong>${t("Conditions:", "Conditions:")}</strong> ${t(
-        "L'ITC f&eacute;d&eacute;ral s'applique aux projets d'&eacute;nergie propre admissibles (Loi C-69). L'incitatif Hydro-Qu&eacute;bec Autoproduction est plafonn&eacute; &agrave; 1 000 $/kW (max 1 MW) et 40% du CAPEX.",
-        "The federal ITC applies to eligible clean energy projects (Bill C-69). The Hydro-Qu&eacute;bec Self-Production incentive is capped at $1,000/kW (max 1 MW) and 40% of CAPEX."
+        "L'ITC f&eacute;d&eacute;ral s'applique aux projets d'&eacute;nergie propre admissibles (Loi C-69). L'incitatif Hydro-Qu&eacute;bec Solutions efficaces (OSE 6.0) est plafonn&eacute; &agrave; 1 000 $/kW (max 1 MW) et 40% des co&ucirc;ts admissibles. Panneaux certifi&eacute;s CSA requis.",
+        "The federal ITC applies to eligible clean energy projects (Bill C-69). The Hydro-Qu&eacute;bec Solutions efficaces (OSE 6.0) incentive is capped at $1,000/kW (max 1 MW) and 40% of admissible costs. CSA-certified panels required."
       )}</p>
     </div>
     ${footerHtml(t, pageNum)}
@@ -1524,7 +1524,7 @@ function buildAssumptionsPage(
           : t("Donn&eacute;es Hydro-Qu&eacute;bec r&eacute;elles (via procuration)", "Real Hydro-Qu&eacute;bec data (via power of attorney)")}</p>
         <p><strong>${t("Tarifs &eacute;lectriques:", "Electricity rates:")}</strong> Hydro-Qu&eacute;bec ${t("tarifs en vigueur 2026", "rates in effect 2026")}</p>
         <p><strong>${t("ITC f&eacute;d&eacute;ral:", "Federal ITC:")}</strong> ${t("Loi C-69 - Cr&eacute;dit d'imp&ocirc;t &agrave; l'investissement pour technologies propres", "Bill C-69 - Clean technology investment tax credit")}</p>
-        <p><strong>${t("Autoproduction Hydro-Qu&eacute;bec:", "Hydro-Qu&eacute;bec Self-Production:")}</strong> ${t("Programme Autoproduction d'Hydro-Qu&eacute;bec", "Hydro-Qu&eacute;bec Self-Production Program")}</p>
+        <p><strong>${t("Solutions efficaces Hydro-Qu&eacute;bec:", "Hydro-Qu&eacute;bec Solutions efficaces:")}</strong> ${t("Programme Solutions efficaces — OSE 6.0", "Solutions efficaces Program — OSE 6.0")}</p>
       </div>
     </div>
     <div class="info-box highlight">

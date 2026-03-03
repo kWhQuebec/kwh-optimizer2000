@@ -231,7 +231,7 @@ const glossary: Record<Lang, GlossaryEntry[]> = {
 const references: Record<Lang, string[]> = {
   fr: [
     'Hydro-Québec — Tarifs et conditions de service (2025)',
-    "Hydro-Québec — Programme d'autoproduction (mesurage net)",
+    "Hydro-Québec — Programme Solutions efficaces (OSE 6.0, autoproduction et mesurage net)",
     "Gouvernement du Canada — Crédit d'impôt à l'investissement pour technologies propres (ITC jusqu'à 30% pour les entreprises admissibles)",
     'NREL — PVWatts Calculator (rendement solaire estimé)',
     'Régie de l\'énergie du Québec — Décisions tarifaires',
@@ -240,7 +240,7 @@ const references: Record<Lang, string[]> = {
   ],
   en: [
     'Hydro-Québec — Rates and Conditions of Service (2025)',
-    'Hydro-Québec — Self-Generation Program (Net Metering)',
+    'Hydro-Québec — Solutions efficaces Program (OSE 6.0, Self-Generation and Net Metering)',
     'Government of Canada — Clean Technology Investment Tax Credit (ITC up to 30% for eligible businesses)',
     'NREL — PVWatts Calculator (estimated solar yield)',
     "Régie de l'énergie du Québec — Rate Decisions",
@@ -306,7 +306,7 @@ export function buildMethodologyPage(lang: Lang = 'fr'): string {
         <p>Le moteur financier (cashflowEngine) projette les flux sur 25 ans en intégrant:</p>
         <ul>
           <li>ITC fédéral jusqu'à 30% pour les entreprises admissibles (crédit d'impôt à l'investissement, technologies propres)</li>
-          <li>Incitatif HQ de 1 000 $/kW (programme autoproduction)</li>
+          <li>Incitatif HQ de 1 000 $/kW (programme Solutions efficaces — OSE 6.0, panneaux certifiés CSA requis)</li>
           <li>Amortissement fiscal accéléré (CCA classe 43.1/43.2)</li>
           <li>Coûts O&M estimés à 15 $/kW/an avec escalade de 2%/an</li>
           <li>Taux d'actualisation: 6% (par défaut, ajustable)</li>
@@ -352,7 +352,7 @@ export function buildMethodologyPage(lang: Lang = 'fr'): string {
         <p>The financial engine (cashflowEngine) projects cash flows over 25 years including:</p>
         <ul>
           <li>Federal ITC up to 30% for eligible businesses (Clean Technology Investment Tax Credit)</li>
-          <li>HQ incentive of $1,000/kW (self-generation program)</li>
+          <li>HQ incentive of $1,000/kW (Solutions efficaces program — OSE 6.0, CSA-certified panels required)</li>
           <li>Accelerated capital cost allowance (CCA class 43.1/43.2)</li>
           <li>O&M costs estimated at $15/kW/year with 2%/year escalation</li>
           <li>Discount rate: 6% (default, adjustable)</li>

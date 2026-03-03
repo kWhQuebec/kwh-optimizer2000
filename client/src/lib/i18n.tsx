@@ -47,7 +47,7 @@ const translations: Translations = {
   "landing.whyNow.title": { fr: "Pourquoi maintenant?", en: "Why now?" },
   "landing.whyNow.subtitle": { fr: "Les incitatifs n'ont jamais été aussi généreux — et ils ne dureront pas", en: "Incentives have never been this generous — and they won't last" },
   "landing.whyNow.hq.title": { fr: "Crédit jusqu'à 40% par Hydro-Québec", en: "Up to 40% Credit by Hydro-Québec" },
-  "landing.whyNow.hq.description": { fr: "Programme Hydro-Québec: jusqu'à 1 000$/kW (max 40% du CAPEX)", en: "Hydro-Québec program: up to $1,000/kW (max 40% of CAPEX)" },
+  "landing.whyNow.hq.description": { fr: "Programme Solutions efficaces: jusqu'à 1 000$/kW (max 40% du CAPEX)", en: "Solutions efficaces program: up to $1,000/kW (max 40% of CAPEX)" },
   "landing.whyNow.federal.title": { fr: "Crédit fédéral 30%", en: "Federal 30% ITC" },
   "landing.whyNow.federal.description": { fr: "Crédit d'impôt à l'investissement pour technologies propres", en: "Investment tax credit for clean technology" },
   "landing.whyNow.fiscal.title": { fr: "100% déductible en 1ère année", en: "100% Deductible Year 1" },

@@ -38,6 +38,7 @@ import {
   Calendar,
   FileQuestion,
   HelpCircle,
+  Zap,
 } from "lucide-react";
 import { useCashflowModel } from "@/hooks/useCashflowModel";
 import {
@@ -779,6 +780,61 @@ export default function MarketIntelligencePage() {
           </p>
         </div>
       </div>
+
+      <Card className="mb-4" data-testid="card-ose6-reference">
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Zap className="h-4 w-4 text-primary" />
+            {language === "fr" ? "OSE 6.0 — Mise \u00e0 jour programme Solutions efficaces" : "OSE 6.0 — Solutions efficaces Program Update"}
+          </CardTitle>
+          <CardDescription>
+            {language === "fr" ? "En vigueur le 31 mars 2026 — R\u00e9f\u00e9rence interne" : "Effective March 31, 2026 — Internal reference"}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+            <div className="space-y-2">
+              <p className="font-medium">{language === "fr" ? "Solaire PV" : "Solar PV"}</p>
+              <ul className="space-y-1 text-muted-foreground">
+                <li>1 000 $/kW, {language === "fr" ? "plafond" : "cap"} 40% CAPEX, max 1 MW</li>
+                <li>{language === "fr" ? "Panneaux certifi\u00e9s CSA 22.2 No 61730 + IEC 61215" : "CSA 22.2 No 61730 + IEC 61215 certified panels"}</li>
+                <li>{language === "fr" ? "Licence RBQ requise pour installateur" : "RBQ license required for installer"}</li>
+                <li>{language === "fr" ? "Tous tarifs sauf L et contrats particuliers" : "All tariffs except L and special contracts"}</li>
+                <li>{language === "fr" ? "Achat d'\u00e9quipements apr\u00e8s le 31 mars 2026" : "Equipment purchase after March 31, 2026"}</li>
+              </ul>
+            </div>
+            <div className="space-y-2">
+              <p className="font-medium">{language === "fr" ? "R\u00e9mun\u00e9ration incitative partenaire (Offre simplifi\u00e9e)" : "Partner Incentive (Offre simplifi\u00e9e)"}</p>
+              <ul className="space-y-1 text-muted-foreground">
+                <li>{"<"} 10K$: 10% | 10-20K$: 11% | 20-40K$: 12%</li>
+                <li>40-80K$: 13% | 80-160K$: 14% | 160K$+: 15%</li>
+                <li>Max 50 000 $ / {language === "fr" ? "projet" : "project"}</li>
+                <li>{language === "fr" ? "R\u00e9troactif au 1er janvier 2026" : "Retroactive to January 1, 2026"}</li>
+                <li>{language === "fr" ? "Plus de seuil minimal requis" : "No minimum threshold required"}</li>
+              </ul>
+            </div>
+            <div className="space-y-2">
+              <p className="font-medium">{language === "fr" ? "Autres changements cl\u00e9s" : "Other Key Changes"}</p>
+              <ul className="space-y-1 text-muted-foreground">
+                <li>{language === "fr" ? "\u00c9clairage: DLC Standard \u00e9limin\u00e9; DLC Premium 40\u219220 $/lum." : "Lighting: DLC Standard eliminated; DLC Premium $40\u219220/lum."}</li>
+                <li>{language === "fr" ? "Automatisation: couverture 100% jusqu'au 30 avril 2026" : "Building automation: 100% coverage until April 30, 2026"}</li>
+                <li>{language === "fr" ? "Seuil M&GE: 2 500$\u21921 000$; plafond projet: 5M$" : "M&GE threshold: $2,500\u2192$1,000; project cap: $5M"}</li>
+                <li>{language === "fr" ? "March\u00e9s: 5\u21923 (commercial + institutionnel fusionn\u00e9s)" : "Markets: 5\u21923 (commercial + institutional merged)"}</li>
+                <li>{language === "fr" ? "Max 10 b\u00e2timents par projet dans l'outil OSE" : "Max 10 buildings per project in OSE tool"}</li>
+                <li>{language === "fr" ? "Enveloppe thermique: bonification 2\u00e0 20x" : "Thermal envelope: 2-20x increase in support"}</li>
+              </ul>
+            </div>
+          </div>
+          <div className="mt-3 pt-3 border-t">
+            <p className="text-xs text-muted-foreground">
+              <strong>{language === "fr" ? "R\u00e8gles de transition:" : "Transition rules:"}</strong>{" "}
+              {language === "fr" 
+                ? "Projets \u2265 31 mars 2026 \u2192 OSE 6.0 | 7 oct. 2024 \u2013 30 mars 2026 \u2192 OSE 5.1 | 9 mai 2022 \u2013 6 oct. 2024 \u2192 OSE 4.1. Bonification multimesures (+10% pour 2 mesures, +15% pour 3) disponible entre r\u00e9cup\u00e9ration de chaleur, g\u00e9othermie et enveloppe thermique \u2014 le solaire PV n'est PAS \u00e9ligible \u00e0 cette bonification."
+                : "Projects \u2265 Mar 31, 2026 \u2192 OSE 6.0 | Oct 7, 2024 \u2013 Mar 30, 2026 \u2192 OSE 5.1 | May 9, 2022 \u2013 Oct 6, 2024 \u2192 OSE 4.1. Multi-measure bonus (+10% for 2 measures, +15% for 3) available between heat recovery, geothermal and thermal envelope \u2014 solar PV is NOT eligible for this bonus."}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-5">

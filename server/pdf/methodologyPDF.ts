@@ -501,18 +501,20 @@ export function generateMethodologyPDF(
   drawSectionHeader(t("7. INCITATIFS ET SUBVENTIONS", "7. INCENTIVES AND SUBSIDIES"), 7);
 
   doc.fontSize(11).fillColor(COLORS.darkGray).font("Helvetica-Bold");
-  doc.text(t("Incitatifs Hydro-Québec (Programme Autoproduction):", "Hydro-Québec Incentives (Self-Generation Program):"));
+  doc.text(t("Incitatifs Hydro-Québec (Programme Solutions efficaces — OSE 6.0):", "Hydro-Québec Incentives (Solutions efficaces Program — OSE 6.0):"));
   doc.font("Helvetica");
   doc.moveDown(0.5);
 
   const hqIncentives = lang === "fr" ? [
-    "• Solaire: 1 000 $/kWc installé (programme Solutions efficaces OSE 6.0)",
+    "• Solaire: 1 000 $/kWc installé (programme Solutions efficaces — OSE 6.0, en vigueur le 31 mars 2026)",
     "• Plafond: 40% des coûts admissibles (solaire seulement, excluant stockage, raccordement et financement)",
-    "• Limite: 1 MW par installation",
+    "• Limite: 1 MW par abonnement — tous tarifs admissibles sauf tarif L et contrats particuliers",
+    "• Panneaux certifiés CSA 22.2 No 61730 et CAN/CAS-IEC 61215 — installateur avec licence RBQ",
   ] : [
-    "• Solar: $1,000/kWp installed (Solutions efficaces OSE 6.0 program)",
+    "• Solar: $1,000/kWp installed (Solutions efficaces program — OSE 6.0, effective March 31, 2026)",
     "• Cap: 40% of admissible costs (solar only, excludes storage, interconnection and financing)",
-    "• Limit: 1 MW per installation",
+    "• Limit: 1 MW per subscription — all tariffs eligible except Rate L and special contracts",
+    "• Panels CSA 22.2 No 61730 and CAN/CAS-IEC 61215 certified — installer with RBQ license",
   ];
 
   hqIncentives.forEach(item => {
@@ -697,13 +699,13 @@ export function generateMethodologyPDF(
   const sources = lang === "fr" ? [
     "• Tarifs Hydro-Québec en vigueur (avril 2025)",
     "• Données d'irradiation: Ressources naturelles Canada (RNCan)",
-    "• Programme Autoproduction Hydro-Québec: conditions et montants officiels",
+    "• Programme Solutions efficaces Hydro-Québec (OSE 6.0): conditions et montants officiels",
     "• Crédit d'impôt fédéral: Agence du revenu du Canada",
     "• Classes CCA: Agence du revenu du Canada (Classe 43.2)",
   ] : [
     "• Hydro-Québec rates in effect (April 2025)",
     "• Irradiation data: Natural Resources Canada (NRCan)",
-    "• Hydro-Québec Self-Generation Program: official conditions and amounts",
+    "• Hydro-Québec Solutions efficaces Program (OSE 6.0): official conditions and amounts",
     "• Federal tax credit: Canada Revenue Agency",
     "• CCA Classes: Canada Revenue Agency (Class 43.2)",
   ];

@@ -48,11 +48,14 @@ A centralized color palette defined in `shared/colors.ts` ensures consistent bra
 ### Website Audit (Completed)
 All 16 audit tasks implemented: ROI payback corrected to "5-9 ans avec incitatifs", degradation text includes year-1 context (~1-2%), CCA 43.2 qualified with "consultez votre comptable", ITC qualified as "up to 30% for eligible businesses", institutional removed from public-facing selectors (kept in backend engine), hero headline benefit-focused ("Réduisez votre facture de 30-50%"), lead form simplified to 5 fields, CTAs updated to "Voir mon potentiel solaire", phone number added to header, portfolio metrics enriched, ÉcoPerformance FAQ added, battery storage page created at `/stockage-energie`, FAQ JSON-LD expanded to 21 questions, image lazy loading verified, canonical URLs standardized to `www.kwh.quebec`, sitemap updated with new routes.
 
+### OSE 6.0 Content Update (March 2026)
+Hydro-Québec "Solutions efficaces" program (replacing TEQ/ÉcoPerformance) updated across all public-facing content, internal tools, and PDF proposals. Solar PV measure: $1,000/kW, 40% cap, 1 MW max, CSA certifications required, RBQ license, effective March 31 2026. Financial engine was already correct — only labels and content were updated. Market Intelligence page includes full OSE 6.0 reference card with partner incentive tiers, transition rules, and multi-measure bonus details (internal only). Files updated: ressources.tsx, seo-head.tsx, structured-data.tsx, methodology.tsx, methodologyPDF.ts, calculateur-roi.tsx, i18n.tsx, brandContent.ts, pdfGeneratorV2.ts, pdfEnhancements.ts, market-intelligence.tsx.
+
 ### Public Pages & Routes
 - `/` — Landing page (hero, social proof band, lead form, process timeline)
 - `/services` — Services page (commercial + industrial sectors only)
 - `/stockage-energie` — Battery/storage page (peak shaving, Tarif M, backup, ROI)
-- `/ressources` — Resources page with 21 FAQ items across 4 categories
+- `/ressources` — Resources page with 22+ FAQ items across 4 categories (updated for OSE 6.0)
 - `/ressources/calculateur-roi-solaire` — ROI calculator with 4 educational sections
 - `/portfolio` — Public portfolio grid with production/savings metrics
 - `/portfolio/:id` — Project detail pages

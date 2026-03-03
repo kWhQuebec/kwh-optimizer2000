@@ -35,7 +35,7 @@ La plupart des organisations commerciales considèrent qu'un retour sur investis
 
 Le Crédit d'impôt à l'investissement (ITC) fédéral offre un remboursement pouvant atteindre 30% du coût admissible du système pour les entreprises admissibles. Pour un système de 100 kW coûtant 185 000$, cela représente 55 500$ de crédit d'impôt utilisable immédiatement. Les entreprises avec suffisamment de revenus imposables peuvent appliquer ce crédit dans les années fiscales courantes ou futures.
 
-Le programme d'Hydro-Québec offre 1 000$/kW installé, plafonné à 40% du coût du projet et à 1 MW de capacité. Pour un système de 100 kW, cela signifie potentiellement 74 000$ de réduction (le minimum entre 100 000$, 40% du coût total, et 1 000 000$). Ces fonds proviennent du fonds de développement des énergies renouvelables de la province.
+Le programme Solutions efficaces d'Hydro-Québec (OSE 6.0, en vigueur le 31 mars 2026) offre 1 000$/kW installé, plafonné à 40% des coûts admissibles et à 1 MW par abonnement. Pour un système de 100 kW, cela signifie potentiellement 74 000$ de réduction (le minimum entre 100 000$, 40% du coût total, et 1 000 000$). Les panneaux doivent être certifiés CSA et l'installateur doit détenir une licence RBQ.
 
 L'amortissement accéléré (DPA classe 43.1/43.2, sous réserve des conditions d'éligibilité en vigueur — consultez votre comptable) permet de déduire jusqu'à 50% du coût résiduel chaque année, créant un bouclier fiscal substantiel dès la première année. Une entreprise avec taux d'impôt marginal de 26% économise donc 26% du coût du système simplement en déductions fiscales supplémentaires.
 

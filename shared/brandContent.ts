@@ -412,8 +412,8 @@ export const BRAND_CONTENT = {
         labelEn: "Significant reduction in installation costs",
       },
       {
-        labelFr: "Incitatifs Hydro-Québec — Jusqu'à 1 000 $/kW",
-        labelEn: "Hydro-Québec Incentives — Up to $1,000/kW",
+        labelFr: "Incitatifs Hydro-Québec (Solutions efficaces — OSE 6.0) — Jusqu'à 1 000 $/kW",
+        labelEn: "Hydro-Québec Incentives (Solutions efficaces — OSE 6.0) — Up to $1,000/kW",
       },
       {
         labelFr: "Crédit d'impôt fédéral (CII) jusqu'à 30% pour les entreprises admissibles",
