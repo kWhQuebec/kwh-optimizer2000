@@ -469,13 +469,6 @@ function buildScopeOfWorkPages(t: (fr: string, en: string) => string, dateStr: s
 
   const ownerScope = [
     {
-      cat: t("Frais de service public", "Utility Fees"),
-      desc: t(
-        "Payer tous les frais relatifs &agrave; Hydro-Qu&eacute;bec, tels que requis pour le Projet. Le Concepteur-Constructeur facilitera ce paiement. Tous les projets se raccordent en basse tension (BT)&nbsp;; si un projet n&eacute;cessite un ou plusieurs nouveaux transformateurs pour le raccordement BT, le prix du Concepteur-Constructeur ne doit pas inclure la fourniture ou l'installation du ou des transformateur(s) ni de l'appareillage de commutation d'interconnexion, ceux-ci &eacute;tant fournis par Hydro-Qu&eacute;bec.",
-        "Pay all fees related to Hydro-Qu&eacute;bec, as required for the Project. The Design-Builder will facilitate this payment. All projects connect to Low Voltage (LV); if a project requires one or more new transformers for the LV interconnection, the Design-Builder's price shall not include the supply or installation of the transformer(s) or the interconnection switchgear, as these are provided by Hydro-Qu&eacute;bec."
-      ),
-    },
-    {
       cat: t("Inspection du toit", "Roof Inspection"),
       desc: t(
         "Le Propri&eacute;taire organise et assume tous les co&ucirc;ts pour l'inspection du toit avant le d&eacute;but de la construction. Le Propri&eacute;taire peut choisir de renoncer &agrave; l'inspection &agrave; sa discr&eacute;tion.",
@@ -563,10 +556,24 @@ function buildScopeOfWorkPages(t: (fr: string, en: string) => string, dateStr: s
       ),
     },
     {
+      cat: t("Frais de service public", "Utility Fees"),
+      desc: t(
+        "Payer tous les frais relatifs &agrave; Hydro-Qu&eacute;bec, tels que requis pour le Projet. Tous les projets se raccordent en basse tension (BT)&nbsp;; si un projet n&eacute;cessite un ou plusieurs nouveaux transformateurs pour le raccordement BT, le prix du Concepteur-Constructeur ne doit pas inclure la fourniture ou l'installation du ou des transformateur(s) ni de l'appareillage de commutation d'interconnexion, ceux-ci &eacute;tant fournis par Hydro-Qu&eacute;bec.",
+        "Pay all fees related to Hydro-Qu&eacute;bec, as required for the Project. All projects connect to Low Voltage (LV); if a project requires one or more new transformers for the LV interconnection, the Design-Builder's price shall not include the supply or installation of the transformer(s) or the interconnection switchgear, as these are provided by Hydro-Qu&eacute;bec."
+      ),
+    },
+    {
       cat: t("Conception &eacute;lectrique", "Electrical Design"),
       desc: t(
         "Pr&eacute;parer les plans d'ing&eacute;nierie &eacute;lectrique conform&eacute;ment au Code de construction du Qu&eacute;bec, Chapitre V &mdash; &Eacute;lectricit&eacute; (CSA&nbsp;C22.10) et aux normes applicables. Soumettre les plans aux autorit&eacute;s comp&eacute;tentes (RBQ). Fournir les plans &laquo;&nbsp;tel que construit&nbsp;&raquo; (sceau OIQ).",
         "Prepare electrical engineering drawings in accordance with the Code de construction du Qu&eacute;bec, Chapter V &mdash; Electricity (CSA&nbsp;C22.10) and applicable standards. Submit plans to authorities having jurisdiction (RBQ). Provide as-built drawings (OIQ stamped)."
+      ),
+    },
+    {
+      cat: t("Conformit&eacute; structurelle de la conception", "Structural Design Compliance"),
+      desc: t(
+        "Fournir une confirmation &eacute;crite que le syst&egrave;me solaire tel que con&ccedil;u est conforme au rapport d'&eacute;valuation structurelle fourni par le Propri&eacute;taire et ne d&eacute;passe pas les limites de charge qui y sont identifi&eacute;es. Toute modification de conception requise par les r&eacute;sultats de l'&eacute;valuation structurelle sera int&eacute;gr&eacute;e avant la soumission des plans pour construction.",
+        "Provide written confirmation that the solar system as designed conforms to the structural assessment report provided by the Owner and does not exceed the load limits identified therein. Any design modifications required by the structural assessment results shall be incorporated prior to the submission of construction drawings."
       ),
     },
     {
