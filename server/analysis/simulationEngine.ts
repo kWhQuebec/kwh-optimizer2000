@@ -592,15 +592,9 @@ export function runScenarioWithSizing(
   const capexAdmissible = capexPV;
   const cap40Percent = capexAdmissible * 0.40;
 
-  let incentivesHQSolar = Math.min(potentialHQSolar, cap40Percent);
-
-  let incentivesHQBattery = 0;
-  if (pvSizeKW > 0 && battEnergyKWh > 0) {
-    const remainingCap = Math.max(0, cap40Percent - incentivesHQSolar);
-    incentivesHQBattery = Math.min(remainingCap, capexBattery);
-  }
-
-  const incentivesHQ = incentivesHQSolar + incentivesHQBattery;
+  const incentivesHQSolar = Math.min(potentialHQSolar, cap40Percent);
+  const incentivesHQBattery = 0;
+  const incentivesHQ = incentivesHQSolar;
 
   const itcBasis = capexGross - incentivesHQ;
   const incentivesFederal = itcBasis * 0.30;

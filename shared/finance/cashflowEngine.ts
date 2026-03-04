@@ -32,7 +32,7 @@ export interface CashflowInputs {
   gridRateY1: number;        // Client's electricity rate $/kWh
   kwhInflation: number;      // HQ tariff inflation assumption (3.5%)
   trcInflation: number;      // TRC/competitor inflation assumption (3%)
-  degradation: number;       // Panel degradation rate (0.5%/year)
+  degradation: number;       // Panel degradation rate (0.4%/year)
   omRate: number;            // O&M as % of CAPEX (1%)
   omEscalation: number;      // O&M annual escalation (2.5%)
   
