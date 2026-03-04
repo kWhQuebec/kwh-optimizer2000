@@ -184,6 +184,9 @@ export default function StockageEnergiePage() {
               <Link href="/ressources" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                 {language === "fr" ? "Ressources" : "Resources"}
               </Link>
+              <a href="/blog?tab=nouvelles" className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-nav-blog">
+                {language === "fr" ? "Nouvelles" : "News"}
+              </a>
               <Link href="/portfolio" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                 Portfolio
               </Link>

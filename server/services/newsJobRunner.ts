@@ -1,5 +1,5 @@
 import { fetchNewsFromRss } from "./newsRssService";
-import { analyzeArticleRelevance } from "./newsCurationService";
+import { analyzeArticleRelevance, AUTO_REJECT_THRESHOLD } from "./newsCurationService";
 import { batchProcess } from "../replit_integrations/batch";
 import { createLogger } from "../lib/logger";
 import type { IStorage } from "../storage";
@@ -60,56 +60,62 @@ export async function runNewsFetchJob(storage: IStorage): Promise<{
   log.info(`Saved ${savedArticles.length} new articles to database`);
 
   let analyzed = 0;
+  let failed = 0;
   if (savedArticles.length > 0) {
-    try {
-      const results = await batchProcess(
-        savedArticles,
-        async (item) => {
+    const results = await batchProcess(
+      savedArticles,
+      async (item) => {
+        try {
           const analysis = await analyzeArticleRelevance(item.raw);
-          return { articleId: item.article.id, analysis };
+          return { articleId: item.article.id, analysis, success: true as const };
+        } catch (error) {
+          log.error(`AI analysis failed for article "${item.raw.title}":`, error);
+          return { articleId: item.article.id, success: false as const };
+        }
+      },
+      {
+        concurrency: 2,
+        retries: 3,
+        onProgress: (completed: number, total: number, _item: unknown) => {
+          log.info(`AI analysis progress: ${completed}/${total}`);
         },
-        {
-          concurrency: 2,
-          retries: 3,
-          onProgress: (completed: number, total: number, _item: unknown) => {
-            log.info(`AI analysis progress: ${completed}/${total}`);
-          },
-        }
-      );
+      }
+    );
 
-      const AUTO_REJECT_THRESHOLD = 40;
-      let autoRejected = 0;
-      for (const result of results) {
-        if (result) {
-          try {
-            const shouldReject = result.analysis.relevanceScore < AUTO_REJECT_THRESHOLD;
-            await storage.updateNewsArticle(result.articleId, {
-              aiRelevanceScore: result.analysis.relevanceScore,
-              aiSummaryFr: result.analysis.summaryFr,
-              aiCommentFr: result.analysis.commentFr,
-              aiSocialPostFr: result.analysis.socialPostFr,
-              aiSocialPostEn: result.analysis.socialPostEn,
-              aiTags: result.analysis.tags,
-              aiProcessedAt: new Date(),
-              category: result.analysis.category,
-              ...(shouldReject ? { status: "rejected" } : {}),
-            });
-            analyzed++;
-            if (shouldReject) autoRejected++;
-          } catch (error) {
-            log.error(`Failed to update article ${result.articleId} with AI results:`, error);
-          }
+    let autoRejected = 0;
+    for (const result of results) {
+      if (result && result.success && 'analysis' in result) {
+        try {
+          const shouldReject = result.analysis.relevanceScore < AUTO_REJECT_THRESHOLD;
+          await storage.updateNewsArticle(result.articleId, {
+            aiRelevanceScore: result.analysis.relevanceScore,
+            aiSummaryFr: result.analysis.summaryFr,
+            aiCommentFr: result.analysis.commentFr,
+            aiSocialPostFr: result.analysis.socialPostFr,
+            aiSocialPostEn: result.analysis.socialPostEn,
+            aiTags: result.analysis.tags,
+            aiProcessedAt: new Date(),
+            category: result.analysis.category,
+            ...(shouldReject ? { status: "rejected" } : {}),
+          });
+          analyzed++;
+          if (shouldReject) autoRejected++;
+        } catch (error) {
+          log.error(`Failed to update article ${result.articleId} with AI results:`, error);
         }
+      } else if (result && !result.success) {
+        failed++;
       }
-      if (autoRejected > 0) {
-        log.info(`Auto-rejected ${autoRejected} articles with relevance score < ${AUTO_REJECT_THRESHOLD}`);
-      }
-    } catch (error) {
-      log.error("Batch AI analysis failed:", error);
+    }
+    if (autoRejected > 0) {
+      log.info(`Auto-rejected ${autoRejected} articles with relevance score < ${AUTO_REJECT_THRESHOLD}`);
+    }
+    if (failed > 0) {
+      log.warn(`${failed} articles failed AI analysis and remain without AI content`);
     }
   }
 
-  log.info(`News fetch job complete: fetched=${rawItems.length}, new=${savedArticles.length}, analyzed=${analyzed}`);
+  log.info(`News fetch job complete: fetched=${rawItems.length}, new=${savedArticles.length}, analyzed=${analyzed}, failed=${failed}`);
   return {
     fetched: rawItems.length,
     newArticles: savedArticles.length,

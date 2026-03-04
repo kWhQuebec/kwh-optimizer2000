@@ -16,6 +16,7 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { href: "/", labelFr: "Accueil", labelEn: "Home" },
   { href: "/ressources", labelFr: "Ressources", labelEn: "Resources" },
+  { href: "/blog?tab=nouvelles", labelFr: "Nouvelles", labelEn: "News" },
   { href: "/portfolio", labelFr: "Portfolio", labelEn: "Portfolio" },
 ];
 
@@ -39,20 +40,27 @@ export function PublicHeader() {
           
           <nav className="hidden md:flex items-center gap-6">
             {NAV_ITEMS.map((item) => {
+              const hrefPath = item.href.split("?")[0];
               const isActive = location === item.href || 
-                (item.href !== "/" && location.startsWith(item.href));
+                location === hrefPath ||
+                (hrefPath !== "/" && location.startsWith(hrefPath));
+              const className = `text-sm transition-colors ${
+                isActive 
+                  ? "font-medium text-foreground" 
+                  : "text-muted-foreground hover:text-foreground"
+              }`;
+              const testId = `link-nav-${hrefPath.replace(/\//g, "") || "home"}`;
+              const label = language === "fr" ? item.labelFr : item.labelEn;
+              if (item.href.includes("?")) {
+                return (
+                  <a key={item.href} href={item.href} className={className} data-testid={testId}>
+                    {label}
+                  </a>
+                );
+              }
               return (
-                <Link 
-                  key={item.href}
-                  href={item.href} 
-                  className={`text-sm transition-colors ${
-                    isActive 
-                      ? "font-medium text-foreground" 
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                  data-testid={`link-nav-${item.href.replace(/\//g, "") || "home"}`}
-                >
-                  {language === "fr" ? item.labelFr : item.labelEn}
+                <Link key={item.href} href={item.href} className={className} data-testid={testId}>
+                  {label}
                 </Link>
               );
             })}

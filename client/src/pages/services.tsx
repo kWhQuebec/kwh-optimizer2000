@@ -104,6 +104,9 @@ export default function ServicesPage() {
               <Link href="/ressources" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                 {language === "fr" ? "Ressources" : "Resources"}
               </Link>
+              <a href="/blog?tab=nouvelles" className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-nav-blog">
+                {language === "fr" ? "Nouvelles" : "News"}
+              </a>
             </nav>
 
             <div className="flex items-center gap-2">

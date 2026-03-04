@@ -13,7 +13,6 @@ const log = createLogger("News");
 const router = Router();
 
 const VALID_STATUSES = ["pending", "approved", "rejected", "published"] as const;
-const AUTO_REJECT_THRESHOLD = 40;
 
 const newsUpdateSchema = z.object({
   status: z.enum(VALID_STATUSES).optional(),
@@ -41,7 +40,7 @@ router.post("/api/admin/news/fetch", authMiddleware, requireStaff, asyncHandler(
 router.post("/api/admin/news/backfill", authMiddleware, requireStaff, asyncHandler(async (req: AuthRequest, res) => {
   log.info(`News AI backfill triggered by user ${req.userId}`);
   res.json({ message: "Backfill started", status: "running" });
-  runNewsBackfillJob(storage, AUTO_REJECT_THRESHOLD).catch((err: unknown) => log.error("Backfill job failed:", err));
+  runNewsBackfillJob(storage).catch((err: unknown) => log.error("Backfill job failed:", err));
 }));
 
 router.patch("/api/admin/news/:id", authMiddleware, requireStaff, asyncHandler(async (req: AuthRequest, res) => {
