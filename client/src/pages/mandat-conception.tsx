@@ -11,17 +11,15 @@ import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LanguageToggle } from "@/components/language-toggle";
+import { PublicHeader, PublicFooter } from "@/components/public-header";
 import { useI18n } from "@/lib/i18n";
 import { FunnelEvents } from "@/lib/analytics";
 import { BRAND_CONTENT } from "@shared/brandContent";
-import logoFr from "@assets/kWh_Quebec_Logo-01_-_Rectangulaire_1764799021536.png";
-import logoEn from "@assets/kWh_Quebec_Logo-02_-_Rectangle_1764799021536.png";
 
 export default function MandatConceptionPage() {
   const { t, language } = useI18n();
   const [, navigate] = useLocation();
 
-  const currentLogo = language === "fr" ? logoFr : logoEn;
   const designMandate = BRAND_CONTENT.designMandate;
 
   // Track page view
@@ -118,25 +116,7 @@ export default function MandatConceptionPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Fixed Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-white dark:bg-background backdrop-blur-md border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16 gap-4">
-            <Link href="/">
-              <img
-                src={currentLogo}
-                alt={language === "fr" ? "Logo kWh Québec – Énergie solaire commerciale" : "kWh Québec Logo – Commercial Solar Energy"}
-                className="h-[50px] sm:h-[3.75rem] w-auto"
-              />
-            </Link>
-
-            <div className="flex items-center gap-2">
-              <LanguageToggle />
-              <ThemeToggle />
-            </div>
-          </div>
-        </div>
-      </header>
+      <PublicHeader />
 
       {/* Main Content */}
       <main className="pt-24 pb-16">
@@ -470,29 +450,8 @@ export default function MandatConceptionPage() {
           </motion.section>
         </div>
 
-        {/* Footer Links */}
-        <motion.footer
-          className="text-center space-y-4 py-8 border-t max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 mt-16"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5, delay: 1 }}
-        >
-          <div className="flex items-center justify-center gap-6 text-sm text-muted-foreground flex-wrap">
-            <Link href="/privacy" className="hover:text-foreground transition-colors">
-              {language === "fr" ? "Confidentialité" : "Privacy"}
-            </Link>
-            <span>•</span>
-            <Link href="/conditions" className="hover:text-foreground transition-colors">
-              {language === "fr" ? "Conditions" : "Terms"}
-            </Link>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            {language === "fr"
-              ? "© 2026 kWh Québec. Tous droits réservés."
-              : "© 2026 kWh Québec. All rights reserved."}
-          </p>
-        </motion.footer>
       </main>
+      <PublicFooter />
     </div>
   );
 }

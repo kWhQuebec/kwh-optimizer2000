@@ -26,11 +26,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LanguageToggle } from "@/components/language-toggle";
+import { PublicHeader } from "@/components/public-header";
 import { useI18n } from "@/lib/i18n";
+import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { getBuildingTypesByCategory } from "@shared/buildingTypes";
-import logoFr from "@assets/kWh_Quebec_Logo-01_-_Rectangulaire_1764799021536.png";
-import logoEn from "@assets/kWh_Quebec_Logo-02_-_Rectangle_1764799021536.png";
+import { SEOHead } from "@/components/seo-head";
 
 import carouselImg1Fr from "@assets/Screenshot_2025-12-11_at_9.14.32_PM_1765505832705.png";
 import carouselImg2Fr from "@assets/Screenshot_2025-12-11_at_9.14.51_PM_1765505832704.png";
@@ -73,7 +74,12 @@ const detailedFormSchema = z.object({
   buildingType: z.string().optional(),
   roofAgeYears: z.string().optional(),
   ownershipType: z.string().optional(),
-  hqClientNumber: z.string().min(1, "Ce champ est requis"),
+  hqClientNumber: z.string()
+    .min(1, "Ce champ est requis")
+    .refine(
+      (val) => /^\d{10,12}$/.test(val.replace(/[\s\-]/g, '')),
+      { message: "Format de compte Hydro-Québec invalide (10-12 chiffres)" }
+    ),
   tariffCode: z.string().optional(),
   signatureCity: z.string().min(1, "Ce champ est requis"),
   notes: z.string().optional(),
@@ -208,6 +214,7 @@ function parseAddressParts(fullAddress: string | null): { street: string; city: 
 
 export default function AnalyseDetailleePage() {
   const { t, language } = useI18n();
+  const { toast } = useToast();
   const searchString = useSearch();
   
   // Parse clientId from URL params (for existing CRM clients)
@@ -222,7 +229,6 @@ export default function AnalyseDetailleePage() {
   const [selectedSlide, setSelectedSlide] = useState(0);
   const [hasSignature, setHasSignature] = useState(false);
   const signaturePadRef = useRef<SignaturePadRef>(null);
-  const currentLogo = language === "fr" ? logoFr : logoEn;
 
   const [parsedBillData, setParsedBillData] = useState<HQBillData | null>(null);
   const [parsedBillsData, setParsedBillsData] = useState<HQBillData[]>([]);
@@ -279,9 +285,9 @@ export default function AnalyseDetailleePage() {
     },
   });
 
-  // Check for pre-filled data from Quick Analysis (transferred via localStorage)
+  // Check for pre-filled data from Quick Analysis (transferred via sessionStorage)
   useEffect(() => {
-    const storedBillData = localStorage.getItem('kwhquebec_bill_data');
+    const storedBillData = sessionStorage.getItem('kwhquebec_bill_data');
     if (storedBillData) {
       try {
         const billData = JSON.parse(storedBillData);
@@ -332,11 +338,11 @@ export default function AnalyseDetailleePage() {
           setCurrentStep(2);
         }
         
-        // Clear localStorage after reading (one-time transfer)
-        localStorage.removeItem('kwhquebec_bill_data');
+        // Clear sessionStorage after reading (one-time transfer)
+        sessionStorage.removeItem('kwhquebec_bill_data');
       } catch (e) {
         console.error('Failed to parse stored bill data:', e);
-        localStorage.removeItem('kwhquebec_bill_data');
+        sessionStorage.removeItem('kwhquebec_bill_data');
       }
     }
   }, [form]);
@@ -649,11 +655,21 @@ export default function AnalyseDetailleePage() {
         if (f.preview) URL.revokeObjectURL(f.preview);
       });
       setUploadedFiles([]);
-      // Clear sessionStorage after successful submission
       sessionStorage.removeItem('kwhquebec_savedBillPath');
       savedBillPathRef.current = null;
       setSubmitted(true);
       window.scrollTo({ top: 0, behavior: 'smooth' });
+      toast({
+        title: t("toast.success.title"),
+        description: t("toast.procuration.success"),
+      });
+    },
+    onError: () => {
+      toast({
+        title: t("toast.error.title"),
+        description: t("toast.procuration.error"),
+        variant: "destructive",
+      });
     },
   });
 
@@ -783,25 +799,13 @@ The data obtained will be used exclusively for solar potential analysis and phot
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16 gap-4">
-            <Link href="/">
-              <img 
-                src={currentLogo} 
-                alt={language === "fr" ? "Logo kWh Québec – Analyse solaire détaillée" : "kWh Québec Logo – Detailed Solar Analysis"} 
-                className="h-10 sm:h-12 w-auto"
-                data-testid="logo-header"
-              />
-            </Link>
-            
-            <div className="flex items-center gap-2">
-              <LanguageToggle />
-              <ThemeToggle />
-            </div>
-          </div>
-        </div>
-      </header>
+      <SEOHead
+        title={language === "fr" ? "Analyse détaillée | kWh Québec" : "Detailed Analysis | kWh Québec"}
+        description={language === "fr" ? "Formulaire d'analyse détaillée et de procuration pour votre projet solaire commercial." : "Detailed analysis and authorization form for your commercial solar project."}
+        noIndex={true}
+        locale={language}
+      />
+      <PublicHeader />
 
       <main className="py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto">

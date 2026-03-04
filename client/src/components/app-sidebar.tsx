@@ -168,12 +168,6 @@ export function AppSidebar({ forceClientView, previewClientName }: { forceClient
       icon: Wrench,
       tooltip: language === "fr" ? "Historique des interventions terrain" : "Field intervention history",
     },
-    {
-      title: language === "fr" ? "Performance" : "Performance",
-      url: "/app/om-performance",
-      icon: Gauge,
-      tooltip: language === "fr" ? "Tableau de bord performance systèmes" : "System performance dashboard",
-    },
   ];
 
   // SECTION 5: Admin

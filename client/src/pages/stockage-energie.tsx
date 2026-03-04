@@ -11,15 +11,13 @@ import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LanguageToggle } from "@/components/language-toggle";
+import { PublicHeader, PublicFooter } from "@/components/public-header";
 import { useI18n } from "@/lib/i18n";
 import { SEOHead } from "@/components/seo-head";
 import { BRAND_CONTENT } from "@shared/brandContent";
-import logoFr from "@assets/kWh_Quebec_Logo-01_-_Rectangulaire_1764799021536.png";
-import logoEn from "@assets/kWh_Quebec_Logo-02_-_Rectangle_1764799021536.png";
 
 export default function StockageEnergiePage() {
   const { language } = useI18n();
-  const currentLogo = language === "fr" ? logoFr : logoEn;
 
   const seoTitle = language === "fr"
     ? "Stockage d'énergie par batterie pour entreprises | kWh Québec"
@@ -162,48 +160,7 @@ export default function StockageEnergiePage() {
         canonical={`https://www.kwh.quebec/stockage-energie`}
       />
 
-      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <Link href="/">
-              <img
-                src={currentLogo}
-                alt={language === "fr" ? "Logo kWh Québec" : "kWh Québec Logo"}
-                className="h-10 w-auto cursor-pointer"
-                data-testid="logo-header"
-              />
-            </Link>
-
-            <nav className="hidden md:flex items-center gap-6">
-              <Link href="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                {language === "fr" ? "Accueil" : "Home"}
-              </Link>
-              <Link href="/stockage-energie" className="text-sm font-medium text-foreground">
-                {language === "fr" ? "Stockage" : "Storage"}
-              </Link>
-              <Link href="/ressources" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                {language === "fr" ? "Ressources" : "Resources"}
-              </Link>
-              <a href="/blog?tab=nouvelles" className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-nav-blog">
-                {language === "fr" ? "Nouvelles" : "News"}
-              </a>
-              <Link href="/portfolio" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                Portfolio
-              </Link>
-            </nav>
-
-            <div className="flex items-center gap-2">
-              <LanguageToggle />
-              <ThemeToggle />
-              <Link href="/login">
-                <Button variant="outline" size="sm" data-testid="button-login">
-                  {language === "fr" ? "Connexion" : "Login"}
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </header>
+      <PublicHeader />
 
       <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-primary/5 via-background to-background">
         <div className="max-w-6xl mx-auto text-center">
@@ -532,32 +489,7 @@ export default function StockageEnergiePage() {
         </div>
       </section>
 
-      <footer className="py-8 px-4 sm:px-6 lg:px-8 border-t bg-muted/30">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-4 flex-wrap">
-              <img src={currentLogo} alt={language === "fr" ? "Logo kWh Québec" : "kWh Québec Logo"} className="h-10 w-auto" />
-              <span className="text-sm text-muted-foreground">
-                © {new Date().getFullYear()} kWh Québec. {language === "fr" ? "Tous droits réservés." : "All rights reserved."}
-              </span>
-            </div>
-            <div className="flex items-center gap-6 text-sm text-muted-foreground flex-wrap">
-              <Link href="/" className="hover:text-foreground transition-colors">
-                {language === "fr" ? "Accueil" : "Home"}
-              </Link>
-              <Link href="/stockage-energie" className="hover:text-foreground transition-colors">
-                {language === "fr" ? "Stockage" : "Storage"}
-              </Link>
-              <Link href="/ressources" className="hover:text-foreground transition-colors">
-                {language === "fr" ? "Ressources" : "Resources"}
-              </Link>
-              <Link href="/portfolio" className="hover:text-foreground transition-colors">
-                Portfolio
-              </Link>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <PublicFooter />
     </div>
   );
 }

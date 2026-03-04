@@ -27,6 +27,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LanguageToggle } from "@/components/language-toggle";
+import { PublicHeader, PublicFooter } from "@/components/public-header";
 import { useI18n } from "@/lib/i18n";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -34,8 +35,6 @@ import { FunnelEvents, getStoredUTMParams } from "@/lib/analytics";
 import { SEOHead, seoContent, getLocalBusinessSchema, getServiceSchema, getFAQSchema, organizationSchema } from "@/components/seo-head";
 import { TIMELINE_GRADIENT, BRAND } from "@shared/colors";
 import { getWhySolarNow, getTimeline, BRAND_CONTENT } from "@shared/brandContent";
-import logoFr from "@assets/kWh_Quebec_Logo-01_-_Rectangulaire_1764799021536.png";
-import logoEn from "@assets/kWh_Quebec_Logo-02_-_Rectangle_1764799021536.png";
 import installationPhoto from "@assets/hero-optimized.jpg";
 import roofMeasurement from "@assets/generated_images/commercial_roof_solar_potential_overlay.png";
 import consumptionAnalysis from "@assets/generated_images/consumption_analysis_hq_branded.png";
@@ -63,12 +62,25 @@ import labSpaceLogo from "@assets/Logo_full_1769527493871.png";
 import scaleCleantechLogo from "@assets/scale-cleantech-color_small-VSYW5GJE_1769527536419.webp";
 import hqLogo from "@assets/Screenshot_2026-01-27_at_5.26.14_PM_1769552778826.png";
 
-// Simplified form: only Company, Email, Address required; Phone optional; other fields collected later
+const CANADIAN_PHONE_REGEX = /^(\+1)?[\s.-]?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}$/;
+
+function formatPhoneNumber(raw: string): string {
+  const digits = raw.replace(/\D/g, '');
+  const d = digits.startsWith('1') ? digits.slice(1) : digits;
+  if (d.length === 10) {
+    return `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}`;
+  }
+  return raw;
+}
+
 const leadFormSchema = z.object({
   companyName: z.string().min(1, "Ce champ est requis"),
   contactName: z.string().optional(),
   email: z.string().email("Courriel invalide"),
-  phone: z.string().optional(),
+  phone: z.string().optional().refine(
+    (val) => !val || val.trim() === '' || CANADIAN_PHONE_REGEX.test(val),
+    { message: "Numéro de téléphone invalide" }
+  ),
   streetAddress: z.string().min(1, "Ce champ est requis"),
   city: z.string().optional(),
   province: z.string().optional(),
@@ -238,7 +250,6 @@ export default function LandingPage() {
     return { systemSizeKw, isCapped, estimatedSavings, annualBill, extraCost5yr, costOfInaction5yr: Math.round(costOfInaction5yr) };
   }, [parsedBillData]);
 
-  const currentLogo = language === "fr" ? logoFr : logoEn;
   
   const analysisSlides = language === "fr" 
     ? [
@@ -311,6 +322,13 @@ export default function LandingPage() {
       const name = form.getValues('contactName') || form.getValues('email');
       navigate(`/merci?type=lead&name=${encodeURIComponent(name)}`);
     },
+    onError: () => {
+      toast({
+        title: t("toast.error.title"),
+        description: t("toast.leadSubmit.error"),
+        variant: "destructive",
+      });
+    },
   });
 
   const onSubmit = (data: LeadFormValues) => {
@@ -374,6 +392,10 @@ export default function LandingPage() {
         if (result.data.serviceAddress) setQuickAddress(result.data.serviceAddress);
         setFlowStep('extracted');
         FunnelEvents.billParsed(result.data.annualConsumptionKwh || 0, result.data.confidence || 0);
+        toast({
+          title: t("toast.success.title"),
+          description: t("toast.billParse.success"),
+        });
       })
       .catch(() => {
         FunnelEvents.formError('bill_upload', 'parse_failed');
@@ -381,6 +403,11 @@ export default function LandingPage() {
         setParseError(language === "fr"
           ? "Impossible d'analyser la facture. Réessayez ou entrez votre consommation manuellement."
           : "Unable to analyze the bill. Try again or enter your consumption manually.");
+        toast({
+          title: t("toast.error.title"),
+          description: t("toast.billParse.error"),
+          variant: "destructive",
+        });
       });
   }, [language]);
 
@@ -449,6 +476,17 @@ export default function LandingPage() {
       return;
     }
 
+    if (quickPhone && quickPhone.trim() !== '' && !CANADIAN_PHONE_REGEX.test(quickPhone)) {
+      toast({
+        title: t("form.invalidPhone"),
+        description: language === "fr"
+          ? "Veuillez entrer un numéro de téléphone canadien valide, ex: (514) 427-8871"
+          : "Please enter a valid Canadian phone number, e.g. (514) 427-8871",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const annualKwh = parsedBillData?.annualConsumptionKwh || parseInt(manualKwh) || 0;
     if (annualKwh < 1000) {
       toast({
@@ -482,9 +520,9 @@ export default function LandingPage() {
     // Track procuration start event
     FunnelEvents.procurationStarted();
 
-    // Store parsed data in localStorage for analyse-detaillee to pick up
+    // Store parsed data in sessionStorage for analyse-detaillee to pick up
     if (parsedBillData) {
-      localStorage.setItem('kwhquebec_bill_data', JSON.stringify({
+      sessionStorage.setItem('kwhquebec_bill_data', JSON.stringify({
         ...parsedBillData,
         email: quickEmail,
         companyName: quickCompany,
@@ -531,49 +569,7 @@ export default function LandingPage() {
         canonical="https://www.kwh.quebec"
         includeHreflang={true}
       />
-      {/* Fixed Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-white dark:bg-background backdrop-blur-md border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16 gap-4">
-            <Link href="/">
-              <img 
-                src={currentLogo} 
-                alt={language === "fr" ? "Logo kWh Québec – Énergie solaire commerciale" : "kWh Québec Logo – Commercial Solar Energy"} 
-                className="h-[50px] sm:h-[3.75rem] w-auto"
-                loading="eager"
-                fetchPriority="high"
-                decoding="async"
-                data-testid="logo-header"
-              />
-            </Link>
-            
-            <nav className="hidden md:flex items-center gap-6" aria-label={language === "fr" ? "Navigation principale" : "Main navigation"}>
-              <Link href="/" className="text-sm font-medium text-foreground" data-testid="link-home">
-                {language === "fr" ? "Accueil" : "Home"}
-              </Link>
-              <Link href="/ressources" className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-resources">
-                {language === "fr" ? "Ressources" : "Resources"}
-              </Link>
-              <a href="/blog?tab=nouvelles" className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-nav-blog">
-                {language === "fr" ? "Nouvelles" : "News"}
-              </a>
-              <Link href="/portfolio" className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-portfolio">
-                Portfolio
-              </Link>
-            </nav>
-
-            <div className="flex items-center gap-2">
-              <LanguageToggle />
-              <ThemeToggle />
-              <Link href="/login">
-                <Button variant="outline" size="sm" data-testid="button-login">
-                  {t("nav.login")}
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </header>
+      <PublicHeader />
       {/* ========== NEW HERO SECTION ========== */}
       <section className="relative pt-16 min-h-[85vh] flex items-center overflow-hidden" data-testid="section-hero">
         <div 
@@ -924,34 +920,55 @@ export default function LandingPage() {
                             : "Get your full report with financing options"}
                         </p>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          <Input
-                            type="text"
-                            placeholder={language === "fr" ? "Nom de l'entreprise *" : "Company name *"}
-                            value={quickCompany}
-                            onChange={(e) => setQuickCompany(e.target.value)}
-                            data-testid="input-quick-company"
-                          />
-                          <Input
-                            type="email"
-                            placeholder={language === "fr" ? "Courriel *" : "Email *"}
-                            value={quickEmail}
-                            onChange={(e) => setQuickEmail(e.target.value)}
-                            data-testid="input-quick-email"
-                          />
-                          <Input
-                            type="tel"
-                            placeholder={language === "fr" ? "Téléphone (optionnel)" : "Phone (optional)"}
-                            value={quickPhone}
-                            onChange={(e) => setQuickPhone(e.target.value)}
-                            data-testid="input-quick-phone"
-                          />
-                          <Input
-                            type="text"
-                            placeholder={language === "fr" ? "Adresse du bâtiment *" : "Building address *"}
-                            value={quickAddress}
-                            onChange={(e) => setQuickAddress(e.target.value)}
-                            data-testid="input-quick-address"
-                          />
+                          <div>
+                            <label className="text-xs font-medium">
+                              {language === "fr" ? "Nom de l'entreprise" : "Company name"} <span className="text-red-500">*</span>
+                            </label>
+                            <Input
+                              type="text"
+                              placeholder={language === "fr" ? "Nom de l'entreprise" : "Company name"}
+                              value={quickCompany}
+                              onChange={(e) => setQuickCompany(e.target.value)}
+                              data-testid="input-quick-company"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs font-medium">
+                              {t("form.email")} <span className="text-red-500">*</span>
+                            </label>
+                            <Input
+                              type="email"
+                              placeholder={t("form.email")}
+                              value={quickEmail}
+                              onChange={(e) => setQuickEmail(e.target.value)}
+                              data-testid="input-quick-email"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs font-medium">
+                              {t("form.phone")} <span className="text-muted-foreground font-normal">{t("form.optional")}</span>
+                            </label>
+                            <Input
+                              type="tel"
+                              placeholder="(514) 427-8871"
+                              value={quickPhone}
+                              onChange={(e) => setQuickPhone(e.target.value)}
+                              onBlur={() => { if (quickPhone) setQuickPhone(formatPhoneNumber(quickPhone)); }}
+                              data-testid="input-quick-phone"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs font-medium">
+                              {language === "fr" ? "Adresse du bâtiment" : "Building address"} <span className="text-red-500">*</span>
+                            </label>
+                            <Input
+                              type="text"
+                              placeholder={language === "fr" ? "Adresse du bâtiment" : "Building address"}
+                              value={quickAddress}
+                              onChange={(e) => setQuickAddress(e.target.value)}
+                              data-testid="input-quick-address"
+                            />
+                          </div>
                         </div>
                         <Button
                           onClick={handleQuickAnalysis}
@@ -1347,34 +1364,55 @@ export default function LandingPage() {
                           />
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          <Input
-                            type="text"
-                            placeholder={language === "fr" ? "Nom de l'entreprise *" : "Company name *"}
-                            value={quickCompany}
-                            onChange={(e) => setQuickCompany(e.target.value)}
-                            data-testid="input-manual-company"
-                          />
-                          <Input
-                            type="email"
-                            placeholder={language === "fr" ? "Courriel *" : "Email *"}
-                            value={quickEmail}
-                            onChange={(e) => setQuickEmail(e.target.value)}
-                            data-testid="input-manual-email"
-                          />
-                          <Input
-                            type="tel"
-                            placeholder={language === "fr" ? "Téléphone (optionnel)" : "Phone (optional)"}
-                            value={quickPhone}
-                            onChange={(e) => setQuickPhone(e.target.value)}
-                            data-testid="input-manual-phone"
-                          />
-                          <Input
-                            type="text"
-                            placeholder={language === "fr" ? "Adresse du bâtiment *" : "Building address *"}
-                            value={quickAddress}
-                            onChange={(e) => setQuickAddress(e.target.value)}
-                            data-testid="input-manual-address"
-                          />
+                          <div>
+                            <label className="text-xs font-medium">
+                              {language === "fr" ? "Nom de l'entreprise" : "Company name"} <span className="text-red-500">*</span>
+                            </label>
+                            <Input
+                              type="text"
+                              placeholder={language === "fr" ? "Nom de l'entreprise" : "Company name"}
+                              value={quickCompany}
+                              onChange={(e) => setQuickCompany(e.target.value)}
+                              data-testid="input-manual-company"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs font-medium">
+                              {t("form.email")} <span className="text-red-500">*</span>
+                            </label>
+                            <Input
+                              type="email"
+                              placeholder={t("form.email")}
+                              value={quickEmail}
+                              onChange={(e) => setQuickEmail(e.target.value)}
+                              data-testid="input-manual-email"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs font-medium">
+                              {t("form.phone")} <span className="text-muted-foreground font-normal">{t("form.optional")}</span>
+                            </label>
+                            <Input
+                              type="tel"
+                              placeholder="(514) 427-8871"
+                              value={quickPhone}
+                              onChange={(e) => setQuickPhone(e.target.value)}
+                              onBlur={() => { if (quickPhone) setQuickPhone(formatPhoneNumber(quickPhone)); }}
+                              data-testid="input-manual-phone"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs font-medium">
+                              {language === "fr" ? "Adresse du bâtiment" : "Building address"} <span className="text-red-500">*</span>
+                            </label>
+                            <Input
+                              type="text"
+                              placeholder={language === "fr" ? "Adresse du bâtiment" : "Building address"}
+                              value={quickAddress}
+                              onChange={(e) => setQuickAddress(e.target.value)}
+                              data-testid="input-manual-address"
+                            />
+                          </div>
                         </div>
                         <Button 
                           onClick={handleQuickAnalysis}
@@ -2199,40 +2237,7 @@ export default function LandingPage() {
           </motion.div>
         </div>
       </section>
-      {/* ========== FOOTER ========== */}
-      <footer className="py-8 px-4 sm:px-6 lg:px-8 border-t bg-muted/30" role="contentinfo">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <img
-                src={currentLogo}
-                alt={language === "fr" ? "Logo kWh Québec – Énergie solaire commerciale" : "kWh Québec Logo – Commercial Solar Energy"}
-                className="h-8 w-auto"
-                loading="lazy"
-                decoding="async"
-              />
-              <span className="text-sm text-muted-foreground">
-                © {new Date().getFullYear()} kWh Québec. {language === "fr" ? "Tous droits réservés." : "All rights reserved."}
-              </span>
-            </div>
-            
-            <div className="flex items-center gap-6 text-sm text-muted-foreground flex-wrap">
-              <a href="#analyse" className="hover:text-foreground transition-colors">
-                {language === "fr" ? "Analyser" : "Analyze"}
-              </a>
-              <Link href="/ressources" className="hover:text-foreground transition-colors">
-                {language === "fr" ? "Ressources" : "Resources"}
-              </Link>
-              <Link href="/privacy" className="hover:text-foreground transition-colors" data-testid="link-privacy">
-                {language === "fr" ? "Confidentialité" : "Privacy"}
-              </Link>
-              <a href="mailto:info@kwh.quebec" className="hover:text-foreground transition-colors">
-                {t("footer.contact")}
-              </a>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <PublicFooter />
     </div>
   );
 }

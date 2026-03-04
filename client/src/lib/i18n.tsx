@@ -200,6 +200,17 @@ const translations: Translations = {
   },
   "form.required": { fr: "Ce champ est requis", en: "This field is required" },
   "form.invalidEmail": { fr: "Courriel invalide", en: "Invalid email" },
+  "toast.success.title": { fr: "Succès", en: "Success" },
+  "toast.error.title": { fr: "Erreur", en: "Error" },
+  "toast.error.generic": { fr: "Une erreur est survenue. Veuillez réessayer.", en: "An error occurred. Please try again." },
+  "toast.leadSubmit.success": { fr: "Votre demande a été envoyée avec succès!", en: "Your request has been submitted successfully!" },
+  "toast.leadSubmit.error": { fr: "Impossible d'envoyer votre demande. Veuillez réessayer.", en: "Unable to submit your request. Please try again." },
+  "toast.billParse.success": { fr: "Facture analysée avec succès!", en: "Bill analyzed successfully!" },
+  "toast.billParse.error": { fr: "Impossible d'analyser la facture. Réessayez ou contactez-nous.", en: "Unable to analyze the bill. Try again or contact us." },
+  "toast.procuration.success": { fr: "Votre procuration a été envoyée avec succès!", en: "Your authorization has been submitted successfully!" },
+  "toast.procuration.error": { fr: "Impossible d'envoyer la procuration. Veuillez réessayer.", en: "Unable to submit the authorization. Please try again." },
+  "form.invalidPhone": { fr: "Numéro de téléphone invalide", en: "Invalid phone number" },
+  "form.optional": { fr: "(optionnel)", en: "(optional)" },
 
   // Login
   "login.title": { fr: "Connexion", en: "Login" },
@@ -836,7 +847,9 @@ const translations: Translations = {
   "publicAgreement.nextSteps": { fr: "Notre équipe vous contactera sous peu pour planifier la visite technique.", en: "Our team will contact you shortly to schedule the technical visit." },
   "publicAgreement.signatureRequired": { fr: "Veuillez dessiner votre signature", en: "Please draw your signature" },
   "publicAgreement.nameRequired": { fr: "Veuillez entrer votre nom", en: "Please enter your name" },
+  "publicAgreement.nameMinLength": { fr: "Le nom doit contenir au moins 2 caractères", en: "Name must be at least 2 characters" },
   "publicAgreement.emailRequired": { fr: "Veuillez entrer votre courriel", en: "Please enter your email" },
+  "publicAgreement.emailInvalid": { fr: "Veuillez entrer un courriel valide", en: "Please enter a valid email" },
   "publicAgreement.notFound": { fr: "Entente introuvable", en: "Agreement not found" },
   "publicAgreement.loading": { fr: "Chargement...", en: "Loading..." },
   "publicAgreement.error": { fr: "Une erreur est survenue", en: "An error occurred" },
@@ -1053,6 +1066,19 @@ const translations: Translations = {
 
   "faq.item8.question": { fr: "Que se passe-t-il si je vends mon bâtiment?", en: "What happens if I sell my building?" },
   "faq.item8.answer": { fr: "Le système solaire reste avec le bâtiment et augmente sa valeur de revente. Les contrats d'achat-vente standard incluent le transfert du système au nouveau propriétaire. Si vous avez un contrat de financement, il peut généralement être assumé par le nouveau propriétaire ou refinancé à des conditions compétitives. La plupart des acheteurs voient le système solaire comme un atout majeur.", en: "The solar system stays with the building and increases its resale value. Standard purchase agreements include system transfer to the new owner. If you have financing, it can typically be assumed by the new owner or refinanced at competitive rates. Most buyers see the solar system as a major asset." },
+
+  "form.invalidHqAccount": { fr: "Format de compte Hydro-Québec invalide (10-12 chiffres)", en: "Invalid Hydro-Québec account format (10-12 digits)" },
+
+  "seo.privacy.title": { fr: "Politique de confidentialité | kWh Québec", en: "Privacy Policy | kWh Québec" },
+  "seo.privacy.description": { fr: "Politique de confidentialité de kWh Québec. Protection de vos renseignements personnels conformément à la Loi 25 du Québec.", en: "kWh Québec privacy policy. Protection of your personal information in accordance with Quebec's Law 25." },
+  "seo.terms.title": { fr: "Conditions d'utilisation | kWh Québec", en: "Terms of Service | kWh Québec" },
+  "seo.terms.description": { fr: "Conditions d'utilisation du site web et des services offerts par kWh Québec inc.", en: "Terms of service for the website and services offered by kWh Québec inc." },
+  "seo.autorisationHq.title": { fr: "Autorisation Hydro-Québec | kWh Québec", en: "Hydro-Québec Authorization | kWh Québec" },
+  "seo.autorisationHq.description": { fr: "Autorisez l'accès à vos données de consommation Hydro-Québec pour une analyse solaire détaillée.", en: "Authorize access to your Hydro-Québec consumption data for a detailed solar analysis." },
+  "seo.analyseDetaillee.title": { fr: "Analyse détaillée | kWh Québec", en: "Detailed Analysis | kWh Québec" },
+  "seo.analyseDetaillee.description": { fr: "Formulaire d'analyse détaillée et de procuration pour votre projet solaire commercial.", en: "Detailed analysis and authorization form for your commercial solar project." },
+  "seo.thankYou.title": { fr: "Merci | kWh Québec", en: "Thank You | kWh Québec" },
+  "seo.thankYou.description": { fr: "Merci pour votre demande. Notre équipe analyse votre dossier.", en: "Thank you for your request. Our team is analyzing your file." },
 };
 
 interface I18nContextType {

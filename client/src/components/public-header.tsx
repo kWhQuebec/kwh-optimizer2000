@@ -18,6 +18,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/ressources", labelFr: "Ressources", labelEn: "Resources" },
   { href: "/blog?tab=nouvelles", labelFr: "Nouvelles", labelEn: "News" },
   { href: "/portfolio", labelFr: "Portfolio", labelEn: "Portfolio" },
+  { href: "/stockage-energie", labelFr: "Stockage", labelEn: "Storage" },
 ];
 
 export function PublicHeader() {
@@ -105,7 +106,7 @@ export function PublicFooter() {
   return (
     <footer className="bg-muted/30 border-t mt-16">
       <div className="container mx-auto px-4 py-12">
-        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
           <div>
             <h3 className="font-semibold text-lg mb-4">kWh Québec</h3>
             <p className="text-sm text-muted-foreground">
@@ -120,39 +121,65 @@ export function PublicFooter() {
               <a 
                 href="mailto:info@kwh.quebec" 
                 className="flex items-center gap-2 hover:text-foreground transition-colors"
-                data-testid="link-email"
+                data-testid="link-footer-email"
               >
                 info@kwh.quebec
               </a>
               <a 
                 href="tel:+15144278871" 
                 className="flex items-center gap-2 hover:text-foreground transition-colors"
-                data-testid="link-phone"
+                data-testid="link-footer-phone"
               >
                 514.427.8871
               </a>
+              <p>Montréal, Québec, Canada</p>
+            </div>
+          </div>
+          <div>
+            <h3 className="font-semibold text-lg mb-4">
+              {language === "fr" ? "Navigation" : "Navigation"}
+            </h3>
+            <div className="space-y-2 text-sm text-muted-foreground">
+              <Link href="/ressources" className="block hover:text-foreground transition-colors" data-testid="link-footer-ressources">
+                {language === "fr" ? "Ressources" : "Resources"}
+              </Link>
+              <Link href="/portfolio" className="block hover:text-foreground transition-colors" data-testid="link-footer-portfolio">
+                Portfolio
+              </Link>
+              <a href="/blog?tab=nouvelles" className="block hover:text-foreground transition-colors" data-testid="link-footer-blog">
+                {language === "fr" ? "Nouvelles" : "News"}
+              </a>
+              <Link href="/stockage-energie" className="block hover:text-foreground transition-colors" data-testid="link-footer-stockage">
+                {language === "fr" ? "Stockage d'énergie" : "Energy Storage"}
+              </Link>
+            </div>
+          </div>
+          <div>
+            <h3 className="font-semibold text-lg mb-4">
+              {language === "fr" ? "Légal" : "Legal"}
+            </h3>
+            <div className="space-y-2 text-sm text-muted-foreground">
+              <Link href="/privacy" className="block hover:text-foreground transition-colors" data-testid="link-footer-privacy">
+                {language === "fr" ? "Confidentialité" : "Privacy"}
+              </Link>
+              <Link href="/conditions" className="block hover:text-foreground transition-colors" data-testid="link-footer-terms">
+                {language === "fr" ? "Conditions d'utilisation" : "Terms of Service"}
+              </Link>
               <a 
                 href="https://www.kwh.quebec" 
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 hover:text-foreground transition-colors"
-                data-testid="link-website"
+                className="block hover:text-foreground transition-colors"
+                data-testid="link-footer-website"
               >
                 www.kwh.quebec
               </a>
             </div>
           </div>
-          <div>
-            <h3 className="font-semibold text-lg mb-4">
-              {language === "fr" ? "Adresse" : "Address"}
-            </h3>
-            <p className="text-sm text-muted-foreground">
-              Montréal, Québec, Canada
-            </p>
-          </div>
         </div>
         <div className="border-t mt-8 pt-8 text-center text-sm text-muted-foreground">
           <p>© {new Date().getFullYear()} kWh Québec Inc. {language === "fr" ? "Tous droits réservés." : "All rights reserved."}</p>
+          <p className="mt-1">RBQ: 5656-6136-01</p>
         </div>
       </div>
     </footer>

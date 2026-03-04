@@ -1,12 +1,16 @@
 import { useState, useRef, useEffect } from "react";
 import { useRoute } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { I18nProvider, useI18n } from "@/lib/i18n";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -481,7 +485,7 @@ function SignaturePad({
     <div className="space-y-2">
       <Label className="flex items-center gap-2">
         <PenLine className="w-4 h-4" />
-        {t("publicAgreement.drawSignature")}
+        {t("publicAgreement.drawSignature")} <span className="text-destructive">*</span>
       </Label>
       <div className="border rounded-lg bg-white overflow-hidden">
         <canvas
@@ -514,16 +518,30 @@ function SignaturePad({
   );
 }
 
+const signAgreementSchema = z.object({
+  name: z.string().min(2, "publicAgreement.nameMinLength"),
+  email: z.string().email("publicAgreement.emailInvalid"),
+  signatureData: z.string().min(1, "publicAgreement.signatureRequired"),
+});
+
+type SignAgreementFormValues = z.infer<typeof signAgreementSchema>;
+
 function SignAgreementContent() {
   const { t, language } = useI18n();
   const { toast } = useToast();
   const [, params] = useRoute("/sign/:token");
   const token = params?.token;
 
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [signatureData, setSignatureData] = useState<string | null>(null);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+
+  const form = useForm<SignAgreementFormValues>({
+    resolver: zodResolver(signAgreementSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      signatureData: "",
+    },
+  });
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -616,31 +634,18 @@ function SignAgreementContent() {
     },
   });
 
-  const validateForm = (): boolean => {
-    if (!name.trim()) {
-      toast({ title: t("publicAgreement.nameRequired"), variant: "destructive" });
-      return false;
-    }
-    if (!email.trim()) {
-      toast({ title: t("publicAgreement.emailRequired"), variant: "destructive" });
-      return false;
-    }
-    if (!signatureData) {
-      toast({ title: t("publicAgreement.signatureRequired"), variant: "destructive" });
-      return false;
-    }
-    return true;
+  const handleSignatureChange = (dataUrl: string | null) => {
+    form.setValue("signatureData", dataUrl || "", { shouldValidate: form.formState.isSubmitted });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateForm()) return;
-    signMutation.mutate({ name, email, signatureData: signatureData! });
+  const handleFormSubmit = (data: SignAgreementFormValues) => {
+    signMutation.mutate({ name: data.name, email: data.email, signatureData: data.signatureData });
   };
 
   const handlePayAndSign = () => {
-    if (!validateForm()) return;
-    paymentMutation.mutate({ name, email, signatureData: signatureData!, language });
+    form.handleSubmit((data) => {
+      paymentMutation.mutate({ name: data.name, email: data.email, signatureData: data.signatureData, language });
+    })();
   };
 
   if (isLoading) {
@@ -699,6 +704,7 @@ function SignAgreementContent() {
     );
   }
 
+  const signatureData = form.watch("signatureData");
   const currentStep = signatureData ? 2 : 1;
 
   return (
@@ -935,66 +941,93 @@ function SignAgreementContent() {
             <CardTitle>{t("publicAgreement.signatureSection")}</CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="name">{t("publicAgreement.yourName")}</Label>
-                  <Input
-                    id="name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Jean Tremblay"
-                    data-testid="input-signer-name"
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          {t("publicAgreement.yourName")} <span className="text-destructive">*</span>
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            placeholder="Jean Tremblay"
+                            data-testid="input-signer-name"
+                          />
+                        </FormControl>
+                        <FormMessage>{form.formState.errors.name && t(form.formState.errors.name.message || "")}</FormMessage>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          {t("publicAgreement.yourEmail")} <span className="text-destructive">*</span>
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            type="email"
+                            placeholder="jean@entreprise.com"
+                            data-testid="input-signer-email"
+                          />
+                        </FormControl>
+                        <FormMessage>{form.formState.errors.email && t(form.formState.errors.email.message || "")}</FormMessage>
+                      </FormItem>
+                    )}
                   />
                 </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="email">{t("publicAgreement.yourEmail")}</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="jean@entreprise.com"
-                    data-testid="input-signer-email"
-                  />
+                  <SignaturePad onSignatureChange={handleSignatureChange} />
+                  {form.formState.errors.signatureData && (
+                    <p className="text-sm font-medium text-destructive" data-testid="error-signature">
+                      {t(form.formState.errors.signatureData.message || "")}
+                    </p>
+                  )}
                 </div>
-              </div>
 
-              <SignaturePad onSignatureChange={setSignatureData} />
-
-              <div className="flex flex-col sm:flex-row gap-3">
-                <Button
-                  type="button"
-                  size="lg"
-                  className="flex-1 gap-2"
-                  onClick={handlePayAndSign}
-                  disabled={paymentMutation.isPending || signMutation.isPending || isProcessingPayment}
-                  data-testid="button-sign-and-pay"
-                >
-                  {paymentMutation.isPending || isProcessingPayment ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <CreditCard className="w-4 h-4" />
-                  )}
-                  {t("publicAgreement.signAndPay")}
-                </Button>
-                <Button
-                  type="submit"
-                  size="lg"
-                  variant="outline"
-                  className="gap-2"
-                  disabled={signMutation.isPending || paymentMutation.isPending}
-                  data-testid="button-sign-agreement"
-                >
-                  {signMutation.isPending ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <CheckCircle2 className="w-4 h-4" />
-                  )}
-                  {t("publicAgreement.signOnly")}
-                </Button>
-              </div>
-            </form>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Button
+                    type="button"
+                    size="lg"
+                    className="flex-1 gap-2"
+                    onClick={handlePayAndSign}
+                    disabled={paymentMutation.isPending || signMutation.isPending || isProcessingPayment}
+                    data-testid="button-sign-and-pay"
+                  >
+                    {paymentMutation.isPending || isProcessingPayment ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <CreditCard className="w-4 h-4" />
+                    )}
+                    {t("publicAgreement.signAndPay")}
+                  </Button>
+                  <Button
+                    type="submit"
+                    size="lg"
+                    variant="outline"
+                    className="gap-2"
+                    disabled={signMutation.isPending || paymentMutation.isPending}
+                    data-testid="button-sign-agreement"
+                  >
+                    {signMutation.isPending ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <CheckCircle2 className="w-4 h-4" />
+                    )}
+                    {t("publicAgreement.signOnly")}
+                  </Button>
+                </div>
+              </form>
+            </Form>
           </CardContent>
         </Card>
 

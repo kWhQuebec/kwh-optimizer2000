@@ -10,14 +10,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LanguageToggle } from "@/components/language-toggle";
+import { PublicHeader, PublicFooter } from "@/components/public-header";
 import { useI18n } from "@/lib/i18n";
 import { SEOHead, seoContent, getServiceSchema } from "@/components/seo-head";
-import logoFr from "@assets/kWh_Quebec_Logo-01_-_Rectangulaire_1764799021536.png";
-import logoEn from "@assets/kWh_Quebec_Logo-02_-_Rectangle_1764799021536.png";
 
 export default function ServicesPage() {
   const { language } = useI18n();
-  const currentLogo = language === "fr" ? logoFr : logoEn;
 
   const services = [
     {
@@ -78,49 +76,7 @@ export default function ServicesPage() {
         structuredData={getServiceSchema(language)}
         locale={language}
       />
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <Link href="/">
-              <img 
-                src={currentLogo} 
-                alt={language === "fr" ? "Logo kWh Québec – Énergie solaire commerciale" : "kWh Québec Logo – Commercial Solar Energy"} 
-                className="h-10 w-auto cursor-pointer"
-                data-testid="logo-header"
-              />
-            </Link>
-            
-            <nav className="hidden md:flex items-center gap-6">
-              <Link href="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                {language === "fr" ? "Accueil" : "Home"}
-              </Link>
-              <Link href="/services" className="text-sm font-medium text-foreground">
-                {language === "fr" ? "Services" : "Services"}
-              </Link>
-              <Link href="/comment-ca-marche" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                {language === "fr" ? "Comment ça marche" : "How it works"}
-              </Link>
-              <Link href="/ressources" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                {language === "fr" ? "Ressources" : "Resources"}
-              </Link>
-              <a href="/blog?tab=nouvelles" className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-nav-blog">
-                {language === "fr" ? "Nouvelles" : "News"}
-              </a>
-            </nav>
-
-            <div className="flex items-center gap-2">
-              <LanguageToggle />
-              <ThemeToggle />
-              <Link href="/login">
-                <Button variant="outline" size="sm" data-testid="button-login">
-                  {language === "fr" ? "Connexion" : "Login"}
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </header>
+      <PublicHeader />
 
       {/* Hero */}
       <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-primary/5 via-background to-background">
@@ -274,28 +230,7 @@ export default function ServicesPage() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="py-8 px-4 sm:px-6 lg:px-8 border-t bg-muted/30">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <img src={currentLogo} alt={language === "fr" ? "Logo kWh Québec – Énergie solaire commerciale" : "kWh Québec Logo – Commercial Solar Energy"} className="h-10 w-auto" />
-              <span className="text-sm text-muted-foreground">
-                © {new Date().getFullYear()} kWh Québec. {language === "fr" ? "Tous droits réservés." : "All rights reserved."}
-              </span>
-            </div>
-            <div className="flex items-center gap-6 text-sm text-muted-foreground">
-              <Link href="/services" className="hover:text-foreground transition-colors">Services</Link>
-              <Link href="/comment-ca-marche" className="hover:text-foreground transition-colors">
-                {language === "fr" ? "Comment ça marche" : "How it works"}
-              </Link>
-              <Link href="/ressources" className="hover:text-foreground transition-colors">
-                {language === "fr" ? "Ressources" : "Resources"}
-              </Link>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <PublicFooter />
     </div>
   );
 }

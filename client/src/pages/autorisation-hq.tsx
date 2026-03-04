@@ -10,10 +10,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { LanguageToggle } from "@/components/language-toggle";
+import { PublicHeader, PublicFooter } from "@/components/public-header";
 import { useI18n } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
-import logoFr from "@assets/kWh_Quebec_Logo-01_-_Rectangulaire_1764799021536.png";
-import logoEn from "@assets/kWh_Quebec_Logo-02_-_Rectangle_1764799021536.png";
+import { SEOHead } from "@/components/seo-head";
 import hqLogo from "@assets/Screenshot_2026-01-27_at_5.26.14_PM_1769552778826.png";
 
 interface HQBillData {
@@ -50,7 +50,6 @@ export default function AutorisationHQPage() {
   const [parsedBillData, setParsedBillData] = useState<HQBillData | null>(null);
   const [parseError, setParseError] = useState<string | null>(null);
   
-  const currentLogo = language === "fr" ? logoFr : logoEn;
   
   const onDrop = useCallback((acceptedFiles: File[]) => {
     if (acceptedFiles.length === 0) return;
@@ -93,12 +92,21 @@ export default function AutorisationHQPage() {
         }
         setParsedBillData(result.data as HQBillData);
         setFlowStep('extracted');
+        toast({
+          title: language === "fr" ? "Succès" : "Success",
+          description: language === "fr" ? "Facture analysée avec succès!" : "Bill analyzed successfully!",
+        });
       })
       .catch(() => {
         setFlowStep('upload');
         setParseError(language === "fr" 
           ? "Impossible d'analyser la facture. Réessayez ou contactez-nous."
           : "Unable to analyze the bill. Try again or contact us.");
+        toast({
+          title: language === "fr" ? "Erreur" : "Error",
+          description: language === "fr" ? "Impossible d'analyser la facture. Réessayez ou contactez-nous." : "Unable to analyze the bill. Try again or contact us.",
+          variant: "destructive",
+        });
       });
   }, [language]);
 
@@ -113,7 +121,7 @@ export default function AutorisationHQPage() {
 
   const handleProceedToAuthorization = () => {
     if (parsedBillData) {
-      localStorage.setItem('kwhquebec_bill_data', JSON.stringify({
+      sessionStorage.setItem('kwhquebec_bill_data', JSON.stringify({
         ...parsedBillData,
         clientId,
       }));
@@ -135,21 +143,13 @@ export default function AutorisationHQPage() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16 gap-4">
-            <Link href="/">
-              <img 
-                src={currentLogo} 
-                alt={language === "fr" ? "Logo kWh Québec – Énergie solaire commerciale" : "kWh Québec Logo – Commercial Solar Energy"} 
-                className="h-10 sm:h-12 w-auto"
-                data-testid="logo-header"
-              />
-            </Link>
-            <LanguageToggle />
-          </div>
-        </div>
-      </header>
+      <SEOHead
+        title={language === "fr" ? "Autorisation Hydro-Québec | kWh Québec" : "Hydro-Québec Authorization | kWh Québec"}
+        description={language === "fr" ? "Autorisez l'accès à vos données de consommation Hydro-Québec pour une analyse solaire détaillée." : "Authorize access to your Hydro-Québec consumption data for a detailed solar analysis."}
+        noIndex={true}
+        locale={language}
+      />
+      <PublicHeader />
 
       <main className="flex-1 py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-2xl mx-auto space-y-8">
@@ -377,40 +377,7 @@ export default function AutorisationHQPage() {
         </div>
       </main>
 
-      <footer className="border-t py-8 px-4 sm:px-6 lg:px-8 mt-auto">
-        <div className="max-w-4xl mx-auto">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
-            <div className="flex items-center gap-6">
-              <a 
-                href="tel:514.427.8871" 
-                className="flex items-center gap-2 hover:text-foreground transition-colors"
-                data-testid="link-phone"
-              >
-                <Phone className="w-4 h-4" />
-                514.427.8871
-              </a>
-              <a 
-                href="mailto:info@kwh.quebec" 
-                className="flex items-center gap-2 hover:text-foreground transition-colors"
-                data-testid="link-email"
-              >
-                <Mail className="w-4 h-4" />
-                info@kwh.quebec
-              </a>
-            </div>
-            <div className="flex items-center gap-4">
-              <Link 
-                href="/privacy" 
-                className="hover:text-foreground transition-colors"
-                data-testid="link-privacy"
-              >
-                {language === "fr" ? "Confidentialité" : "Privacy"}
-              </Link>
-              <span>© {new Date().getFullYear()} kWh Québec</span>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <PublicFooter />
     </div>
   );
 }

@@ -5,12 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useI18n } from "@/lib/i18n";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LanguageToggle } from "@/components/language-toggle";
-import logoFr from "@assets/kWh_Quebec_Logo-01_-_Rectangulaire_1764799021536.png";
-import logoEn from "@assets/kWh_Quebec_Logo-02_-_Rectangle_1764799021536.png";
+import { PublicHeader, PublicFooter } from "@/components/public-header";
+import { SEOHead } from "@/components/seo-head";
 
 export default function TermsPage() {
   const { language } = useI18n();
-  const currentLogo = language === "fr" ? logoFr : logoEn;
 
   const content = {
     fr: {
@@ -181,17 +180,13 @@ export default function TermsPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur border-b">
-        <div className="container mx-auto px-4 py-3 flex items-center justify-between gap-4">
-          <Link href="/">
-            <img src={currentLogo} alt={language === "fr" ? "Logo kWh Québec – Énergie solaire commerciale" : "kWh Québec Logo – Commercial Solar Energy"} className="h-10 w-auto cursor-pointer" />
-          </Link>
-          <div className="flex items-center gap-2">
-            <LanguageToggle />
-            <ThemeToggle />
-          </div>
-        </div>
-      </header>
+      <SEOHead
+        title={language === "fr" ? "Conditions d'utilisation | kWh Québec" : "Terms of Service | kWh Québec"}
+        description={language === "fr" ? "Conditions d'utilisation du site web et des services offerts par kWh Québec inc." : "Terms of service for the website and services offered by kWh Québec inc."}
+        locale={language}
+        canonical="https://www.kwh.quebec/conditions"
+      />
+      <PublicHeader />
 
       <main className="container mx-auto px-4 py-8 max-w-4xl">
         <Link href="/">
@@ -268,11 +263,7 @@ export default function TermsPage() {
         </div>
       </main>
 
-      <footer className="border-t py-6 mt-12">
-        <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          <p>© {new Date().getFullYear()} kWh Québec. {language === "fr" ? "Tous droits réservés." : "All rights reserved."}</p>
-        </div>
-      </footer>
+      <PublicFooter />
     </div>
   );
 }
