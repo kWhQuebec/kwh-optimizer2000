@@ -345,6 +345,13 @@ function PresentationPage() {
 
   const displaySim = optimizedSimulation ?? bestSimulation ?? null;
 
+  const isSyntheticData = (() => {
+    const sim = fullSimulation ?? displaySim;
+    if (!sim) return true;
+    if (typeof (sim as any).isSynthetic === 'boolean') return (sim as any).isSynthetic;
+    return !sim.hourlyProfile || (sim.hourlyProfile as any[]).length === 0;
+  })();
+
   const slideComponents: Record<SlideType, JSX.Element> = {
     hero: <HeroSlide site={site} simulation={displaySim} language={language} />,
     whySolarNow: <WhySolarNowSlide language={language} />,
@@ -357,12 +364,12 @@ function PresentationPage() {
     optimizationFrontier: <OptimizationFrontierSlide simulation={displaySim} language={language} />,
     surplusCredits: <SurplusCreditsSlide simulation={displaySim} language={language} />,
     financing: <FinancingSlide simulation={displaySim} language={language} />,
-    assumptions: <AssumptionsSlide language={language} isSyntheticData={!fullSimulation?.hourlyProfile || (fullSimulation.hourlyProfile as any[]).length === 0} />,
+    assumptions: <AssumptionsSlide language={language} isSyntheticData={isSyntheticData} />,
     systemElements: <SystemElementsSlide simulation={displaySim} language={language} />,
     deliveryAssurance: <DeliveryAssuranceSlide language={language} />,
     fitScore: <FitScoreSlide simulation={displaySim} language={language} />,
     timeline: <TimelineSlide language={language} />,
-    nextSteps: <NextStepsSlide simulation={displaySim} language={language} isSyntheticData={!displaySim?.hourlyProfile || (displaySim.hourlyProfile as any[]).length === 0} />,
+    nextSteps: <NextStepsSlide simulation={displaySim} language={language} isSyntheticData={isSyntheticData} />,
     credibility: <CredibilitySlide language={language} />,
   };
 
