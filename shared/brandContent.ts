@@ -319,7 +319,7 @@ export const BRAND_CONTENT = {
   },
 
   clientProvides: [
-    { labelFr: "Factures Hydro-Québec (12-24 mois)", labelEn: "Hydro-Québec bills (12-24 months)" },
+    { labelFr: "Données de consommation Hydro-Québec (CSV ou procuration)", labelEn: "Hydro-Québec consumption data (CSV or authorization)" },
     { labelFr: "Informations toiture (âge, état)", labelEn: "Roof information (age, condition)" },
     { labelFr: "Schéma unifilaire (si disponible)", labelEn: "Single-line diagram (if available)" },
     { labelFr: "Confirmation propriété / bail", labelEn: "Ownership / lease confirmation" },
