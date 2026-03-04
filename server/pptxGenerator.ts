@@ -728,6 +728,145 @@ export async function generatePresentationPPTX(
     });
   }
 
+  // ================= OPTIMIZATION FRONTIER SLIDE (conditional) =================
+  const frontier = (simulation as any).sensitivity?.frontier as Array<{
+    id: string; type: 'solar' | 'battery' | 'hybrid'; label: string;
+    pvSizeKW: number; battEnergyKWh: number; battPowerKW: number;
+    capexNet: number; npv25: number; isOptimal: boolean;
+    irr25?: number;
+  }> | undefined;
+
+  if (frontier && frontier.length > 0) {
+    const slideFrontier = pptx.addSlide({ masterName: "KWHMAIN" });
+
+    slideFrontier.addText(t("ANALYSE D'OPTIMISATION", "OPTIMIZATION ANALYSIS"), {
+      x: 0.5, y: 0.8, w: 9, h: 0.5,
+      fontSize: 22, bold: true, color: COLORS.blue
+    });
+
+    slideFrontier.addShape("rect", {
+      x: 0.5, y: 1.35, w: 2.5, h: 0.06, fill: { color: COLORS.gold }
+    });
+
+    slideFrontier.addText(
+      t("Chaque configuration analysée — solaire, stockage, hybride — est tracée pour identifier le scénario optimal.",
+        "Every analyzed configuration — solar, storage, hybrid — is plotted to identify the optimal scenario."), {
+      x: 0.5, y: 1.45, w: 9, h: 0.3,
+      fontSize: 10, italic: true, color: COLORS.mediumGray
+    });
+
+    const chartX = 0.8;
+    const chartY = 1.9;
+    const chartW = 8.4;
+    const chartH = 2.5;
+
+    slideFrontier.addShape("rect", {
+      x: chartX, y: chartY, w: chartW, h: chartH,
+      fill: { color: "F9FAFB" },
+      line: { color: COLORS.lightGray, width: 0.5 }
+    });
+
+    const capexValues = frontier.map(p => p.capexNet || 0);
+    const npvValues = frontier.map(p => p.npv25 || 0);
+    const minCapex = Math.min(...capexValues, 0);
+    const maxCapex = Math.max(...capexValues, 1) * 1.1;
+    const minNpv = Math.min(...npvValues, 0) * 1.1;
+    const maxNpv = Math.max(...npvValues, 1) * 1.1;
+    const capexRange = (maxCapex - minCapex) || 1;
+    const npvRange = (maxNpv - minNpv) || 1;
+
+    const typeColors: Record<string, string> = {
+      solar: COLORS.gold,
+      battery: COLORS.blue,
+      hybrid: COLORS.green,
+    };
+
+    frontier.forEach((point) => {
+      const px = chartX + ((point.capexNet - minCapex) / capexRange) * chartW;
+      const py = chartY + chartH - ((point.npv25 - minNpv) / npvRange) * chartH;
+      const color = typeColors[point.type] || COLORS.mediumGray;
+      const size = point.isOptimal ? 0.18 : 0.1;
+      const opacity = point.npv25 < 0 ? 35 : 100;
+
+      slideFrontier.addShape("ellipse", {
+        x: px - size / 2, y: py - size / 2, w: size, h: size,
+        fill: { color, transparency: 100 - opacity },
+      });
+
+      if (point.isOptimal) {
+        slideFrontier.addShape("ellipse", {
+          x: px - 0.12, y: py - 0.12, w: 0.24, h: 0.24,
+          line: { color: COLORS.gold, width: 2 },
+          fill: { type: "none" as any },
+        });
+      }
+    });
+
+    const npvZeroY = chartY + chartH - ((0 - minNpv) / npvRange) * chartH;
+    if (npvZeroY >= chartY && npvZeroY <= chartY + chartH) {
+      slideFrontier.addShape("line", {
+        x: chartX, y: npvZeroY, w: chartW, h: 0,
+        line: { color: "DC2626", width: 1, dashType: "dash" }
+      });
+      slideFrontier.addText("NPV = 0", {
+        x: chartX + chartW - 1, y: npvZeroY - 0.2, w: 1, h: 0.2,
+        fontSize: 7, color: "DC2626", align: "right"
+      });
+    }
+
+    slideFrontier.addText(t("Investissement net ($)", "Net Investment ($)"), {
+      x: chartX, y: chartY + chartH + 0.05, w: chartW, h: 0.2,
+      fontSize: 8, color: COLORS.mediumGray, align: "center"
+    });
+
+    slideFrontier.addText(fmtSmartCurrency(minCapex), {
+      x: chartX, y: chartY + chartH + 0.02, w: 1.2, h: 0.2,
+      fontSize: 7, color: COLORS.mediumGray, align: "left"
+    });
+    slideFrontier.addText(fmtSmartCurrency(maxCapex), {
+      x: chartX + chartW - 1.2, y: chartY + chartH + 0.02, w: 1.2, h: 0.2,
+      fontSize: 7, color: COLORS.mediumGray, align: "right"
+    });
+
+    const legendY = chartY + chartH + 0.3;
+    const legendItems = [
+      { label: t("Solaire", "Solar"), color: COLORS.gold },
+      { label: t("Stockage", "Storage"), color: COLORS.blue },
+      { label: t("Hybride", "Hybrid"), color: COLORS.green },
+    ];
+    legendItems.forEach((item, i) => {
+      const lx = chartX + i * 2.5;
+      slideFrontier.addShape("ellipse", {
+        x: lx, y: legendY + 0.03, w: 0.12, h: 0.12,
+        fill: { color: item.color }
+      });
+      slideFrontier.addText(item.label, {
+        x: lx + 0.18, y: legendY, w: 1.5, h: 0.2,
+        fontSize: 8, color: COLORS.darkGray
+      });
+    });
+
+    const optimalPoint = frontier.find(p => p.isOptimal);
+    if (optimalPoint) {
+      const optLabel = optimalPoint.type === 'solar'
+        ? `${formatSmartPower(optimalPoint.pvSizeKW, lang)}`
+        : optimalPoint.type === 'battery'
+          ? `${formatSmartEnergy(optimalPoint.battEnergyKWh, lang)}`
+          : `${formatSmartPower(optimalPoint.pvSizeKW, lang)} + ${formatSmartEnergy(optimalPoint.battEnergyKWh, lang)}`;
+
+      slideFrontier.addShape("rect", {
+        x: 0.5, y: legendY + 0.35, w: 9, h: 0.55,
+        fill: { color: COLORS.blue }
+      });
+      slideFrontier.addText(
+        t(`Scénario optimal: ${optLabel} — VAN ${fmtSmartCurrency(optimalPoint.npv25)} | TRI ${optimalPoint.irr25 ? (optimalPoint.irr25 * 100).toFixed(1) + '%' : 'N/A'}`,
+          `Optimal scenario: ${optLabel} — NPV ${fmtSmartCurrency(optimalPoint.npv25)} | IRR ${optimalPoint.irr25 ? (optimalPoint.irr25 * 100).toFixed(1) + '%' : 'N/A'}`), {
+        x: 0.7, y: legendY + 0.4, w: 8.6, h: 0.4,
+        fontSize: 11, bold: true, color: COLORS.gold, align: "center", valign: "middle"
+      });
+    }
+  }
+
   // ================= SURPLUS CREDITS SLIDE (conditional) =================
   const surplusExportedKWh = simulation.totalExportedKWh || 0;
   const surplusRevenue = simulation.annualSurplusRevenue || 0;

@@ -65,6 +65,9 @@ import {
   Line,
   Legend,
   ReferenceLine,
+  ScatterChart,
+  Scatter,
+  ZAxis,
 } from "recharts";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -114,6 +117,7 @@ const SLIDES = [
   'kpi',
   'waterfall',
   'cashflow',
+  'optimizationFrontier',
   'financing',
   'surplusCredits',
   'assumptions',
@@ -350,6 +354,7 @@ function PresentationPage() {
     kpi: <KPIResultsSlide simulation={displaySim} language={language} />,
     waterfall: <WaterfallSlide simulation={displaySim} language={language} />,
     cashflow: <CashflowSlide simulation={displaySim} language={language} />,
+    optimizationFrontier: <OptimizationFrontierSlide simulation={displaySim} language={language} />,
     surplusCredits: <SurplusCreditsSlide simulation={displaySim} language={language} />,
     financing: <FinancingSlide simulation={displaySim} language={language} />,
     assumptions: <AssumptionsSlide language={language} isSyntheticData={!fullSimulation?.hourlyProfile || (fullSimulation.hourlyProfile as any[]).length === 0} />,
@@ -1425,6 +1430,245 @@ function CashflowSlide({ simulation, language }: { simulation: SimulationRun | n
             <p style={{ color: '#6B7280' }}>
               {language === 'fr' ? 'Données de cash-flow non disponibles.' : 'Cash flow data not available.'}
             </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function OptimizationFrontierSlide({ simulation, language }: { simulation: SimulationRun | null; language: string }) {
+  const t = (fr: string, en: string) => language === 'fr' ? fr : en;
+  const frontier = (simulation?.sensitivity as any)?.frontier as Array<{
+    id: string;
+    type: 'solar' | 'battery' | 'hybrid';
+    pvSizeKW: number;
+    battEnergyKWh: number;
+    battPowerKW: number;
+    capexNet: number;
+    npv25: number;
+    isOptimal: boolean;
+    irr25?: number;
+    annualSavings?: number;
+    selfSufficiencyPercent?: number;
+  }> | undefined;
+
+  if (!frontier || frontier.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] px-6 md:px-8">
+        <div className="max-w-6xl w-full">
+          <SlideTitle>{t("Analyse d'optimisation", 'Optimization Analysis')}</SlideTitle>
+          <div className="rounded-2xl p-12 text-center shadow-sm" style={{ border: '1px solid #E5E7EB' }}>
+            <BarChart3 className="h-16 w-16 mx-auto mb-4 opacity-30" style={{ color: '#6B7280' }} />
+            <p style={{ color: '#6B7280' }}>
+              {t("Données d'optimisation non disponibles.", 'Optimization data not available.')}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const typeColors: Record<string, string> = {
+    solar: '#FFB005',
+    battery: '#003DA6',
+    hybrid: '#16A34A',
+  };
+
+  const typeLabels: Record<string, string> = {
+    solar: t('Solaire', 'Solar'),
+    battery: t('Stockage', 'Storage'),
+    hybrid: t('Hybride', 'Hybrid'),
+  };
+
+  const optimal = frontier.find(p => p.isOptimal);
+
+  const solarData = frontier.filter(p => p.type === 'solar');
+  const batteryData = frontier.filter(p => p.type === 'battery');
+  const hybridData = frontier.filter(p => p.type === 'hybrid');
+
+  const configCount = frontier.length;
+
+  const CustomTooltip = ({ active, payload }: any) => {
+    if (!active || !payload || !payload.length) return null;
+    const point = payload[0]?.payload;
+    if (!point) return null;
+    return (
+      <div className="rounded-lg p-3 shadow-lg" style={{ backgroundColor: '#FFFFFF', border: '1px solid #E5E7EB' }}>
+        <p className="font-bold text-sm mb-1" style={{ color: typeColors[point.type] || '#6B7280' }}>
+          {typeLabels[point.type] || point.type}
+        </p>
+        {point.pvSizeKW > 0 && (
+          <p className="text-xs" style={{ color: '#4B5563' }}>
+            {t('Solaire:', 'Solar:')} {formatSmartPower(point.pvSizeKW, language, 'kWc')}
+          </p>
+        )}
+        {point.battEnergyKWh > 0 && (
+          <p className="text-xs" style={{ color: '#4B5563' }}>
+            {t('Batterie:', 'Battery:')} {point.battEnergyKWh} kWh
+          </p>
+        )}
+        <p className="text-xs" style={{ color: '#4B5563' }}>
+          {t('Investissement net:', 'Net investment:')} {sharedFormatSmartCurrency(point.capexNet, language)}
+        </p>
+        <p className="text-xs font-semibold" style={{ color: point.npv25 >= 0 ? BRAND_COLORS.positive : BRAND_COLORS.negative }}>
+          {t('VAN 25 ans:', 'NPV 25 yrs:')} {sharedFormatSmartCurrency(point.npv25, language)}
+        </p>
+        {point.irr25 != null && (
+          <p className="text-xs" style={{ color: '#4B5563' }}>
+            {t('TRI:', 'IRR:')} {(point.irr25 * 100).toFixed(1)}%
+          </p>
+        )}
+        {point.isOptimal && (
+          <Badge className="mt-1 text-xs" style={{ backgroundColor: BRAND_COLORS.positive, color: '#FFFFFF' }}>
+            {t('Optimal', 'Optimal')}
+          </Badge>
+        )}
+      </div>
+    );
+  };
+
+  const renderScatterShape = (props: any) => {
+    const { cx, cy, payload } = props;
+    if (!cx || !cy) return <circle cx={0} cy={0} r={0} fill="none" />;
+    const color = typeColors[payload.type] || '#6B7280';
+    const opacity = payload.npv25 < 0 ? 0.35 : 1;
+
+    if (payload.isOptimal) {
+      return (
+        <g>
+          <circle cx={cx} cy={cy} r={12} fill="none" stroke={color} strokeWidth={2.5} opacity={opacity} />
+          <circle cx={cx} cy={cy} r={7} fill={color} opacity={opacity} />
+        </g>
+      );
+    }
+    return <circle cx={cx} cy={cy} r={5} fill={color} opacity={opacity} />;
+  };
+
+  return (
+    <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] px-6 md:px-8">
+      <div className="max-w-6xl w-full">
+        <SlideTitle
+          subtitle={t(
+            `${configCount} configurations analysées — le scénario optimal est identifié`,
+            `${configCount} configurations analyzed — optimal scenario identified`
+          )}
+        >
+          {t("Analyse d'optimisation", 'Optimization Analysis')}
+        </SlideTitle>
+
+        <div className="rounded-2xl p-4 md:p-6 shadow-sm" style={{ border: '1px solid #E5E7EB' }}>
+          <ResponsiveContainer width="100%" height={400}>
+            <ScatterChart margin={{ top: 20, right: 30, bottom: 20, left: 20 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+              <XAxis
+                dataKey="capexNet"
+                type="number"
+                name={t('Investissement net', 'Net Investment')}
+                stroke="#9CA3AF"
+                tick={{ fill: '#6B7280', fontSize: 12 }}
+                tickFormatter={(value: number) => sharedFormatSmartCurrency(value, language)}
+                label={{
+                  value: t('Investissement net ($)', 'Net Investment ($)'),
+                  position: 'insideBottom',
+                  offset: -10,
+                  fill: '#6B7280',
+                  fontSize: 12,
+                }}
+              />
+              <YAxis
+                dataKey="npv25"
+                type="number"
+                name={t('VAN 25 ans', 'NPV 25 yrs')}
+                stroke="#9CA3AF"
+                tick={{ fill: '#6B7280', fontSize: 12 }}
+                tickFormatter={(value: number) => sharedFormatSmartCurrency(value, language)}
+                label={{
+                  value: t('VAN 25 ans ($)', 'NPV 25 yrs ($)'),
+                  angle: -90,
+                  position: 'insideLeft',
+                  offset: 0,
+                  fill: '#6B7280',
+                  fontSize: 12,
+                }}
+              />
+              <ZAxis range={[60, 60]} />
+              <Tooltip content={<CustomTooltip />} />
+              <ReferenceLine y={0} stroke="#DC2626" strokeDasharray="6 3" strokeWidth={1.5} />
+              {solarData.length > 0 && (
+                <Scatter
+                  name={typeLabels.solar}
+                  data={solarData}
+                  fill={typeColors.solar}
+                  shape={renderScatterShape}
+                />
+              )}
+              {batteryData.length > 0 && (
+                <Scatter
+                  name={typeLabels.battery}
+                  data={batteryData}
+                  fill={typeColors.battery}
+                  shape={renderScatterShape}
+                />
+              )}
+              {hybridData.length > 0 && (
+                <Scatter
+                  name={typeLabels.hybrid}
+                  data={hybridData}
+                  fill={typeColors.hybrid}
+                  shape={renderScatterShape}
+                />
+              )}
+              <Legend
+                wrapperStyle={{ color: '#6B7280' }}
+              />
+            </ScatterChart>
+          </ResponsiveContainer>
+        </div>
+
+        {optimal && (
+          <div
+            className="mt-6 rounded-xl px-6 py-4 shadow-sm"
+            style={{
+              backgroundColor: 'rgba(22,163,74,0.06)',
+              border: `2px solid ${BRAND_COLORS.positive}`,
+            }}
+            data-testid="card-optimal-scenario"
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <CheckCircle2 className="h-5 w-5" style={{ color: BRAND_COLORS.positive }} />
+              <span className="text-base md:text-lg font-bold" style={{ color: BRAND_COLORS.positive }}>
+                {t('Scénario optimal identifié', 'Optimal scenario identified')}
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-4 md:gap-6">
+              {optimal.pvSizeKW > 0 && (
+                <div>
+                  <p className="text-xs" style={{ color: '#6B7280' }}>{t('Solaire', 'Solar')}</p>
+                  <p className="text-sm font-bold" style={{ color: '#1F2937' }}>{formatSmartPower(optimal.pvSizeKW, language, 'kWc')}</p>
+                </div>
+              )}
+              {optimal.battEnergyKWh > 0 && (
+                <div>
+                  <p className="text-xs" style={{ color: '#6B7280' }}>{t('Batterie', 'Battery')}</p>
+                  <p className="text-sm font-bold" style={{ color: '#1F2937' }}>{optimal.battEnergyKWh} kWh</p>
+                </div>
+              )}
+              <div>
+                <p className="text-xs" style={{ color: '#6B7280' }}>{t('Investissement net', 'Net Investment')}</p>
+                <p className="text-sm font-bold" style={{ color: '#1F2937' }}>{sharedFormatSmartCurrency(optimal.capexNet, language)}</p>
+              </div>
+              <div>
+                <p className="text-xs" style={{ color: '#6B7280' }}>{t('VAN 25 ans', 'NPV 25 yrs')}</p>
+                <p className="text-sm font-bold" style={{ color: BRAND_COLORS.positive }}>{sharedFormatSmartCurrency(optimal.npv25, language)}</p>
+              </div>
+              {optimal.irr25 != null && (
+                <div>
+                  <p className="text-xs" style={{ color: '#6B7280' }}>{t('TRI', 'IRR')}</p>
+                  <p className="text-sm font-bold" style={{ color: '#1F2937' }}>{(optimal.irr25 * 100).toFixed(1)}%</p>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
