@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -558,6 +558,13 @@ export function SyntheticProfileGenerator({ siteId, buildingSqFt, roofAreaSqM, b
   const [directKWh, setDirectKWh] = useState<number>(existingSyntheticParams?.annualConsumptionKWh || 0);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isAnalyzingWeb, setIsAnalyzingWeb] = useState(false);
+
+  useEffect(() => {
+    const newSqFt = buildingSqFt || Math.round((roofAreaSqM || 0) * 10.764);
+    if (newSqFt > 0) {
+      setSqFt(newSqFt);
+    }
+  }, [buildingSqFt, roofAreaSqM]);
 
   // Compute estimated annual kWh for preview
   const estimatedAnnual = (() => {

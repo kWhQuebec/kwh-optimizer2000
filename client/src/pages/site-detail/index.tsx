@@ -487,18 +487,18 @@ export default function SiteDetailPage() {
       }
       return polygons;
     },
-    onSuccess: (polygons) => {
+    onSuccess: async (polygons) => {
       queryClient.invalidateQueries({ queryKey: ['/api/sites', id, 'roof-polygons'] });
-      queryClient.invalidateQueries({ queryKey: ["/api/sites", id] });
       toast({ title: language === "fr" ? "Zones de toit sauvegardées" : "Roof areas saved" });
       const totalAreaSqM = polygons.reduce((sum, p) => sum + p.areaSqM, 0);
       const totalAreaSqFt = Math.round(totalAreaSqM * 10.764);
       if (totalAreaSqFt > 0) {
         setCustomAssumptions(prev => ({ ...prev, roofAreaSqFt: totalAreaSqFt }));
-        apiRequest("PATCH", `/api/sites/${id}`, { buildingSqFt: totalAreaSqFt, roofAreaSqM: Math.round(totalAreaSqM) }).then(() => {
-          queryClient.invalidateQueries({ queryKey: ["/api/sites", id] });
-        }).catch(() => {});
+        try {
+          await apiRequest("PATCH", `/api/sites/${id}`, { buildingSqFt: totalAreaSqFt, roofAreaSqM: Math.round(totalAreaSqM) });
+        } catch {}
       }
+      queryClient.invalidateQueries({ queryKey: ["/api/sites", id] });
       setIsRoofDrawingModalOpen(false);
     },
     onError: (error) => {
