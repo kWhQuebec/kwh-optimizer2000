@@ -2117,7 +2117,7 @@ function NextStepsSlide({ simulation, language, isSyntheticData = true }: { simu
             <div className="flex items-center gap-3 mb-4 justify-center">
               <Calendar className="h-6 w-6" style={{ color: BRAND_COLORS.primaryBlue }} />
               <h3 className="text-lg md:text-xl font-bold" style={{ color: BRAND_COLORS.primaryBlue }}>
-                {language === 'fr' ? 'Prochaine étape : validez votre projet' : 'Next step: validate your project'}
+                {language === 'fr' ? 'Prochaine étape : validation économique par immeuble' : 'Next step: economic validation per building'}
               </h3>
             </div>
             <p className="text-sm mb-4 text-center" style={{ color: '#4B5563' }}>
