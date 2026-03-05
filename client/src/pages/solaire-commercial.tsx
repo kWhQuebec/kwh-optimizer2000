@@ -14,6 +14,16 @@ import { useI18n } from "@/lib/i18n";
 import { SEOHead } from "@/components/seo-head";
 import { BRAND_CONTENT } from "@shared/brandContent";
 
+import heroImage from "@assets/generated_images/commercial_roof_solar_hero.png";
+import winterImage from "@assets/generated_images/solar_panels_winter_quebec.png";
+import engineerImage from "@assets/generated_images/engineer_rooftop_plans.png";
+import roofOverlay from "@assets/generated_images/commercial_roof_solar_potential_overlay.png";
+import screenshotAnalysis from "@assets/Screenshot_2025-12-11_at_9.14.32_PM_1765505832705.png";
+import screenshotFinancial from "@assets/Screenshot_2025-12-11_at_9.15.03_PM_1765505832704.png";
+import screenshotOptimization from "@assets/Screenshot_2025-12-11_at_2.44.53_PM_1765482299598.png";
+import warehouseImage from "@assets/stock_images/industrial_warehouse.jpg";
+import commercialImage from "@assets/stock_images/commercial_building_solar.jpg";
+
 export default function SolaireCommercialPage() {
   const { language } = useI18n();
   function t(fr: string, en: string): string;
@@ -156,6 +166,8 @@ export default function SolaireCommercialPage() {
     install: HardHat,
   };
 
+  const processImages = [screenshotAnalysis, screenshotFinancial, screenshotOptimization];
+
   const faqs = [
     {
       q: t(
@@ -222,8 +234,21 @@ export default function SolaireCommercialPage() {
 
       <PublicHeader />
 
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-primary/5 via-background to-background">
-        <div className="max-w-6xl mx-auto text-center">
+      {/* HERO — photo background with dark overlay */}
+      <section
+        className="relative py-24 sm:py-32 px-4 sm:px-6 lg:px-8 overflow-hidden"
+        data-testid="section-hero"
+      >
+        <div className="absolute inset-0">
+          <img
+            src={heroImage}
+            alt={t("Installation solaire commerciale au Québec", "Commercial solar installation in Quebec")}
+            className="w-full h-full object-cover"
+            loading="eager"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/60 to-black/80" />
+        </div>
+        <div className="relative max-w-6xl mx-auto text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -232,19 +257,19 @@ export default function SolaireCommercialPage() {
             <Badge className="mb-4" data-testid="badge-solar">
               {t("Solaire commercial", "Commercial Solar")}
             </Badge>
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4" data-testid="text-hero-title">
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4 text-white" data-testid="text-hero-title">
               {t(
                 "Énergie solaire pour bâtiments commerciaux et industriels",
                 "Solar Energy for Commercial & Industrial Buildings"
               )}
             </h1>
-            <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-4" data-testid="text-hero-subtitle">
+            <p className="text-xl text-white/90 max-w-3xl mx-auto mb-4" data-testid="text-hero-subtitle">
               {t(
                 "Réduisez vos coûts énergétiques jusqu'à 70% avec un système solaire clé en main, rentabilisé en 5 à 9 ans grâce aux incitatifs disponibles.",
                 "Reduce your energy costs by up to 70% with a turnkey solar system, paying for itself in 5 to 9 years thanks to available incentives."
               )}
             </p>
-            <p className="text-base text-muted-foreground max-w-2xl mx-auto mb-8">
+            <p className="text-base text-white/70 max-w-2xl mx-auto mb-8">
               {t(
                 "Licence RBQ, équipe certifiée CCQ & CNESST, ingénierie scellée — partout au Québec.",
                 "RBQ licensed, CCQ & CNESST certified team, sealed engineering — across Quebec."
@@ -258,7 +283,7 @@ export default function SolaireCommercialPage() {
                 </Button>
               </Link>
               <a href={`tel:${BRAND_CONTENT.contact.phone.replace(/\./g, "-")}`}>
-                <Button size="lg" variant="outline" className="gap-2" data-testid="button-call">
+                <Button size="lg" variant="outline" className="gap-2 bg-white/10 backdrop-blur-sm border-white/30 text-white" data-testid="button-call">
                   <Phone className="w-4 h-4" />
                   {BRAND_CONTENT.contact.phone}
                 </Button>
@@ -268,6 +293,7 @@ export default function SolaireCommercialPage() {
         </div>
       </section>
 
+      {/* INCENTIVES */}
       <section className="py-16 px-4 sm:px-6 lg:px-8" id="incentives">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
@@ -327,7 +353,7 @@ export default function SolaireCommercialPage() {
                 <div className="p-3 rounded-xl bg-primary/10 shrink-0">
                   <TrendingUp className="w-8 h-8 text-primary" />
                 </div>
-                <div className="space-y-3">
+                <div className="space-y-3 flex-1">
                   <h3 className="text-xl font-bold" data-testid="text-combined-title">
                     {t("Résultat : jusqu'à 60% du projet couvert", "Result: Up to 60% of the project covered")}
                   </h3>
@@ -364,6 +390,7 @@ export default function SolaireCommercialPage() {
         </div>
       </section>
 
+      {/* BENEFITS — with roof overlay image */}
       <section className="py-16 px-4 sm:px-6 lg:px-8 bg-muted/30">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
@@ -378,54 +405,77 @@ export default function SolaireCommercialPage() {
             </p>
           </div>
 
-          <div className="space-y-8">
-            {benefits.map((benefit, index) => (
-              <motion.div
-                key={benefit.title}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-              >
-                <Card data-testid={`card-benefit-${index}`}>
-                  <CardContent className="p-6 sm:p-8">
-                    <div className="flex flex-col md:flex-row gap-6">
-                      <div className="shrink-0">
-                        <div className="p-3 rounded-xl bg-primary/10 w-fit">
-                          <benefit.icon className="w-8 h-8 text-primary" />
+          <div className="grid lg:grid-cols-5 gap-8 items-start">
+            <div className="lg:col-span-3 space-y-6">
+              {benefits.map((benefit, index) => (
+                <motion.div
+                  key={benefit.title}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.1 }}
+                >
+                  <Card data-testid={`card-benefit-${index}`}>
+                    <CardContent className="p-6">
+                      <div className="flex gap-4">
+                        <div className="shrink-0">
+                          <div className="p-2.5 rounded-xl bg-primary/10 w-fit">
+                            <benefit.icon className="w-6 h-6 text-primary" />
+                          </div>
+                        </div>
+                        <div className="space-y-3 flex-1">
+                          <h3 className="text-lg font-bold" data-testid={`text-benefit-title-${index}`}>{benefit.title}</h3>
+                          <p className="text-sm text-muted-foreground">{benefit.description}</p>
+                          <ul className="grid sm:grid-cols-2 gap-1.5">
+                            {benefit.points.map((point) => (
+                              <li key={point} className="flex items-center gap-2 text-sm">
+                                <CheckCircle2 className="w-3.5 h-3.5 text-green-500 shrink-0" />
+                                {point}
+                              </li>
+                            ))}
+                          </ul>
                         </div>
                       </div>
-                      <div className="space-y-4 flex-1">
-                        <h3 className="text-xl font-bold" data-testid={`text-benefit-title-${index}`}>{benefit.title}</h3>
-                        <p className="text-muted-foreground">{benefit.description}</p>
-                        <ul className="grid sm:grid-cols-2 gap-2">
-                          {benefit.points.map((point) => (
-                            <li key={point} className="flex items-center gap-2 text-sm">
-                              <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
-                              {point}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))}
+            </div>
+            <motion.div
+              className="lg:col-span-2"
+              initial={{ opacity: 0, scale: 0.95 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.2 }}
+            >
+              <div className="rounded-md overflow-hidden border">
+                <img
+                  src={roofOverlay}
+                  alt={t("Analyse du potentiel solaire par satellite", "Satellite solar potential analysis")}
+                  className="w-full h-auto"
+                  loading="lazy"
+                  data-testid="img-roof-analysis"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground text-center mt-2">
+                {t("Analyse satellite du potentiel solaire — kWh Québec", "Satellite solar potential analysis — kWh Québec")}
+              </p>
+            </motion.div>
           </div>
         </div>
       </section>
 
+      {/* EQUIPMENT — Tier-based */}
       <section className="py-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-2xl sm:text-3xl font-bold mb-4" data-testid="text-equipment-title">
-              {t("Équipement de qualité industrielle", "Industrial-Grade Equipment")}
+              {t("Composants Tier 1 — Qualité institutionnelle", "Tier 1 Components — Institutional Quality")}
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
               {t(
-                "Nous utilisons des composants certifiés et éprouvés, sélectionnés pour la performance et la durabilité en climat québécois.",
-                "We use certified, proven components selected for performance and durability in Quebec's climate."
+                "Tous nos composants proviennent de fabricants classés Tier 1 par Bloomberg NEF, garantissant fiabilité bancaire et performance à long terme.",
+                "All our components come from Bloomberg NEF Tier 1 rated manufacturers, ensuring bankability and long-term performance."
               )}
             </p>
           </div>
@@ -433,13 +483,13 @@ export default function SolaireCommercialPage() {
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {equipment.map((item, index) => {
               const IconComp = equipmentIcons[item.iconCode] || Sun;
-              const label = t(item.labelFr, item.labelEn);
-              const specs = t(item.specsFr || "", item.specsEn || "");
+              const tierLabel = t(item.tierLabelFr, item.tierLabelEn);
+              const tierDesc = t(item.tierDescFr, item.tierDescEn);
               const warranty = t(item.warrantyFr, item.warrantyEn);
 
               return (
                 <motion.div
-                  key={label}
+                  key={tierLabel}
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
@@ -447,18 +497,27 @@ export default function SolaireCommercialPage() {
                 >
                   <Card className="h-full" data-testid={`card-equipment-${index}`}>
                     <CardContent className="p-6">
-                      <div className="p-3 rounded-xl bg-primary/10 w-fit mb-4">
-                        <IconComp className="w-6 h-6 text-primary" />
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="p-2.5 rounded-xl bg-primary/10">
+                          <IconComp className="w-6 h-6 text-primary" />
+                        </div>
+                        {item.tier === "Tier 1" && (
+                          <Badge variant="secondary" className="text-xs">Tier 1</Badge>
+                        )}
                       </div>
-                      <h3 className="text-base font-bold mb-2" data-testid={`text-equipment-name-${index}`}>{label}</h3>
-                      {specs && (
-                        <p className="text-sm text-muted-foreground mb-3">{specs}</p>
-                      )}
+                      <h3 className="text-base font-bold mb-2" data-testid={`text-equipment-name-${index}`}>{tierLabel}</h3>
+                      <p className="text-sm text-muted-foreground mb-3">{tierDesc}</p>
                       <div className="space-y-1.5 text-sm">
                         <div className="flex items-center gap-2">
                           <Shield className="w-3.5 h-3.5 text-primary shrink-0" />
                           <span className="text-muted-foreground">{t("Garantie", "Warranty")}: {warranty}</span>
                         </div>
+                        {item.efficiencyPct && (
+                          <div className="flex items-center gap-2">
+                            <Zap className="w-3.5 h-3.5 text-primary shrink-0" />
+                            <span className="text-muted-foreground">{t("Rendement", "Efficiency")}: {item.efficiencyPct}%</span>
+                          </div>
+                        )}
                         {item.certifications && item.certifications.length > 0 && (
                           <div className="flex flex-wrap gap-1 mt-2">
                             {item.certifications.slice(0, 3).map((cert) => (
@@ -497,6 +556,7 @@ export default function SolaireCommercialPage() {
         </div>
       </section>
 
+      {/* PROCESS — 5 steps with screenshots */}
       <section className="py-16 px-4 sm:px-6 lg:px-8 bg-muted/30">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
@@ -511,52 +571,82 @@ export default function SolaireCommercialPage() {
             </p>
           </div>
 
-          <div className="space-y-6">
-            {processSteps.map((step, index) => {
-              const IconComp = processIcons[step.iconCode] || Sun;
-              const title = t(step.stepFr, step.stepEn);
-              const duration = t(step.durationFr, step.durationEn);
-              const bullets = t(step.bulletsFr, step.bulletsEn);
+          <div className="grid lg:grid-cols-5 gap-8 items-start">
+            <div className="lg:col-span-3 space-y-6">
+              {processSteps.map((step, index) => {
+                const IconComp = processIcons[step.iconCode] || Sun;
+                const title = t(step.stepFr, step.stepEn);
+                const duration = t(step.durationFr, step.durationEn);
+                const bullets = t(step.bulletsFr, step.bulletsEn);
 
-              return (
-                <motion.div
-                  key={title}
-                  initial={{ opacity: 0, x: -20 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: index * 0.1 }}
-                >
-                  <Card data-testid={`card-step-${index}`}>
-                    <CardContent className="p-6">
-                      <div className="flex flex-col sm:flex-row gap-4">
-                        <div className="flex items-start gap-4 shrink-0">
-                          <div className="relative">
-                            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                              <IconComp className="w-6 h-6 text-primary" />
+                return (
+                  <motion.div
+                    key={title}
+                    initial={{ opacity: 0, x: -20 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: index * 0.1 }}
+                  >
+                    <Card data-testid={`card-step-${index}`}>
+                      <CardContent className="p-6">
+                        <div className="flex flex-col sm:flex-row gap-4">
+                          <div className="flex items-start gap-4 shrink-0">
+                            <div className="relative">
+                              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                                <IconComp className="w-6 h-6 text-primary" />
+                              </div>
+                              <Badge className="absolute -top-1 -right-2">{index + 1}</Badge>
                             </div>
-                            <Badge className="absolute -top-1 -right-2">{index + 1}</Badge>
+                          </div>
+                          <div className="flex-1 space-y-2">
+                            <div className="flex flex-wrap items-center gap-3">
+                              <h3 className="text-lg font-bold">{title}</h3>
+                              <Badge variant="outline" className="text-xs">{duration}</Badge>
+                            </div>
+                            <ul className="space-y-1.5">
+                              {bullets.map((bullet) => (
+                                <li key={bullet} className="flex items-start gap-2 text-sm text-muted-foreground">
+                                  <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
+                                  {bullet}
+                                </li>
+                              ))}
+                            </ul>
                           </div>
                         </div>
-                        <div className="flex-1 space-y-2">
-                          <div className="flex flex-wrap items-center gap-3">
-                            <h3 className="text-lg font-bold">{title}</h3>
-                            <Badge variant="outline" className="text-xs">{duration}</Badge>
-                          </div>
-                          <ul className="space-y-1.5">
-                            {bullets.map((bullet) => (
-                              <li key={bullet} className="flex items-start gap-2 text-sm text-muted-foreground">
-                                <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
-                                {bullet}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              );
-            })}
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                );
+              })}
+            </div>
+
+            <motion.div
+              className="lg:col-span-2 space-y-4"
+              initial={{ opacity: 0, scale: 0.95 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.3 }}
+            >
+              <div className="sticky top-24 space-y-4">
+                {processImages.map((img, idx) => (
+                  <div key={idx} className="rounded-md overflow-hidden border shadow-sm">
+                    <img
+                      src={img}
+                      alt={t(
+                        `Capture d'écran de la plateforme d'analyse ${idx + 1}`,
+                        `Analysis platform screenshot ${idx + 1}`
+                      )}
+                      className="w-full h-auto"
+                      loading="lazy"
+                      data-testid={`img-platform-screenshot-${idx}`}
+                    />
+                  </div>
+                ))}
+                <p className="text-xs text-muted-foreground text-center">
+                  {t("Aperçu de notre plateforme d'analyse solaire", "Preview of our solar analysis platform")}
+                </p>
+              </div>
+            </motion.div>
           </div>
 
           <Card className="mt-8 border-primary/30">
@@ -576,6 +666,7 @@ export default function SolaireCommercialPage() {
         </div>
       </section>
 
+      {/* WINTER MYTHS — with winter photo */}
       <section className="py-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
@@ -587,41 +678,67 @@ export default function SolaireCommercialPage() {
             </p>
           </div>
 
-          <div className="space-y-4 max-w-3xl mx-auto">
-            {winterMyths.map((myth, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 15 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.08 }}
-              >
-                <Card data-testid={`card-myth-${index}`}>
-                  <CardContent className="p-5">
-                    <div className="space-y-3">
-                      <div className="flex items-start gap-3">
-                        <XCircle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
-                        <div>
-                          <span className="text-xs font-medium text-destructive uppercase">{t("Mythe", "Myth")}</span>
-                          <p className="font-medium">{t(myth.mythFr, myth.mythEn)}</p>
+          <div className="grid lg:grid-cols-5 gap-8 items-start">
+            <motion.div
+              className="lg:col-span-2 order-2 lg:order-1"
+              initial={{ opacity: 0, scale: 0.95 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+            >
+              <div className="rounded-md overflow-hidden border">
+                <img
+                  src={winterImage}
+                  alt={t("Panneaux solaires en hiver au Québec", "Solar panels in Quebec winter")}
+                  className="w-full h-auto"
+                  loading="lazy"
+                  data-testid="img-winter-solar"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground text-center mt-2">
+                {t(
+                  "Le froid améliore le rendement des panneaux solaires",
+                  "Cold temperatures improve solar panel efficiency"
+                )}
+              </p>
+            </motion.div>
+
+            <div className="lg:col-span-3 order-1 lg:order-2 space-y-4">
+              {winterMyths.map((myth, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 15 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.08 }}
+                >
+                  <Card data-testid={`card-myth-${index}`}>
+                    <CardContent className="p-5">
+                      <div className="space-y-3">
+                        <div className="flex items-start gap-3">
+                          <XCircle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+                          <div>
+                            <span className="text-xs font-medium text-destructive uppercase">{t("Mythe", "Myth")}</span>
+                            <p className="font-medium">{t(myth.mythFr, myth.mythEn)}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-3">
+                          <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0 mt-0.5" />
+                          <div>
+                            <span className="text-xs font-medium text-green-600 uppercase">{t("Réalité", "Reality")}</span>
+                            <p className="text-sm text-muted-foreground">{t(myth.realityFr, myth.realityEn)}</p>
+                          </div>
                         </div>
                       </div>
-                      <div className="flex items-start gap-3">
-                        <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0 mt-0.5" />
-                        <div>
-                          <span className="text-xs font-medium text-green-600 uppercase">{t("Réalité", "Reality")}</span>
-                          <p className="text-sm text-muted-foreground">{t(myth.realityFr, myth.realityEn)}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
 
+      {/* TARGET SECTORS — with photos */}
       <section className="py-16 px-4 sm:px-6 lg:px-8 bg-muted/30">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
@@ -630,20 +747,29 @@ export default function SolaireCommercialPage() {
             </h2>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-6 max-w-2xl mx-auto">
-            <Card className="text-center" data-testid="card-sector-commercial">
-              <CardContent className="p-6">
-                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                  <Building2 className="w-8 h-8 text-primary" />
+          <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+            <Card data-testid="card-sector-commercial">
+              <div className="relative h-40 overflow-hidden rounded-t-md">
+                <img
+                  src={commercialImage}
+                  alt={t("Bâtiment commercial", "Commercial building")}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                <div className="absolute bottom-3 left-4 flex items-center gap-2">
+                  <Building2 className="w-6 h-6 text-white" />
+                  <h3 className="text-lg font-bold text-white">{t("Commercial", "Commercial")}</h3>
                 </div>
-                <h3 className="text-lg font-bold mb-2">{t("Commercial", "Commercial")}</h3>
+              </div>
+              <CardContent className="p-6">
                 <p className="text-sm text-muted-foreground mb-4">
                   {t(
                     "Immeubles de bureaux, centres commerciaux, hôtels, institutions — toits plats avec forte consommation diurne.",
                     "Office buildings, shopping centers, hotels, institutions — flat roofs with high daytime consumption."
                   )}
                 </p>
-                <ul className="text-sm text-left space-y-1.5">
+                <ul className="text-sm space-y-1.5">
                   {t(
                     ["Consommation en journée = autoconsommation élevée", "Toits plats larges et accessibles", "Factures mensuelles > 1 500 $"],
                     ["Daytime consumption = high self-consumption", "Large, accessible flat roofs", "Monthly bills > $1,500"]
@@ -656,19 +782,28 @@ export default function SolaireCommercialPage() {
                 </ul>
               </CardContent>
             </Card>
-            <Card className="text-center" data-testid="card-sector-industrial">
-              <CardContent className="p-6">
-                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                  <Factory className="w-8 h-8 text-primary" />
+            <Card data-testid="card-sector-industrial">
+              <div className="relative h-40 overflow-hidden rounded-t-md">
+                <img
+                  src={warehouseImage}
+                  alt={t("Bâtiment industriel", "Industrial building")}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                <div className="absolute bottom-3 left-4 flex items-center gap-2">
+                  <Factory className="w-6 h-6 text-white" />
+                  <h3 className="text-lg font-bold text-white">{t("Industriel", "Industrial")}</h3>
                 </div>
-                <h3 className="text-lg font-bold mb-2">{t("Industriel", "Industrial")}</h3>
+              </div>
+              <CardContent className="p-6">
                 <p className="text-sm text-muted-foreground mb-4">
                   {t(
                     "Entrepôts, centres de distribution, usines — grandes superficies de toiture et consommation élevée.",
                     "Warehouses, distribution centers, factories — large roof areas and high consumption."
                   )}
                 </p>
-                <ul className="text-sm text-left space-y-1.5">
+                <ul className="text-sm space-y-1.5">
                   {t(
                     ["Grande superficie de toiture disponible", "Synergie avec stockage (Tarif M)", "Potentiel de systèmes > 500 kW"],
                     ["Large available roof area", "Synergy with storage (Rate M)", "Potential for systems > 500 kW"]
@@ -685,31 +820,32 @@ export default function SolaireCommercialPage() {
         </div>
       </section>
 
+      {/* FAQ */}
       <section className="py-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-2xl sm:text-3xl font-bold mb-4" data-testid="text-faq-title">
-              {t("Questions fréquentes — Solaire commercial", "FAQ — Commercial Solar")}
+              {t("Questions fréquentes", "Frequently Asked Questions")}
             </h2>
           </div>
 
-          <Accordion type="single" collapsible className="space-y-2">
+          <Accordion type="single" collapsible className="space-y-3">
             {faqs.map((faq, index) => (
               <AccordionItem key={index} value={`faq-${index}`} className="border rounded-md px-4">
-                <AccordionTrigger className="text-left font-medium" data-testid={`button-faq-${index}`}>
+                <AccordionTrigger className="text-left font-medium" data-testid={`trigger-faq-${index}`}>
                   {faq.q}
                 </AccordionTrigger>
-                <AccordionContent className="text-muted-foreground" data-testid={`text-faq-answer-${index}`}>
+                <AccordionContent className="text-muted-foreground" data-testid={`content-faq-${index}`}>
                   {faq.a}
                 </AccordionContent>
               </AccordionItem>
             ))}
           </Accordion>
 
-          <div className="text-center mt-8">
+          <div className="text-center mt-6">
             <Link href="/ressources?tab=faq">
-              <Button variant="outline" className="gap-2" data-testid="link-faq-see-all">
-                {t("Voir toutes les FAQ", "See all FAQs")}
+              <Button variant="outline" className="gap-2" data-testid="link-all-faq">
+                {t("Voir toutes les FAQ", "View all FAQs")}
                 <ArrowRight className="w-4 h-4" />
               </Button>
             </Link>
@@ -717,52 +853,58 @@ export default function SolaireCommercialPage() {
         </div>
       </section>
 
-      <section className="py-12 px-4 sm:px-6 lg:px-8">
+      {/* CROSS-LINKS — with visuals */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-muted/30">
         <div className="max-w-4xl mx-auto">
-          <div className="grid sm:grid-cols-2 gap-6">
+          <div className="text-center mb-8">
+            <h2 className="text-2xl font-bold mb-2">
+              {t("Explorez nos solutions", "Explore Our Solutions")}
+            </h2>
+          </div>
+          <div className="grid md:grid-cols-2 gap-6">
             <Link href="/portfolio">
-              <Card className="h-full hover-elevate cursor-pointer" data-testid="link-solar-portfolio">
-                <CardContent className="p-6 flex items-start gap-4">
-                  <div className="p-3 rounded-xl bg-primary/10 shrink-0">
-                    <Building2 className="w-6 h-6 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold mb-1">
-                      {t("Voir nos projets", "View our projects")}
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      {t(
-                        "Découvrez notre portfolio de projets solaires commerciaux et industriels au Québec.",
-                        "Explore our portfolio of commercial and industrial solar projects in Quebec."
-                      )}
-                    </p>
-                    <span className="inline-flex items-center gap-1 mt-2 text-sm font-medium text-primary">
-                      {t("Portfolio", "Portfolio")} <ArrowRight className="w-3.5 h-3.5" />
-                    </span>
-                  </div>
+              <Card className="hover-elevate h-full" data-testid="card-link-portfolio">
+                <div className="relative h-32 overflow-hidden rounded-t-md">
+                  <img
+                    src={engineerImage}
+                    alt={t("Portfolio de projets", "Project portfolio")}
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                </div>
+                <CardContent className="p-4">
+                  <h3 className="font-bold mb-1">{t("Portfolio de projets", "Project Portfolio")}</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {t(
+                      "Découvrez nos projets solaires réalisés à travers le Québec.",
+                      "Discover our completed solar projects across Quebec."
+                    )}
+                  </p>
+                  <span className="text-sm text-primary flex items-center gap-1 mt-2">
+                    {t("Voir les projets", "View projects")} <ArrowRight className="w-3 h-3" />
+                  </span>
                 </CardContent>
               </Card>
             </Link>
             <Link href="/stockage-energie">
-              <Card className="h-full hover-elevate cursor-pointer" data-testid="link-solar-stockage">
-                <CardContent className="p-6 flex items-start gap-4">
-                  <div className="p-3 rounded-xl bg-primary/10 shrink-0">
-                    <Zap className="w-6 h-6 text-primary" />
+              <Card className="hover-elevate h-full" data-testid="card-link-storage">
+                <div className="relative h-32 overflow-hidden rounded-t-md bg-primary/5 flex items-center justify-center">
+                  <div className="p-4 rounded-full bg-primary/10">
+                    <Zap className="w-10 h-10 text-primary" />
                   </div>
-                  <div>
-                    <h3 className="font-semibold mb-1">
-                      {t("Stockage par batterie", "Battery Storage")}
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      {t(
-                        "Maximisez votre investissement solaire avec le stockage d'énergie — écrêtage de pointe, secours et optimisation.",
-                        "Maximize your solar investment with energy storage — peak shaving, backup, and optimization."
-                      )}
-                    </p>
-                    <span className="inline-flex items-center gap-1 mt-2 text-sm font-medium text-primary">
-                      {t("En savoir plus", "Learn more")} <ArrowRight className="w-3.5 h-3.5" />
-                    </span>
-                  </div>
+                </div>
+                <CardContent className="p-4">
+                  <h3 className="font-bold mb-1">{t("Stockage par batterie", "Battery Storage")}</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {t(
+                      "Écrêtage de pointe, alimentation de secours et intégration solaire+batterie.",
+                      "Peak shaving, backup power, and solar+battery integration."
+                    )}
+                  </p>
+                  <span className="text-sm text-primary flex items-center gap-1 mt-2">
+                    {t("En savoir plus", "Learn more")} <ArrowRight className="w-3 h-3" />
+                  </span>
                 </CardContent>
               </Card>
             </Link>
@@ -770,31 +912,56 @@ export default function SolaireCommercialPage() {
         </div>
       </section>
 
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-primary text-primary-foreground">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-2xl sm:text-3xl font-bold mb-4" data-testid="text-cta-title">
-            {t("Découvrez le potentiel solaire de votre bâtiment", "Discover your building's solar potential")}
-          </h2>
-          <p className="text-lg opacity-90 mb-8">
-            {t(
-              "Notre analyse gratuite inclut une estimation des économies, du retour sur investissement et des incitatifs disponibles — en quelques minutes.",
-              "Our free analysis includes an estimate of savings, ROI, and available incentives — in just minutes."
-            )}
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/#paths">
-              <Button size="lg" variant="secondary" className="gap-2" data-testid="button-cta-analysis">
-                {t("Commencer mon analyse — Gratuit", "Start my analysis — Free")}
-                <ArrowRight className="w-4 h-4" />
-              </Button>
-            </Link>
-            <a href={`mailto:${BRAND_CONTENT.contact.email}`}>
-              <Button size="lg" variant="outline" className="gap-2 border-primary-foreground/30 text-primary-foreground">
-                <Mail className="w-4 h-4" />
-                {t("Nous contacter", "Contact us")}
-              </Button>
-            </a>
-          </div>
+      {/* FINAL CTA */}
+      <section className="relative py-20 px-4 sm:px-6 lg:px-8 overflow-hidden">
+        <div className="absolute inset-0">
+          <img
+            src={heroImage}
+            alt=""
+            className="w-full h-full object-cover"
+            loading="lazy"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/80 to-black/70" />
+        </div>
+        <div className="relative max-w-4xl mx-auto text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            <h2 className="text-2xl sm:text-3xl font-bold mb-4 text-white" data-testid="text-cta-title">
+              {t(
+                "Prêt à réduire vos coûts énergétiques?",
+                "Ready to reduce your energy costs?"
+              )}
+            </h2>
+            <p className="text-lg text-white/80 max-w-2xl mx-auto mb-8">
+              {t(
+                "Obtenez une analyse gratuite du potentiel solaire de votre bâtiment en quelques minutes.",
+                "Get a free analysis of your building's solar potential in minutes."
+              )}
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link href="/#paths">
+                <Button size="lg" className="gap-2" data-testid="button-cta-analysis">
+                  {t("Analyse gratuite", "Free Analysis")}
+                  <ArrowRight className="w-4 h-4" />
+                </Button>
+              </Link>
+              <a href={`tel:${BRAND_CONTENT.contact.phone.replace(/\./g, "-")}`}>
+                <Button size="lg" variant="outline" className="gap-2 bg-white/10 backdrop-blur-sm border-white/30 text-white" data-testid="button-cta-call">
+                  <Phone className="w-4 h-4" />
+                  {BRAND_CONTENT.contact.phone}
+                </Button>
+              </a>
+              <a href={`mailto:${BRAND_CONTENT.contact.email}`}>
+                <Button size="lg" variant="outline" className="gap-2 bg-white/10 backdrop-blur-sm border-white/30 text-white" data-testid="button-cta-email">
+                  <Mail className="w-4 h-4" />
+                  {BRAND_CONTENT.contact.email}
+                </Button>
+              </a>
+            </div>
+          </motion.div>
         </div>
       </section>
 

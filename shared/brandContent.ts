@@ -101,6 +101,11 @@ export const BRAND_CONTENT = {
     {
       labelFr: "Panneaux Jinko Solar N-type TOPCon",
       labelEn: "Jinko Solar N-type TOPCon panels",
+      tierLabelFr: "Modules solaires Tier 1",
+      tierLabelEn: "Tier 1 Solar Modules",
+      tierDescFr: "Fabricant classé Tier 1 par Bloomberg NEF — fiabilité bancaire confirmée",
+      tierDescEn: "Bloomberg NEF Tier 1 rated manufacturer — bankability confirmed",
+      tier: "Tier 1",
       manufacturer: "Jinko Solar",
       warrantyFr: "30 ans",
       warrantyEn: "30 years",
@@ -116,6 +121,11 @@ export const BRAND_CONTENT = {
     {
       labelFr: "Onduleurs Kaco Blueplanet",
       labelEn: "Kaco Blueplanet inverters",
+      tierLabelFr: "Onduleurs Tier 1",
+      tierLabelEn: "Tier 1 Inverters",
+      tierDescFr: "Rendement > 98%, certifié pour interconnexion réseau nord-américain",
+      tierDescEn: "Efficiency > 98%, certified for North American grid interconnection",
+      tier: "Tier 1",
       manufacturer: "Kaco New Energy",
       warrantyFr: "10 ans (ext. 15 ans)",
       warrantyEn: "10 yrs (ext. 15 yrs)",
@@ -131,6 +141,11 @@ export const BRAND_CONTENT = {
     {
       labelFr: "Structure de montage KB Racking",
       labelEn: "KB Racking mounting structure",
+      tierLabelFr: "Structure de montage Tier 1",
+      tierLabelEn: "Tier 1 Mounting System",
+      tierDescFr: "Système ballasté sans pénétration — ingénierie scellée par un ingénieur",
+      tierDescEn: "Non-penetrating ballasted system — P.Eng. sealed engineering",
+      tier: "Tier 1",
       manufacturer: "KB Racking",
       warrantyFr: "25 ans",
       warrantyEn: "25 years",
@@ -146,6 +161,11 @@ export const BRAND_CONTENT = {
     {
       labelFr: "Main d'œuvre certifiée",
       labelEn: "Certified workmanship",
+      tierLabelFr: "Équipe certifiée kWh Québec",
+      tierLabelEn: "kWh Québec Certified Team",
+      tierDescFr: "Entrepreneur licencié RBQ, équipes CCQ & CNESST conformes",
+      tierDescEn: "RBQ licensed contractor, CCQ & CNESST compliant crews",
+      tier: "kWh",
       manufacturer: "kWh Québec",
       warrantyFr: "10 ans",
       warrantyEn: "10 years",
@@ -737,6 +757,9 @@ export function getExclusions(lang: Lang) {
 export function getEquipment(lang: Lang) {
   return BRAND_CONTENT.equipment.map(e => ({
     label: lang === "fr" ? e.labelFr : e.labelEn,
+    tierLabel: lang === "fr" ? e.tierLabelFr : e.tierLabelEn,
+    tierDesc: lang === "fr" ? e.tierDescFr : e.tierDescEn,
+    tier: e.tier,
     manufacturer: e.manufacturer,
     warranty: lang === "fr" ? e.warrantyFr : e.warrantyEn,
     specs: lang === "fr" ? e.specsFr : e.specsEn,

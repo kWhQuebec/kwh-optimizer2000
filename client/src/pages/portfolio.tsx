@@ -8,6 +8,7 @@ import { useI18n } from "@/lib/i18n";
 import { Link } from "wouter";
 import { PublicHeader, PublicFooter } from "@/components/public-header";
 import { SEOHead } from "@/components/seo-head";
+import heroImage from "@assets/hero-optimized.jpg";
 
 interface PortfolioSite {
   id: string;
@@ -278,15 +279,21 @@ export default function Portfolio() {
       <PublicHeader />
       
       <main className="flex-1 pt-16">
-        <section className="py-12 md:py-16 bg-gradient-to-b from-primary/5 to-background">
-          <div className="container mx-auto px-4">
+        <section className="relative py-16 md:py-24 overflow-hidden">
+          <img
+            src={heroImage}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/60 to-black/80" />
+          <div className="relative container mx-auto px-4">
             <div className="text-center max-w-3xl mx-auto space-y-4">
-              <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight">
+              <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight text-white">
                 {language === "fr" 
                   ? "Portfolio de projets solaires" 
                   : "Solar Projects Portfolio"}
               </h1>
-              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              <p className="text-lg text-white/70 max-w-2xl mx-auto">
                 {language === "fr"
                   ? "Découvrez notre portfolio de projets solaires commerciaux et industriels en développement au Québec."
                   : "Explore our portfolio of commercial and industrial solar projects in development across Québec."}
@@ -296,23 +303,23 @@ export default function Portfolio() {
             {!isLoading && sites && (
               <div className="flex flex-wrap justify-center gap-8 mt-8">
                 <div className="text-center">
-                  <p className="text-3xl md:text-4xl font-bold text-primary">{projectCount}</p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-3xl md:text-4xl font-bold text-white">{projectCount}</p>
+                  <p className="text-sm text-white/70">
                     {language === "fr" ? "Sites" : "Sites"}
                   </p>
                 </div>
                 <div className="text-center">
-                  <p className="text-3xl md:text-4xl font-bold text-primary">
+                  <p className="text-3xl md:text-4xl font-bold text-white">
                     {totalCapacity.toLocaleString(language === "fr" ? "fr-CA" : "en-CA", { maximumFractionDigits: 0 })}
                   </p>
-                  <p className="text-sm text-muted-foreground">kW DC</p>
+                  <p className="text-sm text-white/70">kW DC</p>
                 </div>
                 {totalProductionMwh > 0 && (
                   <div className="text-center">
-                    <p className="text-3xl md:text-4xl font-bold text-primary" data-testid="text-total-production">
+                    <p className="text-3xl md:text-4xl font-bold text-white" data-testid="text-total-production">
                       {Math.round(totalProductionMwh / 1000).toLocaleString(language === "fr" ? "fr-CA" : "en-CA")}
                     </p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-white/70">
                       {language === "fr" ? "MWh/an estimés" : "Est. MWh/year"}
                     </p>
                   </div>

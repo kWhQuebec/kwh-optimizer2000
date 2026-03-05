@@ -15,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useI18n } from "@/lib/i18n";
+import roofOverlay from "@assets/generated_images/commercial_roof_solar_potential_overlay.png";
 import { SEOHead, seoContent, getFAQSchema } from "@/components/seo-head";
 import { PublicHeader, PublicFooter } from "@/components/public-header";
 import type { BlogArticle, NewsArticle } from "@shared/schema";
@@ -609,8 +610,11 @@ export default function RessourcesPage() {
       <PublicHeader />
 
       {/* Hero */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-primary/5 via-background to-background">
-        <div className="max-w-6xl mx-auto text-center">
+      <section className="relative py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-primary/5 via-background to-background overflow-hidden">
+        <div className="absolute right-0 top-0 w-1/3 h-full opacity-[0.07] pointer-events-none hidden lg:block">
+          <img src={roofOverlay} alt="" className="w-full h-full object-cover" />
+        </div>
+        <div className="relative max-w-6xl mx-auto text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
