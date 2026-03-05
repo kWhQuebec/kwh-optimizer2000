@@ -462,6 +462,57 @@ export default function StockageEnergiePage() {
         </div>
       </section>
 
+      <section className="py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto">
+          <div className="grid sm:grid-cols-2 gap-6">
+            <Link href="/portfolio">
+              <Card className="h-full hover-elevate cursor-pointer" data-testid="link-stockage-portfolio">
+                <CardContent className="p-6 flex items-start gap-4">
+                  <div className="p-3 rounded-xl bg-primary/10 shrink-0">
+                    <Building2 className="w-6 h-6 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold mb-1">
+                      {language === "fr" ? "Voir nos projets" : "View our projects"}
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      {language === "fr"
+                        ? "Découvrez notre portfolio de projets solaires et stockage au Québec."
+                        : "Explore our portfolio of solar and storage projects in Quebec."}
+                    </p>
+                    <span className="inline-flex items-center gap-1 mt-2 text-sm font-medium text-primary">
+                      {language === "fr" ? "Portfolio" : "Portfolio"} <ArrowRight className="w-3.5 h-3.5" />
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+            <Link href="/ressources?tab=faq">
+              <Card className="h-full hover-elevate cursor-pointer" data-testid="link-stockage-faq">
+                <CardContent className="p-6 flex items-start gap-4">
+                  <div className="p-3 rounded-xl bg-primary/10 shrink-0">
+                    <Zap className="w-6 h-6 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold mb-1">
+                      {language === "fr" ? "FAQ solaire & stockage" : "Solar & storage FAQ"}
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      {language === "fr"
+                        ? "Consultez toutes nos réponses aux questions fréquentes sur le solaire et le stockage."
+                        : "Browse all our answers to frequently asked questions about solar and storage."}
+                    </p>
+                    <span className="inline-flex items-center gap-1 mt-2 text-sm font-medium text-primary">
+                      {language === "fr" ? "Ressources" : "Resources"} <ArrowRight className="w-3.5 h-3.5" />
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+          </div>
+        </div>
+      </section>
+
       <section className="py-16 px-4 sm:px-6 lg:px-8 bg-primary text-primary-foreground">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-2xl sm:text-3xl font-bold mb-4" data-testid="text-cta-title">

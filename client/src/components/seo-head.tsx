@@ -254,6 +254,73 @@ export const getHowToSchema = (lang: "fr" | "en"): StructuredData => ({
   ]
 });
 
+export const getLandingFAQSchema = (lang: "fr" | "en"): StructuredData => ({
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": lang === "fr"
+        ? "Combien coûte une installation solaire commerciale?"
+        : "How much does a commercial solar installation cost?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": lang === "fr"
+          ? "Le coût varie selon la taille du système et le bâtiment, mais en général de 1,800$ à 2,500$ par kW. Avec les incitatifs gouvernementaux couvrant jusqu'à 60% du projet, votre investissement net tombe à 700$ à 1,000$ par kW. Les systèmes plus grands bénéficient généralement de meilleurs prix unitaires."
+          : "Cost varies by system size and building, but typically ranges from $1,800 to $2,500 per kW. With government incentives covering up to 60% of the project, your net investment drops to $700 to $1,000 per kW. Larger systems generally benefit from better unit pricing."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": lang === "fr"
+        ? "Quels incitatifs sont disponibles au Québec?"
+        : "What incentives are available in Quebec?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": lang === "fr"
+          ? "Trois niveaux d'incitatifs: (1) Crédit Hydro-Québec jusqu'à 40% du projet, (2) Crédit d'impôt fédéral 30% pour technologies propres, (3) Traitement fiscal avantageux avec 100% déductible en première année. Ces incitatifs peuvent être combinés pour un soutien total de jusqu'à 60% du coût du projet."
+          : "Three levels of incentives: (1) Hydro-Québec credit up to 40% of the project, (2) Federal 30% investment tax credit for clean technology, (3) Favorable tax treatment with 100% deductible in year 1. These incentives can be combined for total support up to 60% of project cost."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": lang === "fr"
+        ? "Combien de temps prend l'installation?"
+        : "How long does installation take?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": lang === "fr"
+          ? "Le processus complet prend généralement 4-8 mois selon la complexité du projet: estimation gratuite (quelques minutes), étude personnalisée avec données Hydro-Québec réelles (7 jours), conception préliminaire et visite technique (2 semaines), plans et soumission forfaitaire (4-8 semaines), et permis et installation clé en main (10-18 semaines)."
+          : "The complete process typically takes 4-8 months depending on project complexity: free estimate (a few minutes), personalized study with real Hydro-Québec data (7 days), preliminary design and site visit (2 weeks), plans and fixed-price quote (4-8 weeks), and permits and turnkey installation (10-18 weeks)."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": lang === "fr"
+        ? "Quelle est la durée de vie des panneaux solaires?"
+        : "What is the lifespan of solar panels?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": lang === "fr"
+          ? "Les panneaux solaires modernes (TOPCon N-type) ont une durée de vie de 25-30 ans avec une garantie de performance. Avec une dégradation de seulement 0,35-0,5% par année après la première année, ils produisent encore environ 90% de leur capacité initiale après 25 ans."
+          : "Modern solar panels (TOPCon N-type) have a lifespan of 25-30 years with a performance warranty. With degradation of only 0.35-0.5% per year after Year 1, they still produce about 90% of initial capacity after 25 years."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": lang === "fr"
+        ? "Le solaire augmente-t-il la valeur de mon bâtiment?"
+        : "Does solar increase my building's property value?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": lang === "fr"
+          ? "Oui. Les études montrent que les bâtiments avec systèmes solaires se vendent entre 3-4% plus cher, soit environ 1 000$/kW installé en valeur ajoutée. Au-delà de la valeur immédiate, les acheteurs apprécient les factures énergétiques réduites et les faibles coûts d'exploitation."
+          : "Yes. Studies show that buildings with solar systems sell for 3-4% more, representing approximately $1,000/kW installed in added value. Beyond immediate value, buyers appreciate reduced energy bills and low operating costs."
+      }
+    }
+  ]
+});
+
 export const getFAQSchema = (lang: "fr" | "en"): StructuredData => ({
   "@context": "https://schema.org",
   "@type": "FAQPage",

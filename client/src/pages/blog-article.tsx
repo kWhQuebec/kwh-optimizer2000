@@ -49,7 +49,7 @@ export default function BlogArticlePage() {
           <h1 className="text-2xl font-bold mb-4">
             {language === "fr" ? "Article introuvable" : "Article not found"}
           </h1>
-          <Link href="/blog">
+          <Link href="/ressources?tab=guides">
             <Button variant="outline">
               <ArrowLeft className="w-4 h-4 mr-2" />
               {t("blog.backToList")}
@@ -79,16 +79,22 @@ export default function BlogArticlePage() {
     "@type": "Article",
     headline: title,
     description: metaDescription || title,
+    articleBody: content ? content.replace(/<[^>]*>/g, '').slice(0, 5000) : undefined,
     author: {
       "@type": "Organization",
       name: article.authorName || "kWh Québec"
     },
     publisher: {
       "@type": "Organization",
-      name: "kWh Québec"
+      name: "kWh Québec",
+      logo: {
+        "@type": "ImageObject",
+        url: "https://www.kwh.quebec/assets/logo-fr.png"
+      }
     },
     datePublished: article.publishedAt,
     dateModified: article.updatedAt || article.publishedAt,
+    ...(article.featuredImage ? { image: article.featuredImage } : {}),
     mainEntityOfPage: {
       "@type": "WebPage",
       "@id": `${window.location.origin}/blog/${slug}`
@@ -128,7 +134,7 @@ export default function BlogArticlePage() {
               <Link href="/">
                 <Button variant="ghost" data-testid="link-home">{t("nav.home")}</Button>
               </Link>
-              <Link href="/blog">
+              <Link href="/ressources?tab=guides">
                 <Button variant="ghost" data-testid="link-blog">{language === "fr" ? "Ressources" : "Resources"}</Button>
               </Link>
               <LanguageToggle />
@@ -138,7 +144,7 @@ export default function BlogArticlePage() {
         </header>
 
         <main className="container mx-auto px-4 py-12 max-w-4xl">
-          <Link href="/blog">
+          <Link href="/ressources?tab=guides">
             <Button variant="ghost" className="mb-6" data-testid="button-back">
               <ArrowLeft className="w-4 h-4 mr-2" />
               {t("blog.backToList")}

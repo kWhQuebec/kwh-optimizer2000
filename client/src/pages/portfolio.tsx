@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Sun, MapPin, Zap, Building2, ArrowRight, ChevronDown, DollarSign, BarChart3 } from "lucide-react";
+import { Sun, MapPin, Zap, Building2, ArrowRight, ChevronDown, DollarSign, BarChart3, BookOpen, BatteryCharging } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -341,6 +341,39 @@ export default function Portfolio() {
                 onLoadMore={handleLoadMore}
               />
             )}
+          </div>
+        </section>
+
+        <section className="py-12 border-t">
+          <div className="container mx-auto px-4">
+            <div className="max-w-2xl mx-auto text-center space-y-4">
+              <h2 className="text-xl font-semibold" data-testid="text-portfolio-crosslink-title">
+                {language === "fr"
+                  ? "Comment ça fonctionne?"
+                  : "How does it work?"}
+              </h2>
+              <p className="text-muted-foreground text-sm">
+                {language === "fr"
+                  ? "Consultez nos guides et ressources pour comprendre le processus d'un projet solaire commercial."
+                  : "Browse our guides and resources to understand the commercial solar project process."}
+              </p>
+              <div className="flex flex-wrap justify-center gap-4">
+                <Link href="/ressources?tab=guides">
+                  <Button variant="outline" className="gap-2" data-testid="link-portfolio-guides">
+                    <BookOpen className="w-4 h-4" />
+                    {language === "fr" ? "Guides & ressources" : "Guides & resources"}
+                    <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </Link>
+                <Link href="/stockage-energie">
+                  <Button variant="outline" className="gap-2" data-testid="link-portfolio-stockage">
+                    <BatteryCharging className="w-4 h-4" />
+                    {language === "fr" ? "Stockage par batterie" : "Battery storage"}
+                    <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </Link>
+              </div>
+            </div>
           </div>
         </section>
       </main>

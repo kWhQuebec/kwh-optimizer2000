@@ -14,7 +14,7 @@ export default function PrivacyPage() {
   const content = {
     fr: {
       title: "Politique de confidentialité",
-      lastUpdated: "Dernière mise à jour: Janvier 2026",
+      lastUpdated: "Dernière mise à jour: Mars 2026",
       intro: "kWh Québec s'engage à protéger vos renseignements personnels conformément à la Loi 25 sur la protection des renseignements personnels dans le secteur privé du Québec.",
       sections: [
         {
@@ -77,7 +77,7 @@ export default function PrivacyPage() {
     },
     en: {
       title: "Privacy Policy",
-      lastUpdated: "Last updated: January 2026",
+      lastUpdated: "Last updated: March 2026",
       intro: "kWh Québec is committed to protecting your personal information in accordance with Quebec's Law 25 on the protection of personal information in the private sector.",
       sections: [
         {

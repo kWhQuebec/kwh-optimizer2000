@@ -14,7 +14,7 @@ export default function TermsPage() {
   const content = {
     fr: {
       title: "Conditions d'utilisation",
-      lastUpdated: "Dernière mise à jour: Janvier 2026",
+      lastUpdated: "Dernière mise à jour: Mars 2026",
       intro: "Ces conditions d'utilisation régissent l'accès et l'utilisation du site web et des services offerts par kWh Québec inc.",
       sections: [
         {
@@ -95,7 +95,7 @@ export default function TermsPage() {
     },
     en: {
       title: "Terms of Service",
-      lastUpdated: "Last updated: January 2026",
+      lastUpdated: "Last updated: March 2026",
       intro: "These terms of service govern your access to and use of the website and services offered by kWh Québec inc.",
       sections: [
         {

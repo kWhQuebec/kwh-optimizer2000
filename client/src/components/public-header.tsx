@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LanguageToggle } from "@/components/language-toggle";
 import { useI18n } from "@/lib/i18n";
-import { Phone } from "lucide-react";
+import { Phone, ChevronDown } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
 import logoFr from "@assets/kWh_Quebec_Logo-01_-_Rectangulaire_1764799021536.png";
 import logoEn from "@assets/kWh_Quebec_Logo-02_-_Rectangle_1764799021536.png";
 
@@ -13,13 +14,94 @@ interface NavItem {
   labelEn: string;
 }
 
+interface DropdownNavItem {
+  labelFr: string;
+  labelEn: string;
+  children: NavItem[];
+}
+
+const SERVICES_DROPDOWN: DropdownNavItem = {
+  labelFr: "Services",
+  labelEn: "Services",
+  children: [
+    { href: "/#services", labelFr: "Solaire commercial", labelEn: "Commercial Solar" },
+    { href: "/stockage-energie", labelFr: "Stockage par batterie", labelEn: "Battery Storage" },
+  ],
+};
+
 const NAV_ITEMS: NavItem[] = [
-  { href: "/", labelFr: "Accueil", labelEn: "Home" },
-  { href: "/ressources", labelFr: "Ressources", labelEn: "Resources" },
-  { href: "/blog?tab=nouvelles", labelFr: "Nouvelles", labelEn: "News" },
   { href: "/portfolio", labelFr: "Portfolio", labelEn: "Portfolio" },
-  { href: "/stockage-energie", labelFr: "Stockage", labelEn: "Storage" },
+  { href: "/ressources", labelFr: "Ressources", labelEn: "Resources" },
 ];
+
+function ServicesDropdown({ language, location }: { language: string; location: string }) {
+  const [open, setOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const isChildActive = SERVICES_DROPDOWN.children.some((child) => {
+    const p = child.href.split("#")[0].split("?")[0];
+    return p !== "/" && location.startsWith(p);
+  });
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <button
+        onClick={() => setOpen((prev) => !prev)}
+        className={`flex items-center gap-1 text-sm transition-colors ${
+          isChildActive ? "font-medium text-foreground" : "text-muted-foreground hover:text-foreground"
+        }`}
+        data-testid="button-nav-services"
+      >
+        {language === "fr" ? SERVICES_DROPDOWN.labelFr : SERVICES_DROPDOWN.labelEn}
+        <ChevronDown className={`h-3.5 w-3.5 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      <div
+        className={`absolute top-full left-0 mt-2 w-52 rounded-md border bg-popover shadow-md py-1 ${
+          open ? "opacity-100 visible" : "opacity-0 invisible"
+        } transition-all`}
+      >
+        {SERVICES_DROPDOWN.children.map((child) => {
+          const label = language === "fr" ? child.labelFr : child.labelEn;
+          const testId = `link-nav-${child.href.replace(/[\/#]/g, "") || "services"}`;
+          if (child.href.includes("#")) {
+            return (
+              <a
+                key={child.href}
+                href={child.href}
+                className="block px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                data-testid={testId}
+                onClick={() => setOpen(false)}
+              >
+                {label}
+              </a>
+            );
+          }
+          return (
+            <Link
+              key={child.href}
+              href={child.href}
+              className="block px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+              data-testid={testId}
+              onClick={() => setOpen(false)}
+            >
+              {label}
+            </Link>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 export function PublicHeader() {
   const { language, t } = useI18n();
@@ -40,6 +122,7 @@ export function PublicHeader() {
           </Link>
           
           <nav className="hidden md:flex items-center gap-6">
+            <ServicesDropdown language={language} location={location} />
             {NAV_ITEMS.map((item) => {
               const hrefPath = item.href.split("?")[0];
               const isActive = location === item.href || 
@@ -52,13 +135,6 @@ export function PublicHeader() {
               }`;
               const testId = `link-nav-${hrefPath.replace(/\//g, "") || "home"}`;
               const label = language === "fr" ? item.labelFr : item.labelEn;
-              if (item.href.includes("?")) {
-                return (
-                  <a key={item.href} href={item.href} className={className} data-testid={testId}>
-                    {label}
-                  </a>
-                );
-              }
               return (
                 <Link key={item.href} href={item.href} className={className} data-testid={testId}>
                   {label}
@@ -140,17 +216,14 @@ export function PublicFooter() {
               {language === "fr" ? "Navigation" : "Navigation"}
             </h3>
             <div className="space-y-2 text-sm text-muted-foreground">
-              <Link href="/ressources" className="block hover:text-foreground transition-colors" data-testid="link-footer-ressources">
-                {language === "fr" ? "Ressources" : "Resources"}
-              </Link>
               <Link href="/portfolio" className="block hover:text-foreground transition-colors" data-testid="link-footer-portfolio">
                 Portfolio
               </Link>
-              <a href="/blog?tab=nouvelles" className="block hover:text-foreground transition-colors" data-testid="link-footer-blog">
-                {language === "fr" ? "Nouvelles" : "News"}
-              </a>
+              <Link href="/ressources" className="block hover:text-foreground transition-colors" data-testid="link-footer-ressources">
+                {language === "fr" ? "Ressources" : "Resources"}
+              </Link>
               <Link href="/stockage-energie" className="block hover:text-foreground transition-colors" data-testid="link-footer-stockage">
-                {language === "fr" ? "Stockage d'énergie" : "Energy Storage"}
+                {language === "fr" ? "Stockage par batterie" : "Battery Storage"}
               </Link>
             </div>
           </div>

@@ -48,7 +48,11 @@ A centralized color palette defined in `shared/colors.ts` ensures consistent bra
 ### Website Audit (Completed — Phase 1 + Phase 2)
 Phase 1 (16 tasks): ROI payback corrected, degradation text, CCA/ITC qualified, hero headline, lead form simplified, CTAs updated, phone in header, portfolio metrics, ÉcoPerformance FAQ, battery storage page, FAQ JSON-LD, lazy loading, canonical URLs, sitemap.
 
-Phase 2 (13 tasks): (1) sign-agreement.tsx converted to react-hook-form + Zod validation with required markers; (2) landing.tsx phone validation with Canadian format regex + auto-format on blur; (3) localStorage→sessionStorage for HQ bill data (autorisation-hq, analyse-detaillee, landing); (4) toast + loading states on all public forms; (5) HQ account number validation (10-12 digits); (6-7) PublicHeader/PublicFooter unified across ALL public pages (landing, blog, services, ressources, stockage-energie, privacy, terms, calculateur-roi, mandat-conception, thank-you, autorisation-hq, analyse-detaillee); (8) SEOHead added to privacy, terms, autorisation-hq (noIndex), analyse-detaillee (noIndex), thank-you (noIndex); (9) route redirects verified (/services→/, /comment-ca-marche→/, /apropos→/, /contact→/#analyse); (10) /app/leads→/app/pipeline fix; (11) om-performance sidebar link removed; (12) conversion-dashboard imports fixed. PublicHeader nav: Accueil, Ressources, Nouvelles, Portfolio, Stockage. PublicFooter: 4-column grid (company, contact, navigation, legal) with RBQ number.
+Phase 2 (13 tasks): (1) sign-agreement.tsx converted to react-hook-form + Zod validation with required markers; (2) landing.tsx phone validation with Canadian format regex + auto-format on blur; (3) localStorage→sessionStorage for HQ bill data (autorisation-hq, analyse-detaillee, landing); (4) toast + loading states on all public forms; (5) HQ account number validation (10-12 digits); (6-7) PublicHeader/PublicFooter unified across ALL public pages (landing, blog, services, ressources, stockage-energie, privacy, terms, calculateur-roi, mandat-conception, thank-you, autorisation-hq, analyse-detaillee); (8) SEOHead added to privacy, terms, autorisation-hq (noIndex), analyse-detaillee (noIndex), thank-you (noIndex); (9) route redirects verified (/services→/, /comment-ca-marche→/, /apropos→/, /contact→/#analyse); (10) /app/leads→/app/pipeline fix; (11) om-performance sidebar link removed; (12) conversion-dashboard imports fixed.
+
+Phase 3 — March 2026 Audit (8 tasks): (1) Header nav restructured: `Services ▾ | Portfolio | Ressources` — "Accueil" removed (logo does that), "Services" dropdown with "Solaire commercial" + "Stockage par batterie". Footer updated to mirror. (2) Blog/Nouvelles merged into Ressources page with 4 tabs: Guides, FAQ, Nouvelles, Glossaire. `/blog` and `/nouvelles` redirect to `/ressources`. Individual article routes unchanged. Sitemap cleaned. (3) "20+ ans" → "15+ ans" inconsistency fixed on landing page. (4) Privacy/Terms dates updated to "Mars 2026". (5) Sitemap enhanced: portfolio project URLs added dynamically; Article JSON-LD schema added to blog/nouvelle detail pages. (6) Internal cross-linking: 7 contextual links added between stockage→portfolio, portfolio→ressources, ressources→portfolio, landing→stockage/portfolio. (7) Landing FAQ deduplicated: reduced from 8 to 5 conversion-relevant questions; "Voir toutes les FAQ →" CTA links to /ressources?tab=faq; separate getLandingFAQSchema for JSON-LD.
+
+PublicHeader nav: Services (dropdown: Solaire commercial, Stockage par batterie) | Portfolio | Ressources | 514.427.8871 | EN | Connexion. PublicFooter: 4-column grid (company, contact, navigation [Portfolio, Ressources, Stockage], legal) with RBQ number.
 
 ### Optimization Frontier Chart (All Presentation Tools)
 The efficiency frontier chart ("Analyse d'optimisation") is integrated across all four presentation outputs, consistently positioned after Financial Projections/Cashflow and before Surplus Credits/Financing. It plots net investment (x) vs 25-year NPV (y) for all swept configurations — solar (gold #FFB005), storage (blue #003DA6), hybrid (green #16A34A). Unprofitable points (NPV<0) are faded; the optimal point (max NPV) is highlighted with a ring. A red dashed NPV=0 profitability threshold line is drawn. A summary box identifies the optimal configuration with key metrics. Implementations: (1) PDF (`pdfGeneratorV2.ts`): `buildOptimizationPage` with inline SVG via `generateFrontierSVG`, conditional on frontier data; (2) HTML presentation (`presentation.tsx`): `OptimizationFrontierSlide` using Recharts ScatterChart, always in SLIDES array with no-data placeholder; (3) PPTX V2 (`pptxGeneratorV2.ts`): inline SVG in `wrapSlide()`, conditional; (4) PPTX V1 (`pptxGenerator.ts`): native pptxgenjs shapes, conditional. OSE 6.0 incentive: battery receives 0 HQ incentive (solar-only program); no spillover from solar cap to battery.
@@ -58,13 +62,13 @@ Hydro-Québec "Solutions efficaces" program (replacing TEQ/ÉcoPerformance) upda
 
 ### Public Pages & Routes
 - `/` — Landing page (hero, social proof band, lead form, process timeline)
-- `/services` — Services page (commercial + industrial sectors only)
 - `/stockage-energie` — Battery/storage page (peak shaving, Tarif M, backup, ROI)
-- `/ressources` — Resources page with 22+ FAQ items across 4 categories (updated for OSE 6.0)
+- `/ressources` — Unified resource hub with 4 tabs: Guides, FAQ (22+ items), Nouvelles, Glossaire (updated for OSE 6.0)
 - `/ressources/calculateur-roi-solaire` — ROI calculator with 4 educational sections
 - `/portfolio` — Public portfolio grid with production/savings metrics
 - `/portfolio/:id` — Project detail pages
-- `/nouvelles` — Blog/news page
+- `/blog` — Redirects to `/ressources?tab=guides`
+- `/nouvelles` — Redirects to `/ressources?tab=nouvelles`
 - `/mandat-de-conception-preliminaire` — Design mandate form
 
 ## External Dependencies

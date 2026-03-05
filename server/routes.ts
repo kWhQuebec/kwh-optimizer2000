@@ -248,12 +248,10 @@ Sitemap: https://www.kwh.quebec/sitemap.xml`
       { path: "/", priority: "1.0", changefreq: "weekly" },
       { path: "/ressources", priority: "0.8", changefreq: "weekly" },
       { path: "/ressources/calculateur-roi-solaire", priority: "0.8", changefreq: "monthly" },
-      { path: "/blog", priority: "0.7", changefreq: "daily" },
       { path: "/analyse-detaillee", priority: "0.7", changefreq: "monthly" },
       { path: "/autorisation-hq", priority: "0.5", changefreq: "monthly" },
       { path: "/stockage-energie", priority: "0.7", changefreq: "monthly" },
       { path: "/portfolio", priority: "0.6", changefreq: "monthly" },
-      { path: "/nouvelles", priority: "0.7", changefreq: "daily" },
       { path: "/mandat-de-conception-preliminaire", priority: "0.6", changefreq: "monthly" },
       { path: "/privacy", priority: "0.3", changefreq: "yearly" },
       { path: "/conditions", priority: "0.3", changefreq: "yearly" },
@@ -288,10 +286,30 @@ Sitemap: https://www.kwh.quebec/sitemap.xml`
       // Blog articles optional
     }
 
+    let portfolioEntries = "";
+    try {
+      const DREAM_CLIENT_ID = "6ba7837d-84a0-4526-bfbf-f802bc68c25e";
+      const portfolioSites = await storage.getSitesByClient(DREAM_CLIENT_ID);
+      portfolioEntries = portfolioSites
+        .filter(site => site.latitude != null && site.longitude != null)
+        .map(site => {
+          const url = `${baseUrl}/portfolio/${site.id}`;
+          return `
+    <url>
+      <loc>${url}</loc>
+      <lastmod>${now}</lastmod>
+      <changefreq>monthly</changefreq>
+      <priority>0.5</priority>${hreflangBlock(url)}
+    </url>`;
+        }).join("");
+    } catch (e) {
+      // Portfolio sites optional
+    }
+
     res.type("application/xml").send(
 `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
-        xmlns:xhtml="http://www.w3.org/1999/xhtml">${staticEntries}${blogEntries}
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">${staticEntries}${blogEntries}${portfolioEntries}
 </urlset>`
     );
   });

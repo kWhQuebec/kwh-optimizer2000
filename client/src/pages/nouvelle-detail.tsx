@@ -50,6 +50,7 @@ export default function NouvelleDetailPage() {
             "@type": "NewsArticle",
             headline: article.originalTitle,
             description: article.aiSummaryFr || article.originalExcerpt || "",
+            articleBody: (article.aiSummaryFr || article.originalExcerpt || "").slice(0, 5000),
             ...(article.publishedAt ? { datePublished: new Date(article.publishedAt).toISOString() } : {}),
             ...(article.updatedAt ? { dateModified: new Date(article.updatedAt).toISOString() } : {}),
             url: `${window.location.origin}/nouvelles/${slug}`,
@@ -58,6 +59,10 @@ export default function NouvelleDetailPage() {
               "@type": "Organization",
               name: "kWh Québec",
               url: "https://kwhquebec.com",
+              logo: {
+                "@type": "ImageObject",
+                url: "https://www.kwh.quebec/assets/logo-fr.png",
+              },
             },
             author: {
               "@type": "Organization",
@@ -80,7 +85,7 @@ export default function NouvelleDetailPage() {
                 </Link>
               </Button>
               <Button variant="ghost" asChild data-testid="link-blog">
-                <Link href="/blog">
+                <Link href="/ressources">
                   {language === "fr" ? "Ressources" : "Resources"}
                 </Link>
               </Button>
@@ -92,7 +97,7 @@ export default function NouvelleDetailPage() {
 
         <main className="container mx-auto px-4 py-8 max-w-3xl">
           <Button variant="ghost" asChild className="mb-6" data-testid="button-back">
-            <Link href="/blog?tab=nouvelles">
+            <Link href="/ressources?tab=nouvelles">
               <ArrowLeft className="w-4 h-4 mr-2" />
               {language === "fr" ? "Retour aux nouvelles" : "Back to news"}
             </Link>
@@ -200,7 +205,7 @@ export default function NouvelleDetailPage() {
                   </a>
                 </Button>
                 <Button variant="outline" asChild data-testid="button-more-news">
-                  <Link href="/blog?tab=nouvelles">
+                  <Link href="/ressources?tab=nouvelles">
                     {language === "fr" ? "Plus de nouvelles" : "More news"}
                   </Link>
                 </Button>

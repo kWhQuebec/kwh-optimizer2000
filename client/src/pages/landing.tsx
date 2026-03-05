@@ -32,7 +32,7 @@ import { useI18n } from "@/lib/i18n";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { FunnelEvents, getStoredUTMParams } from "@/lib/analytics";
-import { SEOHead, seoContent, getLocalBusinessSchema, getServiceSchema, getFAQSchema, organizationSchema } from "@/components/seo-head";
+import { SEOHead, seoContent, getLocalBusinessSchema, getServiceSchema, getLandingFAQSchema, organizationSchema } from "@/components/seo-head";
 import { TIMELINE_GRADIENT, BRAND } from "@shared/colors";
 import { getWhySolarNow, getTimeline, BRAND_CONTENT } from "@shared/brandContent";
 import installationPhoto from "@assets/hero-optimized.jpg";
@@ -555,7 +555,7 @@ export default function LandingPage() {
     organizationSchema,
     getLocalBusinessSchema(language),
     getServiceSchema(language),
-    getFAQSchema(language),
+    getLandingFAQSchema(language),
   ];
 
   return (
@@ -1448,7 +1448,7 @@ export default function LandingPage() {
               </div>
               <div className="flex items-center gap-1.5">
                 <Award className="w-4 h-4 text-primary" />
-                <span>{language === "fr" ? "20+ ans d'expérience" : "20+ years experience"}</span>
+                <span>{language === "fr" ? "15+ ans d'expérience" : "15+ years experience"}</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <CheckCircle2 className="w-4 h-4 text-primary" />
@@ -1851,6 +1851,57 @@ export default function LandingPage() {
           </section>
         );
       })()}
+      {/* ========== EXPLORE SECTION ========== */}
+      <section className="py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto">
+          <div className="grid sm:grid-cols-2 gap-6">
+            <Link href="/stockage-energie">
+              <Card className="h-full hover-elevate cursor-pointer" data-testid="link-landing-stockage">
+                <CardContent className="p-6 flex items-start gap-4">
+                  <div className="p-3 rounded-xl bg-primary/10 shrink-0">
+                    <BatteryCharging className="w-6 h-6 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold mb-1">
+                      {language === "fr" ? "Stockage par batterie" : "Battery Storage"}
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      {language === "fr"
+                        ? "Écrêtage de pointe, alimentation de secours et intégration solaire+batterie."
+                        : "Peak shaving, backup power, and solar+battery integration."}
+                    </p>
+                    <span className="inline-flex items-center gap-1 mt-2 text-sm font-medium text-primary">
+                      {language === "fr" ? "En savoir plus" : "Learn more"} <ArrowRight className="w-3.5 h-3.5" />
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+            <Link href="/portfolio">
+              <Card className="h-full hover-elevate cursor-pointer" data-testid="link-landing-portfolio">
+                <CardContent className="p-6 flex items-start gap-4">
+                  <div className="p-3 rounded-xl bg-primary/10 shrink-0">
+                    <Building2 className="w-6 h-6 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold mb-1">
+                      {language === "fr" ? "Nos projets" : "Our Projects"}
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      {language === "fr"
+                        ? "Découvrez notre portfolio de projets solaires commerciaux et industriels au Québec."
+                        : "Explore our portfolio of commercial and industrial solar projects in Quebec."}
+                    </p>
+                    <span className="inline-flex items-center gap-1 mt-2 text-sm font-medium text-primary">
+                      {language === "fr" ? "Voir le portfolio" : "View portfolio"} <ArrowRight className="w-3.5 h-3.5" />
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+          </div>
+        </div>
+      </section>
       {/* ========== FAQ SECTION ========== */}
       <section className="py-16 px-4 sm:px-6 lg:px-8 bg-muted/30">
         <div className="max-w-3xl mx-auto">
@@ -1883,11 +1934,8 @@ export default function LandingPage() {
                 { id: 1, slug: "calculer-rentabilite-projet-solaire" },
                 { id: 2, slug: "incitatifs-solaires-quebec-2026" },
                 { id: 3, slug: "programme-autoproduction-hydro-quebec-2026" },
-                { id: 4, slug: "comprendre-facture-hydro-quebec" },
-                { id: 5, slug: "telecharger-donnees-espace-client-hydro-quebec" },
                 { id: 6, slug: "solaire-commercial-vs-residentiel" },
                 { id: 7, slug: "solaire-valeur-immobiliere-commercial" },
-                { id: 8, slug: "etude-de-cas-projet-solaire-industriel" },
               ]).map(({ id: i, slug }) => (
                 <AccordionItem
                   key={`item${i}`}
@@ -1910,6 +1958,15 @@ export default function LandingPage() {
                 </AccordionItem>
               ))}
             </Accordion>
+
+            <div className="text-center mt-8">
+              <Link href="/ressources?tab=faq">
+                <Button variant="outline" className="gap-2" data-testid="link-faq-see-all">
+                  {language === "fr" ? "Voir toutes les FAQ" : "See all FAQs"}
+                  <ArrowRight className="w-4 h-4" />
+                </Button>
+              </Link>
+            </div>
           </motion.div>
         </div>
       </section>

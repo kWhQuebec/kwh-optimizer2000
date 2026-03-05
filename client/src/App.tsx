@@ -82,6 +82,16 @@ const RoofCapturePage = lazy(() => import("@/pages/roof-capture"));
 import NouvellesPage from "@/pages/nouvelles";
 import StockageEnergiePage from "@/pages/stockage-energie";
 
+function BlogRedirect() {
+  const [location] = useLocation();
+  const params = new URLSearchParams(location.split("?")[1] || "");
+  const tab = params.get("tab");
+  if (tab === "nouvelles") {
+    return <Redirect to="/ressources?tab=nouvelles" />;
+  }
+  return <Redirect to="/ressources?tab=guides" />;
+}
+
 function PortalPreviewRoute() {
   const params = useParams<{ clientId: string }>();
   const { language } = useI18n();
@@ -299,14 +309,14 @@ function AppRoutes() {
       <Route path="/contact">{() => <Redirect to="/#analyse" />}</Route>
       <Route path="/ressources" component={RessourcesPage} />
       <Route path="/ressources/calculateur-roi-solaire" component={CalculateurROIPage} />
-      <Route path="/blog" component={BlogPage} />
+      <Route path="/blog">{() => <BlogRedirect />}</Route>
       <Route path="/blog/:slug" component={BlogArticlePage} />
       <Route path="/nouvelles/:slug">
         <Suspense fallback={<PageLoader />}>
           <NouvelleDetailPage />
         </Suspense>
       </Route>
-      <Route path="/nouvelles" component={NouvellesPage} />
+      <Route path="/nouvelles">{() => <Redirect to="/ressources?tab=nouvelles" />}</Route>
       <Route path="/analyse-detaillee" component={AnalyseDetailleePage} />
       <Route path="/autorisation-hq" component={AutorisationHQPage} />
       <Route path="/merci" component={ThankYouPage} />

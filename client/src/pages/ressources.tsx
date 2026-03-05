@@ -1,23 +1,214 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { 
-  BookOpen, FileText, HelpCircle, TrendingUp, Zap, DollarSign,
-  ArrowRight, ChevronDown, ChevronUp, Search, Tag, CheckCircle, XCircle, AlertCircle, Book
+  BookOpen, FileText, HelpCircle, TrendingUp, Zap, DollarSign, Building2,
+  ArrowRight, ChevronDown, ChevronUp, Search, Tag, CheckCircle, XCircle, AlertCircle, Book,
+  Newspaper, Calendar, ExternalLink
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useI18n } from "@/lib/i18n";
 import { SEOHead, seoContent, getFAQSchema } from "@/components/seo-head";
 import { PublicHeader, PublicFooter } from "@/components/public-header";
+import type { BlogArticle, NewsArticle } from "@shared/schema";
+
+const NEWS_CATEGORY_LABELS: Record<string, { fr: string; en: string }> = {
+  politique: { fr: "Politique", en: "Policy" },
+  technologie: { fr: "Technologie", en: "Technology" },
+  financement: { fr: "Financement", en: "Financing" },
+  "marché": { fr: "Marché", en: "Market" },
+  "réglementation": { fr: "Réglementation", en: "Regulation" },
+};
+
+const NEWS_CATEGORY_FILTERS = [
+  { value: "", fr: "Tout", en: "All" },
+  { value: "politique", fr: "Politique", en: "Policy" },
+  { value: "technologie", fr: "Technologie", en: "Technology" },
+  { value: "financement", fr: "Financement", en: "Financing" },
+  { value: "marché", fr: "Marché", en: "Market" },
+  { value: "réglementation", fr: "Réglementation", en: "Regulation" },
+];
+
+const categoryIcons: Record<string, typeof BookOpen> = {
+  guide: BookOpen,
+  news: Newspaper,
+  "case-study": FileText,
+};
+
+function BlogArticleCard({ article }: { article: BlogArticle }) {
+  const { t, language } = useI18n();
+  const title = language === "fr" ? article.titleFr : article.titleEn;
+  const excerpt = language === "fr" ? article.excerptFr : article.excerptEn;
+  const CategoryIcon = categoryIcons[article.category || "guide"] || BookOpen;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+    >
+      <Link href={`/blog/${article.slug}`}>
+        <Card className="h-full hover-elevate cursor-pointer group" data-testid={`card-article-${article.slug}`}>
+          {article.featuredImage && (
+            <div className="aspect-video overflow-hidden rounded-t-lg">
+              <img 
+                src={article.featuredImage} 
+                alt={title}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              />
+            </div>
+          )}
+          <CardContent className="p-6">
+            <div className="flex items-center gap-2 mb-3 flex-wrap">
+              {article.category && (
+                <Badge variant="secondary" className="gap-1">
+                  <CategoryIcon className="w-3 h-3" />
+                  {t(`blog.category.${article.category}`)}
+                </Badge>
+              )}
+              {article.publishedAt && (
+                <span className="text-sm text-muted-foreground flex items-center gap-1">
+                  <Calendar className="w-3 h-3" />
+                  {new Date(article.publishedAt).toLocaleDateString(language === "fr" ? "fr-CA" : "en-CA")}
+                </span>
+              )}
+            </div>
+            <h3 className="text-xl font-semibold mb-2 group-hover:text-primary transition-colors" data-testid={`text-article-title-${article.slug}`}>
+              {title}
+            </h3>
+            {excerpt && (
+              <p className="text-muted-foreground line-clamp-3 mb-4" data-testid={`text-article-excerpt-${article.slug}`}>
+                {excerpt}
+              </p>
+            )}
+            <div className="flex items-center text-primary font-medium">
+              {t("blog.readMore")}
+              <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
+            </div>
+          </CardContent>
+        </Card>
+      </Link>
+    </motion.div>
+  );
+}
+
+function NewsArticleCard({ article }: { article: NewsArticle }) {
+  const { language } = useI18n();
+  const comment = article.editedCommentFr || article.aiCommentFr;
+  const catLabel = article.category ? NEWS_CATEGORY_LABELS[article.category] : null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+    >
+      <Card className="h-full hover-elevate" data-testid={`card-news-${article.id}`}>
+        {article.imageUrl && (
+          <div className="aspect-video overflow-hidden rounded-t-lg">
+            <img
+              src={article.imageUrl}
+              alt={article.originalTitle}
+              className="w-full h-full object-cover"
+              onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+            />
+          </div>
+        )}
+        <CardContent className="p-6">
+          <div className="flex items-center gap-2 mb-3 flex-wrap">
+            <Badge variant="secondary" className="text-xs" data-testid={`badge-source-${article.id}`}>
+              {article.sourceName}
+            </Badge>
+            {catLabel && (
+              <Badge variant="outline" className="text-xs" data-testid={`badge-category-${article.id}`}>
+                {language === "fr" ? catLabel.fr : catLabel.en}
+              </Badge>
+            )}
+            {article.publishedAt && (
+              <span className="text-sm text-muted-foreground flex items-center gap-1">
+                <Calendar className="w-3 h-3" />
+                {new Date(article.publishedAt).toLocaleDateString(
+                  language === "fr" ? "fr-CA" : "en-CA",
+                  { year: "numeric", month: "short", day: "numeric" }
+                )}
+              </span>
+            )}
+          </div>
+          <div className="flex items-start gap-2 mb-2">
+            <Link href={`/nouvelles/${article.slug}`} className="group flex-1" data-testid={`link-news-${article.id}`}>
+              <h3 className="text-lg font-semibold group-hover:underline" data-testid={`text-news-title-${article.id}`}>
+                {article.originalTitle}
+              </h3>
+            </Link>
+            <Button size="icon" variant="ghost" asChild data-testid={`link-external-${article.id}`}>
+              <a href={article.sourceUrl} target="_blank" rel="noopener noreferrer">
+                <ExternalLink className="w-4 h-4" />
+              </a>
+            </Button>
+          </div>
+          {comment && (
+            <p className="text-muted-foreground text-sm mb-3 line-clamp-4" data-testid={`text-news-comment-${article.id}`}>
+              {comment}
+            </p>
+          )}
+          {article.aiTags && article.aiTags.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {article.aiTags.slice(0, 4).map((tag, i) => (
+                <Badge key={i} variant="outline" className="text-xs">
+                  {tag}
+                </Badge>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+}
 
 export default function RessourcesPage() {
-  const { language } = useI18n();
+  const { language, t } = useI18n();
+  const [location, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [newsCategory, setNewsCategory] = useState("");
+
+  const searchParams = new URLSearchParams(location.split("?")[1] || "");
+  const tabParam = searchParams.get("tab");
+  const initialTab = tabParam === "nouvelles" ? "nouvelles" : tabParam === "faq" ? "faq" : tabParam === "glossaire" ? "glossaire" : "guides";
+  const [activeTab, setActiveTab] = useState(initialTab);
+
+  useEffect(() => {
+    const sp = new URLSearchParams(location.split("?")[1] || "");
+    const t = sp.get("tab");
+    if (t === "nouvelles" || t === "faq" || t === "glossaire" || t === "guides") {
+      setActiveTab(t);
+    }
+  }, [location]);
+
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    setLocation(tab === "guides" ? "/ressources" : `/ressources?tab=${tab}`, { replace: true });
+  };
+
+  const { data: blogArticles, isLoading: blogLoading } = useQuery<BlogArticle[]>({
+    queryKey: ["/api/blog"],
+  });
+
+  const { data: newsArticles, isLoading: newsLoading } = useQuery<NewsArticle[]>({
+    queryKey: ["/api/public/news"],
+  });
+
+  const filteredNews = newsCategory
+    ? newsArticles?.filter((a) => a.category === newsCategory)
+    : newsArticles;
 
   const categories = [
     { id: "incentives", label: language === "fr" ? "Incitatifs" : "Incentives", icon: DollarSign },
@@ -430,162 +621,254 @@ export default function RessourcesPage() {
             </h1>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
               {language === "fr" 
-                ? "Guides, FAQ et informations pour vous aider à comprendre le solaire commercial au Québec."
-                : "Guides, FAQ and information to help you understand commercial solar in Quebec."}
+                ? "Guides, FAQ, actualités et informations pour vous aider à comprendre le solaire commercial au Québec."
+                : "Guides, FAQ, news and information to help you understand commercial solar in Quebec."}
             </p>
           </motion.div>
         </div>
       </section>
 
-      {/* Guides Section */}
-      <section className="py-12 px-4 sm:px-6 lg:px-8">
+      {/* Tabbed Content */}
+      <section className="py-8 px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-2xl font-bold mb-6">
-            {language === "fr" ? "Guides et articles" : "Guides & Articles"}
-          </h2>
-          
-          <div className="grid md:grid-cols-3 gap-6">
-            {guides.map((guide, index) => (
-              <motion.div
-                key={guide.title}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-              >
-                <Link href={`/blog/${guide.slug}`}>
-                  <Card className="h-full hover-elevate cursor-pointer">
-                    <CardHeader>
-                      <div className="flex items-center gap-2 mb-2">
-                        <Badge variant="outline" className="text-xs">
-                          {categories.find(c => c.id === guide.category)?.label}
-                        </Badge>
-                        <span className="text-xs text-muted-foreground">{guide.readTime}</span>
-                      </div>
-                      <CardTitle className="text-lg">{guide.title}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-sm text-muted-foreground">{guide.description}</p>
-                      <Button variant="ghost" className="mt-4 p-0 h-auto text-primary">
-                        {language === "fr" ? "Lire la suite" : "Read more"} <ArrowRight className="w-4 h-4 ml-1" />
-                      </Button>
-                    </CardContent>
-                  </Card>
-                </Link>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
+          <Tabs value={activeTab} onValueChange={handleTabChange}>
+            <TabsList className="grid w-full max-w-2xl mx-auto grid-cols-4 mb-8" data-testid="tabs-resources">
+              <TabsTrigger value="guides" data-testid="tab-guides">
+                <BookOpen className="w-4 h-4 mr-2 hidden sm:inline" />
+                {language === "fr" ? "Guides" : "Guides"}
+              </TabsTrigger>
+              <TabsTrigger value="faq" data-testid="tab-faq">
+                <HelpCircle className="w-4 h-4 mr-2 hidden sm:inline" />
+                FAQ
+              </TabsTrigger>
+              <TabsTrigger value="nouvelles" data-testid="tab-nouvelles">
+                <Newspaper className="w-4 h-4 mr-2 hidden sm:inline" />
+                {language === "fr" ? "Nouvelles" : "News"}
+              </TabsTrigger>
+              <TabsTrigger value="glossaire" data-testid="tab-glossaire">
+                <Book className="w-4 h-4 mr-2 hidden sm:inline" />
+                {language === "fr" ? "Glossaire" : "Glossary"}
+              </TabsTrigger>
+            </TabsList>
 
-      {/* FAQ Section */}
-      <section className="py-12 px-4 sm:px-6 lg:px-8 bg-muted/30">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold mb-4">
-              {language === "fr" ? "Questions fréquentes" : "Frequently Asked Questions"}
-            </h2>
-            
-            {/* Search and filters */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mt-6">
-              <div className="relative w-full sm:w-80">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input 
-                  placeholder={language === "fr" ? "Filtrer..." : "Filter..."}
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                  data-testid="input-faq-search"
-                />
-              </div>
-              
-              <div className="flex gap-2 flex-wrap justify-center">
-                <Button 
-                  variant={selectedCategory === null ? "default" : "outline"} 
-                  size="sm"
-                  onClick={() => setSelectedCategory(null)}
-                >
-                  {language === "fr" ? "Tous" : "All"}
-                </Button>
-                {categories.map((cat) => (
-                  <Button
-                    key={cat.id}
-                    variant={selectedCategory === cat.id ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setSelectedCategory(cat.id)}
-                    className="gap-1"
+            {/* Guides Tab */}
+            <TabsContent value="guides">
+              <div className="grid md:grid-cols-3 gap-6 mb-8">
+                {guides.map((guide, index) => (
+                  <motion.div
+                    key={guide.title}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: index * 0.1 }}
                   >
-                    <cat.icon className="w-3 h-3" />
-                    {cat.label}
+                    <Link href={`/blog/${guide.slug}`}>
+                      <Card className="h-full hover-elevate cursor-pointer">
+                        <CardHeader>
+                          <div className="flex items-center gap-2 mb-2">
+                            <Badge variant="outline" className="text-xs">
+                              {categories.find(c => c.id === guide.category)?.label}
+                            </Badge>
+                            <span className="text-xs text-muted-foreground">{guide.readTime}</span>
+                          </div>
+                          <CardTitle className="text-lg">{guide.title}</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-sm text-muted-foreground">{guide.description}</p>
+                          <Button variant="ghost" className="mt-4 p-0 h-auto text-primary">
+                            {language === "fr" ? "Lire la suite" : "Read more"} <ArrowRight className="w-4 h-4 ml-1" />
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    </Link>
+                  </motion.div>
+                ))}
+              </div>
+
+              {blogLoading ? (
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {[1, 2, 3].map((i) => (
+                    <Card key={i} className="h-full">
+                      <Skeleton className="aspect-video rounded-t-lg" />
+                      <CardContent className="p-6 space-y-4">
+                        <Skeleton className="h-6 w-24" />
+                        <Skeleton className="h-8 w-full" />
+                        <Skeleton className="h-20 w-full" />
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : blogArticles && blogArticles.length > 0 ? (
+                <>
+                  <h3 className="text-xl font-semibold mb-4 mt-8">
+                    {language === "fr" ? "Articles" : "Articles"}
+                  </h3>
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {blogArticles.map((article) => (
+                      <BlogArticleCard key={article.id} article={article} />
+                    ))}
+                  </div>
+                </>
+              ) : null}
+            </TabsContent>
+
+            {/* FAQ Tab */}
+            <TabsContent value="faq">
+              <div className="max-w-4xl mx-auto">
+                <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
+                  <div className="relative w-full sm:w-80">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input 
+                      placeholder={language === "fr" ? "Filtrer..." : "Filter..."}
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10"
+                      data-testid="input-faq-search"
+                    />
+                  </div>
+                  <div className="flex gap-2 flex-wrap justify-center">
+                    <Button 
+                      variant={selectedCategory === null ? "default" : "outline"} 
+                      size="sm"
+                      onClick={() => setSelectedCategory(null)}
+                    >
+                      {language === "fr" ? "Tous" : "All"}
+                    </Button>
+                    {categories.map((cat) => (
+                      <Button
+                        key={cat.id}
+                        variant={selectedCategory === cat.id ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setSelectedCategory(cat.id)}
+                        className="gap-1"
+                      >
+                        <cat.icon className="w-3 h-3" />
+                        {cat.label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+                
+                <Accordion type="single" collapsible className="space-y-2">
+                  {filteredFAQ.map((item, index) => (
+                    <AccordionItem key={index} value={`item-${index}`} className="bg-background rounded-lg border px-4">
+                      <AccordionTrigger className="text-left hover:no-underline">
+                        <div className="flex items-start gap-3">
+                          <Badge variant="outline" className="shrink-0 mt-0.5 text-xs">
+                            {categories.find(c => c.id === item.category)?.label}
+                          </Badge>
+                          <span>{item.question}</span>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="text-muted-foreground pl-12">
+                        {item.answer}
+                      </AccordionContent>
+                    </AccordionItem>
+                  ))}
+                </Accordion>
+                
+                {filteredFAQ.length === 0 && (
+                  <div className="text-center py-8 text-muted-foreground">
+                    {language === "fr" 
+                      ? "Aucune question ne correspond à votre recherche."
+                      : "No questions match your search."}
+                  </div>
+                )}
+
+                <div className="mt-8 p-4 rounded-lg bg-primary/5 border border-primary/20 text-center" data-testid="link-faq-portfolio">
+                  <p className="text-sm mb-3">
+                    {language === "fr"
+                      ? "Vous voulez voir des exemples concrets de projets solaires au Québec?"
+                      : "Want to see real examples of solar projects in Quebec?"}
+                  </p>
+                  <Link href="/portfolio">
+                    <Button variant="outline" className="gap-2">
+                      <Building2 className="w-4 h-4" />
+                      {language === "fr" ? "Voir des exemples — Portfolio" : "See examples — Portfolio"}
+                      <ArrowRight className="w-4 h-4" />
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </TabsContent>
+
+            {/* Nouvelles Tab */}
+            <TabsContent value="nouvelles">
+              <div className="flex flex-wrap gap-2 mb-8 justify-center">
+                {NEWS_CATEGORY_FILTERS.map((cat) => (
+                  <Button
+                    key={cat.value}
+                    variant="outline"
+                    className={newsCategory === cat.value ? "toggle-elevate toggle-elevated" : "toggle-elevate"}
+                    onClick={() => setNewsCategory(cat.value)}
+                    data-testid={`filter-news-category-${cat.value || "all"}`}
+                  >
+                    {language === "fr" ? cat.fr : cat.en}
                   </Button>
                 ))}
               </div>
-            </div>
-          </div>
-          
-          <Accordion type="single" collapsible className="space-y-2">
-            {filteredFAQ.map((item, index) => (
-              <AccordionItem key={index} value={`item-${index}`} className="bg-background rounded-lg border px-4">
-                <AccordionTrigger className="text-left hover:no-underline">
-                  <div className="flex items-start gap-3">
-                    <Badge variant="outline" className="shrink-0 mt-0.5 text-xs">
-                      {categories.find(c => c.id === item.category)?.label}
-                    </Badge>
-                    <span>{item.question}</span>
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent className="text-muted-foreground pl-12">
-                  {item.answer}
-                </AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
-          
-          {filteredFAQ.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">
-              {language === "fr" 
-                ? "Aucune question ne correspond à votre recherche."
-                : "No questions match your search."}
-            </div>
-          )}
-        </div>
-      </section>
 
-      {/* Glossary Section */}
-      <section className="py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-8">
-            <div className="flex items-center justify-center gap-2 mb-4">
-              <Book className="w-6 h-6 text-primary" />
-              <h2 className="text-2xl font-bold">
-                {language === "fr" ? "Glossaire solaire" : "Solar Glossary"}
-              </h2>
-            </div>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              {language === "fr" 
-                ? "Les termes clés pour comprendre les projets solaires commerciaux."
-                : "Key terms to understand commercial solar projects."}
-            </p>
-          </div>
-          
-          <div className="grid md:grid-cols-2 gap-4">
-            {glossaryTerms.map((item, index) => (
-              <motion.div
-                key={item.term}
-                initial={{ opacity: 0, y: 10 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.05 }}
-              >
-                <Card className="h-full">
-                  <CardContent className="pt-4">
-                    <h3 className="font-semibold text-primary mb-1">{item.term}</h3>
-                    <p className="text-sm text-muted-foreground">{item.definition}</p>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
+              {newsLoading ? (
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {[1, 2, 3].map((i) => (
+                    <Card key={i} className="h-full">
+                      <Skeleton className="aspect-video rounded-t-lg" />
+                      <CardContent className="p-6 space-y-4">
+                        <Skeleton className="h-6 w-24" />
+                        <Skeleton className="h-8 w-full" />
+                        <Skeleton className="h-20 w-full" />
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : filteredNews && filteredNews.length > 0 ? (
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredNews.map((article) => (
+                    <NewsArticleCard key={article.id} article={article} />
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-16">
+                  <Newspaper className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+                  <p className="text-xl text-muted-foreground" data-testid="text-no-news">
+                    {language === "fr"
+                      ? "Aucune nouvelle pour le moment. Revenez bientôt!"
+                      : "No news at the moment. Check back soon!"}
+                  </p>
+                </div>
+              )}
+            </TabsContent>
+
+            {/* Glossaire Tab */}
+            <TabsContent value="glossaire">
+              <div className="max-w-4xl mx-auto">
+                <p className="text-muted-foreground text-center max-w-2xl mx-auto mb-8">
+                  {language === "fr" 
+                    ? "Les termes clés pour comprendre les projets solaires commerciaux."
+                    : "Key terms to understand commercial solar projects."}
+                </p>
+                
+                <div className="grid md:grid-cols-2 gap-4">
+                  {glossaryTerms.map((item, index) => (
+                    <motion.div
+                      key={item.term}
+                      initial={{ opacity: 0, y: 10 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: index * 0.05 }}
+                    >
+                      <Card className="h-full">
+                        <CardContent className="pt-4">
+                          <h3 className="font-semibold text-primary mb-1">{item.term}</h3>
+                          <p className="text-sm text-muted-foreground">{item.definition}</p>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
         </div>
       </section>
 
