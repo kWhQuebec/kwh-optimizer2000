@@ -1,0 +1,226 @@
+# AUDIT FINAL — Site web kWh Québec
+## Date: 5 mars 2026 | Pré-publication
+
+---
+
+## VERDICT GLOBAL: 6.5/10 — PAS PRÊT POUR TOP 1%
+
+Le site est **fonctionnel et crédible**, mais **pas au niveau d'excellence** visé. Le contenu de fond (FAQ, calculateur, portfolio) est solide. L'exécution technique et le design sont dans le **top 25-30%** de l'industrie solaire C&I, pas dans le top 1%.
+
+**Publication aujourd'hui?** Oui, possible — rien n'est cassé ou embarrassant. Mais tu publies un site "correct", pas un site qui impressionne. La question: est-ce que tu veux lancer vite et itérer, ou attendre pour lancer premium?
+
+---
+
+## 1. NAVIGATION & ARCHITECTURE — 5/10
+
+### Problèmes critiques
+
+**Redondance Ressources vs Nouvelles (BLOQUANT)**
+- `/ressources` = "Centre de ressources" (3 guides curatés + 20 FAQ catégorisées + glossaire)
+- `/nouvelles` → redirige vers `/blog?tab=nouvelles` = "Ressources et guides" (articles API + tab Nouvelles)
+- **Le visiteur voit le même type de contenu deux fois** sous des noms quasi identiques
+- **Cannibalisation SEO**: les deux pages compétitionnent pour les mêmes mots-clés
+- Le titre de la page blog dit "Ressources et guides" alors qu'on y accède via "Nouvelles" dans le menu
+
+**Menu header incohérent**
+- Actuel: `Accueil | Ressources | Nouvelles | Portfolio | Stockage`
+- "Accueil" = gaspillage (le logo fait ce job)
+- 2 items sur 5 (Ressources + Nouvelles) montrent du contenu similaire
+- "Stockage" est trop spécifique pour un item principal
+
+### Recommandation menu
+```
+Logo kWh | Services | Portfolio | Ressources | 514.427.8871 | EN | Connexion
+```
+- **Services** (pas Solutions — voir section 6) = solaire + stockage. Dropdown possible vers sous-pages
+- **Portfolio** = preuve sociale, monte en position #2
+- **Ressources** = page fusionnée (guides + articles + FAQ + glossaire + nouvelles)
+- "Accueil" et "Nouvelles" disparaissent du menu
+
+### Footer — OK mais incohérent avec le header
+- Footer montre: Ressources, Portfolio, Nouvelles, Stockage d'énergie
+- Devrait refléter la même structure que le header
+
+---
+
+## 2. CONTENU — 7/10
+
+### Ce qui est bon
+- **FAQ (20 questions)**: Excellent. Spécifique au Québec (CCA 43.2, Tarif M, OSE 6.0, TEQ ÉcoPerformance). Pas du fluff générique. Réponses détaillées avec chiffres réels.
+- **Section Mythe/Réalité**: Très efficace pour lever les objections
+- **Processus en 6 étapes** (landing page): Clair, bien structuré, crédible
+- **Glossaire**: 12 termes spécifiques au solaire QC — utile
+- **Checklist d'éligibilité**: Pratique
+
+### Ce qui pose problème
+- **Articles blog**: 6 articles datés de déc 2025 à fév 2026. Contenu substantif (Lawrence Berkeley study, guide HQ, incitatifs 2026). Mais **aucune image** dans les cartes d'articles — juste du texte sur fond blanc
+- **Duplication massive blog/ressources**: ~70% de chevauchement thématique (incitatifs, facture HQ, commercial vs résidentiel apparaissent dans les DEUX pages)
+- **Privacy/Terms**: "Dernière mise à jour: Janvier 2026" — **périmé de 2 mois**. À mettre à jour avant publication.
+- **FAQ landing vs FAQ ressources**: La landing page a ~6 FAQ, la page ressources en a 20. Certaines sont les mêmes. Duplication interne.
+- **Aucun témoignage client** visible sur le site. Zero quote, zero case study avec nom de client.
+- **"Nos partenaires"**: Dream Industrial REIT, Lab.Space, ScaleCleantech — ce sont des partenaires/affiliés, pas des clients. Un prospect veut voir des clients satisfaits.
+
+### Incohérences trouvées
+- Landing: "15+ années d'expérience" / Stats: "120+ MW installés, 25+ projets"
+- Portfolio: "25 sites, 57 454 kW DC" — cohérent avec "25+ projets" ✓
+- Landing: "20+ ans d'expérience" (section trust badges) vs "15+" (section stats) — **INCOHÉRENCE**
+- Landing: "Analyse en 2 minutes" vs réalité "7 jours" pour l'analyse économique — **tromper involontairement** (2 min = upload facture, pas le résultat)
+
+---
+
+## 3. DESIGN & GRAPHISME — 6/10
+
+### Benchmark industrie (comparé à Tesla Energy, SunPower, Pivot Energy, Nautilus Solar)
+
+| Critère | kWh Québec | Top 10% | Top 1% (Tesla) |
+|---------|-----------|---------|----------------|
+| Hero | Photo job site réelle | Photo pro architecturale | 3D render aspirationnelle |
+| Typographie | Propre, lisible | Raffinée, espacement optimal | Bold, dramatique, espaces massifs |
+| Palette couleurs | Bleu marine + orange safe | Palette distinctive mémorable | Tons chauds, sophistiqués |
+| Whitespace | Dense, tout compétitionne | Sections qui respirent | Minimalisme extrême |
+| CTA | Bouton bleu générique | Multiple CTAs stratégiques | CTAs contrastés avec intent clair |
+| Identité visuelle | Corporate B2B générique | Style reconnaissable | Signature visuelle unique |
+| Images | Photos chantier authentiques | Photos pro staging | Rendus 3D + photos lifestyle |
+
+**Percentile estimé: Top 25-30%**
+
+### Points forts design
+- Header propre et fonctionnel (logo, nav, tel, langue, connexion)
+- Processus en timeline bien exécuté
+- Cards portfolio avec données réelles
+- Section Mythe/Réalité visuellement efficace
+- Toggle dark mode (nice touch)
+
+### Faiblesses design
+- **Hero image**: photo de travailleurs sur toit avec éolienne en arrière-plan. Authentique mais pas aspirationnelle. Un directeur d'immeuble C&I veut voir SON immeuble transformé, pas des travailleurs.
+- **Densité**: trop de sections sur la landing page (hero → stats → upload → processus → pourquoi maintenant → mythes → FAQ → équipe → contact → footer). 10+ sections = fatigue visuelle.
+- **Cartes articles sans images**: Les cartes blog/nouvelles n'ont AUCUNE image. Juste texte. Visuellement pauvre comparé à n'importe quel blog moderne.
+- **Portfolio**: images satellite Google Maps avec watermark "Imagery ©2026 Airbus, CNES" visible. Pas premium. Certaines cartes n'ont même pas d'image (icône placeholder).
+- **Page Stockage**: aucune image/illustration. Que du texte + icônes. Pour une page produit, c'est faible.
+- **Pas d'animations/transitions**: Tout est statique. Les sites modernes utilisent des scroll reveals, counters animés, hover states.
+
+---
+
+## 4. SEO — 5.5/10
+
+### Ce qui fonctionne
+- Titles uniques par page ✓ (landing, blog, ressources, portfolio, stockage, privacy, terms)
+- Meta descriptions présentes ✓
+- JSON-LD riche: Organization, LocalBusiness, Service, FAQPage (20 questions), HowTo, CollectionPage ✓
+- Hreflang FR-CA / EN-CA ✓ (mais routage EN non vérifié)
+- robots.txt correct (bloque /app, /api, /admin) ✓
+- Open Graph tags présents ✓
+
+### Problèmes critiques
+- **Sitemap incomplet**: Manque ~70% des URLs. `/ressources`, `/stockage-energie`, articles de blog individuels, pages portfolio = ABSENTS du sitemap
+- **Pas de sitemap dynamique**: Le sitemap est statique, ne se met pas à jour quand du contenu est ajouté
+- **Pas d'Article schema** sur les articles de blog (manque datePublished, author, articleBody)
+- **og:image générique**: Même image partout, pas de custom OG par page
+- **Pas de BreadcrumbList schema** sur les pages de détail
+- **Internal linking quasi inexistant**: Les pages ne se lient pas entre elles (blog ne lie pas à ressources, portfolio ne lie pas aux articles, etc.)
+- **FAQ schema dans la landing hardcodé à 6 questions** alors que la page affiche plus
+- **Hreflang pointe peut-être vers des pages EN inexistantes** — risque de 404
+
+---
+
+## 5. IMAGES — 5/10
+
+### Inventaire
+- **Hero landing**: Photo réelle de travailleurs sur toit solaire — authentique mais pas premium
+- **Portfolio**: Google Maps satellite avec watermarks visibles — **pas professionnel**
+- **Blog/Nouvelles**: AUCUNE image dans les cartes d'articles — **déficient**
+- **Page Stockage**: AUCUNE image — **déficient**
+- **Logos partenaires**: OK
+- **Logo kWh**: PNG ~190KB chacun — **surdimensionné** (devrait être <50KB ou SVG)
+
+### Problèmes techniques
+- Pas de WebP (tout en PNG/JPG)
+- Pas de `srcset` pour responsive
+- Pas de `loading="lazy"` visible
+- Logo surdimensionné
+- Pas de compression optimisée visible
+
+### Verdict
+Le site utilise très peu d'images, et celles utilisées ne sont pas optimisées. Les pages intérieures (Stockage, Blog) souffrent d'un manque criant d'images. **Un site B2B premium a besoin de photos professionnelles d'installations, de rendus 3D, et d'illustrations techniques.**
+
+---
+
+## 6. SERVICES vs SOLUTIONS — Verdict: SERVICES
+
+| Critère | Services | Solutions |
+|---------|----------|----------|
+| Clarté | Immédiatement compris | Abstrait, marketing |
+| Industrie construction | Standard (services d'ingénierie, de construction) | Moins utilisé |
+| Ton B2B QC | Direct, concret | Corporatif, vague |
+| Ce que kWh fait réellement | Installation, ingénierie, conception, maintenance | "Solutions" ne dit pas quoi |
+| Concurrents QC | Plusieurs utilisent "Services" | Quelques-uns utilisent "Solutions" |
+
+**Recommandation: "Services"** — parce que kWh offre des services concrets (installation, ingénierie, conception, maintenance) et le mot "services" est plus honnête et direct. "Solutions" est du jargon marketing qui ne dit rien. Si un prospect cherche "installation solaire commerciale Québec", il cherche un service, pas une "solution".
+
+Alternative si tu veux un compromis: **"Nos services"** dans le menu avec dropdown:
+- Solaire commercial
+- Stockage par batterie
+- Ingénierie & conception
+
+---
+
+## 7. RÉSUMÉ DES CORRECTIFS — PRIORITÉ
+
+### P0 — AVANT PUBLICATION (aujourd'hui)
+1. ~~**Fusionner Ressources + Nouvelles**~~ → Une seule page `/ressources` avec tabs (Guides, FAQ, Nouvelles, Glossaire). Redirect 301 `/nouvelles` et `/blog` vers `/ressources`.
+2. **Restructurer le menu** → `Services | Portfolio | Ressources | tel | EN | Connexion`
+3. **Mettre à jour Privacy/Terms** → Date mars 2026
+4. **Corriger incohérence "15+ ans" vs "20+ ans"** sur la landing page
+
+### P1 — SEMAINE 1 post-publication
+5. Ajouter des images aux cartes d'articles blog
+6. Compléter le sitemap (toutes les URLs publiques)
+7. Ajouter Article schema sur les pages blog
+8. Remplacer les screenshots Google Maps du portfolio par des photos professionnelles (ou au minimum cropper les watermarks)
+9. Ajouter au moins 2-3 témoignages clients
+10. Optimiser le logo (PNG→SVG, réduire taille)
+
+### P2 — SEMAINE 2-3
+11. Ajouter des images/illustrations à la page Stockage
+12. Implémenter lazy loading sur toutes les images
+13. Convertir images en WebP
+14. Ajouter des OG images personnalisées par page
+15. Implémenter le internal linking (blog↔ressources↔portfolio)
+16. Ajouter des animations de scroll (Framer Motion est déjà installé)
+
+### P3 — MOYEN TERME (pour atteindre top 10%)
+17. Investir dans photographie professionnelle d'installations ($2-5K)
+18. Créer des rendus 3D de projets types ($3-5K)
+19. Refaire le hero avec imagerie aspirationnelle
+20. Développer une identité visuelle distinctive (pas juste bleu marine + orange)
+21. Ajouter case studies détaillés avec ROI réel
+22. Implémenter un sitemap dynamique
+
+---
+
+## 8. EST-CE QUE LE DESIGN COMPTE VRAIMENT POUR B2B SOLAIRE C&I?
+
+**Réponse honnête: moins qu'en B2C, mais plus que tu penses.**
+
+Tes vrais moteurs de conversion sont:
+1. **Le calculateur ROI** (déjà excellent — avantage compétitif majeur)
+2. **Le portfolio avec données réelles** (25 projets, ça impressionne)
+3. **Le suivi humain** (lead capture → conversation)
+4. **La crédibilité technique** (FAQ, licence RBQ, partenaires)
+
+Le design actuel ne te fait PAS perdre de deals. Mais il ne te démarque pas non plus. Un prospect qui compare 3 EPC solaires va choisir celui qui "a l'air" le plus professionnel et établi. Ton site est fonctionnel, pas mémorable.
+
+**La vraie question stratégique**: est-ce que tu veux que le site web soit un outil de capture de leads (alors lance maintenant, c'est suffisant) ou un outil de positionnement premium (alors investis 2-4 semaines de plus)?
+
+---
+
+## BOTTOM LINE
+
+| Catégorie | Score | Commentaire |
+|-----------|-------|-------------|
+| Navigation/Architecture | 5/10 | Redondance Ressources/Nouvelles = problème #1 |
+| Contenu | 7/10 | FAQ excellent, articles solides, mais duplication et zéro témoignage |
+| Design | 6/10 | Top 25-30%, pas top 1%. Fonctionnel, pas mémorable |
+| SEO | 5.5/10 | Fondation OK, sitemap incomplet, internal linking absent |
+| Images | 5/10 | Très peu d'images, pas optimisées, pas premium |
+| **GLOBAL** | **6.5/10** | **Publiable mais pas au niveau visé** |
