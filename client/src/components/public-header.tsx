@@ -24,7 +24,7 @@ const SERVICES_DROPDOWN: DropdownNavItem = {
   labelFr: "Services",
   labelEn: "Services",
   children: [
-    { href: "/#services", labelFr: "Solaire commercial", labelEn: "Commercial Solar" },
+    { href: "/solaire-commercial", labelFr: "Solaire commercial", labelEn: "Commercial Solar" },
     { href: "/stockage-energie", labelFr: "Stockage par batterie", labelEn: "Battery Storage" },
   ],
 };
@@ -73,19 +73,6 @@ function ServicesDropdown({ language, location }: { language: string; location: 
         {SERVICES_DROPDOWN.children.map((child) => {
           const label = language === "fr" ? child.labelFr : child.labelEn;
           const testId = `link-nav-${child.href.replace(/[\/#]/g, "") || "services"}`;
-          if (child.href.includes("#")) {
-            return (
-              <a
-                key={child.href}
-                href={child.href}
-                className="block px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
-                data-testid={testId}
-                onClick={() => setOpen(false)}
-              >
-                {label}
-              </a>
-            );
-          }
           return (
             <Link
               key={child.href}
@@ -216,14 +203,17 @@ export function PublicFooter() {
               {language === "fr" ? "Navigation" : "Navigation"}
             </h3>
             <div className="space-y-2 text-sm text-muted-foreground">
+              <Link href="/solaire-commercial" className="block hover:text-foreground transition-colors" data-testid="link-footer-solaire">
+                {language === "fr" ? "Solaire commercial" : "Commercial Solar"}
+              </Link>
+              <Link href="/stockage-energie" className="block hover:text-foreground transition-colors" data-testid="link-footer-stockage">
+                {language === "fr" ? "Stockage par batterie" : "Battery Storage"}
+              </Link>
               <Link href="/portfolio" className="block hover:text-foreground transition-colors" data-testid="link-footer-portfolio">
                 Portfolio
               </Link>
               <Link href="/ressources" className="block hover:text-foreground transition-colors" data-testid="link-footer-ressources">
                 {language === "fr" ? "Ressources" : "Resources"}
-              </Link>
-              <Link href="/stockage-energie" className="block hover:text-foreground transition-colors" data-testid="link-footer-stockage">
-                {language === "fr" ? "Stockage par batterie" : "Battery Storage"}
               </Link>
             </div>
           </div>

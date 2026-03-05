@@ -250,6 +250,7 @@ Sitemap: https://www.kwh.quebec/sitemap.xml`
       { path: "/ressources/calculateur-roi-solaire", priority: "0.8", changefreq: "monthly" },
       { path: "/analyse-detaillee", priority: "0.7", changefreq: "monthly" },
       { path: "/autorisation-hq", priority: "0.5", changefreq: "monthly" },
+      { path: "/solaire-commercial", priority: "0.8", changefreq: "monthly" },
       { path: "/stockage-energie", priority: "0.7", changefreq: "monthly" },
       { path: "/portfolio", priority: "0.6", changefreq: "monthly" },
       { path: "/mandat-de-conception-preliminaire", priority: "0.6", changefreq: "monthly" },

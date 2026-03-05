@@ -81,6 +81,7 @@ const RoofCapturePage = lazy(() => import("@/pages/roof-capture"));
 
 import NouvellesPage from "@/pages/nouvelles";
 import StockageEnergiePage from "@/pages/stockage-energie";
+import SolaireCommercialPage from "@/pages/solaire-commercial";
 
 function BlogRedirect() {
   const [location] = useLocation();
@@ -321,6 +322,7 @@ function AppRoutes() {
       <Route path="/autorisation-hq" component={AutorisationHQPage} />
       <Route path="/merci" component={ThankYouPage} />
       <Route path="/mandat-de-conception-preliminaire" component={MandatConceptionPage} />
+      <Route path="/solaire-commercial" component={SolaireCommercialPage} />
       <Route path="/stockage-energie" component={StockageEnergiePage} />
       <Route path="/portfolio" component={PortfolioPage} />
       <Route path="/portfolio/:id" component={PortfolioProjectPage} />
