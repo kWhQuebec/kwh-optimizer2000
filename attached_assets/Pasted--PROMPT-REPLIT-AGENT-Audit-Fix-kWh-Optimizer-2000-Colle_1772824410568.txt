@@ -1,0 +1,105 @@
+# PROMPT REPLIT AGENT — Audit Fix kWh Optimizer 2000
+
+Colle ce texte directement dans Replit Agent.
+
+---
+
+## PROMPT:
+
+Je viens de faire un audit complet du flow lead → qualification → analyse détaillée. Voici les bugs trouvés, classés par priorité. Corrige-les dans l'ordre.
+
+### CRITIQUES — À fixer AVANT tout (bloquent la publication)
+
+**C1. Lien Calendly cassé — 404**
+- Le bouton "Réserver mon appel découverte (10 min)" pointe vers `calendly.com/kwh-quebec/decouverte` → 404
+- Pour l'instant, remplace par un lien mailto temporaire: `mailto:ventes@kwh.quebec?subject=Demande%20appel%20découverte&body=Bonjour,%20j'aimerais%20planifier%20un%20appel%20découverte%20pour%20mon%20projet%20solaire.` avec le texte du bouton changé pour "Demander un appel découverte"
+- Rends l'URL Calendly configurable (variable d'environnement ou constante en haut du fichier) pour qu'on puisse la changer facilement quand on aura le vrai lien
+
+**C2. Facture annuelle aberrante — tarif kWh ~15x trop élevé**
+- Test: 250 000 kWh/an en saisie manuelle → résultat affiché: facture actuelle = $281,400/an = $1.12/kWh
+- Réalité: tarif Hydro-Québec commercial (tarif M) = ~$0.05-0.09/kWh selon la puissance. La facture réelle devrait être ~$15k-25k/an
+- Le problème est probablement dans `cashflowEngine.ts` ou dans les constantes de tarification
+- Utilise ces tarifs HQ commerciaux (tarif M, en vigueur 2024-2025):
+  - Première tranche (jusqu'à 210 000 kWh): ~$0.0617/kWh
+  - Deuxième tranche (au-delà): ~$0.0958/kWh
+  - Puissance: ~$15.57/kW/mois
+- Si le calcul utilise un tarif résidentiel ou un tarif d'une autre province/pays, c'est là le bug
+- IMPORTANT: les 63 tests vitest de cashflowEngine utilisent probablement les mêmes constantes. Mets à jour les tests aussi.
+
+**C3. Données du formulaire non reportées vers /analyse-detaillee**
+- Quand le lead entre ses infos (entreprise, email, adresse, conso kWh) sur la page d'accueil et clique sur le lien vers /analyse-detaillee, AUCUNE donnée n'est reportée
+- /analyse-detaillee affiche des valeurs par défaut: "123 rue Principale", code postal "H2X 1Y4", facture mensuelle "$5,000"
+- Fix: passer les données via React state (context/store), URL params, ou localStorage entre la landing page et /analyse-detaillee
+- Les champs entreprise, email, téléphone, adresse, consommation kWh doivent être pré-remplis sur /analyse-detaillee
+- Si le lead arrive directement sur /analyse-detaillee sans passer par la landing page, les champs doivent être vides (pas de valeurs par défaut bidons)
+
+### MAJEURS — À fixer ensuite
+
+**M1. Téléphone pré-rempli avec le numéro de kWh**
+- Champ "Téléphone (optionnel)" dans le formulaire saisie manuelle est pré-rempli avec `(514) 427-8871` (le numéro de kWh!)
+- Fix: mettre un placeholder format exemple `(514) 555-1234` et valeur vide
+
+**M2. "4 questions rapides" mais seulement 3 pour les propriétaires**
+- Le texte dit "4 questions rapides (30 secondes)" mais les propriétaires n'en voient que 3
+- La 4e question ("Avez-vous le droit d'utiliser la toiture?") n'apparaît que pour les locataires
+- Fix: texte dynamique "quelques questions rapides (30 secondes)" ou compter le nombre réel de questions à afficher
+
+**M3. /analyse-detaillee redemande upload de facture après saisie manuelle**
+- Si le lead a choisi "Saisie manuelle" sur la landing page, quand il arrive sur /analyse-detaillee l'onglet "Téléverser une facture" est actif par défaut
+- Fix: si on sait que le lead vient de la saisie manuelle (via le state partagé du fix C3), ouvrir l'onglet "Saisie manuelle" par défaut et pré-remplir les données
+
+**M4. Valeurs par défaut absurdes**
+- Lié au fix C3 — une fois que les données sont reportées, il ne devrait plus y avoir de valeurs par défaut
+- Si le lead arrive directement sur /analyse-detaillee: afficher des champs vides avec des placeholders descriptifs, PAS des valeurs pré-remplies
+- Supprimer: "123 rue Principale", "H2X 1Y4", "$5,000"
+
+**M5. "Nouvelle analyse" ne réinitialise pas la qualification**
+- Après les résultats de qualification, le bouton "Nouvelle analyse" ramène au formulaire mais les réponses précédentes restent sélectionnées (boutons bleus)
+- Fix: reset complet du state de qualification (toutes les réponses, la consommation, les infos lead) quand on clique "Nouvelle analyse"
+
+### MINEURS — Après les fixes ci-dessus
+
+**m1. Économie 8% vs hero "30-50%"**
+- Après le fix C2 (tarif kWh), vérifier que le % d'économie affiché correspond à la promesse "30-50%" de la landing page hero
+- Si les calculs solaires donnent 8% même avec le bon tarif, c'est un problème de dimensionnement du système ou de pricing du solaire
+
+**m2. CO2 évité = "8 t / 25 ans" semble très bas**
+- 250 000 kWh/an → 8 tonnes CO2 sur 25 ans = 0.32 t/an
+- Même au Québec (grid propre), ça devrait être plus élevé
+- Vérifier le facteur d'émission utilisé dans le calcul. Facteur QC = ~1.2 g CO2/kWh (très bas, c'est normal pour l'hydro). Facteur pour le solaire vs grid = considérer le facteur marginal (~30-50g CO2/kWh) pas le facteur moyen.
+
+**m3. Grammaire: "Signature de le représentant" → "Signature du représentant"**
+- Page /analyse-detaillee, section procuration HQ, sous le pad de signature
+
+**m5. "15+ ans d'expérience" dans les badges de confiance**
+- kWh Québec est en démarrage — cette mention peut sembler trompeuse
+- Change pour "Équipe cumultant 15+ ans d'expérience en énergie" ou retire-le
+
+**m6. Hero "Jusqu'à 15% de rendement" mais résultats montrent 15.3% TRI**
+- Inconsistance mineure. Le claim devrait matcher ou être légèrement en-dessous des résultats, pas au-dessus.
+
+**m7. Bouton "Restez informé" (chemin rouge) — vérifier la destination**
+- Résultats qualification rouge → bouton "Restez informé — recevez nos conseils" → où mène-t-il? Si nulle part, connecter à un formulaire newsletter ou retirer.
+
+### ORDRE D'EXÉCUTION RECOMMANDÉ
+
+1. C2 (tarif kWh — affecte tous les calculs financiers)
+2. C3 + M3 + M4 (données reportées entre pages — 3 bugs liés)
+3. C1 (Calendly → mailto temporaire)
+4. M1 (téléphone placeholder)
+5. M2 (texte dynamique questions)
+6. M5 (reset qualification)
+7. m3 (grammaire)
+8. m1, m2 (vérification post-fix C2)
+9. m5, m6, m7 (cosmétique)
+
+### VALIDATION APRÈS FIXES
+
+Après chaque fix critique (C1-C3), teste le flow complet:
+1. Aller sur la page d'accueil
+2. Entrer: entreprise "Test Corp", email "test@test.com", 200 000 kWh, adresse "456 Boul Industriel, Laval QC H7N 5R9"
+3. Soumettre → vérifier qualification (vert)
+4. Cliquer "Voir votre analyse complète" → vérifier que /analyse-detaillee a les bonnes données
+5. Vérifier que la facture affichée est réaliste (~$12k-18k/an pour 200k kWh)
+6. Vérifier que le bouton Calendly/email fonctionne
+7. Cliquer "Nouvelle analyse" → vérifier que tout est réinitialisé
