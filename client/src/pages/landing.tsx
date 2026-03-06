@@ -36,7 +36,7 @@ import { SEOHead, seoContent, getLocalBusinessSchema, getServiceSchema, getLandi
 import { TIMELINE_GRADIENT, BRAND } from "@shared/colors";
 import { getWhySolarNow, getTimeline, BRAND_CONTENT } from "@shared/brandContent";
 import installationPhoto from "@assets/hero-optimized.jpg";
-import roofMeasurement from "@assets/generated_images/commercial_roof_solar_potential_overlay.png";
+import roofMeasurement from "@assets/rona_lasalle_roof_visualization.png";
 import consumptionAnalysis from "@assets/generated_images/consumption_analysis_hq_branded.png";
 import heroRoofAnalysis from "@assets/generated_images/industrial_roof_solar_potential_overlay.png";
 import roofZoneOverlay from "@assets/generated_images/commercial_roof_solar_zone_overlay.png";

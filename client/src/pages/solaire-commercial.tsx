@@ -17,7 +17,7 @@ import { BRAND_CONTENT } from "@shared/brandContent";
 import heroImage from "@assets/generated_images/commercial_roof_solar_hero.png";
 import winterImage from "@assets/generated_images/solar_panels_winter_quebec.png";
 import engineerImage from "@assets/generated_images/engineer_rooftop_plans.png";
-import roofOverlay from "@assets/generated_images/commercial_roof_solar_potential_overlay.png";
+import roofOverlay from "@assets/rona_lasalle_roof_visualization.png";
 import screenshotAnalysis from "@assets/Screenshot_2025-12-11_at_9.14.32_PM_1765505832705.png";
 import screenshotFinancial from "@assets/Screenshot_2025-12-11_at_9.15.03_PM_1765505832704.png";
 import screenshotOptimization from "@assets/Screenshot_2025-12-11_at_2.44.53_PM_1765482299598.png";

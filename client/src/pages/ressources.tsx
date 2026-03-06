@@ -15,7 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useI18n } from "@/lib/i18n";
-import roofOverlay from "@assets/generated_images/commercial_roof_solar_potential_overlay.png";
+import roofOverlay from "@assets/rona_lasalle_roof_visualization.png";
 import { SEOHead, seoContent, getFAQSchema } from "@/components/seo-head";
 import { PublicHeader, PublicFooter } from "@/components/public-header";
 import type { BlogArticle, NewsArticle } from "@shared/schema";
