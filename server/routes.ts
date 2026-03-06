@@ -221,7 +221,7 @@ export async function registerRoutes(
 
   // ==================== SEO: 301 redirects for old site URLs ====================
   const oldRedirects: Record<string, string> = {
-    "/apropos": "/",
+    "/apropos": "/a-propos",
     "/contact": "/#analyse",
     "/services": "/",
     "/comment-ca-marche": "/",
@@ -246,6 +246,7 @@ Sitemap: https://www.kwh.quebec/sitemap.xml`
 
     const staticPages = [
       { path: "/", priority: "1.0", changefreq: "weekly" },
+      { path: "/a-propos", priority: "0.7", changefreq: "monthly" },
       { path: "/ressources", priority: "0.8", changefreq: "weekly" },
       { path: "/ressources/calculateur-roi-solaire", priority: "0.8", changefreq: "monthly" },
       { path: "/analyse-detaillee", priority: "0.7", changefreq: "monthly" },

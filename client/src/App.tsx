@@ -38,6 +38,7 @@ import PortfolioPage from "@/pages/portfolio";
 import PortfolioProjectPage from "@/pages/portfolio-project";
 import PrivacyPage from "@/pages/privacy";
 import TermsPage from "@/pages/terms";
+import AProposPage from "@/pages/a-propos";
 import NotFound from "@/pages/not-found";
 
 const SiteDetailPage = lazy(() => import("@/pages/site-detail"));
@@ -306,7 +307,8 @@ function AppRoutes() {
       {/* Redirect old pages to landing page */}
       <Route path="/services">{() => <Redirect to="/" />}</Route>
       <Route path="/comment-ca-marche">{() => <Redirect to="/" />}</Route>
-      <Route path="/apropos">{() => <Redirect to="/" />}</Route>
+      <Route path="/a-propos" component={AProposPage} />
+      <Route path="/apropos">{() => <Redirect to="/a-propos" />}</Route>
       <Route path="/contact">{() => <Redirect to="/#analyse" />}</Route>
       <Route path="/ressources" component={RessourcesPage} />
       <Route path="/ressources/calculateur-roi-solaire" component={CalculateurROIPage} />

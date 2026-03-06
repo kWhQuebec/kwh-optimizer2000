@@ -25,7 +25,7 @@ description: SEO and deployment rules for kWh Québec. Use when adding, removing
 
 ## Current Redirects (old site → new app)
 
-- `/apropos` → `/`
+- `/apropos` → `/a-propos`
 - `/contact` → `/#analyse`
 - `/services` → `/`
 - `/comment-ca-marche` → `/`

@@ -32,6 +32,7 @@ const SERVICES_DROPDOWN: DropdownNavItem = {
 const NAV_ITEMS: NavItem[] = [
   { href: "/portfolio", labelFr: "Portfolio", labelEn: "Portfolio" },
   { href: "/ressources", labelFr: "Ressources", labelEn: "Resources" },
+  { href: "/a-propos", labelFr: "À propos", labelEn: "About" },
 ];
 
 function ServicesDropdown({ language, location }: { language: string; location: string }) {
@@ -215,6 +216,9 @@ export function PublicFooter() {
               </Link>
               <Link href="/ressources" className="block hover:text-foreground transition-colors" data-testid="link-footer-ressources">
                 {language === "fr" ? "Ressources" : "Resources"}
+              </Link>
+              <Link href="/a-propos" className="block hover:text-foreground transition-colors" data-testid="link-footer-about">
+                {language === "fr" ? "À propos" : "About"}
               </Link>
             </div>
           </div>
