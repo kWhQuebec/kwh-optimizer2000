@@ -266,12 +266,13 @@ export default function SolaireCommercialPage() {
               )}
             </h1>
             <p className="text-xl text-white/90 max-w-3xl mx-auto mb-4" data-testid="text-hero-subtitle">
-              {t(
-                "Réduisez vos coûts énergétiques jusqu'à 70% avec un système solaire clé en main, rentabilisé en 5 à 9 ans grâce aux incitatifs disponibles.",
-                "Reduce your energy costs by up to 70% with a turnkey solar system, paying for itself in 5 to 9 years thanks to available incentives."
+              {language === "fr" ? (
+                <>Réduisez vos coûts énergétiques <span className="text-yellow-400 font-semibold">jusqu'à 70%</span> avec un système solaire clé en main, rentabilisé en <span className="text-yellow-400 font-semibold">5 à 9 ans</span> grâce aux incitatifs disponibles.</>
+              ) : (
+                <>Reduce your energy costs by <span className="text-yellow-400 font-semibold">up to 70%</span> with a turnkey solar system, paying for itself in <span className="text-yellow-400 font-semibold">5 to 9 years</span> thanks to available incentives.</>
               )}
             </p>
-            <p className="text-base text-white/85 max-w-2xl mx-auto mb-8">
+            <p className="text-base text-white/90 max-w-2xl mx-auto mb-8">
               {t(
                 "Licence RBQ, équipe certifiée CCQ & CNESST, ingénierie scellée — partout au Québec.",
                 "RBQ licensed, CCQ & CNESST certified team, sealed engineering — across Quebec."

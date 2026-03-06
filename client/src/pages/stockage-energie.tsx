@@ -196,11 +196,13 @@ export default function StockageEnergiePage() {
                 : "Battery Storage for Businesses"}
             </h1>
             <p className="text-xl text-white/90 max-w-3xl mx-auto mb-4" data-testid="text-hero-subtitle">
-              {language === "fr"
-                ? "Réduisez vos frais de puissance, sécurisez vos opérations et maximisez la valeur de votre solaire avec le stockage par batterie."
-                : "Reduce your demand charges, secure your operations and maximize your solar value with battery storage."}
+              {language === "fr" ? (
+                <><span className="text-yellow-400 font-semibold">Réduisez vos frais de puissance</span>, sécurisez vos opérations et maximisez la valeur de votre solaire avec le stockage par batterie.</>
+              ) : (
+                <><span className="text-yellow-400 font-semibold">Reduce your demand charges</span>, secure your operations and maximize your solar value with battery storage.</>
+              )}
             </p>
-            <p className="text-base text-white/85 max-w-2xl mx-auto mb-8">
+            <p className="text-base text-white/90 max-w-2xl mx-auto mb-8">
               {language === "fr"
                 ? "Solutions BESS clé en main pour les bâtiments commerciaux et industriels au Québec."
                 : "Turnkey BESS solutions for commercial and industrial buildings in Quebec."}
