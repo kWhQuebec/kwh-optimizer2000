@@ -206,7 +206,7 @@ export default function StockageEnergiePage() {
                 : "Turnkey BESS solutions for commercial and industrial buildings in Quebec."}
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/#paths">
+              <Link href="/#analyse">
                 <Button size="lg" className="gap-2" data-testid="button-get-analysis">
                   {language === "fr" ? "Voir mon potentiel — Gratuit" : "See my potential — Free"}
                   <ArrowRight aria-hidden="true" className="w-4 h-4" />
@@ -588,7 +588,7 @@ export default function StockageEnergiePage() {
                 : "Our free analysis includes a solar and storage potential assessment, with detailed financial projections."}
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/#paths">
+              <Link href="/#analyse">
                 <Button size="lg" className="gap-2" data-testid="button-cta-analysis">
                   {language === "fr" ? "Commencer mon analyse — Gratuit" : "Start my analysis — Free"}
                   <ArrowRight aria-hidden="true" className="w-4 h-4" />

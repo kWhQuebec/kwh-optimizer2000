@@ -95,7 +95,7 @@ export default function ServicesPage() {
                 ? "De l'analyse initiale à la mise en service, nous gérons l'ensemble de votre projet solaire + stockage."
                 : "From initial analysis to commissioning, we manage your entire solar + storage project."}
             </p>
-            <Link href="/#paths">
+            <Link href="/#analyse">
               <Button size="lg" className="gap-2" data-testid="button-get-analysis">
                 {language === "fr" ? "Voir mon potentiel solaire — Gratuit" : "See my solar potential — Free"}
                 <ArrowRight className="w-4 h-4" />
@@ -214,7 +214,7 @@ export default function ServicesPage() {
               : "Get a free analysis of your solar potential in minutes."}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/#paths">
+            <Link href="/#analyse">
               <Button size="lg" variant="secondary" className="gap-2" data-testid="button-cta-analysis">
                 {language === "fr" ? "Commencer mon analyse" : "Start my analysis"}
                 <ArrowRight className="w-4 h-4" />

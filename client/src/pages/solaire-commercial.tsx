@@ -278,7 +278,7 @@ export default function SolaireCommercialPage() {
               )}
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/#paths">
+              <Link href="/#analyse">
                 <Button size="lg" className="gap-2" data-testid="button-get-analysis">
                   {t("Voir mon potentiel — Gratuit", "See my potential — Free")}
                   <ArrowRight aria-hidden="true" className="w-4 h-4" />
@@ -944,7 +944,7 @@ export default function SolaireCommercialPage() {
               )}
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/#paths">
+              <Link href="/#analyse">
                 <Button size="lg" className="gap-2" data-testid="button-cta-analysis">
                   {t("Analyse gratuite", "Free Analysis")}
                   <ArrowRight aria-hidden="true" className="w-4 h-4" />

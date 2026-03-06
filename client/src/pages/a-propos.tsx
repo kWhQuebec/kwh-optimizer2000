@@ -71,7 +71,7 @@ const TEAM_MEMBERS = [
     nameEn: "Natacha Mc Vie",
     roleFr: "Dir. gestion de projets",
     roleEn: "Director of Project Management",
-    linkedin: "",
+    linkedin: "https://www.linkedin.com/in/natacha-mc-vie-4a4ab4a6/",
   },
 ];
 
@@ -260,9 +260,9 @@ export default function AProposPage() {
               )}
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/#paths">
+              <Link href="/#analyse">
                 <Button size="lg" className="gap-2" data-testid="button-get-analysis-about">
-                  {t("Évaluer mon potentiel — Gratuit", "Evaluate my potential — Free")}
+                  {t("Voir mon potentiel solaire — Gratuit", "See my solar potential — Free")}
                   <ArrowRight aria-hidden="true" className="w-4 h-4" />
                 </Button>
               </Link>
@@ -619,9 +619,9 @@ export default function AProposPage() {
               )}
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/#paths">
+              <Link href="/#analyse">
                 <Button size="lg" className="gap-2" data-testid="button-cta-analysis">
-                  {t("Évaluer mon potentiel — Gratuit", "Evaluate my potential — Free")}
+                  {t("Voir mon potentiel solaire — Gratuit", "See my solar potential — Free")}
                   <ArrowRight aria-hidden="true" className="w-4 h-4" />
                 </Button>
               </Link>

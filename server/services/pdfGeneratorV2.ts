@@ -2068,10 +2068,10 @@ function buildCredibilityPage(
   };
 
   const valueItems = [
-    { id: "simplicite", label: t("Simplicit&eacute;", "Simplicity"), desc: t("Un seul interlocuteur de A &agrave; Z. Z&eacute;ro complexit&eacute; pour vous.", "One point of contact from A to Z. Zero complexity for you.") },
-    { id: "fiabilite", label: t("Fiabilit&eacute;", "Reliability"), desc: t("&Eacute;quipements certifi&eacute;s, entrepreneur licenci&eacute; RBQ.", "Certified equipment, RBQ licensed contractor.") },
-    { id: "longevite", label: t("Long&eacute;vit&eacute;", "Longevity"), desc: t("Syst&egrave;mes con&ccedil;us pour 25+ ans de performance garantie.", "Systems designed for 25+ years of guaranteed performance.") },
-    { id: "fierte", label: t("Fiert&eacute;", "Pride"), desc: t("Entreprise qu&eacute;b&eacute;coise. Contribution &agrave; la transition &eacute;nerg&eacute;tique locale.", "Quebec company. Contributing to the local energy transition.") },
+    { id: "simplicite", label: t("Simplicit&eacute;", "Simplicity"), desc: t("Solution cl&eacute; en main &mdash; on s'occupe de tout !", "Turnkey solution &mdash; we handle everything!") },
+    { id: "fiabilite", label: t("Fiabilit&eacute;", "Reliability"), desc: t("Performance garantie. On respecte nos engagements, toujours !", "Guaranteed performance. We keep our commitments, always!") },
+    { id: "perennite", label: t("P&eacute;rennit&eacute;", "Sustainability"), desc: t("On b&acirc;tit des relations et des solutions pour le long terme.", "We build relationships and solutions for the long term.") },
+    { id: "fierte", label: t("Fiert&eacute;", "Pride"), desc: t("On est fier des projets que nous r&eacute;alisons et de l'impact qu'ils ont sur nos clients et sur l'environnement.", "We're proud of the projects we deliver and the impact they have on our clients and the environment.") },
   ];
 
   const valuesHtml = valueItems.map(v =>

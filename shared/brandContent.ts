@@ -13,10 +13,10 @@ export const BRAND_CONTENT = {
 
   // === POURQUOI kWh QUÉBEC — VALEURS ===
   values: [
-    { id: "simplicite", labelFr: "Simplicité", labelEn: "Simplicity", descFr: "Un interlocuteur unique, du premier appel à la mise en service.", descEn: "A single point of contact, from first call to commissioning." },
-    { id: "fiabilite", labelFr: "Fiabilité", labelEn: "Reliability", descFr: "Licence RBQ, équipe certifiée CCQ & CNESST, ingénierie scellée.", descEn: "RBQ licensed, CCQ & CNESST certified team, sealed engineering." },
-    { id: "longevite", labelFr: "Longévité", labelEn: "Longevity", descFr: "Garantie 25 ans sur les panneaux, suivi de performance continu.", descEn: "25-year panel warranty, continuous performance monitoring." },
-    { id: "fierte", labelFr: "Fierté", labelEn: "Pride", descFr: "Entreprise québécoise engagée dans la transition énergétique.", descEn: "Quebec company committed to the energy transition." },
+    { id: "simplicite", labelFr: "Simplicité", labelEn: "Simplicity", descFr: "Solution clé en main — on s'occupe de tout !", descEn: "Turnkey solution — we handle everything!" },
+    { id: "fiabilite", labelFr: "Fiabilité", labelEn: "Reliability", descFr: "Performance garantie. On respecte nos engagements, toujours !", descEn: "Guaranteed performance. We keep our commitments, always!" },
+    { id: "perennite", labelFr: "Pérennité", labelEn: "Sustainability", descFr: "On bâtit des relations et des solutions pour le long terme.", descEn: "We build relationships and solutions for the long term." },
+    { id: "fierte", labelFr: "Fierté", labelEn: "Pride", descFr: "On est fier des projets que nous réalisons et de l'impact qu'ils ont sur nos clients et sur l'environnement.", descEn: "We're proud of the projects we deliver and the impact they have on our clients and the environment." },
   ],
 
   // === CREDIBILITY DESCRIPTION ===

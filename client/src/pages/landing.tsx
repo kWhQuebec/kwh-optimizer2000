@@ -2024,7 +2024,7 @@ export default function LandingPage() {
                 {language === "fr" ? "Simplicité" : "Simplicity"}
               </h4>
               <p className="text-xs text-muted-foreground">
-                {language === "fr" ? "Un seul interlocuteur de A à Z. Zéro complexité pour vous." : "One point of contact from A to Z. Zero complexity for you."}
+                {language === "fr" ? "Solution clé en main — on s'occupe de tout !" : "Turnkey solution — we handle everything!"}
               </p>
             </div>
 
@@ -2036,19 +2036,19 @@ export default function LandingPage() {
                 {language === "fr" ? "Fiabilité" : "Reliability"}
               </h4>
               <p className="text-xs text-muted-foreground">
-                {language === "fr" ? "Équipements certifiés, entrepreneur licencié RBQ." : "Certified equipment, RBQ licensed contractor."}
+                {language === "fr" ? "Performance garantie. On respecte nos engagements, toujours !" : "Guaranteed performance. We keep our commitments, always!"}
               </p>
             </div>
 
-            <div className="text-center p-4 rounded-xl bg-background border" data-testid="value-longevity">
+            <div className="text-center p-4 rounded-xl bg-background border" data-testid="value-sustainability">
               <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-primary/10 flex items-center justify-center">
                 <TrendingUp aria-hidden="true" className="w-5 h-5 text-primary" />
               </div>
               <h4 className="font-semibold text-sm mb-1">
-                {language === "fr" ? "Longévité" : "Longevity"}
+                {language === "fr" ? "Pérennité" : "Sustainability"}
               </h4>
               <p className="text-xs text-muted-foreground">
-                {language === "fr" ? "Systèmes conçus pour 25+ ans de performance garantie." : "Systems designed for 25+ years of guaranteed performance."}
+                {language === "fr" ? "On bâtit des relations et des solutions pour le long terme." : "We build relationships and solutions for the long term."}
               </p>
             </div>
 
@@ -2060,7 +2060,7 @@ export default function LandingPage() {
                 {language === "fr" ? "Fierté" : "Pride"}
               </h4>
               <p className="text-xs text-muted-foreground">
-                {language === "fr" ? "Entreprise québécoise. Contribution à la transition énergétique locale." : "Quebec company. Contributing to the local energy transition."}
+                {language === "fr" ? "On est fier des projets que nous réalisons et de l'impact qu'ils ont sur nos clients et sur l'environnement." : "We're proud of the projects we deliver and the impact they have on our clients and the environment."}
               </p>
             </div>
           </motion.div>

@@ -24,7 +24,7 @@ const DEFAULT_CONTENT = [
       values: [
         { label: { fr: "Simplicité", en: "Simplicity" } },
         { label: { fr: "Fiabilité", en: "Reliability" } },
-        { label: { fr: "Longévité", en: "Longevity" } },
+        { label: { fr: "Pérennité", en: "Sustainability" } },
         { label: { fr: "Fierté", en: "Pride" } }
       ],
       benefits: [

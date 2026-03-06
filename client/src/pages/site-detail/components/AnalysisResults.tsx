@@ -1725,8 +1725,8 @@ export function AnalysisResults({
           </p>
           <div className="flex items-center justify-center gap-3 flex-wrap">
             {(language === "fr"
-              ? ["Simplicité", "Fiabilité", "Longévité", "Fierté"]
-              : ["Simplicity", "Reliability", "Longevity", "Pride"]
+              ? ["Simplicité", "Fiabilité", "Pérennité", "Fierté"]
+              : ["Simplicity", "Reliability", "Sustainability", "Pride"]
             ).map((val, i) => (
               <span key={i} className="text-xs font-semibold text-primary px-3 py-1 bg-primary/5 rounded-md">{val}</span>
             ))}

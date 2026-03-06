@@ -357,7 +357,7 @@ export default function BlogPage() {
             <p className="text-muted-foreground mb-6 max-w-xl mx-auto" data-testid="text-cta-description">
               {t("blog.ctaDescription")}
             </p>
-            <Link href="/#contact">
+            <Link href="/#analyse">
               <Button size="lg" data-testid="button-cta">
                 {t("blog.ctaButton")}
                 <ArrowRight className="w-4 h-4 ml-2" />

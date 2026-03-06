@@ -931,7 +931,7 @@ export default function RessourcesPage() {
                   {language === "fr" 
                     ? "Vous cochez les critères requis? "
                     : "You meet the required criteria? "}
-                  <Link href="/#paths" className="text-primary font-medium hover:underline">
+                  <Link href="/#analyse" className="text-primary font-medium hover:underline">
                     {language === "fr" ? "Obtenez votre analyse gratuite →" : "Get your free analysis →"}
                   </Link>
                 </p>
@@ -953,7 +953,7 @@ export default function RessourcesPage() {
               : "Our team is available to answer all your questions."}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/#paths">
+            <Link href="/#analyse">
               <Button size="lg" className="gap-2" data-testid="button-get-analysis">
                 {language === "fr" ? "Voir mon potentiel solaire — Gratuit" : "See my solar potential — Free"}
                 <ArrowRight aria-hidden="true" className="w-4 h-4" />
