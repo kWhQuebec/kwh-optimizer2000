@@ -536,7 +536,7 @@ router.post("/api/quick-estimate", estimateLimiter, asyncHandler(async (req, res
       const protocol = process.env.NODE_ENV === "production" ? "https" : "http";
       const host = req.get("host") || "localhost:5000";
       const baseUrl = `${protocol}://${host}`;
-      const procurationUrl = `${baseUrl}/analysis/${lead.id}/procuration`;
+      const procurationUrl = `${baseUrl}/autorisation-hq?clientId=${clientId || lead.id}`;
 
       // Detect language from address
       const frenchIndicators = ['rue', 'avenue', 'boulevard', 'chemin', 'montréal', 'québec', 'laval', 'sherbrooke', 'trois-rivières', 'saint-', 'sainte-'];
@@ -548,13 +548,11 @@ router.post("/api/quick-estimate", estimateLimiter, asyncHandler(async (req, res
         'welcomePersonalized',
         leadEmail,
         {
-          contactName: contactName || clientName || 'Friend',
-          address: address || 'Your location',
-          buildingType: buildingType || 'Commercial',
-          annualConsumptionKwh: Math.round(annualKWh).toString(),
+          contactName: contactName || clientName || (welcomeLanguage === 'fr' ? 'Bonjour' : 'Hello'),
+          address: address || (welcomeLanguage === 'fr' ? 'Votre emplacement' : 'Your location'),
           systemSizeKw: Math.round(primaryScenario.systemSizeKW).toString(),
-          annualSavings: Math.round(primaryScenario.annualSavings).toString(),
-          costOfInaction: Math.round(costOfInaction).toString(),
+          annualSavings: Math.round(primaryScenario.annualSavings).toLocaleString('fr-CA'),
+          costOfInaction: Math.round(costOfInaction).toLocaleString('fr-CA'),
           procurationUrl: procurationUrl,
         },
         welcomeLanguage
@@ -1760,7 +1758,7 @@ router.patch("/api/leads/:id/self-qualification", asyncHandler(async (req, res) 
   if (leadColor) {
     updateData.leadColor = leadColor;
     updateData.leadColorReason = 'self_qualification';
-    updateData.leadColorUpdatedAt = new Date().toISOString();
+    updateData.leadColorUpdatedAt = new Date();
   }
 
   const updatedLead = await storage.updateLead(req.params.id, updateData);
