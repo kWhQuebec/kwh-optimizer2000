@@ -65,11 +65,12 @@ Jan: 35%, Feb: 25%, Mar: 15%, Apr: 0%, May-Oct: 0%, Nov: 5%, Dec: 25%
 - Duplicate simulation: `server/routes.ts` → `runHourlySimulation()` (legacy)
 - Display: `shared/brandContent.ts` → `BRAND_CONTENT.assumptions`
 
-## Costs Reference (2025)
+## Costs Reference (2025-2026)
 
 | PV System Size | $/W |
 |---|---|
-| < 100 kW | 2.30 |
+| < 30 kW | 2.70 |
+| 30–100 kW | 2.50 |
 | 100–500 kW | 2.15 |
 | 500–1,000 kW | 2.00 |
 | 1–3 MW | 1.85 |

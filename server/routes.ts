@@ -65,6 +65,7 @@ import {
   resolveYieldStrategy,
   getTieredSolarCostPerW,
   getSolarPricingTierLabel,
+  getSizingFactorForBuildingType,
   QUEBEC_MONTHLY_TEMPS as UNIFIED_QUEBEC_TEMPS,
   BASELINE_YIELD,
   type MonteCarloConfig,
@@ -703,7 +704,8 @@ interface ForcedSizing {
 
 interface AnalysisOptions {
   forcedSizing?: ForcedSizing;
-  preCalculatedDataSpanDays?: number; // Use pre-calculated value from deduplication
+  preCalculatedDataSpanDays?: number;
+  buildingType?: string | null;
 }
 
 function runPotentialAnalysis(
@@ -786,20 +788,22 @@ function runPotentialAnalysis(
     effectiveYield = baseYield * orientationFactor * bifacialMultiplier;
     log.info(`Manual Fallback: Base=${baseYield}, orientation=${orientationFactor.toFixed(2)}, bifacial=${h.bifacialEnabled}, effectiveYield=${effectiveYield.toFixed(0)}`);
   }
-  const targetPVSize = (annualConsumptionKWh / effectiveYield) * 1.2;
+  const sizingFactor = getSizingFactorForBuildingType(options?.buildingType);
+  const targetPVSize = (annualConsumptionKWh / effectiveYield) * sizingFactor;
+  log.info(`PV sizing: buildingType=${options?.buildingType || 'unknown'}, factor=${sizingFactor}, target=${Math.round(targetPVSize)}kW`);
   
   // Use forced sizing if provided, otherwise calculate optimal
   const pvSizeKW = forcedSizing?.forcePvSize !== undefined 
     ? Math.round(forcedSizing.forcePvSize)
     : Math.min(Math.round(targetPVSize), Math.round(maxPVFromRoof));
   
-  // Battery sizing - use forced values if provided
+  const hasDemandCharges = h.tariffPower > 0;
   const battPowerKW = forcedSizing?.forceBatteryPower !== undefined
     ? Math.round(forcedSizing.forceBatteryPower)
-    : Math.round(peakKW * 0.3); // 30% of peak for shaving
+    : (hasDemandCharges ? Math.round(peakKW * 0.3) : 0);
   const battEnergyKWh = forcedSizing?.forceBatterySize !== undefined
     ? Math.round(forcedSizing.forceBatterySize)
-    : Math.round(battPowerKW * 2); // 2-hour duration
+    : (hasDemandCharges ? Math.round(battPowerKW * 2) : 0);
   const demandShavingSetpointKW = Math.round(peakKW * 0.90); // Target 10% peak reduction
   
   // ========== STEP 3: Run hourly simulation ==========

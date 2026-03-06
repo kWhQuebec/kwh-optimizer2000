@@ -1060,7 +1060,8 @@ router.post("/:siteId/run-potential-analysis", authMiddleware, requireStaff, asy
     analysisAssumptions,
     {
       forcedSizing,
-      preCalculatedDataSpanDays: dedupResult.dataSpanDays
+      preCalculatedDataSpanDays: dedupResult.dataSpanDays,
+      buildingType: site.buildingType
     }
   );
 

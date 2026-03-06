@@ -23,8 +23,9 @@ const log = createLogger("PotentialAnalysis");
  * Calculate tiered solar cost per watt based on system size
  * Larger systems get better pricing due to economies of scale
  * 
- * Pricing tiers (Quebec market, 2025):
- * - < 100 kW:      $2.30/W (small commercial)
+ * Pricing tiers (Quebec market, 2025-2026):
+ * - < 30 kW:       $2.70/W (very small, high fixed cost ratio)
+ * - 30-100 kW:     $2.50/W (small commercial)
  * - 100-500 kW:    $2.15/W (medium commercial)
  * - 500 kW - 1 MW: $2.00/W (large commercial)
  * - 1-3 MW:        $1.85/W (industrial)
@@ -35,7 +36,8 @@ export function getTieredSolarCostPerW(pvSizeKW: number): number {
   if (pvSizeKW >= 1000) return 1.85;      // 1-3 MW
   if (pvSizeKW >= 500)  return 2.00;      // 500 kW - 1 MW
   if (pvSizeKW >= 100)  return 2.15;      // 100-500 kW
-  return 2.30;                             // < 100 kW
+  if (pvSizeKW >= 30)   return 2.50;      // 30-100 kW
+  return 2.70;                             // < 30 kW
 }
 
 /**
@@ -48,9 +50,48 @@ export function getSolarPricingTierLabel(pvSizeKW: number, lang: 'fr' | 'en' = '
     1.85: { fr: 'Tier 2 (1-3 MW)', en: 'Tier 2 (1-3 MW)' },
     2.00: { fr: 'Tier 3 (500 kW-1 MW)', en: 'Tier 3 (500 kW-1 MW)' },
     2.15: { fr: 'Tier 4 (100-500 kW)', en: 'Tier 4 (100-500 kW)' },
-    2.30: { fr: 'Tier 5 (<100 kW)', en: 'Tier 5 (<100 kW)' },
+    2.50: { fr: 'Tier 5 (30-100 kW)', en: 'Tier 5 (30-100 kW)' },
+    2.70: { fr: 'Tier 6 (<30 kW)', en: 'Tier 6 (<30 kW)' },
   };
   return tierLabels[price]?.[lang] || `$${price.toFixed(2)}/W`;
+}
+
+// ==================== BUILDING-TYPE SIZING FACTORS ====================
+
+/**
+ * PV sizing factor by building type
+ * 
+ * Controls how much of annual consumption the system targets.
+ * Factor < 1.0 = conservative (less surplus at low 4.6¢/kWh export rate)
+ * Factor > 1.0 = aggressive (more surplus, justified by high baseload)
+ * 
+ * Rationale:
+ * - Office/government: daytime-only, weekends idle → surplus at 4.6¢ instead of ~10¢ self-consumption
+ * - Warehouse: low consumption density, easy to overshoot roof capacity
+ * - Education: summer + weekends idle → seasonal mismatch
+ * - Industrial 24/7: high baseload matches solar well, less surplus risk
+ * - Healthcare/cold storage: 24/7 compressor/HVAC loads, good solar match
+ */
+const BUILDING_TYPE_SIZING_FACTORS: Record<string, number> = {
+  office: 0.90,
+  retail: 0.95,
+  restaurant: 0.95,
+  hotel: 1.00,
+  warehouse: 0.85,
+  cold_warehouse: 1.05,
+  industrial: 1.10,
+  light_industrial: 1.00,
+  healthcare: 1.05,
+  education: 0.85,
+  government: 0.90,
+  agricultural: 1.00,
+};
+
+const DEFAULT_SIZING_FACTOR = 1.00;
+
+export function getSizingFactorForBuildingType(buildingType?: string | null): number {
+  if (!buildingType) return DEFAULT_SIZING_FACTOR;
+  return BUILDING_TYPE_SIZING_FACTORS[buildingType] ?? DEFAULT_SIZING_FACTOR;
 }
 
 // ==================== TYPES ====================

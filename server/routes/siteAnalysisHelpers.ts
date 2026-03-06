@@ -14,6 +14,7 @@ import {
 import {
   resolveYieldStrategy as resolveYieldStrategyFromAnalysis,
   getTieredSolarCostPerW,
+  getSizingFactorForBuildingType,
   type YieldStrategy,
   type SystemModelingParams,
   QUEBEC_MONTHLY_TEMPS,
@@ -353,6 +354,7 @@ interface ForcedSizing {
 interface AnalysisOptions {
   forcedSizing?: ForcedSizing;
   preCalculatedDataSpanDays?: number;
+  buildingType?: string | null;
 }
 
 export function buildHourlyData(readings: Array<{ kWh: number | null; kW: number | null; timestamp: Date }>): {
@@ -543,7 +545,9 @@ export function runPotentialAnalysis(
   const effectiveYield = storedYieldStrategy
     ? storedYieldStrategy.effectiveYield
     : h.solarYieldKWhPerKWp || BASELINE_YIELD;
-  const targetPVSize = (annualConsumptionKWh / effectiveYield) * 1.2;
+  const sizingFactor = getSizingFactorForBuildingType(options?.buildingType);
+  const targetPVSize = (annualConsumptionKWh / effectiveYield) * sizingFactor;
+  log.info(`PV sizing: buildingType=${options?.buildingType || 'unknown'}, factor=${sizingFactor}, target=${Math.round(targetPVSize)}kW`);
   
   // HQ OSE 6.0: PV ≤ puissance max appelée des 12 derniers mois (mesurage net requirement)
   // peakKW is already derived from the meter readings (max kW observed over the billing period)
@@ -551,12 +555,16 @@ export function runPotentialAnalysis(
     ? Math.round(forcedSizing.forcePvSize)
     : Math.min(Math.round(targetPVSize), Math.round(maxPVFromRoof), Math.round(peakKW));
   
+  const hasDemandCharges = h.tariffPower > 0;
   const battPowerKW = forcedSizing?.forceBatteryPower !== undefined
     ? Math.round(forcedSizing.forceBatteryPower)
-    : Math.round(peakKW * 0.3);
+    : (hasDemandCharges ? Math.round(peakKW * 0.3) : 0);
   const battEnergyKWh = forcedSizing?.forceBatterySize !== undefined
     ? Math.round(forcedSizing.forceBatterySize)
-    : Math.round(battPowerKW * 2);
+    : (hasDemandCharges ? Math.round(battPowerKW * 2) : 0);
+  if (!hasDemandCharges && forcedSizing?.forceBatteryPower === undefined) {
+    log.info(`Battery excluded: tariffPower=$${h.tariffPower}/kW (no demand charges)`);
+  }
   const demandShavingSetpointKW = Math.round(peakKW * 0.90);
   
   const yieldFactor = effectiveYield / 1150;
@@ -984,7 +992,7 @@ export async function runAutoAnalysisForSite(siteId: string): Promise<void> {
   const result = runPotentialAnalysis(
     dedupResult.readings,
     analysisAssumptions,
-    { preCalculatedDataSpanDays: dedupResult.dataSpanDays }
+    { preCalculatedDataSpanDays: dedupResult.dataSpanDays, buildingType: site.buildingType }
   );
 
   await storage.createSimulationRun({
