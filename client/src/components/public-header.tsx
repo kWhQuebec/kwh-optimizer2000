@@ -145,10 +145,10 @@ export function PublicHeader() {
             })}
           </nav>
 
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2">
             <a
               href="tel:+15144278871"
-              className="hidden sm:flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              className="hidden md:flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
               data-testid="link-header-phone"
             >
               <Phone aria-hidden="true" className="h-4 w-4" />
@@ -156,7 +156,7 @@ export function PublicHeader() {
             </a>
             <a
               href="tel:+15144278871"
-              className="sm:hidden"
+              className="md:hidden"
               aria-label={language === "fr" ? "Appeler 514.427.8871" : "Call 514.427.8871"}
               data-testid="link-header-phone-mobile"
             >
@@ -164,8 +164,10 @@ export function PublicHeader() {
                 <Phone aria-hidden="true" className="h-4 w-4" />
               </Button>
             </a>
-            <LanguageToggle />
-            <ThemeToggle />
+            <div className="hidden md:flex items-center gap-2">
+              <LanguageToggle />
+              <ThemeToggle />
+            </div>
             <Link href="/login">
               <Button variant="outline" size="sm" data-testid="button-login">
                 {t("nav.login")}
@@ -221,6 +223,7 @@ export function PublicHeader() {
                   isActive ? "font-medium text-foreground bg-muted" : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                 }`}
                 data-testid={`link-mobile-${child.href.replace(/[\/#]/g, "") || "services"}`}
+                onClick={() => setMobileMenuOpen(false)}
               >
                 {label}
               </Link>
@@ -243,6 +246,7 @@ export function PublicHeader() {
                   isActive ? "font-medium text-foreground bg-muted" : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                 }`}
                 data-testid={`link-mobile-${hrefPath.replace(/\//g, "") || "home"}`}
+                onClick={() => setMobileMenuOpen(false)}
               >
                 {label}
               </Link>
@@ -259,6 +263,13 @@ export function PublicHeader() {
             <Phone aria-hidden="true" className="h-4 w-4" />
             514.427.8871
           </a>
+
+          <div className="h-px bg-border my-2" />
+
+          <div className="flex items-center gap-2 px-3 py-2">
+            <LanguageToggle />
+            <ThemeToggle />
+          </div>
         </div>
       </nav>
     </header>
