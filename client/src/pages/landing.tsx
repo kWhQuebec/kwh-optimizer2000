@@ -571,6 +571,7 @@ export default function LandingPage() {
         includeHreflang={true}
       />
       <PublicHeader />
+      <main>
       {/* ========== NEW HERO SECTION ========== */}
       <section className="relative pt-16 min-h-[85vh] flex items-center overflow-hidden" data-testid="section-hero">
         <div 
@@ -623,9 +624,9 @@ export default function LandingPage() {
                   }}
                   data-testid="button-hero-cta"
                 >
-                  <Sun className="w-5 h-5" />
-                  {language === "fr" ? "Voir mon potentiel solaire — Gratuit, 2 min" : "See my solar potential — Free, 2 min"}
-                  <ArrowRight className="w-5 h-5" />
+                  <Sun aria-hidden="true" className="w-5 h-5" />
+                  {language === "fr" ? "Voir mon potentiel solaire" : "See my solar potential"}
+                  <ArrowRight aria-hidden="true" className="w-5 h-5" />
                 </Button>
               </div>
             </motion.div>
@@ -675,7 +676,7 @@ export default function LandingPage() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex flex-wrap items-center justify-center gap-8 sm:gap-12 md:gap-16">
             <div className="flex flex-col items-center text-center" data-testid="stat-years-experience">
-              <Award className="w-6 h-6 text-primary mb-1" />
+              <Award aria-hidden="true" className="w-6 h-6 text-primary mb-1" />
               <span className="text-2xl sm:text-3xl font-bold text-foreground">{BRAND_CONTENT.stats.yearsExperience.value}</span>
               <span className="text-sm text-muted-foreground">
                 {language === "fr" ? BRAND_CONTENT.stats.yearsExperience.labelFr : BRAND_CONTENT.stats.yearsExperience.labelEn}
@@ -683,7 +684,7 @@ export default function LandingPage() {
             </div>
             <div className="hidden sm:block w-px h-12 bg-border" aria-hidden="true" />
             <div className="flex flex-col items-center text-center" data-testid="stat-mw-installed">
-              <Zap className="w-6 h-6 text-primary mb-1" />
+              <Zap aria-hidden="true" className="w-6 h-6 text-primary mb-1" />
               <span className="text-2xl sm:text-3xl font-bold text-foreground">{BRAND_CONTENT.stats.mwInstalled.value}+</span>
               <span className="text-sm text-muted-foreground">
                 {language === "fr" ? BRAND_CONTENT.stats.mwInstalled.labelFr : BRAND_CONTENT.stats.mwInstalled.labelEn}
@@ -691,7 +692,7 @@ export default function LandingPage() {
             </div>
             <div className="hidden sm:block w-px h-12 bg-border" aria-hidden="true" />
             <div className="flex flex-col items-center text-center" data-testid="stat-ci-projects">
-              <Building2 className="w-6 h-6 text-primary mb-1" />
+              <Building2 aria-hidden="true" className="w-6 h-6 text-primary mb-1" />
               <span className="text-2xl sm:text-3xl font-bold text-foreground">{BRAND_CONTENT.stats.projectsCI.value}</span>
               <span className="text-sm text-muted-foreground">
                 {language === "fr" ? BRAND_CONTENT.stats.projectsCI.labelFr : BRAND_CONTENT.stats.projectsCI.labelEn}
@@ -730,11 +731,43 @@ export default function LandingPage() {
             {/* Main Flow Card */}
             <Card className="max-w-2xl mx-auto border-2 border-primary/20 shadow-xl">
               <CardContent className="p-6 sm:p-8" aria-live="polite">
+                {(flowStep === 'upload' || flowStep === 'manualEntry') && (
+                  <div role="tablist" aria-label={language === "fr" ? "Méthode d'entrée" : "Input method"} className="flex gap-2 mb-4" data-testid="tablist-input-method">
+                    <button
+                      role="tab"
+                      aria-selected={flowStep === 'upload'}
+                      aria-controls="tabpanel-upload"
+                      id="tab-upload"
+                      onClick={() => setFlowStep('upload')}
+                      className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${flowStep === 'upload' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}
+                      data-testid="tab-upload"
+                    >
+                      {language === "fr" ? "Téléverser une facture" : "Upload a bill"}
+                    </button>
+                    <button
+                      role="tab"
+                      aria-selected={flowStep === 'manualEntry'}
+                      aria-controls="tabpanel-manual"
+                      id="tab-manual"
+                      onClick={() => {
+                        FunnelEvents.formStarted('manual_entry');
+                        setFlowStep('manualEntry');
+                      }}
+                      className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${flowStep === 'manualEntry' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}
+                      data-testid="tab-manual-entry"
+                    >
+                      {language === "fr" ? "Saisie manuelle" : "Manual entry"}
+                    </button>
+                  </div>
+                )}
                 <AnimatePresence mode="wait">
                   {/* Step 1: Upload */}
                   {flowStep === 'upload' && (
                     <motion.div
                       key="upload"
+                      id="tabpanel-upload"
+                      role="tabpanel"
+                      aria-labelledby="tab-upload"
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
@@ -756,6 +789,8 @@ export default function LandingPage() {
                       {/* Dropzone */}
                       <div
                         {...getRootProps()}
+                        role="button"
+                        tabIndex={0}
                         data-testid="dropzone-bill"
                         className={`border-2 border-dashed rounded-xl p-8 cursor-pointer transition-all ${
                           isDragActive 
@@ -766,7 +801,7 @@ export default function LandingPage() {
                         <input {...getInputProps()} />
                         <div className="flex flex-col items-center gap-3 text-center">
                           <div className="p-4 rounded-full bg-primary/10">
-                            <Upload className="w-8 h-8 text-primary" />
+                            <Upload aria-hidden="true" className="w-8 h-8 text-primary" />
                           </div>
                           <div>
                             <p className="font-medium">
@@ -786,21 +821,6 @@ export default function LandingPage() {
                         <p className="text-sm text-destructive text-center">{parseError}</p>
                       )}
                       
-                      {/* Manual entry fallback */}
-                      <div className="text-center pt-2">
-                        <button
-                          onClick={() => {
-                            FunnelEvents.formStarted('manual_entry');
-                            setFlowStep('manualEntry');
-                          }}
-                          className="text-sm text-muted-foreground hover:text-primary underline"
-                          data-testid="link-manual-entry"
-                        >
-                          {language === "fr" 
-                            ? "Pas de facture? Cliquez ici." 
-                            : "No bill? Click here."}
-                        </button>
-                      </div>
                     </motion.div>
                   )}
 
@@ -813,7 +833,7 @@ export default function LandingPage() {
                       exit={{ opacity: 0 }}
                       className="py-12 text-center space-y-4"
                     >
-                      <Loader2 className="w-12 h-12 text-primary animate-spin mx-auto" />
+                      <Loader2 aria-hidden="true" className="w-12 h-12 text-primary animate-spin mx-auto" />
                       <div>
                         <p className="font-medium">
                           {language === "fr" ? "Analyse en cours..." : "Analyzing..."}
@@ -839,7 +859,7 @@ export default function LandingPage() {
                       {/* Success header */}
                       <div className="text-center space-y-2">
                         <div className="inline-flex items-center gap-2 text-green-600">
-                          <CheckCircle2 className="w-5 h-5" />
+                          <CheckCircle2 aria-hidden="true" className="w-5 h-5" />
                           <span className="font-medium">
                             {language === "fr" ? "Facture analysée!" : "Bill analyzed!"}
                           </span>
@@ -978,9 +998,9 @@ export default function LandingPage() {
                           data-testid="button-submit-quick"
                         >
                           {quickAnalysisMutation.isPending ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <Loader2 aria-hidden="true" className="w-4 h-4 animate-spin" />
                           ) : (
-                            <ArrowRight className="w-4 h-4" />
+                            <ArrowRight aria-hidden="true" className="w-4 h-4" />
                           )}
                           {language === "fr" ? "Recevoir mon rapport gratuit" : "Get my free report"}
                         </Button>
@@ -1008,7 +1028,7 @@ export default function LandingPage() {
                       className="space-y-4"
                     >
                       <div className="text-center space-y-2">
-                        <CheckCircle2 className="w-10 h-10 text-green-500 mx-auto" />
+                        <CheckCircle2 aria-hidden="true" className="w-10 h-10 text-green-500 mx-auto" />
                         <h3 className="text-lg font-semibold">
                           {language === "fr" ? "Rapport envoyé!" : "Report sent!"}
                         </h3>
@@ -1035,7 +1055,7 @@ export default function LandingPage() {
                           className="w-full gap-2"
                           data-testid="button-start-qualification"
                         >
-                          <ArrowRight className="w-4 h-4" />
+                          <ArrowRight aria-hidden="true" className="w-4 h-4" />
                           {language === "fr" ? "Continuer →" : "Continue →"}
                         </Button>
                       </div>
@@ -1197,7 +1217,7 @@ export default function LandingPage() {
                         className="w-full gap-2"
                         data-testid="button-submit-qualification"
                       >
-                        <ArrowRight className="w-4 h-4" />
+                        <ArrowRight aria-hidden="true" className="w-4 h-4" />
                         {language === "fr" ? "Voir mes résultats →" : "See my results →"}
                       </Button>
                     </motion.div>
@@ -1216,7 +1236,7 @@ export default function LandingPage() {
                       {qualOutcome.color === 'green' && (
                         <div className="text-center space-y-4">
                           <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
-                            <CheckCircle2 className="w-8 h-8 text-green-600" />
+                            <CheckCircle2 aria-hidden="true" className="w-8 h-8 text-green-600" />
                           </div>
                           <h3 className="text-xl font-bold text-green-700">
                             {language === "fr" ? "Excellent potentiel solaire!" : "Excellent solar potential!"}
@@ -1232,7 +1252,7 @@ export default function LandingPage() {
                             rel="noopener noreferrer"
                             className="inline-flex items-center gap-2 px-6 py-3 rounded-lg text-white font-semibold transition-opacity hover:opacity-90 bg-green-600"
                           >
-                            <Calendar className="w-4 h-4" />
+                            <Calendar aria-hidden="true" className="w-4 h-4" />
                             {language === "fr" ? "Réserver mon appel découverte (10 min) →" : "Book my discovery call (10 min) →"}
                           </a>
                           <button onClick={handleDetailedPath} className="block w-full text-sm text-primary hover:underline">
@@ -1245,7 +1265,7 @@ export default function LandingPage() {
                       {qualOutcome.color === 'yellow' && (
                         <div className="text-center space-y-4">
                           <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto">
-                            <Info className="w-8 h-8 text-amber-600" />
+                            <Info aria-hidden="true" className="w-8 h-8 text-amber-600" />
                           </div>
                           <h3 className="text-xl font-bold text-amber-700">
                             {language === "fr" ? "Bon potentiel — quelques points à clarifier" : "Good potential — a few points to clarify"}
@@ -1262,7 +1282,7 @@ export default function LandingPage() {
                             className="inline-flex items-center gap-2 px-6 py-3 rounded-lg text-white font-semibold transition-opacity hover:opacity-90"
                             style={{ backgroundColor: '#003DA6' }}
                           >
-                            <Calendar className="w-4 h-4" />
+                            <Calendar aria-hidden="true" className="w-4 h-4" />
                             {language === "fr" ? "Réserver mon appel découverte (10 min) →" : "Book my discovery call (10 min) →"}
                           </a>
                           <p className="text-xs text-muted-foreground">
@@ -1280,7 +1300,7 @@ export default function LandingPage() {
                       {qualOutcome.color === 'red' && (
                         <div className="text-center space-y-4">
                           <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto">
-                            <Info className="w-8 h-8 text-slate-500" />
+                            <Info aria-hidden="true" className="w-8 h-8 text-slate-500" />
                           </div>
                           <h3 className="text-lg font-bold">
                             {language === "fr"
@@ -1319,7 +1339,7 @@ export default function LandingPage() {
                             }}
                             className="gap-2"
                           >
-                            <Mail className="w-4 h-4" />
+                            <Mail aria-hidden="true" className="w-4 h-4" />
                             {language === "fr" ? "Restez informé — recevez nos conseils" : "Stay informed — get our tips"}
                           </Button>
                           <button onClick={resetFlow} className="w-full text-sm text-muted-foreground hover:underline">
@@ -1334,6 +1354,9 @@ export default function LandingPage() {
                   {flowStep === 'manualEntry' && (
                     <motion.div
                       key="manualEntry"
+                      id="tabpanel-manual"
+                      role="tabpanel"
+                      aria-labelledby="tab-manual"
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
@@ -1422,19 +1445,14 @@ export default function LandingPage() {
                           data-testid="button-submit-manual"
                         >
                           {quickAnalysisMutation.isPending ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <Loader2 aria-hidden="true" className="w-4 h-4 animate-spin" />
                           ) : (
-                            <ArrowRight className="w-4 h-4" />
+                            <ArrowRight aria-hidden="true" className="w-4 h-4" />
                           )}
                           {language === "fr" ? "Voir mon potentiel solaire" : "See my solar potential"}
                         </Button>
                       </div>
                       
-                      <div className="text-center">
-                        <button onClick={() => setFlowStep('upload')} className="text-sm text-muted-foreground hover:underline">
-                          ← {language === "fr" ? "Téléverser une facture" : "Upload a bill"}
-                        </button>
-                      </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -1444,15 +1462,15 @@ export default function LandingPage() {
             {/* Trust badges below card */}
             <div className="flex flex-wrap justify-center gap-4 text-sm text-muted-foreground">
               <div className="flex items-center gap-1.5">
-                <Shield className="w-4 h-4 text-primary" />
+                <Shield aria-hidden="true" className="w-4 h-4 text-primary" />
                 <span>{language === "fr" ? "Données sécurisées" : "Secure data"}</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <Award className="w-4 h-4 text-primary" />
+                <Award aria-hidden="true" className="w-4 h-4 text-primary" />
                 <span>{language === "fr" ? "15+ ans d'expérience" : "15+ years experience"}</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <CheckCircle2 className="w-4 h-4 text-primary" />
+                <CheckCircle2 aria-hidden="true" className="w-4 h-4 text-primary" />
                 <span>{language === "fr" ? "100% gratuit" : "100% free"}</span>
               </div>
             </div>
@@ -1585,7 +1603,7 @@ export default function LandingPage() {
                               <h3 className="font-semibold text-sm text-foreground">{stepDisplay}</h3>
                               {tl.duration && (
                                 <Badge variant="secondary" className="text-xs mt-1.5">
-                                  <Clock className="w-3 h-3 mr-1" />
+                                  <Clock aria-hidden="true" className="w-3 h-3 mr-1" />
                                   {tl.duration}
                                 </Badge>
                               )}
@@ -1725,7 +1743,7 @@ export default function LandingPage() {
               <a href="#analyse">
                 <Button size="lg" className="gap-2" data-testid="button-start-journey">
                   {language === "fr" ? "Voir mon potentiel solaire — Gratuit" : "See my solar potential — Free"}
-                  <ArrowRight className="w-4 h-4" />
+                  <ArrowRight aria-hidden="true" className="w-4 h-4" />
                 </Button>
               </a>
             </div>
@@ -1745,7 +1763,7 @@ export default function LandingPage() {
                 viewport={{ once: true }}
               >
                 <div className="flex items-center justify-center gap-3 mb-4">
-                  <Sun className="w-8 h-8" style={{ color: BRAND.accentGold }} />
+                  <Sun aria-hidden="true" className="w-8 h-8" style={{ color: BRAND.accentGold }} />
                   <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold" data-testid="text-why-now-title">
                     {whySolarContent.sectionTitle}
                   </h2>
@@ -1766,7 +1784,7 @@ export default function LandingPage() {
                       <ul className="space-y-3">
                         {whySolarContent.beforeReasons.map((reason, idx) => (
                           <li key={idx} className="flex items-start gap-3" data-testid={`text-before-reason-${idx}`}>
-                            <XCircle className="w-5 h-5 text-red-600 mt-0.5 shrink-0" />
+                            <XCircle aria-hidden="true" className="w-5 h-5 text-red-600 mt-0.5 shrink-0" />
                             <span className="text-sm text-muted-foreground">{reason}</span>
                           </li>
                         ))}
@@ -1789,7 +1807,7 @@ export default function LandingPage() {
                       <ul className="space-y-3">
                         {whySolarContent.nowReasons.map((reason, idx) => (
                           <li key={idx} className="flex items-start gap-3" data-testid={`text-now-reason-${idx}`}>
-                            <CheckCircle2 className="w-5 h-5 text-[#16A34A] mt-0.5 shrink-0" />
+                            <CheckCircle2 aria-hidden="true" className="w-5 h-5 text-[#16A34A] mt-0.5 shrink-0" />
                             <span className="text-sm">{reason}</span>
                           </li>
                         ))}
@@ -1806,7 +1824,7 @@ export default function LandingPage() {
                 viewport={{ once: true }}
               >
                 <div className="flex items-center justify-center gap-3 mb-2">
-                  <Snowflake className="w-6 h-6 text-blue-500" />
+                  <Snowflake aria-hidden="true" className="w-6 h-6 text-blue-500" />
                   <h3 className="text-xl sm:text-2xl font-bold" data-testid="text-winter-title">
                     {whySolarContent.winterTitle}
                   </h3>
@@ -1860,7 +1878,7 @@ export default function LandingPage() {
               <Card className="h-full hover-elevate cursor-pointer" data-testid="link-landing-stockage">
                 <CardContent className="p-6 flex items-start gap-4">
                   <div className="p-3 rounded-xl bg-primary/10 shrink-0">
-                    <BatteryCharging className="w-6 h-6 text-primary" />
+                    <BatteryCharging aria-hidden="true" className="w-6 h-6 text-primary" />
                   </div>
                   <div>
                     <h3 className="font-semibold mb-1">
@@ -1872,7 +1890,7 @@ export default function LandingPage() {
                         : "Peak shaving, backup power, and solar+battery integration."}
                     </p>
                     <span className="inline-flex items-center gap-1 mt-2 text-sm font-medium text-primary">
-                      {language === "fr" ? "En savoir plus" : "Learn more"} <ArrowRight className="w-3.5 h-3.5" />
+                      {language === "fr" ? "En savoir plus" : "Learn more"} <ArrowRight aria-hidden="true" className="w-3.5 h-3.5" />
                     </span>
                   </div>
                 </CardContent>
@@ -1882,7 +1900,7 @@ export default function LandingPage() {
               <Card className="h-full hover-elevate cursor-pointer" data-testid="link-landing-portfolio">
                 <CardContent className="p-6 flex items-start gap-4">
                   <div className="p-3 rounded-xl bg-primary/10 shrink-0">
-                    <Building2 className="w-6 h-6 text-primary" />
+                    <Building2 aria-hidden="true" className="w-6 h-6 text-primary" />
                   </div>
                   <div>
                     <h3 className="font-semibold mb-1">
@@ -1894,7 +1912,7 @@ export default function LandingPage() {
                         : "Explore our portfolio of commercial and industrial solar projects in Quebec."}
                     </p>
                     <span className="inline-flex items-center gap-1 mt-2 text-sm font-medium text-primary">
-                      {language === "fr" ? "Voir le portfolio" : "View portfolio"} <ArrowRight className="w-3.5 h-3.5" />
+                      {language === "fr" ? "Voir le portfolio" : "View portfolio"} <ArrowRight aria-hidden="true" className="w-3.5 h-3.5" />
                     </span>
                   </div>
                 </CardContent>
@@ -1952,7 +1970,7 @@ export default function LandingPage() {
                     <p>{t(`faq.item${i}.answer`)}</p>
                     <Link href={`/blog/${slug}`}>
                       <span className="inline-flex items-center gap-1 mt-3 text-sm font-medium hover:underline" style={{ color: BRAND.primaryBlue }} data-testid={`link-faq-blog-${i}`}>
-                        {language === "fr" ? "En savoir plus" : "Learn more"} <ArrowRight className="w-3.5 h-3.5" />
+                        {language === "fr" ? "En savoir plus" : "Learn more"} <ArrowRight aria-hidden="true" className="w-3.5 h-3.5" />
                       </span>
                     </Link>
                   </AccordionContent>
@@ -1964,7 +1982,7 @@ export default function LandingPage() {
               <Link href="/ressources?tab=faq">
                 <Button variant="outline" className="gap-2" data-testid="link-faq-see-all">
                   {language === "fr" ? "Voir toutes les FAQ" : "See all FAQs"}
-                  <ArrowRight className="w-4 h-4" />
+                  <ArrowRight aria-hidden="true" className="w-4 h-4" />
                 </Button>
               </Link>
             </div>
@@ -2000,7 +2018,7 @@ export default function LandingPage() {
           >
             <div className="text-center p-4 rounded-xl bg-background border" data-testid="value-simplicity">
               <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-primary/10 flex items-center justify-center">
-                <Zap className="w-5 h-5 text-primary" />
+                <Zap aria-hidden="true" className="w-5 h-5 text-primary" />
               </div>
               <h4 className="font-semibold text-sm mb-1">
                 {language === "fr" ? "Simplicité" : "Simplicity"}
@@ -2012,7 +2030,7 @@ export default function LandingPage() {
 
             <div className="text-center p-4 rounded-xl bg-background border" data-testid="value-reliability">
               <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-primary/10 flex items-center justify-center">
-                <Shield className="w-5 h-5 text-primary" />
+                <Shield aria-hidden="true" className="w-5 h-5 text-primary" />
               </div>
               <h4 className="font-semibold text-sm mb-1">
                 {language === "fr" ? "Fiabilité" : "Reliability"}
@@ -2024,7 +2042,7 @@ export default function LandingPage() {
 
             <div className="text-center p-4 rounded-xl bg-background border" data-testid="value-longevity">
               <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-primary/10 flex items-center justify-center">
-                <TrendingUp className="w-5 h-5 text-primary" />
+                <TrendingUp aria-hidden="true" className="w-5 h-5 text-primary" />
               </div>
               <h4 className="font-semibold text-sm mb-1">
                 {language === "fr" ? "Longévité" : "Longevity"}
@@ -2036,7 +2054,7 @@ export default function LandingPage() {
 
             <div className="text-center p-4 rounded-xl bg-background border" data-testid="value-pride">
               <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-primary/10 flex items-center justify-center">
-                <Award className="w-5 h-5 text-primary" />
+                <Award aria-hidden="true" className="w-5 h-5 text-primary" />
               </div>
               <h4 className="font-semibold text-sm mb-1">
                 {language === "fr" ? "Fierté" : "Pride"}
@@ -2136,28 +2154,28 @@ export default function LandingPage() {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex items-center gap-2 p-2 rounded-lg bg-background border text-sm">
-                    <HardHat className="w-4 h-4 text-primary shrink-0" />
+                    <HardHat aria-hidden="true" className="w-4 h-4 text-primary shrink-0" />
                     <div>
                       <p className="font-medium text-xs">{language === "fr" ? "Installation" : "Installation"}</p>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2 p-2 rounded-lg bg-background border text-sm">
-                    <FileCheck className="w-4 h-4 text-primary shrink-0" />
+                    <FileCheck aria-hidden="true" className="w-4 h-4 text-primary shrink-0" />
                     <div>
                       <p className="font-medium text-xs">{language === "fr" ? "Ingénierie" : "Engineering"}</p>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2 p-2 rounded-lg bg-background border text-sm">
-                    <ClipboardCheck className="w-4 h-4 text-primary shrink-0" />
+                    <ClipboardCheck aria-hidden="true" className="w-4 h-4 text-primary shrink-0" />
                     <div>
                       <p className="font-medium text-xs">{language === "fr" ? "Gestion" : "Management"}</p>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2 p-2 rounded-lg bg-background border text-sm">
-                    <Wrench className="w-4 h-4 text-primary shrink-0" />
+                    <Wrench aria-hidden="true" className="w-4 h-4 text-primary shrink-0" />
                     <div>
                       <p className="font-medium text-xs">{language === "fr" ? "Maintenance" : "Maintenance"}</p>
                     </div>
@@ -2166,11 +2184,11 @@ export default function LandingPage() {
 
                 <div className="flex flex-wrap gap-2 pt-2">
                   <Badge className="bg-primary/10 text-primary border-primary/20 text-xs">
-                    <Shield className="w-3 h-3 mr-1" />
+                    <Shield aria-hidden="true" className="w-3 h-3 mr-1" />
                     {language === "fr" ? "Licence RBQ" : "RBQ Licensed"}
                   </Badge>
                   <Badge className="bg-primary/10 text-primary border-primary/20 text-xs">
-                    <Award className="w-3 h-3 mr-1" />
+                    <Award aria-hidden="true" className="w-3 h-3 mr-1" />
                     {language === "fr" ? "15+ ans" : "15+ yrs"}
                   </Badge>
                 </div>
@@ -2186,22 +2204,22 @@ export default function LandingPage() {
             className="flex flex-wrap justify-center gap-x-6 gap-y-2 mb-12 py-6 border-y"
           >
             <div className="flex items-center gap-2" data-testid="strength-rbq">
-              <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
+              <CheckCircle2 aria-hidden="true" className="w-5 h-5 text-green-500 shrink-0" />
               <span className="text-sm"><span className="font-medium">{language === "fr" ? "RBQ" : "RBQ"}</span></span>
             </div>
 
             <div className="flex items-center gap-2" data-testid="strength-financing">
-              <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
+              <CheckCircle2 aria-hidden="true" className="w-5 h-5 text-green-500 shrink-0" />
               <span className="text-sm"><span className="font-medium">{language === "fr" ? "Financement flexible" : "Flexible financing"}</span></span>
             </div>
 
             <div className="flex items-center gap-2" data-testid="strength-coverage">
-              <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
+              <CheckCircle2 aria-hidden="true" className="w-5 h-5 text-green-500 shrink-0" />
               <span className="text-sm font-medium">{language === "fr" ? "Partout au Québec" : "All Quebec"}</span>
             </div>
 
             <div className="flex items-center gap-2" data-testid="strength-warranty">
-              <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
+              <CheckCircle2 aria-hidden="true" className="w-5 h-5 text-green-500 shrink-0" />
               <span className="text-sm"><span className="font-medium">{language === "fr" ? "Garantie 25 ans" : "25-yr warranty"}</span></span>
             </div>
           </motion.div>
@@ -2220,7 +2238,7 @@ export default function LandingPage() {
             {/* Header */}
             <div className="text-center space-y-3">
               <div className="flex items-center justify-center gap-3 mb-4">
-                <Phone className="w-8 h-8 text-primary" />
+                <Phone aria-hidden="true" className="w-8 h-8 text-primary" />
                 <h2 className="text-3xl sm:text-4xl font-bold" data-testid="contact-title">
                   {language === "fr" ? "Contactez-nous" : "Contact us"}
                 </h2>
@@ -2247,7 +2265,7 @@ export default function LandingPage() {
               </div>
             ) : (
               <Card className="p-8 text-center space-y-4">
-                <Phone className="w-12 h-12 text-primary mx-auto opacity-50" />
+                <Phone aria-hidden="true" className="w-12 h-12 text-primary mx-auto opacity-50" />
                 <p className="text-muted-foreground">{t("expert.calendlyPlaceholder")}</p>
                 <Badge variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 text-xs mb-2">
                   {language === "fr" ? "SANS FRAIS · Sans engagement" : "NO COST · No commitment"}
@@ -2266,13 +2284,13 @@ export default function LandingPage() {
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <a href="mailto:info@kwh.quebec">
                   <Button variant="outline" size="lg" className="gap-2" data-testid="button-email-contact">
-                    <Mail className="w-4 h-4" />
+                    <Mail aria-hidden="true" className="w-4 h-4" />
                     info@kwh.quebec
                   </Button>
                 </a>
                 <a href="tel:+15144278871">
                   <Button variant="outline" size="lg" className="gap-2" data-testid="button-phone-contact">
-                    <Phone className="w-4 h-4" />
+                    <Phone aria-hidden="true" className="w-4 h-4" />
                     514.427.8871
                   </Button>
                 </a>
@@ -2286,7 +2304,7 @@ export default function LandingPage() {
               <div className="flex justify-center mt-3">
                 <a href="#analyse">
                   <Button variant="ghost" className="gap-1 text-primary" data-testid="button-back-to-paths">
-                    <ChevronUp className="w-4 h-4" />
+                    <ChevronUp aria-hidden="true" className="w-4 h-4" />
                     {language === "fr" ? "Retour aux options d'analyse" : "Back to analysis options"}
                   </Button>
                 </a>
@@ -2295,6 +2313,7 @@ export default function LandingPage() {
           </motion.div>
         </div>
       </section>
+      </main>
       <PublicFooter />
     </div>
   );

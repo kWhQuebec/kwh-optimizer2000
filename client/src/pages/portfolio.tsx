@@ -52,7 +52,7 @@ function LazyImage({ src, alt, className }: { src: string; alt: string; classNam
     <div ref={imgRef} className="w-full h-full relative">
       {!isLoaded && (
         <div className="absolute inset-0 bg-muted animate-pulse flex items-center justify-center">
-          <Building2 className="w-8 h-8 text-muted-foreground/50" />
+          <Building2 aria-hidden="true" className="w-8 h-8 text-muted-foreground/50" />
         </div>
       )}
       {isInView && (
@@ -91,14 +91,14 @@ function ProjectCard({ site }: { site: PortfolioSite }) {
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <Building2 className="w-12 h-12 text-muted-foreground" />
+            <Building2 aria-hidden="true" className="w-12 h-12 text-muted-foreground" />
           </div>
         )}
       </div>
       <CardContent className="p-4 space-y-3">
         <div className="space-y-1">
           <div className="flex items-center gap-2 text-muted-foreground">
-            <MapPin className="w-4 h-4 shrink-0" />
+            <MapPin aria-hidden="true" className="w-4 h-4 shrink-0" />
             <span className="font-medium text-foreground">{site.city}</span>
           </div>
           {site.address && (
@@ -112,7 +112,7 @@ function ProjectCard({ site }: { site: PortfolioSite }) {
           {hasSystemSize && (
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
-                <Zap className="w-4 h-4 text-primary" />
+                <Zap aria-hidden="true" className="w-4 h-4 text-primary" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">
@@ -128,7 +128,7 @@ function ProjectCard({ site }: { site: PortfolioSite }) {
           {site.annual_production_kwh && (
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
-                <BarChart3 className="w-4 h-4 text-primary" />
+                <BarChart3 aria-hidden="true" className="w-4 h-4 text-primary" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">
@@ -144,7 +144,7 @@ function ProjectCard({ site }: { site: PortfolioSite }) {
           {site.estimated_annual_savings && (
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
-                <DollarSign className="w-4 h-4 text-primary" />
+                <DollarSign aria-hidden="true" className="w-4 h-4 text-primary" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">
@@ -160,7 +160,7 @@ function ProjectCard({ site }: { site: PortfolioSite }) {
           {site.roof_area_sqm && (
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
-                <Sun className="w-4 h-4 text-primary" />
+                <Sun aria-hidden="true" className="w-4 h-4 text-primary" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">
@@ -177,7 +177,7 @@ function ProjectCard({ site }: { site: PortfolioSite }) {
         <Link href={`/portfolio/${site.id}`}>
           <Button variant="outline" size="sm" className="w-full mt-2" data-testid={`button-view-project-${site.id}`}>
             {language === "fr" ? "Voir les détails" : "View details"}
-            <ArrowRight className="w-4 h-4 ml-2" />
+            <ArrowRight aria-hidden="true" className="w-4 h-4 ml-2" />
           </Button>
         </Link>
       </CardContent>
@@ -197,7 +197,7 @@ function PortfolioGrid({ sites, visibleCount, onLoadMore }: {
   if (sites.length === 0) {
     return (
       <div className="text-center py-16">
-        <Building2 className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+        <Building2 aria-hidden="true" className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
         <p className="text-muted-foreground">
           {language === "fr" ? "Aucun projet disponible" : "No projects available"}
         </p>
@@ -222,7 +222,7 @@ function PortfolioGrid({ sites, visibleCount, onLoadMore }: {
             className="gap-2"
             data-testid="button-load-more"
           >
-            <ChevronDown className="w-4 h-4" />
+            <ChevronDown aria-hidden="true" className="w-4 h-4" />
             {language === "fr" 
               ? `Voir plus (${sites.length - visibleCount} restants)` 
               : `Load more (${sites.length - visibleCount} remaining)`}
@@ -368,16 +368,16 @@ export default function Portfolio() {
               <div className="flex flex-wrap justify-center gap-4">
                 <Link href="/ressources?tab=guides">
                   <Button variant="outline" className="gap-2" data-testid="link-portfolio-guides">
-                    <BookOpen className="w-4 h-4" />
+                    <BookOpen aria-hidden="true" className="w-4 h-4" />
                     {language === "fr" ? "Guides & ressources" : "Guides & resources"}
-                    <ArrowRight className="w-4 h-4" />
+                    <ArrowRight aria-hidden="true" className="w-4 h-4" />
                   </Button>
                 </Link>
                 <Link href="/stockage-energie">
                   <Button variant="outline" className="gap-2" data-testid="link-portfolio-stockage">
-                    <BatteryCharging className="w-4 h-4" />
+                    <BatteryCharging aria-hidden="true" className="w-4 h-4" />
                     {language === "fr" ? "Stockage par batterie" : "Battery storage"}
-                    <ArrowRight className="w-4 h-4" />
+                    <ArrowRight aria-hidden="true" className="w-4 h-4" />
                   </Button>
                 </Link>
               </div>

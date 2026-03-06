@@ -234,6 +234,7 @@ export default function SolaireCommercialPage() {
       />
 
       <PublicHeader />
+      <main>
 
       {/* HERO — photo background with dark overlay */}
       <section
@@ -280,12 +281,12 @@ export default function SolaireCommercialPage() {
               <Link href="/#paths">
                 <Button size="lg" className="gap-2" data-testid="button-get-analysis">
                   {t("Voir mon potentiel — Gratuit", "See my potential — Free")}
-                  <ArrowRight className="w-4 h-4" />
+                  <ArrowRight aria-hidden="true" className="w-4 h-4" />
                 </Button>
               </Link>
               <a href={`tel:${BRAND_CONTENT.contact.phone.replace(/\./g, "-")}`}>
                 <Button size="lg" variant="outline" className="gap-2 bg-white/10 backdrop-blur-sm border-white/30 text-white" data-testid="button-call">
-                  <Phone className="w-4 h-4" />
+                  <Phone aria-hidden="true" className="w-4 h-4" />
                   {BRAND_CONTENT.contact.phone}
                 </Button>
               </a>
@@ -323,7 +324,7 @@ export default function SolaireCommercialPage() {
                     <div className="flex flex-col md:flex-row gap-6">
                       <div className="shrink-0">
                         <div className="p-3 rounded-xl bg-primary/10 w-fit">
-                          <incentive.icon className="w-8 h-8 text-primary" />
+                          <incentive.icon aria-hidden="true" className="w-8 h-8 text-primary" />
                         </div>
                       </div>
                       <div className="space-y-4 flex-1">
@@ -335,7 +336,7 @@ export default function SolaireCommercialPage() {
                         <ul className="grid sm:grid-cols-2 gap-2">
                           {incentive.benefits.map((benefit) => (
                             <li key={benefit} className="flex items-center gap-2 text-sm">
-                              <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
+                              <CheckCircle2 aria-hidden="true" className="w-4 h-4 text-green-500 shrink-0" />
                               {benefit}
                             </li>
                           ))}
@@ -352,7 +353,7 @@ export default function SolaireCommercialPage() {
             <CardContent className="p-6 sm:p-8">
               <div className="flex flex-col md:flex-row items-start gap-6">
                 <div className="p-3 rounded-xl bg-primary/10 shrink-0">
-                  <TrendingUp className="w-8 h-8 text-primary" />
+                  <TrendingUp aria-hidden="true" className="w-8 h-8 text-primary" />
                 </div>
                 <div className="space-y-3 flex-1">
                   <h3 className="text-xl font-bold" data-testid="text-combined-title">
@@ -421,7 +422,7 @@ export default function SolaireCommercialPage() {
                       <div className="flex gap-4">
                         <div className="shrink-0">
                           <div className="p-2.5 rounded-xl bg-primary/10 w-fit">
-                            <benefit.icon className="w-6 h-6 text-primary" />
+                            <benefit.icon aria-hidden="true" className="w-6 h-6 text-primary" />
                           </div>
                         </div>
                         <div className="space-y-3 flex-1">
@@ -430,7 +431,7 @@ export default function SolaireCommercialPage() {
                           <ul className="grid sm:grid-cols-2 gap-1.5">
                             {benefit.points.map((point) => (
                               <li key={point} className="flex items-center gap-2 text-sm">
-                                <CheckCircle2 className="w-3.5 h-3.5 text-green-500 shrink-0" />
+                                <CheckCircle2 aria-hidden="true" className="w-3.5 h-3.5 text-green-500 shrink-0" />
                                 {point}
                               </li>
                             ))}
@@ -510,12 +511,12 @@ export default function SolaireCommercialPage() {
                       <p className="text-sm text-muted-foreground mb-3">{tierDesc}</p>
                       <div className="space-y-1.5 text-sm">
                         <div className="flex items-center gap-2">
-                          <Shield className="w-3.5 h-3.5 text-primary shrink-0" />
+                          <Shield aria-hidden="true" className="w-3.5 h-3.5 text-primary shrink-0" />
                           <span className="text-muted-foreground">{t("Garantie", "Warranty")}: {warranty}</span>
                         </div>
                         {item.efficiencyPct && (
                           <div className="flex items-center gap-2">
-                            <Zap className="w-3.5 h-3.5 text-primary shrink-0" />
+                            <Zap aria-hidden="true" className="w-3.5 h-3.5 text-primary shrink-0" />
                             <span className="text-muted-foreground">{t("Rendement", "Efficiency")}: {item.efficiencyPct}%</span>
                           </div>
                         )}
@@ -607,7 +608,7 @@ export default function SolaireCommercialPage() {
                             <ul className="space-y-1.5">
                               {bullets.map((bullet) => (
                                 <li key={bullet} className="flex items-start gap-2 text-sm text-muted-foreground">
-                                  <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
+                                  <CheckCircle2 aria-hidden="true" className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
                                   {bullet}
                                 </li>
                               ))}
@@ -716,14 +717,14 @@ export default function SolaireCommercialPage() {
                     <CardContent className="p-5">
                       <div className="space-y-3">
                         <div className="flex items-start gap-3">
-                          <XCircle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+                          <XCircle aria-hidden="true" className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
                           <div>
                             <span className="text-xs font-medium text-destructive uppercase">{t("Mythe", "Myth")}</span>
                             <p className="font-medium">{t(myth.mythFr, myth.mythEn)}</p>
                           </div>
                         </div>
                         <div className="flex items-start gap-3">
-                          <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0 mt-0.5" />
+                          <CheckCircle2 aria-hidden="true" className="w-5 h-5 text-green-500 shrink-0 mt-0.5" />
                           <div>
                             <span className="text-xs font-medium text-green-600 uppercase">{t("Réalité", "Reality")}</span>
                             <p className="text-sm text-muted-foreground">{t(myth.realityFr, myth.realityEn)}</p>
@@ -759,7 +760,7 @@ export default function SolaireCommercialPage() {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                 <div className="absolute bottom-3 left-4 flex items-center gap-2">
-                  <Building2 className="w-6 h-6 text-white" />
+                  <Building2 aria-hidden="true" className="w-6 h-6 text-white" />
                   <h3 className="text-lg font-bold text-white">{t("Commercial", "Commercial")}</h3>
                 </div>
               </div>
@@ -776,7 +777,7 @@ export default function SolaireCommercialPage() {
                     ["Daytime consumption = high self-consumption", "Large, accessible flat roofs", "Monthly bills > $1,500"]
                   ).map((item) => (
                     <li key={item} className="flex items-center gap-2">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-green-500 shrink-0" />
+                      <CheckCircle2 aria-hidden="true" className="w-3.5 h-3.5 text-green-500 shrink-0" />
                       <span className="text-muted-foreground">{item}</span>
                     </li>
                   ))}
@@ -793,7 +794,7 @@ export default function SolaireCommercialPage() {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                 <div className="absolute bottom-3 left-4 flex items-center gap-2">
-                  <Factory className="w-6 h-6 text-white" />
+                  <Factory aria-hidden="true" className="w-6 h-6 text-white" />
                   <h3 className="text-lg font-bold text-white">{t("Industriel", "Industrial")}</h3>
                 </div>
               </div>
@@ -810,7 +811,7 @@ export default function SolaireCommercialPage() {
                     ["Large available roof area", "Synergy with storage (Rate M)", "Potential for systems > 500 kW"]
                   ).map((item) => (
                     <li key={item} className="flex items-center gap-2">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-green-500 shrink-0" />
+                      <CheckCircle2 aria-hidden="true" className="w-3.5 h-3.5 text-green-500 shrink-0" />
                       <span className="text-muted-foreground">{item}</span>
                     </li>
                   ))}
@@ -847,7 +848,7 @@ export default function SolaireCommercialPage() {
             <Link href="/ressources?tab=faq">
               <Button variant="outline" className="gap-2" data-testid="link-all-faq">
                 {t("Voir toutes les FAQ", "View all FAQs")}
-                <ArrowRight className="w-4 h-4" />
+                <ArrowRight aria-hidden="true" className="w-4 h-4" />
               </Button>
             </Link>
           </div>
@@ -883,7 +884,7 @@ export default function SolaireCommercialPage() {
                     )}
                   </p>
                   <span className="text-sm text-primary flex items-center gap-1 mt-2">
-                    {t("Voir les projets", "View projects")} <ArrowRight className="w-3 h-3" />
+                    {t("Voir les projets", "View projects")} <ArrowRight aria-hidden="true" className="w-3 h-3" />
                   </span>
                 </CardContent>
               </Card>
@@ -892,7 +893,7 @@ export default function SolaireCommercialPage() {
               <Card className="hover-elevate h-full" data-testid="card-link-storage">
                 <div className="relative h-32 overflow-hidden rounded-t-md bg-primary/5 flex items-center justify-center">
                   <div className="p-4 rounded-full bg-primary/10">
-                    <Zap className="w-10 h-10 text-primary" />
+                    <Zap aria-hidden="true" className="w-10 h-10 text-primary" />
                   </div>
                 </div>
                 <CardContent className="p-4">
@@ -904,7 +905,7 @@ export default function SolaireCommercialPage() {
                     )}
                   </p>
                   <span className="text-sm text-primary flex items-center gap-1 mt-2">
-                    {t("En savoir plus", "Learn more")} <ArrowRight className="w-3 h-3" />
+                    {t("En savoir plus", "Learn more")} <ArrowRight aria-hidden="true" className="w-3 h-3" />
                   </span>
                 </CardContent>
               </Card>
@@ -946,18 +947,18 @@ export default function SolaireCommercialPage() {
               <Link href="/#paths">
                 <Button size="lg" className="gap-2" data-testid="button-cta-analysis">
                   {t("Analyse gratuite", "Free Analysis")}
-                  <ArrowRight className="w-4 h-4" />
+                  <ArrowRight aria-hidden="true" className="w-4 h-4" />
                 </Button>
               </Link>
               <a href={`tel:${BRAND_CONTENT.contact.phone.replace(/\./g, "-")}`}>
                 <Button size="lg" variant="outline" className="gap-2 bg-white/10 backdrop-blur-sm border-white/30 text-white" data-testid="button-cta-call">
-                  <Phone className="w-4 h-4" />
+                  <Phone aria-hidden="true" className="w-4 h-4" />
                   {BRAND_CONTENT.contact.phone}
                 </Button>
               </a>
               <a href={`mailto:${BRAND_CONTENT.contact.email}`}>
                 <Button size="lg" variant="outline" className="gap-2 bg-white/10 backdrop-blur-sm border-white/30 text-white" data-testid="button-cta-email">
-                  <Mail className="w-4 h-4" />
+                  <Mail aria-hidden="true" className="w-4 h-4" />
                   {BRAND_CONTENT.contact.email}
                 </Button>
               </a>
@@ -966,6 +967,7 @@ export default function SolaireCommercialPage() {
         </div>
       </section>
 
+      </main>
       <PublicFooter />
     </div>
   );

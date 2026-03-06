@@ -63,7 +63,7 @@ function ServicesDropdown({ language, location }: { language: string; location: 
         data-testid="button-nav-services"
       >
         {language === "fr" ? SERVICES_DROPDOWN.labelFr : SERVICES_DROPDOWN.labelEn}
-        <ChevronDown className={`h-3.5 w-3.5 transition-transform ${open ? "rotate-180" : ""}`} />
+        <ChevronDown aria-hidden="true" className={`h-3.5 w-3.5 transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
       <div
         className={`absolute top-full left-0 mt-2 w-52 rounded-md border bg-popover shadow-md py-1 ${
@@ -108,7 +108,7 @@ export function PublicHeader() {
             />
           </Link>
           
-          <nav className="hidden md:flex items-center gap-6">
+          <nav className="hidden md:flex items-center gap-6" aria-label="Navigation principale">
             <ServicesDropdown language={language} location={location} />
             {NAV_ITEMS.map((item) => {
               const hrefPath = item.href.split("?")[0];
@@ -136,7 +136,7 @@ export function PublicHeader() {
               className="hidden sm:flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
               data-testid="link-header-phone"
             >
-              <Phone className="h-4 w-4" />
+              <Phone aria-hidden="true" className="h-4 w-4" />
               <span>514.427.8871</span>
             </a>
             <a
@@ -146,7 +146,7 @@ export function PublicHeader() {
               data-testid="link-header-phone-mobile"
             >
               <Button variant="ghost" size="icon">
-                <Phone className="h-4 w-4" />
+                <Phone aria-hidden="true" className="h-4 w-4" />
               </Button>
             </a>
             <LanguageToggle />
@@ -185,6 +185,7 @@ export function PublicFooter() {
                 href="mailto:info@kwh.quebec" 
                 className="flex items-center gap-2 hover:text-foreground transition-colors"
                 data-testid="link-footer-email"
+                aria-label="Envoyer un courriel à info@kwh.quebec"
               >
                 info@kwh.quebec
               </a>

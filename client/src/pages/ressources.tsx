@@ -70,13 +70,13 @@ function BlogArticleCard({ article }: { article: BlogArticle }) {
             <div className="flex items-center gap-2 mb-3 flex-wrap">
               {article.category && (
                 <Badge variant="secondary" className="gap-1">
-                  <CategoryIcon className="w-3 h-3" />
+                  <CategoryIcon aria-hidden="true" className="w-3 h-3" />
                   {t(`blog.category.${article.category}`)}
                 </Badge>
               )}
               {article.publishedAt && (
                 <span className="text-sm text-muted-foreground flex items-center gap-1">
-                  <Calendar className="w-3 h-3" />
+                  <Calendar aria-hidden="true" className="w-3 h-3" />
                   {new Date(article.publishedAt).toLocaleDateString(language === "fr" ? "fr-CA" : "en-CA")}
                 </span>
               )}
@@ -91,7 +91,7 @@ function BlogArticleCard({ article }: { article: BlogArticle }) {
             )}
             <div className="flex items-center text-primary font-medium">
               {t("blog.readMore")}
-              <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
+              <ArrowRight aria-hidden="true" className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
             </div>
           </CardContent>
         </Card>
@@ -134,7 +134,7 @@ function NewsArticleCard({ article }: { article: NewsArticle }) {
             )}
             {article.publishedAt && (
               <span className="text-sm text-muted-foreground flex items-center gap-1">
-                <Calendar className="w-3 h-3" />
+                <Calendar aria-hidden="true" className="w-3 h-3" />
                 {new Date(article.publishedAt).toLocaleDateString(
                   language === "fr" ? "fr-CA" : "en-CA",
                   { year: "numeric", month: "short", day: "numeric" }
@@ -150,7 +150,7 @@ function NewsArticleCard({ article }: { article: NewsArticle }) {
             </Link>
             <Button size="icon" variant="ghost" asChild data-testid={`link-external-${article.id}`}>
               <a href={article.sourceUrl} target="_blank" rel="noopener noreferrer">
-                <ExternalLink className="w-4 h-4" />
+                <ExternalLink aria-hidden="true" className="w-4 h-4" />
               </a>
             </Button>
           </div>
@@ -608,6 +608,7 @@ export default function RessourcesPage() {
         locale={language}
       />
       <PublicHeader />
+      <main>
 
       {/* Hero */}
       <section className="relative py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-primary/5 via-background to-background overflow-hidden">
@@ -638,19 +639,19 @@ export default function RessourcesPage() {
           <Tabs value={activeTab} onValueChange={handleTabChange}>
             <TabsList className="grid w-full max-w-2xl mx-auto grid-cols-4 mb-8" data-testid="tabs-resources">
               <TabsTrigger value="guides" data-testid="tab-guides">
-                <BookOpen className="w-4 h-4 mr-2 hidden sm:inline" />
+                <BookOpen aria-hidden="true" className="w-4 h-4 mr-2 hidden sm:inline" />
                 {language === "fr" ? "Guides" : "Guides"}
               </TabsTrigger>
               <TabsTrigger value="faq" data-testid="tab-faq">
-                <HelpCircle className="w-4 h-4 mr-2 hidden sm:inline" />
+                <HelpCircle aria-hidden="true" className="w-4 h-4 mr-2 hidden sm:inline" />
                 FAQ
               </TabsTrigger>
               <TabsTrigger value="nouvelles" data-testid="tab-nouvelles">
-                <Newspaper className="w-4 h-4 mr-2 hidden sm:inline" />
+                <Newspaper aria-hidden="true" className="w-4 h-4 mr-2 hidden sm:inline" />
                 {language === "fr" ? "Nouvelles" : "News"}
               </TabsTrigger>
               <TabsTrigger value="glossaire" data-testid="tab-glossaire">
-                <Book className="w-4 h-4 mr-2 hidden sm:inline" />
+                <Book aria-hidden="true" className="w-4 h-4 mr-2 hidden sm:inline" />
                 {language === "fr" ? "Glossaire" : "Glossary"}
               </TabsTrigger>
             </TabsList>
@@ -680,7 +681,7 @@ export default function RessourcesPage() {
                         <CardContent>
                           <p className="text-sm text-muted-foreground">{guide.description}</p>
                           <Button variant="ghost" className="mt-4 p-0 h-auto text-primary">
-                            {language === "fr" ? "Lire la suite" : "Read more"} <ArrowRight className="w-4 h-4 ml-1" />
+                            {language === "fr" ? "Lire la suite" : "Read more"} <ArrowRight aria-hidden="true" className="w-4 h-4 ml-1" />
                           </Button>
                         </CardContent>
                       </Card>
@@ -721,7 +722,7 @@ export default function RessourcesPage() {
               <div className="max-w-4xl mx-auto">
                 <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
                   <div className="relative w-full sm:w-80">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Search aria-hidden="true" className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <Input 
                       placeholder={language === "fr" ? "Filtrer..." : "Filter..."}
                       value={searchQuery}
@@ -746,7 +747,7 @@ export default function RessourcesPage() {
                         onClick={() => setSelectedCategory(cat.id)}
                         className="gap-1"
                       >
-                        <cat.icon className="w-3 h-3" />
+                        <cat.icon aria-hidden="true" className="w-3 h-3" />
                         {cat.label}
                       </Button>
                     ))}
@@ -787,9 +788,9 @@ export default function RessourcesPage() {
                   </p>
                   <Link href="/portfolio">
                     <Button variant="outline" className="gap-2">
-                      <Building2 className="w-4 h-4" />
+                      <Building2 aria-hidden="true" className="w-4 h-4" />
                       {language === "fr" ? "Voir des exemples — Portfolio" : "See examples — Portfolio"}
-                      <ArrowRight className="w-4 h-4" />
+                      <ArrowRight aria-hidden="true" className="w-4 h-4" />
                     </Button>
                   </Link>
                 </div>
@@ -833,7 +834,7 @@ export default function RessourcesPage() {
                 </div>
               ) : (
                 <div className="text-center py-16">
-                  <Newspaper className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+                  <Newspaper aria-hidden="true" className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
                   <p className="text-xl text-muted-foreground" data-testid="text-no-news">
                     {language === "fr"
                       ? "Aucune nouvelle pour le moment. Revenez bientôt!"
@@ -904,9 +905,9 @@ export default function RessourcesPage() {
                   >
                     <div className={`mt-0.5 ${item.required ? "text-primary" : "text-muted-foreground"}`}>
                       {item.required ? (
-                        <CheckCircle className="w-5 h-5" />
+                        <CheckCircle aria-hidden="true" className="w-5 h-5" />
                       ) : (
-                        <AlertCircle className="w-5 h-5" />
+                        <AlertCircle aria-hidden="true" className="w-5 h-5" />
                       )}
                     </div>
                     <div className="flex-1">
@@ -955,7 +956,7 @@ export default function RessourcesPage() {
             <Link href="/#paths">
               <Button size="lg" className="gap-2" data-testid="button-get-analysis">
                 {language === "fr" ? "Voir mon potentiel solaire — Gratuit" : "See my solar potential — Free"}
-                <ArrowRight className="w-4 h-4" />
+                <ArrowRight aria-hidden="true" className="w-4 h-4" />
               </Button>
             </Link>
             <a href="mailto:info@kwh.quebec">
@@ -967,6 +968,7 @@ export default function RessourcesPage() {
         </div>
       </section>
 
+      </main>
       <PublicFooter />
     </div>
   );

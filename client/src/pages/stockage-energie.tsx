@@ -166,6 +166,7 @@ export default function StockageEnergiePage() {
       />
 
       <PublicHeader />
+      <main>
 
       <section
         className="relative py-24 sm:py-32 px-4 sm:px-6 lg:px-8 overflow-hidden"
@@ -208,12 +209,12 @@ export default function StockageEnergiePage() {
               <Link href="/#paths">
                 <Button size="lg" className="gap-2" data-testid="button-get-analysis">
                   {language === "fr" ? "Voir mon potentiel — Gratuit" : "See my potential — Free"}
-                  <ArrowRight className="w-4 h-4" />
+                  <ArrowRight aria-hidden="true" className="w-4 h-4" />
                 </Button>
               </Link>
               <a href={`tel:${BRAND_CONTENT.contact.phone.replace(/\./g, "-")}`}>
                 <Button size="lg" variant="outline" className="gap-2 bg-white/10 backdrop-blur-sm border-white/30 text-white" data-testid="button-call">
-                  <Phone className="w-4 h-4" />
+                  <Phone aria-hidden="true" className="w-4 h-4" />
                   {BRAND_CONTENT.contact.phone}
                 </Button>
               </a>
@@ -250,7 +251,7 @@ export default function StockageEnergiePage() {
                       <div className="flex flex-col md:flex-row gap-6">
                         <div className="shrink-0">
                           <div className="p-3 rounded-xl bg-primary/10 w-fit">
-                            <useCase.icon className="w-8 h-8 text-primary" />
+                            <useCase.icon aria-hidden="true" className="w-8 h-8 text-primary" />
                           </div>
                         </div>
                         <div className="space-y-4 flex-1">
@@ -259,7 +260,7 @@ export default function StockageEnergiePage() {
                           <ul className="grid sm:grid-cols-2 gap-2">
                             {useCase.benefits.map((benefit) => (
                               <li key={benefit} className="flex items-center gap-2 text-sm">
-                                <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
+                                <CheckCircle2 aria-hidden="true" className="w-4 h-4 text-green-500 shrink-0" />
                                 {benefit}
                               </li>
                             ))}
@@ -321,7 +322,7 @@ export default function StockageEnergiePage() {
                 <Card className="h-full" data-testid={`card-roi-factor-${index}`}>
                   <CardContent className="p-6">
                     <div className="p-3 rounded-xl bg-primary/10 w-fit mb-4">
-                      <factor.icon className="w-6 h-6 text-primary" />
+                      <factor.icon aria-hidden="true" className="w-6 h-6 text-primary" />
                     </div>
                     <h3 className="text-lg font-bold mb-2">{factor.title}</h3>
                     <p className="text-sm text-muted-foreground">{factor.description}</p>
@@ -335,7 +336,7 @@ export default function StockageEnergiePage() {
             <CardContent className="p-6 sm:p-8">
               <div className="flex flex-col md:flex-row items-start gap-6">
                 <div className="p-3 rounded-xl bg-primary/10 shrink-0">
-                  <BatteryCharging className="w-8 h-8 text-primary" />
+                  <BatteryCharging aria-hidden="true" className="w-8 h-8 text-primary" />
                 </div>
                 <div className="space-y-3">
                   <h3 className="text-xl font-bold" data-testid="text-tarif-m-title">
@@ -426,7 +427,7 @@ export default function StockageEnergiePage() {
               >
                 <div className="relative mb-4">
                   <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
-                    <item.icon className="w-7 h-7 text-primary" />
+                    <item.icon aria-hidden="true" className="w-7 h-7 text-primary" />
                   </div>
                   <Badge className="absolute -top-1 -right-1 left-auto mx-auto" style={{ position: "absolute", left: "calc(50% + 14px)" }}>
                     {item.step}
@@ -460,7 +461,7 @@ export default function StockageEnergiePage() {
             <Card className="text-center" data-testid="card-sector-commercial">
               <CardContent className="p-6">
                 <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                  <Building2 className="w-8 h-8 text-primary" />
+                  <Building2 aria-hidden="true" className="w-8 h-8 text-primary" />
                 </div>
                 <h3 className="text-lg font-bold mb-2">{language === "fr" ? "Commercial" : "Commercial"}</h3>
                 <p className="text-sm text-muted-foreground">
@@ -473,7 +474,7 @@ export default function StockageEnergiePage() {
             <Card className="text-center" data-testid="card-sector-industrial">
               <CardContent className="p-6">
                 <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                  <Factory className="w-8 h-8 text-primary" />
+                  <Factory aria-hidden="true" className="w-8 h-8 text-primary" />
                 </div>
                 <h3 className="text-lg font-bold mb-2">{language === "fr" ? "Industriel" : "Industrial"}</h3>
                 <p className="text-sm text-muted-foreground">
@@ -522,7 +523,7 @@ export default function StockageEnergiePage() {
               <Card className="hover-elevate h-full" data-testid="card-link-solar">
                 <div className="relative h-32 overflow-hidden rounded-t-md bg-primary/5 flex items-center justify-center">
                   <div className="p-4 rounded-full bg-primary/10">
-                    <Sun className="w-10 h-10 text-primary" />
+                    <Sun aria-hidden="true" className="w-10 h-10 text-primary" />
                   </div>
                 </div>
                 <CardContent className="p-4">
@@ -533,7 +534,7 @@ export default function StockageEnergiePage() {
                       : "Turnkey solar installation for commercial and industrial buildings in Quebec."}
                   </p>
                   <span className="text-sm text-primary flex items-center gap-1 mt-2">
-                    {language === "fr" ? "En savoir plus" : "Learn more"} <ArrowRight className="w-3 h-3" />
+                    {language === "fr" ? "En savoir plus" : "Learn more"} <ArrowRight aria-hidden="true" className="w-3 h-3" />
                   </span>
                 </CardContent>
               </Card>
@@ -542,7 +543,7 @@ export default function StockageEnergiePage() {
               <Card className="hover-elevate h-full" data-testid="card-link-portfolio">
                 <div className="relative h-32 overflow-hidden rounded-t-md bg-primary/5 flex items-center justify-center">
                   <div className="p-4 rounded-full bg-primary/10">
-                    <Building2 className="w-10 h-10 text-primary" />
+                    <Building2 aria-hidden="true" className="w-10 h-10 text-primary" />
                   </div>
                 </div>
                 <CardContent className="p-4">
@@ -553,7 +554,7 @@ export default function StockageEnergiePage() {
                       : "Discover our completed solar and storage projects across Quebec."}
                   </p>
                   <span className="text-sm text-primary flex items-center gap-1 mt-2">
-                    {language === "fr" ? "Voir les projets" : "View projects"} <ArrowRight className="w-3 h-3" />
+                    {language === "fr" ? "Voir les projets" : "View projects"} <ArrowRight aria-hidden="true" className="w-3 h-3" />
                   </span>
                 </CardContent>
               </Card>
@@ -590,18 +591,18 @@ export default function StockageEnergiePage() {
               <Link href="/#paths">
                 <Button size="lg" className="gap-2" data-testid="button-cta-analysis">
                   {language === "fr" ? "Commencer mon analyse — Gratuit" : "Start my analysis — Free"}
-                  <ArrowRight className="w-4 h-4" />
+                  <ArrowRight aria-hidden="true" className="w-4 h-4" />
                 </Button>
               </Link>
               <a href={`tel:${BRAND_CONTENT.contact.phone.replace(/\./g, "-")}`}>
                 <Button size="lg" variant="outline" className="gap-2 bg-white/10 backdrop-blur-sm border-white/30 text-white" data-testid="button-cta-call">
-                  <Phone className="w-4 h-4" />
+                  <Phone aria-hidden="true" className="w-4 h-4" />
                   {BRAND_CONTENT.contact.phone}
                 </Button>
               </a>
               <a href={`mailto:${BRAND_CONTENT.contact.email}`}>
                 <Button size="lg" variant="outline" className="gap-2 bg-white/10 backdrop-blur-sm border-white/30 text-white" data-testid="button-cta-email">
-                  <Mail className="w-4 h-4" />
+                  <Mail aria-hidden="true" className="w-4 h-4" />
                   {language === "fr" ? "Nous contacter" : "Contact us"}
                 </Button>
               </a>
@@ -610,6 +611,7 @@ export default function StockageEnergiePage() {
         </div>
       </section>
 
+      </main>
       <PublicFooter />
     </div>
   );
