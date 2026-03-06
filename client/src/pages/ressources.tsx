@@ -559,11 +559,11 @@ export default function RessourcesPage() {
         : "Roof replaced within the last 5 years? Ideal. Due for replacement within 5 years? It's the perfect time to coordinate both projects."
     },
     {
-      criterion: language === "fr" ? "Facture Hydro-Québec disponible (12 mois)" : "Hydro-Québec bill available (12 months)",
+      criterion: language === "fr" ? "Facture Hydro-Québec (12 mois) + profil de consommation CSV (un atout)" : "Hydro-Québec bill (12 months) + CSV consumption profile (an asset)",
       required: true,
       info: language === "fr"
-        ? "Nécessaire pour l'analyse de votre profil de consommation et le dimensionnement optimal. Un volume de consommation minimum est requis pour un projet C&I rentable."
-        : "Required for consumption profile analysis and optimal sizing. A minimum consumption level is needed for a viable C&I project."
+        ? "La facture est nécessaire pour l'analyse initiale. Le fichier CSV de consommation (disponible sur votre compte Hydro-Québec) permet une analyse plus précise et un dimensionnement optimal. Un volume de consommation minimum est requis pour un projet C&I rentable."
+        : "The bill is required for the initial analysis. The CSV consumption file (available from your Hydro-Québec account) enables a more precise analysis and optimal sizing. A minimum consumption level is needed for a viable C&I project."
     },
     {
       criterion: language === "fr" ? "Espace de toit dégagé (peu d'obstacles)" : "Clear roof space (few obstacles)",
