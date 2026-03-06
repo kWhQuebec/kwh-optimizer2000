@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LanguageToggle } from "@/components/language-toggle";
 import { useI18n } from "@/lib/i18n";
-import { Phone, ChevronDown } from "lucide-react";
+import { Phone, ChevronDown, Menu, X } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import logoFr from "@assets/kWh_Quebec_Logo-01_-_Rectangulaire_1764799021536.png";
 import logoEn from "@assets/kWh_Quebec_Logo-02_-_Rectangle_1764799021536.png";
@@ -94,7 +94,21 @@ function ServicesDropdown({ language, location }: { language: string; location: 
 export function PublicHeader() {
   const { language, t } = useI18n();
   const [location] = useLocation();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const logo = language === "fr" ? logoFr : logoEn;
+
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [location]);
+
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => { document.body.style.overflow = ""; };
+  }, [mobileMenuOpen]);
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-background border-b">
@@ -157,9 +171,96 @@ export function PublicHeader() {
                 {t("nav.login")}
               </Button>
             </Link>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden"
+              onClick={() => setMobileMenuOpen((prev) => !prev)}
+              aria-expanded={mobileMenuOpen}
+              aria-label={language === "fr" ? "Ouvrir le menu" : "Open menu"}
+              data-testid="button-mobile-menu"
+            >
+              {mobileMenuOpen ? (
+                <X aria-hidden="true" className="h-5 w-5" />
+              ) : (
+                <Menu aria-hidden="true" className="h-5 w-5" />
+              )}
+            </Button>
           </div>
         </div>
       </div>
+
+      {mobileMenuOpen && (
+        <div
+          className="fixed inset-0 top-16 z-40 bg-black/40 md:hidden"
+          onClick={() => setMobileMenuOpen(false)}
+          data-testid="mobile-menu-backdrop"
+        />
+      )}
+
+      <nav
+        className={`fixed top-16 right-0 bottom-0 w-72 z-50 bg-background border-l shadow-lg transform transition-transform duration-200 ease-in-out md:hidden ${
+          mobileMenuOpen ? "translate-x-0" : "translate-x-full"
+        }`}
+        aria-label={language === "fr" ? "Menu mobile" : "Mobile menu"}
+        data-testid="nav-mobile-menu"
+      >
+        <div className="flex flex-col py-4 px-4 gap-1 overflow-y-auto h-full">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-3 mb-1">
+            {language === "fr" ? SERVICES_DROPDOWN.labelFr : SERVICES_DROPDOWN.labelEn}
+          </p>
+          {SERVICES_DROPDOWN.children.map((child) => {
+            const label = language === "fr" ? child.labelFr : child.labelEn;
+            const p = child.href.split("#")[0].split("?")[0];
+            const isActive = p !== "/" && location.startsWith(p);
+            return (
+              <Link
+                key={child.href}
+                href={child.href}
+                className={`block px-3 py-2.5 rounded-md text-sm transition-colors ${
+                  isActive ? "font-medium text-foreground bg-muted" : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                }`}
+                data-testid={`link-mobile-${child.href.replace(/[\/#]/g, "") || "services"}`}
+              >
+                {label}
+              </Link>
+            );
+          })}
+
+          <div className="h-px bg-border my-2" />
+
+          {NAV_ITEMS.map((item) => {
+            const hrefPath = item.href.split("?")[0];
+            const isActive = location === item.href || 
+              location === hrefPath ||
+              (hrefPath !== "/" && location.startsWith(hrefPath));
+            const label = language === "fr" ? item.labelFr : item.labelEn;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`block px-3 py-2.5 rounded-md text-sm transition-colors ${
+                  isActive ? "font-medium text-foreground bg-muted" : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                }`}
+                data-testid={`link-mobile-${hrefPath.replace(/\//g, "") || "home"}`}
+              >
+                {label}
+              </Link>
+            );
+          })}
+
+          <div className="h-px bg-border my-2" />
+
+          <a
+            href="tel:+15144278871"
+            className="flex items-center gap-2 px-3 py-2.5 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+            data-testid="link-mobile-phone"
+          >
+            <Phone aria-hidden="true" className="h-4 w-4" />
+            514.427.8871
+          </a>
+        </div>
+      </nav>
     </header>
   );
 }
