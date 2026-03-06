@@ -559,11 +559,12 @@ export default function LandingPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="public-page min-h-screen bg-background">
       <SEOHead
         title={seo.title}
         description={seo.description}
         keywords={seo.keywords}
+        ogImage={heroRoofAnalysis}
         structuredData={schemas}
         locale={language}
         canonical="https://www.kwh.quebec"
@@ -700,7 +701,7 @@ export default function LandingPage() {
         </div>
       </section>
       {/* ========== UPLOAD/ANALYSIS SECTION ========== */}
-      <section id="analyse" className="relative py-16 overflow-hidden" data-testid="section-analyse">
+      <section id="analyse" className="relative py-20 md:py-24 overflow-hidden" data-testid="section-analyse">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-background" />
         <div className="absolute top-20 right-0 w-[600px] h-[600px] bg-primary/10 rounded-full blur-3xl opacity-50" />
         
@@ -1460,7 +1461,7 @@ export default function LandingPage() {
       </section>
 
       {/* ========== FULL PROCESS SECTION ========== */}
-      <section id="process" className="py-16 px-4 sm:px-6 lg:px-8">
+      <section id="process" className="py-20 md:py-24 px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto">
           <motion.div
             className="text-center mb-16"
@@ -1735,7 +1736,7 @@ export default function LandingPage() {
       {(() => {
         const whySolarContent = getWhySolarNow(language as "fr" | "en");
         return (
-          <section id="why-now" className="py-16 px-4 sm:px-6 lg:px-8" data-testid="section-why-now">
+          <section id="why-now" className="py-20 md:py-24 px-4 sm:px-6 lg:px-8" data-testid="section-why-now">
             <div className="max-w-6xl mx-auto">
               <motion.div
                 className="text-center mb-12"
@@ -1903,7 +1904,7 @@ export default function LandingPage() {
         </div>
       </section>
       {/* ========== FAQ SECTION ========== */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-muted/30">
+      <section className="py-20 md:py-24 px-4 sm:px-6 lg:px-8 bg-muted/30">
         <div className="max-w-3xl mx-auto">
           <motion.div
             className="text-center mb-12"
@@ -1971,7 +1972,7 @@ export default function LandingPage() {
         </div>
       </section>
       {/* ========== CREDIBILITY SECTION (Values + Team) ========== */}
-      <section id="credibility" className="py-16 px-4 sm:px-6 lg:px-8 bg-muted/30" data-testid="section-credibility">
+      <section id="credibility" className="py-20 md:py-24 px-4 sm:px-6 lg:px-8 bg-muted/30" data-testid="section-credibility">
         <div className="max-w-6xl mx-auto">
           <motion.div
             className="text-center mb-10"
@@ -2208,7 +2209,7 @@ export default function LandingPage() {
         </div>
       </section>
       {/* ========== CONTACT SECTION (Merged: Expert + Final Contact) ========== */}
-      <section id="contact" className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-primary/5 to-primary/10" data-testid="section-contact">
+      <section id="contact" className="py-20 md:py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-primary/5 to-primary/10" data-testid="section-contact">
         <div className="max-w-4xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}

@@ -527,6 +527,18 @@ function AppRoutes() {
         </ProtectedRoute>
       </Route>
 
+      <Route path="/app/om-performance">
+        <ProtectedRoute>
+          <StaffRoute>
+            <AppLayout>
+              <Suspense fallback={<PageLoader />}>
+                <OmPerformancePage />
+              </Suspense>
+            </AppLayout>
+          </StaffRoute>
+        </ProtectedRoute>
+      </Route>
+
       <Route path="/app/om-performance/:siteId">
         <ProtectedRoute>
           <StaffRoute>

@@ -154,11 +154,12 @@ export default function StockageEnergiePage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="public-page min-h-screen bg-background">
       <SEOHead
         title={seoTitle}
         description={seoDescription}
         keywords={seoKeywords}
+        ogImage={bessHero}
         structuredData={structuredData}
         locale={language}
         canonical={`https://www.kwh.quebec/stockage-energie`}
@@ -221,7 +222,7 @@ export default function StockageEnergiePage() {
         </div>
       </section>
 
-      <section className="py-16 px-4 sm:px-6 lg:px-8" id="applications">
+      <section className="py-20 md:py-24 px-4 sm:px-6 lg:px-8" id="applications">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-2xl sm:text-3xl font-bold mb-4" data-testid="text-use-cases-title">
@@ -295,7 +296,7 @@ export default function StockageEnergiePage() {
         </div>
       </section>
 
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-muted/30">
+      <section className="py-20 md:py-24 px-4 sm:px-6 lg:px-8 bg-muted/30">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-2xl sm:text-3xl font-bold mb-4" data-testid="text-roi-title">
@@ -372,7 +373,7 @@ export default function StockageEnergiePage() {
         </div>
       </section>
 
-      <section className="py-16 px-4 sm:px-6 lg:px-8">
+      <section className="py-20 md:py-24 px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-2xl sm:text-3xl font-bold mb-4" data-testid="text-how-it-works-title">
@@ -447,7 +448,7 @@ export default function StockageEnergiePage() {
         </div>
       </section>
 
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-muted/30">
+      <section className="py-20 md:py-24 px-4 sm:px-6 lg:px-8 bg-muted/30">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-2xl sm:text-3xl font-bold mb-4" data-testid="text-sectors-title">
@@ -486,7 +487,7 @@ export default function StockageEnergiePage() {
         </div>
       </section>
 
-      <section className="py-16 px-4 sm:px-6 lg:px-8">
+      <section className="py-20 md:py-24 px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-2xl sm:text-3xl font-bold mb-4" data-testid="text-faq-title">
@@ -509,7 +510,7 @@ export default function StockageEnergiePage() {
         </div>
       </section>
 
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-muted/30">
+      <section className="py-20 md:py-24 px-4 sm:px-6 lg:px-8 bg-muted/30">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-8">
             <h2 className="text-2xl font-bold mb-2">

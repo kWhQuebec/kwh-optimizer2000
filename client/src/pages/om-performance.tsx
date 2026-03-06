@@ -269,7 +269,7 @@ export default function OmPerformancePage() {
   const isLoading = sitesLoading || dashboardLoading;
 
   const handleSiteChange = (newSiteId: string) => {
-    window.location.href = `/app/om-performance/${newSiteId}`;
+    window.location.assign(`/app/om-performance/${newSiteId}`);
   };
 
   if (isLoading && !dashboardData) {
@@ -284,7 +284,7 @@ export default function OmPerformancePage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <Link href={siteId ? `/app/sites/${siteId}` : "/app/om-contracts"}>
+          <Link href={siteId ? "/app/om-performance" : "/app/om-contracts"}>
             <Button variant="ghost" size="icon" data-testid="button-back">
               <ArrowLeft className="w-4 h-4" />
             </Button>
@@ -324,19 +324,52 @@ export default function OmPerformancePage() {
       </div>
 
       {!siteId && (
-        <Card>
-          <CardContent className="py-16 text-center">
-            <Activity className="w-12 h-12 text-muted-foreground/50 mx-auto mb-4" />
-            <h3 className="text-lg font-medium mb-1">
-              {language === "fr" ? "Sélectionnez un site" : "Select a site"}
-            </h3>
-            <p className="text-muted-foreground">
-              {language === "fr" 
-                ? "Choisissez un site avec un contrat O&M pour voir ses performances." 
-                : "Choose a site with an O&M contract to view its performance."}
-            </p>
-          </CardContent>
-        </Card>
+        <>
+          {omSites && omSites.length > 0 ? (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {omSites.map((site) => (
+                <Link key={site.id} href={`/app/om-performance/${site.id}`}>
+                  <Card className="hover-elevate cursor-pointer" data-testid={`card-site-${site.id}`}>
+                    <CardContent className="p-6">
+                      <div className="flex items-start gap-4">
+                        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                          <Building2 className="w-5 h-5 text-primary" />
+                        </div>
+                        <div className="min-w-0">
+                          <h3 className="font-semibold truncate" data-testid={`text-site-name-${site.id}`}>
+                            {site.name}
+                          </h3>
+                          <p className="text-sm text-muted-foreground truncate mt-1">
+                            {site.address || (language === "fr" ? "Adresse non spécifiée" : "Address not specified")}
+                          </p>
+                          {site.pvSizeKW && (
+                            <Badge variant="secondary" className="mt-2">
+                              {site.pvSizeKW} kW
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <Card>
+              <CardContent className="py-16 text-center">
+                <Activity className="w-12 h-12 text-muted-foreground/50 mx-auto mb-4" />
+                <h3 className="text-lg font-medium mb-1">
+                  {language === "fr" ? "Aucun site avec contrat O&M" : "No sites with O&M contracts"}
+                </h3>
+                <p className="text-muted-foreground">
+                  {language === "fr" 
+                    ? "Créez d'abord un contrat O&M pour un site afin de suivre ses performances." 
+                    : "Create an O&M contract for a site first to track its performance."}
+                </p>
+              </CardContent>
+            </Card>
+          )}
+        </>
       )}
 
       {siteId && dashboardData && (

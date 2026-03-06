@@ -599,7 +599,7 @@ export default function RessourcesPage() {
   const seo = language === "fr" ? seoContent.resources.fr : seoContent.resources.en;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="public-page min-h-screen bg-background">
       <SEOHead 
         title={seo.title} 
         description={seo.description} 
@@ -941,7 +941,7 @@ export default function RessourcesPage() {
       </section>
 
       {/* CTA */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8">
+      <section className="py-20 md:py-24 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-2xl sm:text-3xl font-bold mb-4">
             {language === "fr" ? "Vous avez d'autres questions?" : "Have more questions?"}

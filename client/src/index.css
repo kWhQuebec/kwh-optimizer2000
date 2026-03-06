@@ -49,6 +49,7 @@
   --danger: 0 79% 50%;
   --danger-foreground: 0 0% 100%;
   --font-sans: 'Montserrat', system-ui, sans-serif;
+  --font-heading: 'Plus Jakarta Sans', system-ui, sans-serif;
   --font-serif: Georgia, serif;
   --font-mono: JetBrains Mono, Menlo, monospace;
   --radius: .5rem;
@@ -182,6 +183,12 @@
 
   body {
     @apply font-sans antialiased bg-background text-foreground;
+  }
+
+  .public-page h1,
+  .public-page h2,
+  .public-page h3 {
+    font-family: var(--font-heading);
   }
 }
 

@@ -84,6 +84,7 @@ export default {
       },
       fontFamily: {
         sans: ["Montserrat", "var(--font-sans)", "system-ui", "sans-serif"],
+        heading: ["Plus Jakarta Sans", "var(--font-heading)", "system-ui", "sans-serif"],
         serif: ["var(--font-serif)"],
         mono: ["JetBrains Mono", "var(--font-mono)", "monospace"],
       },

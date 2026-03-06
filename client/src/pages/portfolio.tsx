@@ -269,12 +269,13 @@ export default function Portfolio() {
   const projectCount = sites?.length || 0;
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="public-page min-h-screen flex flex-col bg-background">
       <SEOHead 
         title={language === "fr" ? "Portfolio de projets solaires | kWh Québec" : "Solar Projects Portfolio | kWh Québec"}
         description={language === "fr"
           ? "Découvrez notre portfolio de projets solaires commerciaux et industriels en développement au Québec."
           : "Explore our portfolio of commercial and industrial solar projects in development across Québec."}
+        ogImage={heroImage}
       />
       <PublicHeader />
       

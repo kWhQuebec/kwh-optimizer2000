@@ -222,11 +222,12 @@ export default function SolaireCommercialPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="public-page min-h-screen bg-background">
       <SEOHead
         title={seoTitle}
         description={seoDescription}
         keywords={seoKeywords}
+        ogImage={heroImage}
         structuredData={structuredData}
         locale={language}
         canonical="https://www.kwh.quebec/solaire-commercial"
@@ -294,7 +295,7 @@ export default function SolaireCommercialPage() {
       </section>
 
       {/* INCENTIVES */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8" id="incentives">
+      <section className="py-20 md:py-24 px-4 sm:px-6 lg:px-8" id="incentives">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-2xl sm:text-3xl font-bold mb-4" data-testid="text-incentives-title">
@@ -391,7 +392,7 @@ export default function SolaireCommercialPage() {
       </section>
 
       {/* BENEFITS — with roof overlay image */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-muted/30">
+      <section className="py-20 md:py-24 px-4 sm:px-6 lg:px-8 bg-muted/30">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-2xl sm:text-3xl font-bold mb-4" data-testid="text-benefits-title">
@@ -466,7 +467,7 @@ export default function SolaireCommercialPage() {
       </section>
 
       {/* EQUIPMENT — Tier-based */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8">
+      <section className="py-20 md:py-24 px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-2xl sm:text-3xl font-bold mb-4" data-testid="text-equipment-title">
@@ -557,7 +558,7 @@ export default function SolaireCommercialPage() {
       </section>
 
       {/* PROCESS — 5 steps with screenshots */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-muted/30">
+      <section className="py-20 md:py-24 px-4 sm:px-6 lg:px-8 bg-muted/30">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-2xl sm:text-3xl font-bold mb-4" data-testid="text-process-title">
@@ -667,7 +668,7 @@ export default function SolaireCommercialPage() {
       </section>
 
       {/* WINTER MYTHS — with winter photo */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8">
+      <section className="py-20 md:py-24 px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-2xl sm:text-3xl font-bold mb-4" data-testid="text-winter-title">
@@ -739,7 +740,7 @@ export default function SolaireCommercialPage() {
       </section>
 
       {/* TARGET SECTORS — with photos */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-muted/30">
+      <section className="py-20 md:py-24 px-4 sm:px-6 lg:px-8 bg-muted/30">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-2xl sm:text-3xl font-bold mb-4" data-testid="text-sectors-title">
@@ -821,7 +822,7 @@ export default function SolaireCommercialPage() {
       </section>
 
       {/* FAQ */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8">
+      <section className="py-20 md:py-24 px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-2xl sm:text-3xl font-bold mb-4" data-testid="text-faq-title">
@@ -854,7 +855,7 @@ export default function SolaireCommercialPage() {
       </section>
 
       {/* CROSS-LINKS — with visuals */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-muted/30">
+      <section className="py-20 md:py-24 px-4 sm:px-6 lg:px-8 bg-muted/30">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-8">
             <h2 className="text-2xl font-bold mb-2">
