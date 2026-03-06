@@ -305,7 +305,7 @@ function generateQuickAnalysisEmailHtml(data: QuickAnalysisData, lang: 'fr' | 'e
     <div class="cta-section">
       <h3>${txt.ctaTitle}</h3>
       <p>${txt.ctaText}</p>
-      <a href="${process.env.CALENDLY_URL || 'https://calendly.com/kwh-quebec/decouverte'}" class="cta-button">${txt.ctaButton}</a>
+      <a href="mailto:ventes@kwh.quebec?subject=Demande%20appel%20d%C3%A9couverte&body=Bonjour%2C%20j'aimerais%20planifier%20un%20appel%20d%C3%A9couverte%20pour%20mon%20projet%20solaire." class="cta-button">${txt.ctaButton}</a>
     </div>
     
     <div class="disclaimer">

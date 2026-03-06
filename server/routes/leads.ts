@@ -96,19 +96,25 @@ router.post("/api/quick-estimate", estimateLimiter, asyncHandler(async (req, res
   let estimatedMonthlyBill = monthlyBill || 0;
 
   if (annualConsumptionKwh && annualConsumptionKwh > 0) {
-    // Direct annual consumption provided (from bill parsing or manual entry)
     annualKWh = annualConsumptionKwh;
     monthlyKWh = annualKWh / 12;
-    // Estimate monthly bill if not provided
     if (!monthlyBill) {
       estimatedMonthlyBill = Math.round((annualKWh * energyRate) / energyPortion / 12);
     }
   } else {
-    // Calculate from monthly bill
     const monthlyEnergyBill = monthlyBill * energyPortion;
     monthlyKWh = monthlyEnergyBill / energyRate;
     annualKWh = monthlyKWh * 12 * buildingFactor;
   }
+
+  // Billing sanity check: cap blended rate at $0.20/kWh (2x realistic Quebec max)
+  const MAX_BLENDED_RATE = 0.20;
+  const computedBlendedRate = annualKWh > 0 ? (estimatedMonthlyBill * 12) / annualKWh : 0;
+  if (computedBlendedRate > MAX_BLENDED_RATE) {
+    log.warn(`Billing sanity check TRIGGERED: ${annualKWh} kWh/yr → $${estimatedMonthlyBill}/mo = $${(estimatedMonthlyBill * 12)}/yr (${computedBlendedRate.toFixed(4)} $/kWh). Capping to ${MAX_BLENDED_RATE} $/kWh.`);
+    estimatedMonthlyBill = Math.round((annualKWh * MAX_BLENDED_RATE) / 12);
+  }
+  log.info(`Billing calc: ${annualKWh} kWh/yr, tariff=${tariff}, rate=${energyRate}, portion=${energyPortion}, bill=$${estimatedMonthlyBill}/mo ($${estimatedMonthlyBill * 12}/yr), blended=${(annualKWh > 0 ? (estimatedMonthlyBill * 12 / annualKWh).toFixed(4) : 'N/A')} $/kWh`);
 
   // ============================================================
   // UNIFIED METHODOLOGY - Matches Detailed Analysis (potentialAnalysis.ts)

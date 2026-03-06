@@ -55,7 +55,7 @@ export function startEmailScheduler(config: EmailSchedulerConfig): () => void {
             estimatedSystemSize: lead.estimatedSystemSize ? `${Math.round(lead.estimatedSystemSize)} kW` : '',
             estimatedSavings: lead.estimatedSavings ? `$${Math.round(lead.estimatedSavings).toLocaleString()}` : '',
             monthlyBill: lead.monthlyBill ? `$${Math.round(lead.monthlyBill).toLocaleString()}` : '',
-            calendlyUrl: 'https://calendly.com/kwhquebec/decouverte',
+            calendlyUrl: 'mailto:ventes@kwh.quebec?subject=Demande%20appel%20d%C3%A9couverte&body=Bonjour%2C%20j%27aimerais%20planifier%20un%20appel%20d%C3%A9couverte%20pour%20mon%20projet%20solaire.',
           };
 
           const result = await sendTemplateEmail(email.templateKey, lead.email, data, 'fr');

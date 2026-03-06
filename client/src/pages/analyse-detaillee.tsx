@@ -291,13 +291,18 @@ export default function AnalyseDetailleePage() {
     if (storedBillData) {
       try {
         const billData = JSON.parse(storedBillData);
+        const isManualEntry = billData.entryMethod === 'manual';
         
-        // Pre-fill the form with transferred data
-        if (billData.clientName) {
-          form.setValue('companyName', billData.clientName);
+        // Pre-fill company name (manual uses companyName, bill uses clientName)
+        const companyName = billData.companyName || billData.clientName;
+        if (companyName) {
+          form.setValue('companyName', companyName);
         }
-        if (billData.serviceAddress) {
-          const { street, city, postalCode } = parseAddressParts(billData.serviceAddress);
+        
+        // Pre-fill address (manual uses address, bill uses serviceAddress)
+        const address = billData.address || billData.serviceAddress;
+        if (address) {
+          const { street, city, postalCode } = parseAddressParts(address);
           if (street) form.setValue('streetAddress', street);
           if (city) {
             form.setValue('city', city);
@@ -311,22 +316,28 @@ export default function AnalyseDetailleePage() {
         if (billData.email) {
           form.setValue('email', billData.email);
         }
+        if (billData.phone) {
+          form.setValue('phone', billData.phone);
+        }
         if (billData.accountNumber) {
           form.setValue('hqClientNumber', billData.accountNumber);
         }
+        if (billData.estimatedMonthlyBill) {
+          form.setValue('estimatedMonthlyBill', Math.round(billData.estimatedMonthlyBill));
+        }
         
-        // Also set the parsed bill data state for display purposes
-        if (billData.annualConsumptionKwh || billData.tariffCode || billData.accountNumber) {
+        // Set parsed bill data state for display purposes (both manual and bill upload)
+        if (billData.annualConsumptionKwh || billData.tariffCode || billData.accountNumber || isManualEntry) {
           setParsedBillData({
             accountNumber: billData.accountNumber || null,
-            clientName: billData.clientName || null,
-            serviceAddress: billData.serviceAddress || null,
+            clientName: companyName || null,
+            serviceAddress: address || null,
             annualConsumptionKwh: billData.annualConsumptionKwh || null,
             peakDemandKw: null,
             tariffCode: billData.tariffCode || null,
             billingPeriod: null,
-            estimatedMonthlyBill: null,
-            confidence: 0.8,
+            estimatedMonthlyBill: billData.estimatedMonthlyBill || null,
+            confidence: isManualEntry ? 0.6 : 0.8,
             billNumber: billData.billNumber || null,
             hqAccountNumber: billData.hqAccountNumber || null,
             contractNumber: billData.contractNumber || null,
@@ -334,11 +345,9 @@ export default function AnalyseDetailleePage() {
             consumptionHistory: billData.consumptionHistory || null,
           });
           
-          // Skip to step 2 since we already have bill data
           setCurrentStep(2);
         }
         
-        // Clear sessionStorage after reading (one-time transfer)
         sessionStorage.removeItem('kwhquebec_bill_data');
       } catch (e) {
         console.error('Failed to parse stored bill data:', e);
@@ -2131,8 +2140,8 @@ The data obtained will be used exclusively for solar potential analysis and phot
                                   </h4>
                                   <p className="text-xs text-muted-foreground">
                                     {language === "fr"
-                                      ? `Signature de ${form.getValues().firstName || ''} ${form.getValues().lastName || 'le représentant'} pour ${form.getValues().companyName || 'l\'entreprise'}`
-                                      : `Signature of ${form.getValues().firstName || ''} ${form.getValues().lastName || 'representative'} for ${form.getValues().companyName || 'company'}`
+                                      ? `Signature ${form.getValues().firstName || form.getValues().lastName ? `de ${form.getValues().firstName || ''} ${form.getValues().lastName || ''}`.trim() : 'du représentant'} pour ${form.getValues().companyName || 'l\'entreprise'}`
+                                      : `Signature of ${form.getValues().firstName || form.getValues().lastName ? `${form.getValues().firstName || ''} ${form.getValues().lastName || ''}`.trim() : 'representative'} for ${form.getValues().companyName || 'company'}`
                                     }
                                   </p>
                                 </div>

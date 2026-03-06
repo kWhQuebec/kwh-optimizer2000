@@ -43,10 +43,10 @@ export const BRAND_CONTENT = {
   // === CALENDLY BOOKING ===
   calendly: {
     urlEnvVar: "VITE_CALENDLY_URL",
-    fallbackUrl: "https://calendly.com/kwh-quebec/decouverte",
+    fallbackUrl: "mailto:ventes@kwh.quebec?subject=Demande%20appel%20d%C3%A9couverte",
     height: "650px",
-    labelFr: "Réserver un appel découverte",
-    labelEn: "Book a discovery call",
+    labelFr: "Demander un appel découverte",
+    labelEn: "Request a discovery call",
     descriptionFr: "Un appel découverte de 10 minutes pour valider votre projet et planifier les prochaines étapes.",
     descriptionEn: "A 10-minute discovery call to validate your project and plan next steps.",
   },

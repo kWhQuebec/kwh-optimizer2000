@@ -491,8 +491,8 @@ export default function LandingPage() {
       toast({
         title: t("form.invalidPhone"),
         description: language === "fr"
-          ? "Veuillez entrer un numéro de téléphone canadien valide, ex: (514) 427-8871"
-          : "Please enter a valid Canadian phone number, e.g. (514) 427-8871",
+          ? "Veuillez entrer un numéro de téléphone canadien valide, ex: (514) 555-1234"
+          : "Please enter a valid Canadian phone number, e.g. (514) 555-1234",
         variant: "destructive",
       });
       return;
@@ -528,10 +528,8 @@ export default function LandingPage() {
   };
 
   const handleDetailedPath = () => {
-    // Track procuration start event
     FunnelEvents.procurationStarted();
 
-    // Store parsed data in sessionStorage for analyse-detaillee to pick up
     if (parsedBillData) {
       sessionStorage.setItem('kwhquebec_bill_data', JSON.stringify({
         ...parsedBillData,
@@ -539,6 +537,17 @@ export default function LandingPage() {
         companyName: quickCompany,
         phone: quickPhone,
         address: quickAddress || parsedBillData.serviceAddress,
+        entryMethod: 'bill_upload',
+      }));
+    } else {
+      sessionStorage.setItem('kwhquebec_bill_data', JSON.stringify({
+        email: quickEmail,
+        companyName: quickCompany,
+        phone: quickPhone,
+        address: quickAddress,
+        annualConsumptionKwh: parseInt(manualKwh) || undefined,
+        estimatedMonthlyBill: quickAnalysisResult?.billing?.monthlyBillBefore || undefined,
+        entryMethod: 'manual',
       }));
     }
     navigate('/analyse-detaillee');
@@ -557,6 +566,8 @@ export default function LandingPage() {
     setQuickAnalysisResult(null);
     setRoofAgeYears('');
     setOwnershipType('');
+    setSelfQualData({ ownershipType: '', paysHydroDirectly: '', roofAgeRange: '', roofUsageRight: '' });
+    setQualOutcome(null);
   };
 
   const seo = language === "fr" ? seoContent.home.fr : seoContent.home.en;
@@ -982,7 +993,7 @@ export default function LandingPage() {
                             </label>
                             <Input
                               type="tel"
-                              placeholder="(514) 427-8871"
+                              placeholder="(514) 555-1234"
                               value={quickPhone}
                               onChange={(e) => setQuickPhone(e.target.value)}
                               onBlur={() => { if (quickPhone) setQuickPhone(formatPhoneNumber(quickPhone)); }}
@@ -1058,8 +1069,8 @@ export default function LandingPage() {
                         </p>
                         <p className="text-xs text-muted-foreground text-center">
                           {language === "fr"
-                            ? "4 questions rapides (30 secondes) pour une recommandation personnalisée"
-                            : "4 quick questions (30 seconds) for a personalized recommendation"}
+                            ? "Quelques questions rapides (30 secondes) pour une recommandation personnalisée"
+                            : "A few quick questions (30 seconds) for a personalized recommendation"}
                         </p>
                         <Button
                           onClick={() => setFlowStep('qualifying')}
@@ -1258,13 +1269,13 @@ export default function LandingPage() {
                               : "Your building meets all conditions for a profitable solar project."}
                           </p>
                           <a
-                            href={import.meta.env.VITE_CALENDLY_URL || 'https://calendly.com/kwh-quebec/decouverte'}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                            href={language === "fr"
+                              ? "mailto:ventes@kwh.quebec?subject=Demande%20appel%20d%C3%A9couverte&body=Bonjour%2C%20j'aimerais%20planifier%20un%20appel%20d%C3%A9couverte%20pour%20mon%20projet%20solaire."
+                              : "mailto:sales@kwh.quebec?subject=Discovery%20call%20request&body=Hello%2C%20I'd%20like%20to%20schedule%20a%20discovery%20call%20for%20my%20solar%20project."}
                             className="inline-flex items-center gap-2 px-6 py-3 rounded-lg text-white font-semibold transition-opacity hover:opacity-90 bg-green-600"
                           >
                             <Calendar aria-hidden="true" className="w-4 h-4" />
-                            {language === "fr" ? "Réserver mon appel découverte (10 min) →" : "Book my discovery call (10 min) →"}
+                            {language === "fr" ? "Demander un appel découverte (10 min) →" : "Request a discovery call (10 min) →"}
                           </a>
                           <button onClick={handleDetailedPath} className="block w-full text-sm text-primary hover:underline">
                             {language === "fr" ? "Ou voir mon analyse complète" : "Or view my complete analysis"}
@@ -1287,14 +1298,14 @@ export default function LandingPage() {
                             ))}
                           </div>
                           <a
-                            href={import.meta.env.VITE_CALENDLY_URL || 'https://calendly.com/kwh-quebec/decouverte'}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                            href={language === "fr"
+                              ? "mailto:ventes@kwh.quebec?subject=Demande%20appel%20d%C3%A9couverte&body=Bonjour%2C%20j'aimerais%20planifier%20un%20appel%20d%C3%A9couverte%20pour%20mon%20projet%20solaire."
+                              : "mailto:sales@kwh.quebec?subject=Discovery%20call%20request&body=Hello%2C%20I'd%20like%20to%20schedule%20a%20discovery%20call%20for%20my%20solar%20project."}
                             className="inline-flex items-center gap-2 px-6 py-3 rounded-lg text-white font-semibold transition-opacity hover:opacity-90"
                             style={{ backgroundColor: '#003DA6' }}
                           >
                             <Calendar aria-hidden="true" className="w-4 h-4" />
-                            {language === "fr" ? "Réserver mon appel découverte (10 min) →" : "Book my discovery call (10 min) →"}
+                            {language === "fr" ? "Demander un appel découverte (10 min) →" : "Request a discovery call (10 min) →"}
                           </a>
                           <p className="text-xs text-muted-foreground">
                             {language === "fr"
@@ -1338,21 +1349,15 @@ export default function LandingPage() {
                               ? "Quand ces points seront réglés, n'hésitez pas à nous recontacter."
                               : "When these points are resolved, don't hesitate to reach out again."}
                           </p>
-                          <Button
-                            variant="outline"
-                            onClick={() => {
-                              toast({
-                                title: language === "fr" ? "Merci!" : "Thank you!",
-                                description: language === "fr"
-                                  ? "Vous recevrez nos conseils et mises à jour par courriel."
-                                  : "You'll receive our tips and updates by email.",
-                              });
-                            }}
-                            className="gap-2"
+                          <a
+                            href={language === "fr"
+                              ? "mailto:info@kwh.quebec?subject=Int%C3%A9r%C3%AAt%20futur%20solaire&body=Bonjour%2C%20je%20souhaite%20%C3%AAtre%20contact%C3%A9(e)%20lorsque%20les%20conditions%20seront%20r%C3%A9unies%20pour%20mon%20projet%20solaire."
+                              : "mailto:info@kwh.quebec?subject=Future%20solar%20interest&body=Hello%2C%20I'd%20like%20to%20be%20contacted%20when%20conditions%20are%20right%20for%20my%20solar%20project."}
+                            className="inline-flex items-center justify-center gap-2 rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover-elevate"
                           >
                             <Mail aria-hidden="true" className="w-4 h-4" />
-                            {language === "fr" ? "Restez informé — recevez nos conseils" : "Stay informed — get our tips"}
-                          </Button>
+                            {language === "fr" ? "Nous contacter quand je serai prêt" : "Contact us when I'm ready"}
+                          </a>
                           <button onClick={resetFlow} className="w-full text-sm text-muted-foreground hover:underline">
                             {language === "fr" ? "Nouvelle analyse" : "New analysis"}
                           </button>
@@ -1429,7 +1434,7 @@ export default function LandingPage() {
                             </label>
                             <Input
                               type="tel"
-                              placeholder="(514) 427-8871"
+                              placeholder="(514) 555-1234"
                               value={quickPhone}
                               onChange={(e) => setQuickPhone(e.target.value)}
                               onBlur={() => { if (quickPhone) setQuickPhone(formatPhoneNumber(quickPhone)); }}
@@ -1478,7 +1483,7 @@ export default function LandingPage() {
               </div>
               <div className="flex items-center gap-1.5">
                 <Award aria-hidden="true" className="w-4 h-4 text-primary" />
-                <span>{language === "fr" ? "15+ ans d'expérience" : "15+ years experience"}</span>
+                <span>{language === "fr" ? "Équipe cumulant 15+ ans" : "Team with 15+ yrs combined"}</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <CheckCircle2 aria-hidden="true" className="w-4 h-4 text-primary" />
@@ -2200,7 +2205,7 @@ export default function LandingPage() {
                   </Badge>
                   <Badge className="bg-primary/10 text-primary border-primary/20 text-xs">
                     <Award aria-hidden="true" className="w-3 h-3 mr-1" />
-                    {language === "fr" ? "15+ ans" : "15+ yrs"}
+                    {language === "fr" ? "15+ ans cumulés" : "15+ yrs combined"}
                   </Badge>
                 </div>
               </motion.div>

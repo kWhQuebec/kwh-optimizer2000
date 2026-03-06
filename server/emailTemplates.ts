@@ -170,7 +170,7 @@ export const nurtureCTA1 = {
       </ul>
 
       <p style="text-align: center; margin: 30px 0;">
-        <a href="{{calendlyUrl}}" class="button">Réserver mon appel découverte →</a>
+        <a href="mailto:ventes@kwh.quebec?subject=Demande%20appel%20d%C3%A9couverte&body=Bonjour%2C%20j'aimerais%20planifier%20un%20appel%20d%C3%A9couverte%20pour%20mon%20projet%20solaire." class="button">Demander un appel découverte →</a>
       </p>
   `,
   subject_en: "Hello {{contactName}}, here's your solar analysis",
@@ -189,7 +189,7 @@ export const nurtureCTA1 = {
       </ul>
 
       <p style="text-align: center; margin: 30px 0;">
-        <a href="{{calendlyUrl}}" class="button">Book my discovery call →</a>
+        <a href="mailto:sales@kwh.quebec?subject=Discovery%20call%20request&body=Hello%2C%20I'd%20like%20to%20schedule%20a%20discovery%20call%20for%20my%20solar%20project." class="button">Request a discovery call →</a>
       </p>
   `
 };
