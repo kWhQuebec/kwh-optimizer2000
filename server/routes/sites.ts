@@ -757,6 +757,23 @@ router.post("/:siteId/quick-potential", authMiddleware, requireStaff, asyncHandl
     const copyResult = await autocopySiblingRoofPolygons(siteId, site.address);
     if (copyResult.copied && copyResult.areaSqM && copyResult.areaSqM > 0) {
       totalRoofAreaSqM = copyResult.areaSqM;
+    }
+  }
+
+  if (totalRoofAreaSqM <= 0) {
+    let estKwh = site.annualConsumptionKwh || (site as any).annualConsumptionKWh || 0;
+    if (estKwh <= 0) {
+      try {
+        const meterReadings = await storage.getMeterReadings(siteId);
+        if (meterReadings?.length > 0) {
+          estKwh = meterReadings.reduce((sum: number, r: any) => sum + (r.kWh || 0), 0);
+        }
+      } catch {}
+    }
+    if (estKwh > 0) {
+      const estPvKw = estKwh / 1150;
+      totalRoofAreaSqM = (estPvKw / 0.660) * 3.71 / 0.85;
+      log.warn(`No roof area for site ${siteId} — estimated ${Math.round(totalRoofAreaSqM)}m² from consumption (${Math.round(estKwh)} kWh/yr → ${estPvKw.toFixed(1)} kWp)`);
     } else {
       throw new BadRequestError("No roof area available. Please draw roof areas in Step 1 (Roof Drawing Tool) or set a building area for this site.");
     }
@@ -1046,6 +1063,18 @@ router.post("/:siteId/run-potential-analysis", authMiddleware, requireStaff, asy
     const copyResult = await autocopySiblingRoofPolygons(siteId, site.address);
     if (copyResult.copied && copyResult.areaSqM && copyResult.areaSqM > 0) {
       effectiveRoofAreaSqM = copyResult.areaSqM;
+    }
+  }
+
+  if (effectiveRoofAreaSqM <= 0) {
+    let estKwh = site.annualConsumptionKwh || (site as any).annualConsumptionKWh || 0;
+    if (estKwh <= 0 && dedupResult?.readings?.length > 0) {
+      estKwh = dedupResult.readings.reduce((sum: number, r: any) => sum + (r.kWh || 0), 0);
+    }
+    if (estKwh > 0) {
+      const estPvKw = estKwh / 1150;
+      effectiveRoofAreaSqM = (estPvKw / 0.660) * 3.71 / 0.85;
+      log.warn(`No roof area for site ${siteId} — estimated ${Math.round(effectiveRoofAreaSqM)}m² from consumption (${Math.round(estKwh)} kWh/yr → ${estPvKw.toFixed(1)} kWp)`);
     } else {
       throw new BadRequestError("No roof area available. Please draw roof areas in Step 1 (Roof Drawing Tool) or set a building area for this site.");
     }

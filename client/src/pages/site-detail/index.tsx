@@ -120,6 +120,7 @@ export default function SiteDetailPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isPortalAccessDialogOpen, setIsPortalAccessDialogOpen] = useState(false);
   const [isHqProcurationDialogOpen, setIsHqProcurationDialogOpen] = useState(false);
+  const [csvImportExpanded, setCsvImportExpanded] = useState(false);
   const [procurationLanguage, setProcurationLanguage] = useState<"fr" | "en">(language as "fr" | "en");
   const [editName, setEditName] = useState("");
   const [editAddress, setEditAddress] = useState("");
@@ -1642,6 +1643,42 @@ export default function SiteDetailPage() {
             onGoToNextStep={() => setActiveTab("consumption")}
           />
 
+          {isStaff && (site.hqTariffDetail || site.hqAccountNumber || site.hqMeterNumber || (site as any).subscribedPowerKw || (site as any).maxDemandKw) && (
+            <Card data-testid="card-hq-summary-quick">
+              <CardContent className="py-3">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Gauge className="w-4 h-4 text-primary flex-shrink-0" />
+                  <span className="text-sm font-medium text-muted-foreground">
+                    {language === "fr" ? "Hydro-Québec" : "Hydro-Québec"}
+                  </span>
+                  {site.hqTariffDetail && (
+                    <Badge variant="secondary" data-testid="badge-hq-tariff-quick">{site.hqTariffDetail}</Badge>
+                  )}
+                  {site.hqAccountNumber && (
+                    <span className="text-sm text-muted-foreground" data-testid="text-hq-account-quick">
+                      {language === "fr" ? "Compte" : "Acct"}: <span className="font-mono text-foreground">{site.hqAccountNumber}</span>
+                    </span>
+                  )}
+                  {site.hqMeterNumber && (
+                    <span className="text-sm text-muted-foreground" data-testid="text-hq-meter-quick">
+                      {language === "fr" ? "Compteur" : "Meter"}: <span className="font-mono text-foreground">{site.hqMeterNumber}</span>
+                    </span>
+                  )}
+                  {(site as any).subscribedPowerKw && (
+                    <span className="text-sm text-muted-foreground" data-testid="text-hq-subscribed-power-quick">
+                      {language === "fr" ? "Souscrite" : "Subscribed"}: <span className="text-foreground">{(site as any).subscribedPowerKw} kW</span>
+                    </span>
+                  )}
+                  {(site as any).maxDemandKw && (
+                    <span className="text-sm text-muted-foreground" data-testid="text-hq-max-demand-quick">
+                      {language === "fr" ? "Max" : "Max"}: <span className="text-foreground">{(site as any).maxDemandKw} kW</span>
+                    </span>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {isStaff && !site.roofAreaValidated && (
             <Card>
               <CardContent className="py-6">
@@ -2116,7 +2153,33 @@ export default function SiteDetailPage() {
                 </div>
               </CardHeader>
               <CardContent>
-                <FileUploadZone siteId={site.id} onUploadComplete={() => refetch()} />
+                {site.meterFiles && site.meterFiles.length > 0 ? (
+                  <Collapsible open={csvImportExpanded} onOpenChange={setCsvImportExpanded}>
+                    <div className="flex items-center justify-between gap-4 flex-wrap">
+                      <div className="flex items-center gap-2" data-testid="text-csv-import-summary">
+                        <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />
+                        <span className="text-sm font-medium text-muted-foreground">
+                          {language === "fr"
+                            ? `${site.meterFiles.length} fichier${site.meterFiles.length > 1 ? "s" : ""} importé${site.meterFiles.length > 1 ? "s" : ""}`
+                            : `${site.meterFiles.length} file${site.meterFiles.length > 1 ? "s" : ""} imported`}
+                        </span>
+                      </div>
+                      <CollapsibleTrigger asChild>
+                        <Button variant="ghost" size="sm" data-testid="button-toggle-csv-import">
+                          {csvImportExpanded
+                            ? (language === "fr" ? "Masquer" : "Hide")
+                            : (language === "fr" ? "Réimporter" : "Re-import")}
+                          <ChevronDown className={`ml-1 h-4 w-4 transition-transform ${csvImportExpanded ? "rotate-180" : ""}`} />
+                        </Button>
+                      </CollapsibleTrigger>
+                    </div>
+                    <CollapsibleContent className="pt-4">
+                      <FileUploadZone siteId={site.id} onUploadComplete={() => refetch()} />
+                    </CollapsibleContent>
+                  </Collapsible>
+                ) : (
+                  <FileUploadZone siteId={site.id} onUploadComplete={() => refetch()} />
+                )}
               </CardContent>
             </Card>
           )}

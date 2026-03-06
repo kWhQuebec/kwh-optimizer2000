@@ -1,4 +1,5 @@
 import fs from "fs";
+import { createLogger } from "../lib/logger";
 import {
   defaultAnalysisAssumptions,
   type AnalysisAssumptions,
@@ -500,6 +501,7 @@ export function runPotentialAnalysis(
   customAssumptions?: Partial<AnalysisAssumptions>,
   options?: AnalysisOptions
 ): AnalysisResult {
+  const log = createLogger("PotentialAnalysis");
   const h: AnalysisAssumptions = { ...defaultAnalysisAssumptions, ...customAssumptions };
   
   type AssumptionsWithYieldStrategy = AnalysisAssumptions & { _yieldStrategy?: YieldStrategy };
@@ -1028,8 +1030,23 @@ export async function runAutoAnalysisForSite(siteId: string): Promise<void> {
     }
 
     if (effectiveRoofAreaSqM <= 0) {
-      log.warn(`No roof area for site ${siteId}, skipping auto-analysis`);
-      return;
+      let estKwh = site.annualConsumptionKwh || (site as any).annualConsumptionKWh || 0;
+      if (estKwh <= 0) {
+        try {
+          const meterReadings = await storage.getMeterReadings(siteId);
+          if (meterReadings?.length > 0) {
+            estKwh = meterReadings.reduce((sum: number, r: any) => sum + (r.kWh || 0), 0);
+          }
+        } catch {}
+      }
+      if (estKwh > 0) {
+        const estPvKw = estKwh / 1150;
+        effectiveRoofAreaSqM = (estPvKw / 0.660) * 3.71 / 0.85;
+        log.warn(`No roof area for site ${siteId} — estimated ${Math.round(effectiveRoofAreaSqM)}m² from consumption (${Math.round(estKwh)} kWh/yr → ${estPvKw.toFixed(1)} kWp)`);
+      } else {
+        log.warn(`No roof area for site ${siteId}, skipping auto-analysis`);
+        return;
+      }
     }
   }
 
