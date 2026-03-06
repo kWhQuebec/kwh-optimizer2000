@@ -24,8 +24,8 @@ const SERVICES_DROPDOWN: DropdownNavItem = {
   labelFr: "Services",
   labelEn: "Services",
   children: [
-    { href: "/solaire-commercial", labelFr: "Solaire commercial", labelEn: "Commercial Solar" },
-    { href: "/stockage-energie", labelFr: "Stockage par batterie", labelEn: "Battery Storage" },
+    { href: "/solaire-commercial", labelFr: "Solaire", labelEn: "Solar" },
+    { href: "/stockage-energie", labelFr: "Stockage", labelEn: "Storage" },
   ],
 };
 
@@ -204,10 +204,10 @@ export function PublicFooter() {
             </h3>
             <div className="space-y-2 text-sm text-muted-foreground">
               <Link href="/solaire-commercial" className="block hover:text-foreground transition-colors" data-testid="link-footer-solaire">
-                {language === "fr" ? "Solaire commercial" : "Commercial Solar"}
+                {language === "fr" ? "Solaire" : "Solar"}
               </Link>
               <Link href="/stockage-energie" className="block hover:text-foreground transition-colors" data-testid="link-footer-stockage">
-                {language === "fr" ? "Stockage par batterie" : "Battery Storage"}
+                {language === "fr" ? "Stockage" : "Storage"}
               </Link>
               <Link href="/portfolio" className="block hover:text-foreground transition-colors" data-testid="link-footer-portfolio">
                 Portfolio
