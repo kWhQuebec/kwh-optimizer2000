@@ -1,0 +1,431 @@
+# Website Redesign & Audit Fix — Prompt Replit Agent v2
+
+**Copier-coller ce prompt dans Replit Agent. Exécuter en une seule session.**
+
+---
+
+## CONTEXTE
+
+Un audit expert du site web public kWh Optimizer a identifié un score de **6.5/10** avec des faiblesses majeures en design (top 25-30%, pas top 1%), navigation (redondance Ressources/Nouvelles), SEO (sitemap incomplet), et images (déficientes). Ce prompt combine les correctifs techniques + un redesign visuel complet pour passer à **8.5+/10**.
+
+Le site est React 18 + Wouter + TanStack Query + Radix UI + Tailwind CSS.
+
+**RÈGLES ABSOLUES:**
+1. Ne JAMAIS casser les 548 tests existants. `npm test` après chaque groupe de changements.
+2. Tout le contenu public = bilingue (FR/EN) via `client/src/lib/i18n.tsx`.
+3. Ne PAS modifier les pages protégées `/app/*` sauf les 3 bugs listés en Phase 6.
+4. Utiliser Framer Motion (déjà installé) pour toutes les animations.
+5. Chaque composant modifié doit rester accessible (ARIA labels, keyboard nav, contrast ratio AA minimum).
+
+---
+
+## PHASE 0 — Installer les outils design (FAIRE EN PREMIER)
+
+### SETUP-01: UI UX Pro Max Skill
+
+Installer le skill de design intelligence:
+```bash
+npx uipro init --ai claude
+```
+
+Ce skill fournit 57 styles UI, 95 palettes couleurs, 56 font pairings, 98 UX guidelines. L'utiliser comme référence pour TOUTES les décisions de design dans ce prompt.
+
+**Paramètres design à utiliser:**
+- **Style:** Clean Energy / SaaS Enterprise (pas brutalism, pas neumorphism)
+- **Palette:** Industrie Cleantech/Energy — bleu profond (#0A1628 ou similaire) + accents énergie (ambre/gold #F59E0B ou vert solaire #22C55E). Éviter le orange générique actuel.
+- **Typo:** Pairing premium — heading bold + body lisible. Suggestion: Inter/Plus Jakarta Sans pour headings, Inter pour body.
+- **Mood:** Professional, aspirational, trustworthy — un directeur d'immeuble C&I doit sentir qu'il parle à une firme d'ingénierie top-tier, pas une startup.
+
+### SETUP-02: Context7 MCP (documentation)
+
+```bash
+claude mcp add context7 -- npx -y @upstash/context7-mcp@latest
+```
+
+Utiliser Context7 pour toujours référencer la doc la plus récente de React, Radix UI, Tailwind CSS, Framer Motion.
+
+### SETUP-03: 21st.dev Magic MCP (composants premium)
+
+```bash
+npx -y @anthropic-ai/claude-code@latest mcp add 21st_magic -- npx -y 21st-magic-mcp@latest
+```
+
+Utiliser 21st.dev pour générer les composants premium (hero, cards, nav, CTAs) quand un composant existant ne peut pas être amélioré suffisamment par édition.
+
+---
+
+## PHASE 1 — Restructuration Navigation (CRITIQUE)
+
+### NAV-01: Restructurer le menu header
+
+**Fichier:** `client/src/components/public-header.tsx`
+
+Remplacer le menu actuel par:
+```
+Logo kWh | Services | Portfolio | Ressources | 514-427-8871 | EN | Connexion
+```
+
+**Changements:**
+- **Supprimer** "Accueil" (le logo fait ce job — lien vers `/`)
+- **Supprimer** "Nouvelles" du menu (fusionné dans Ressources)
+- **Supprimer** "Stockage" du menu principal (devient sous-page de Services)
+- **Ajouter** "Services" en position #1 avec dropdown:
+  - Solaire commercial (`/#services` ou anchor dans landing)
+  - Stockage par batterie (`/stockage-energie`)
+  - Ingénierie & conception (anchor dans landing)
+- **Monter** "Portfolio" en position #2
+- **Garder** "Ressources" en position #3
+
+Le numéro de téléphone doit être un lien `tel:+15144278871` visible sur desktop, icône seule sur mobile.
+
+Toggle langue EN/FR doit rester.
+
+Ajouter toutes les clés i18n nécessaires: "Services" / "Services", "Solaire commercial" / "Commercial Solar", "Stockage par batterie" / "Battery Storage", "Ingénierie & conception" / "Engineering & Design".
+
+**Menu mobile (hamburger):** Même items, full-screen overlay avec animation Framer Motion (slide-in from right).
+
+### NAV-02: Fusionner Ressources + Nouvelles en une seule page
+
+**Fichiers:** `client/src/pages/ressources.tsx`, `client/src/pages/blog.tsx`
+
+Créer UNE SEULE page `/ressources` avec 4 tabs:
+1. **Guides** — les 3 guides curatés existants (Guide HQ, Incitatifs 2026, C&I vs résidentiel)
+2. **FAQ** — les 20 FAQ catégorisées existantes (intégrer depuis la page ressources actuelle)
+3. **Nouvelles** — les articles blog existants (intégrer le contenu de `/blog?tab=nouvelles`)
+4. **Glossaire** — le glossaire existant (12 termes)
+
+**Redirects dans `client/src/App.tsx`:**
+- `/nouvelles` → 301 redirect vers `/ressources?tab=nouvelles`
+- `/blog` → 301 redirect vers `/ressources?tab=nouvelles`
+- `/blog?tab=nouvelles` → 301 redirect vers `/ressources?tab=nouvelles`
+
+**Supprimer:** le fichier `blog.tsx` OU le vider et mettre un redirect component. Ne PAS garder deux pages de contenu similaire.
+
+### NAV-03: Unifier le footer
+
+**Fichier:** `client/src/components/public-header.tsx` (PublicFooter)
+
+Le footer doit refléter la même structure que le header:
+- Colonne 1: Logo + tagline bilingue ("L'énergie solaire, simplifiée pour le commercial" / "Solar energy, simplified for commercial")
+- Colonne 2: **Services** — Solaire commercial, Stockage, Ingénierie
+- Colonne 3: **Ressources** — Guides, FAQ, Nouvelles, Glossaire
+- Colonne 4: **Contact** — Téléphone, Email (info@kwh.quebec), Adresse
+- Bas de page: © 2026 kWh Québec | Confidentialité | Conditions | Licence RBQ
+
+**Supprimer tous les footers inline** dans: `landing.tsx`, `blog.tsx`, `services.tsx`, toute autre page avec footer custom.
+
+---
+
+## PHASE 2 — Redesign Visuel (IMPACT MAJEUR)
+
+### DESIGN-01: Refonte palette couleurs + typographie
+
+**Fichier:** `tailwind.config.ts` + CSS global
+
+Remplacer la palette actuelle (bleu marine + orange générique) par un système de couleurs premium:
+
+```
+Primary:     #0F172A (slate-900) — profondeur, confiance
+Secondary:   #1E40AF (blue-800) — énergie, technologie
+Accent:      #F59E0B (amber-500) — énergie solaire, warmth, CTAs
+Success:     #22C55E (green-500) — économies, validation
+Surface:     #F8FAFC (slate-50) — fond de page
+Card:        #FFFFFF — cards sur fond surface
+```
+
+**Typographie:**
+- Headings: `font-family: 'Plus Jakarta Sans', sans-serif` (ajouter import Google Fonts) — weight 700/800
+- Body: `font-family: 'Inter', sans-serif` — weight 400/500
+- Ajouter ces fonts dans `index.html` ou via `@import` dans le CSS global
+
+### DESIGN-02: Refonte Hero Landing Page
+
+**Fichier:** `client/src/pages/landing.tsx`
+
+Remplacer le hero actuel par un hero aspirationnel:
+
+**Structure:**
+```
+[Full-width hero section, min-height: 85vh]
+├── Background: gradient overlay sur image (linear-gradient de primary → transparent)
+├── Left column (60%):
+│   ├── Badge: "EPC Solaire #1 au Québec" (petite pill animée)
+│   ├── H1: "Réduisez vos coûts énergétiques de 30 à 50%" (bold, 48-64px, white)
+│   ├── Subtitle: "Installation solaire et stockage clé en main pour immeubles commerciaux et industriels au Québec" (light, 20px, white/80%)
+│   ├── Stats row: "120+ MW installés • 25+ projets • 20+ ans d'expertise" (animated counters on scroll)
+│   └── CTA group:
+│       ├── Primary: "Analyser mon potentiel solaire →" (amber/gold, large, hover animation)
+│       └── Secondary: "Voir nos réalisations" (outline white, lien vers /portfolio)
+└── Right column (40%):
+    └── [Image ou illustration d'un immeuble commercial avec panneaux solaires — aspirational, pas des travailleurs]
+```
+
+**Animations (Framer Motion):**
+- H1 et subtitle: fade-in + slide-up (staggered, 0.2s delay)
+- Stats counters: animate de 0 à la valeur finale quand visible (intersection observer)
+- CTA buttons: subtle scale on hover (1.02)
+- Badge pill: slide-in from left
+
+**CORRIGER l'incohérence:** Utiliser "20+ ans" partout (pas "15+" à un endroit et "20+" à un autre). Choisir UNE valeur et l'appliquer uniformément.
+
+### DESIGN-03: Animations de scroll globales
+
+**Créer:** `client/src/components/scroll-reveal.tsx`
+
+Composant wrapper réutilisable pour les animations de scroll:
+```tsx
+// Utiliser Framer Motion + intersection observer
+// Props: direction ('up' | 'left' | 'right'), delay, duration
+// Wrapper: <ScrollReveal direction="up" delay={0.1}>...</ScrollReveal>
+```
+
+Appliquer `<ScrollReveal>` à TOUTES les sections de la landing page:
+- Section stats → fade-in counters
+- Section processus → stagger reveal des 6 étapes
+- Section mythes/réalités → flip reveal
+- Section FAQ → accordion smooth
+- Section équipe → slide-in cards
+- Section contact → slide-up
+
+### DESIGN-04: Refonte des Cards
+
+**Fichiers:** Composants card existants + nouveaux
+
+**Cards Articles (blog/nouvelles):**
+- AJOUTER un espace image en haut de chaque card (16:9 ratio)
+- Si pas d'image disponible pour l'article, utiliser un gradient + icône thématique (soleil pour solaire, batterie pour stockage, $ pour incitatifs)
+- Hover: élévation shadow + translate-y(-4px) + transition 0.3s
+- Date + catégorie tag en pill
+- Titre tronqué à 2 lignes (line-clamp)
+- Extrait tronqué à 3 lignes
+
+**Cards Portfolio:**
+- Remplacer les screenshots Google Maps (avec watermarks) par des overlays propres
+- Si impossible de remplacer l'image: ajouter un overlay gradient qui masque les watermarks en bas
+- Ajouter: capacité kW, localisation, type de projet
+- Hover: zoom subtil sur l'image (scale 1.05, overflow hidden)
+
+### DESIGN-05: Page Stockage — Ajouter du visuel
+
+**Fichier:** `client/src/pages/stockage-energie.tsx`
+
+La page n'a actuellement AUCUNE image. Ajouter:
+- Hero section avec illustration/icône de batterie (créer en SVG inline ou utiliser une illustration)
+- Section bénéfices avec icônes animées (Lightning bolt, Shield, Clock, DollarSign de lucide-react)
+- Diagramme simplifié du fonctionnement: Panneaux → Batterie → Immeuble (SVG animé ou illustration)
+- Section comparaison: Avec stockage vs Sans stockage (table ou cards comparatives)
+- CTA: "Discuter de votre projet de stockage →"
+
+### DESIGN-06: Whitespace et espacement
+
+**Global — tous les fichiers de pages publiques**
+
+Le site est trop dense. Augmenter l'espacement:
+- Sections: `py-20 md:py-28` minimum (au lieu de py-12 ou py-16)
+- Entre les éléments: `space-y-8` minimum dans les sections
+- Max width du contenu: `max-w-6xl mx-auto` (pas full-width partout)
+- Cards grilles: `gap-8` minimum
+- Heading → premier paragraphe: `mb-6` minimum
+
+---
+
+## PHASE 3 — SEO & Performance
+
+### SEO-01: Compléter le sitemap
+
+**Fichier:** `client/public/sitemap.xml`
+
+Ajouter TOUTES les URLs publiques manquantes:
+```xml
+<url><loc>https://kwh.quebec/ressources</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+<url><loc>https://kwh.quebec/stockage-energie</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+<url><loc>https://kwh.quebec/portfolio</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+<url><loc>https://kwh.quebec/privacy</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+<url><loc>https://kwh.quebec/conditions</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+```
+
+**Idéalement:** créer un sitemap dynamique qui auto-génère les URLs des articles de blog. Si trop complexe, au minimum ajouter les pages statiques ci-dessus.
+
+### SEO-02: Article schema sur les pages blog
+
+**Fichier:** `client/src/components/seo-head.tsx` ou dans chaque article
+
+Pour chaque article individuel, ajouter un JSON-LD `Article`:
+```json
+{
+  "@type": "Article",
+  "headline": "...",
+  "datePublished": "2026-02-...",
+  "dateModified": "...",
+  "author": { "@type": "Organization", "name": "kWh Québec" },
+  "publisher": { "@type": "Organization", "name": "kWh Québec" },
+  "image": "...",
+  "articleBody": "..."
+}
+```
+
+### SEO-03: SEOHead sur pages manquantes
+
+Ajouter `<SEOHead>` avec title + description bilingues sur:
+- `privacy.tsx` — "Politique de confidentialité | kWh Québec"
+- `terms.tsx` — "Conditions d'utilisation | kWh Québec"
+- `autorisation-hq.tsx` — noIndex (page interne)
+- `analyse-detaillee.tsx` — noIndex (formulaire interne)
+- `merci.tsx` — noIndex (page de confirmation)
+
+### SEO-04: Open Graph images personnalisées
+
+Créer ou assigner une OG image distincte pour chaque page principale:
+- Landing: image hero avec logo
+- Portfolio: montage de projets
+- Ressources: illustration "Centre de ressources"
+- Stockage: illustration batterie/solaire
+
+Si la création d'images custom est trop complexe, au minimum s'assurer qu'il y a un og:image valide et pertinent sur chaque page.
+
+### SEO-05: Internal linking
+
+Ajouter des liens contextuels entre les pages:
+- Articles blog → lien vers portfolio quand on mentionne un projet
+- Portfolio → lien vers FAQ pertinentes
+- Page stockage → lien vers articles sur le stockage
+- FAQ → liens vers articles détaillés
+- Landing page CTA secondaire → portfolio
+
+Pattern: `<Link to="/ressources?tab=faq#incitatifs">En savoir plus sur les incitatifs →</Link>`
+
+---
+
+## PHASE 4 — Formulaires (Qualité production)
+
+### FORM-01: Validation Zod sur sign-agreement.tsx
+
+Ajouter un schéma Zod:
+- `signerName` — requis, min 2 chars
+- `signerEmail` — requis, format email
+- `signerTitle` — requis, min 2 chars
+- `signature` — requis, non vide
+- `agreedToTerms` — requis, `true`
+
+Utiliser `react-hook-form` + `zodResolver`. Messages d'erreur i18n.
+
+### FORM-02: Validation téléphone sur landing.tsx
+
+Regex téléphone canadien: `/^(\+1)?[\s.-]?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}$/`
+Format auto au blur: `(514) 427-8871`. Message erreur i18n.
+
+### FORM-03: sessionStorage sur autorisation-hq.tsx
+
+Remplacer TOUS les `localStorage` par `sessionStorage`. Données HQ ne doivent PAS persister.
+
+### FORM-04: Toasts success/error sur TOUS les formulaires publics
+
+Fichiers: `landing.tsx`, `analyse-detaillee.tsx`, `autorisation-hq.tsx`, `sign-agreement.tsx`
+- Toast success bilingue après soumission réussie
+- Toast error bilingue sur erreur API
+- `disabled={isSubmitting}` sur les boutons submit
+- Spinner/loading state pendant la soumission
+
+### FORM-05: Champs requis marqués
+
+Sur tous les formulaires: astérisque rouge `*` sur les labels requis. Champs optionnels: "(optionnel)" / "(optional)".
+
+---
+
+## PHASE 5 — Contenu & Cohérence
+
+### CONTENT-01: Mettre à jour Privacy/Terms
+
+**Fichiers:** `privacy.tsx`, `terms.tsx`
+
+Changer "Dernière mise à jour: Janvier 2026" → "Mars 2026" / "March 2026"
+
+### CONTENT-02: Corriger incohérence expérience
+
+**Fichier:** `landing.tsx`
+
+Décider UNE valeur pour l'expérience et l'utiliser partout:
+- **Recommandé: "20+ ans"** (plus impressionnant, inclut l'expérience combinée des associés)
+- Trouver TOUTES les occurrences de "15+" et "20+" et uniformiser
+
+### CONTENT-03: Clarifier "Analyse en 2 minutes"
+
+Le texte dit "Analyse en 2 minutes" mais le résultat prend ~7 jours. Clarifier:
+- "Soumettez votre facture en 2 minutes — recevez votre analyse détaillée en 7 jours ouvrables"
+- Ou: "Upload rapide, analyse complète en moins d'une semaine"
+
+---
+
+## PHASE 6 — Bugs internes (app protégée)
+
+### BUG-01: Lien cassé /app/leads
+
+**Fichier:** `client/src/pages/dashboard.tsx`
+Remplacer `/app/leads` par `/app/pipeline`.
+
+### BUG-02: Route om-performance sans siteId
+
+**Fichier:** `client/src/components/app-sidebar.tsx`
+Créer une page liste `/app/om-performance` qui affiche tous les sites, avec lien vers `/app/om-performance/:siteId`.
+
+### BUG-03: conversion-dashboard.tsx — Imports manquants
+
+Fixer les imports React et UI manquants pour que la page compile sans crash.
+
+---
+
+## PHASE 7 — Images & Performance
+
+### IMG-01: Optimiser le logo
+
+Convertir les logos PNG (~190KB chacun) en SVG ou PNG optimisé (<50KB). Utiliser un outil comme `sharp` ou convertir manuellement.
+
+### IMG-02: Lazy loading
+
+Ajouter `loading="lazy"` sur TOUTES les images qui ne sont pas above-the-fold (hero).
+
+### IMG-03: Responsive images
+
+Pour les images de taille variable, ajouter `srcset` avec au minimum 2 tailles (mobile 640w, desktop 1280w).
+
+---
+
+## VALIDATION FINALE
+
+Après TOUS les changements:
+
+1. **`npm test`** — 548 tests doivent passer (0 régression)
+2. **`npm run build`** — Build sans erreur ni warnings bloquants
+3. **Vérification visuelle:**
+   - [ ] Landing page hero: animations fluides, counters qui comptent, CTAs visibles
+   - [ ] Menu header: Services (dropdown) | Portfolio | Ressources | tel | EN | Connexion
+   - [ ] Menu mobile: hamburger → overlay animé
+   - [ ] `/ressources` → 4 tabs fonctionnels (Guides, FAQ, Nouvelles, Glossaire)
+   - [ ] `/nouvelles` → redirige vers `/ressources?tab=nouvelles`
+   - [ ] `/blog` → redirige vers `/ressources?tab=nouvelles`
+   - [ ] Cards articles → espace image visible (gradient+icône si pas d'image)
+   - [ ] Page stockage → visuels et icônes présents
+   - [ ] Scroll → animations smooth sur chaque section
+   - [ ] Footer → cohérent avec header, liens fonctionnels
+   - [ ] FR/EN toggle → tout change
+   - [ ] `/privacy` et `/conditions` → date "Mars 2026"
+   - [ ] Formulaire lead → téléphone invalide → erreur, soumission → toast
+   - [ ] `/app` → pas de crash, liens fonctionnels
+
+---
+
+## RÉSUMÉ
+
+| Phase | Items | Impact |
+|-------|-------|--------|
+| 0 — Setup outils | 3 tools | Fondation design |
+| 1 — Navigation | 3 FIX | Architecture 5/10 → 8/10 |
+| 2 — Design | 6 FIX | Design 6/10 → 8.5/10 |
+| 3 — SEO | 5 FIX | SEO 5.5/10 → 7.5/10 |
+| 4 — Formulaires | 5 FIX | Qualité production |
+| 5 — Contenu | 3 FIX | Cohérence 7/10 → 8.5/10 |
+| 6 — Bugs internes | 3 FIX | Bugs /app fixés |
+| 7 — Images | 3 FIX | Images 5/10 → 7/10 |
+| **TOTAL** | **31 items** | **6.5/10 → 8.5/10** |
+
+**Estimation:** 5-7 jours de travail Replit Agent. Phases 0-1 d'abord, puis 2 (le plus gros impact), puis 3-7 en parallèle.
