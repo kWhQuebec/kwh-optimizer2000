@@ -1,0 +1,200 @@
+# Audit complet — kWh Optimizer 2000
+**Date** : 6 mars 2026
+**Audité par** : Claude (navigation live + revue de code)
+**Scope** : UX/UI, hypothèses financières, calculs, design, architecture de données
+
+---
+
+## RÉSUMÉ EXÉCUTIF
+
+L'application est fonctionnelle et couvre un workflow solaire C&I complet (exploration → opération). Le design est professionnel. Cependant, plusieurs problèmes critiques affectent la crédibilité des résultats présentés aux clients et bloquent la progression du workflow.
+
+**3 problèmes critiques** :
+1. Le système recommande des tailles PV qui dépassent la capacité du toit (50 kWc recommandé sur un toit de 8 kWc)
+2. 14 tâches du workflow sont hardcodées `false` → Step 5-6 ne peuvent jamais se compléter
+3. Aucune validation croisée entre taille PV, surface de toit, et PMA du bâtiment
+
+---
+
+## 1. BUGS & PROBLÈMES CRITIQUES
+
+### 1.1 PV > Capacité toit (CRITIQUE)
+- **Constat** : Sur le site "1350 Chomedey", le système recommande 50 kWc mais affiche "Capacité toit estimée: 8.0 kWc — Limité par le toit"
+- **Cause** : `design.tsx:58` — `pvSizeKW: z.coerce.number().min(0)` sans max. Aucune validation croisée avec `roofAreaSqM`
+- **Impact** : Résultats financiers présentés au client sont basés sur une taille impossible à installer
+- **Fix** : Ajouter validation `pvSizeKW <= (roofAreaSqM * roofUtilization) / moduleAreaPerKW`
+
+### 1.2 Workflow Steps 5-6 bloqués (CRITIQUE)
+- **Constat** : 14 détecteurs dans `useWorkflowProgress.ts` retournent `() => false` en permanence
+- **Tâches affectées** : Toutes les tâches de construction (Step 5) et opération (Step 6)
+- **Impact** : Un projet ne peut jamais être marqué "complété". Le tableau de bord affiche 0 kW installés même après livraison
+- **Fix** : Implémenter le tracking d'activités pour les étapes construction + O&M
+
+### 1.3 Pages en chargement permanent
+- **Constat** : Analyses, Designs, et Tâches à faire affichent des skeletons qui ne se résolvent jamais (observé en navigation live)
+- **Code** : Le code a des fallbacks correctes (empty state si `isLoading=false`), donc c'est probablement un **problème d'API** — la requête `/api/simulation-runs` ou `/api/designs` ne retourne jamais
+- **Fix** : Ajouter un timeout + état d'erreur explicite. Vérifier les endpoints côté serveur
+
+### 1.4 Route /dashboard → 404
+- **Constat** : Cliquer "Tableau de bord" depuis le 404 redirige vers `/app` (correct), mais `/dashboard` en direct donne 404
+- **Cause** : Aucune route `/dashboard` dans `App.tsx`. Seul `/app` existe
+- **Fix** : Ajouter redirect `/dashboard` → `/app` ou supprimer tout lien vers `/dashboard`
+
+---
+
+## 2. UX/UI — PROBLÈMES & AMÉLIORATIONS
+
+### 2.1 Dashboard (Tableau de bord)
+| Problème | Sévérité | Recommandation |
+|----------|----------|----------------|
+| "Groupe Yves Légaré inc." apparaît 4× dans les actions — pas de nom de site, juste le client | HAUTE | Afficher le **nom du site** (adresse) au lieu du client seul |
+| Actions "78 jours sans mise à jour" sans contexte sur ce qui est bloqué | MOYENNE | Ajouter la **prochaine tâche requise** dans l'aperçu |
+| Funnel affiche "$5.4M" en Prospect mais "Valid. tech." à $146.6M — incohérence de données | HAUTE | Vérifier les montants des opportunités Dream REIT (probablement erronés) |
+| Section Post-livraison : "0 kW" capacité installée malgré 1 projet en opération | HAUTE | Bug lié au #1.2 — les tâches Step 6 ne se complètent jamais |
+| Taux de conversion 5% (1/22) — pas de période ou contexte | BASSE | Ajouter période (ex: "depuis jan. 2025") |
+
+### 2.2 Pipeline de ventes
+| Problème | Sévérité | Recommandation |
+|----------|----------|----------------|
+| 4 filtres dropdown sans labels ("Tous", "Toutes"...) — impossible de savoir ce qu'on filtre | HAUTE | Ajouter des labels : "Assigné à", "Période", "Secteur", "Taille" |
+| Cards ne montrent pas la date de dernière activité | MOYENNE | Ajouter "Dernière activité: il y a X jours" sur chaque card |
+| Colonne "Contact" toujours vide (0 opp.) | BASSE | Revoir si cette étape est utile ou la fusionner avec Prospect |
+| Pas de drag & drop entre colonnes | MOYENNE | Permettre le glisser-déposer pour avancer les opportunités |
+
+### 2.3 Clients
+| Problème | Sévérité | Recommandation |
+|----------|----------|----------------|
+| "1 sites" — faute de grammaire (singulier) | BASSE | Conditionnel : "1 site" vs "X sites" |
+| Pas de téléphone visible sur les cards | MOYENNE | Ajouter le téléphone principal |
+| Pas d'indicateur de valeur pipeline par client | HAUTE | Ajouter le total $ d'opportunités actives |
+| Beaucoup de données test visibles (audit-test@example.com) | HAUTE | Nettoyer ou ajouter un filtre "Exclure les tests" |
+| Pas de recherche dédiée sur la page | MOYENNE | La barre de recherche globale existe, mais un filtre inline serait plus pratique |
+
+### 2.4 Sites
+| Problème | Sévérité | Recommandation |
+|----------|----------|----------------|
+| 69 sites en grid sans vue carte/map | HAUTE | Ajouter une vue carte (Mapbox/Leaflet) — critique pour un outil de gestion de sites physiques |
+| Pas de kW/capacité visible sur les cards | MOYENNE | Ajouter la puissance PV estimée/installée |
+| Fallback image "Sorry, we have no imagery here" en anglais | BASSE | Remplacer par une image placeholder propre avec texte FR |
+| Pagination (Page 1 de 3) sans option de items/page | BASSE | Ajouter sélecteur 24/48/96 items par page |
+| Pas de filtre par client, par statut, par taille | HAUTE | Ajouter des filtres multi-critères |
+
+### 2.5 Page détail site (1350 Chomedey)
+| Problème | Sévérité | Recommandation |
+|----------|----------|----------------|
+| Badge "Bronze" sans explication de ce que ça signifie | MOYENNE | Ajouter tooltip ou légende (Argent/Or/Platine = niveaux de complétion?) |
+| Tabs "Données de consommation / Validation économique / Mandat" — pas de tab "Toit" ou "Design" | MOYENNE | Le toit est affiché plus bas, mais pas accessible par tab |
+| Graphique "Profil moyen Avant vs Après" — légende coupe le graphique à 19h | BASSE | Améliorer le positionnement de la légende hover |
+| "VOICI VOTRE OPPORTUNITÉ" et "NOTRE SOLUTION" — ton marketing plutôt qu'outil interne | BASSE | Adapter le ton selon le contexte (client-facing vs interne) |
+
+### 2.6 Portfolios
+| Problème | Sévérité | Recommandation |
+|----------|----------|----------------|
+| NPV "—" pour la plupart des portfolios | HAUTE | Calculer et afficher la VAN agrégée pour chaque portfolio |
+| Noms tronqués (Dream Canada Solar ...) | BASSE | Augmenter la largeur des cards ou afficher le nom complet au hover |
+| Rampart affiche NPV -349k$ et TRI 3.4% — projet non viable visible | MOYENNE | Ajouter un indicateur visuel rouge pour les projets sous-performants |
+| Pas de tri/filtre | BASSE | Ajouter tri par NPV, TRI, nombre de bâtiments |
+
+### 2.7 Catalogue
+| Problème | Sévérité | Recommandation |
+|----------|----------|----------------|
+| Tous les modules marqués "Vieillissant" | HAUTE | Mettre à jour les modèles (CS6R-410 = ancien, CS7 existe) |
+| Prix en $ absolu ($180, $195, $210) — pas clair si c'est par unité ou par Wc | MOYENNE | Préciser "$/module" ou "$/Wc" |
+| Pas de spécifications techniques visibles (Wc, Voc, Isc, dimensions) | HAUTE | Ajouter les specs techniques essentielles pour le sizing |
+
+---
+
+## 3. HYPOTHÈSES FINANCIÈRES — AUDIT
+
+### 3.1 Valeurs par défaut actuelles
+| Paramètre | Valeur | Réaliste? | Commentaire |
+|-----------|--------|-----------|-------------|
+| Taux d'actualisation (WACC) | 7% | ✅ | Standard C&I Québec |
+| Inflation tarif HQ | 3.5% | ⚠️ | Historiquement 2.5-3%, 3.5% est optimiste (favorable au solaire) |
+| Taux d'imposition | 26.5% | ✅ | Fédéral + provincial correct |
+| Dégradation modules | 0.4%/an | ✅ | PVSyst-validated, conservateur |
+| CAPEX solaire | $2.25/W | ⚠️ | Correct pour <100 kW, mais trop élevé pour >500 kW (devrait être ~$1.60-1.80/W) |
+| Coût batterie | $450/kWh | ✅ | Correct 2025-2026 pour LFP C&I |
+| O&M solaire | 1% CAPEX | ✅ | Standard industrie |
+| Compensation surplus HQ | $0.046/kWh | ✅ | Tarif avril 2025 confirmé |
+| Incitatif HQ solaire | $1000/kW, max 40% | ✅ | OSE 6.0 confirmé |
+| CII fédéral | 30% | ✅ | Correct pour 2025-2026 |
+| Bouclier fiscal (DPA) | 90% × taux impôt | ⚠️ | Le facteur 90% est approximatif — devrait utiliser le CCA réel classe 43.1/43.2 |
+| Rendement solaire | 1150 kWh/kWp | ✅ | Réaliste pour le sud du Québec |
+| Marge EPC | 35% | ⚠️ | Élevé — standard industrie 20-25%. À 35%, les paybacks sont gonflés |
+| Ratio ILR (DC/AC) | 1.45 | ✅ | Standard optimisé |
+
+### 3.2 Problèmes de calcul identifiés
+1. **CAPEX non dégressive** : Le coût de $2.25/W est fixe peu importe la taille. Un projet de 500 kW devrait avoir un coût significativement plus bas (~$1.60/W). Impact : surévaluation du CAPEX de 25-35% sur les gros projets
+2. **Inflation HQ à 3.5%** : Favorise le solaire dans les projections 25 ans. Si HQ applique seulement 2.5%, les économies cumulées sont surévaluées de ~15%
+3. **Marge EPC 35%** : Si c'est appliqué au prix client, ça gonfle le payback. Si c'est la marge interne, c'est distinct. Clarifier l'utilisation
+4. **Pas de courbe d'apprentissage** sur le CAPEX batterie : Le remplacement à l'année 10 utilise un facteur de 60% du coût initial, mais le marché pourrait baisser plus vite
+5. **Bouclier fiscal approximatif** : Le calcul `90% × net CAPEX × 26.5%` simplifie la réalité du CCA classe 43.1 (30% dégressif) et 43.2 (50% dégressif). Devrait modéliser année par année
+
+---
+
+## 4. DESIGN & COHÉRENCE VISUELLE
+
+### 4.1 Points forts
+- Palette de couleurs cohérente (bleu marine #1a237e, doré/jaune accent)
+- Sidebar bien structurée avec groupes logiques
+- Cards uniformes à travers l'app
+- Dark mode disponible
+- Graphiques propres (recharts/chartjs bien configurés)
+
+### 4.2 Problèmes
+| Problème | Sévérité | Recommandation |
+|----------|----------|----------------|
+| Mélange FR/EN dans le code et certains labels | MOYENNE | Auditer toutes les chaînes hardcodées dans analyses.tsx, designs.tsx |
+| Badges de statut incohérents : rouge "Toit à dessiner", vert "Toit validé", bleu "Analyse disponible" — pas de légende | MOYENNE | Créer un design system de badges avec documentation |
+| Boutons FAB en bas à droite (+) et chat (💬) se chevauchent visuellement | BASSE | Espacer ou combiner en un seul menu contextuel |
+| Sidebar : "Exploration" et "Conception" sont des catégories, pas des pages — mais visuellement identiques aux liens | BASSE | Rendre les catégories visuellement distinctes (gris, non-cliquable) |
+| Typographie des KPIs inconsistante : "$152M" vs "36" vs "$74M" — certains avec symbole, d'autres sans | BASSE | Standardiser le format monétaire |
+
+---
+
+## 5. PLAN D'AMÉLIORATIONS — PAR PRIORITÉ
+
+### 🔴 P0 — Bloquant / Crédibilité (Sprint immédiat)
+1. **Validation PV ≤ capacité toit** : Ajouter max check dans `design.tsx` + warning visuel quand PV > toit
+2. **Validation PV ≤ PMA** : Vérifier que `pvSizeKW ≤ baselinePeakDemandKw` (OSE 6.0)
+3. **Fix loading infini** : Investiguer pourquoi `/api/simulation-runs` et `/api/designs` ne retournent pas sur Analyses/Designs/Tâches
+4. **Nettoyage données test** : Supprimer ou marquer les clients/sites test pour qu'ils n'apparaissent pas en prod
+5. **Dashboard actions dupliquées** : Afficher le nom du site, pas juste le nom du client répété 4×
+
+### 🟡 P1 — Valeur business immédiate (2-3 semaines)
+6. **CAPEX dégressive par taille** : Implémenter une courbe de coût (ex: $2.25/W <50kW, $2.00/W 50-200kW, $1.75/W 200-500kW, $1.60/W >500kW)
+7. **Vue carte des sites** : Intégrer Mapbox/Leaflet pour visualiser les 69+ sites géographiquement
+8. **Labels des filtres Pipeline** : Identifier et labelliser les 4 dropdowns
+9. **Bouclier fiscal précis** : Remplacer l'approximation 90% par le calcul CCA réel classe 43.1/43.2
+10. **Catalogue à jour** : Mettre à jour les modules (CS7, JA DeepBlue 4.0, Longi Hi-MO X6) avec specs et prix $/Wc
+
+### 🟢 P2 — Amélioration continue (Backlog)
+11. **Implémenter détecteurs Step 5-6** : Tracking construction + O&M pour que le workflow se complète
+12. **Filtres multi-critères Sites** : Par client, statut, taille PV, région
+13. **Drag & drop Pipeline** : Kanban interactif
+14. **Valeur pipeline par client** : Afficher le $ total sur les cards clients
+15. **Grammaire "1 sites"** → "1 site"
+16. **Localisation complète** : Passer toutes les chaînes hardcodées en français vers `t()`
+17. **Indexes DB** : Ajouter sur `analysisAvailable`, `designAgreement.status`, `simulationRuns.type`
+18. **Audit trail des hypothèses** : Logger quand un utilisateur modifie les assumptions financières
+19. **Redirect /dashboard → /app**
+20. **Image fallback en français** pour les sites sans imagerie satellite
+
+---
+
+## 6. ARCHITECTURE — SUGGESTIONS STRUCTURELLES
+
+### Court terme
+- **Externaliser les hypothèses financières** dans une table `financial_defaults` en DB au lieu de les hardcoder dans `schema.ts`. Permet de les modifier sans déploiement
+- **Ajouter des contraintes FK** manquantes (users.clientId → clients.id)
+- **Timeout + retry** sur les requêtes API longues (React Query `staleTime`, `retry`)
+
+### Moyen terme
+- **Multi-tenant propre** : Actuellement l'admin voit tous les clients/sites. Ajouter des rôles "account manager" qui ne voient que leurs projets assignés
+- **Webhooks/notifications** : Quand un site passe à une étape suivante, notifier l'account manager par email
+- **API publique** : Pour permettre l'intégration avec des outils externes (CRM, comptabilité)
+
+---
+
+*Fin de l'audit. Document à utiliser comme base pour la priorisation du backlog.*
