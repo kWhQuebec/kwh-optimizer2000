@@ -147,9 +147,9 @@ function classifyLead(data: SelfQualData, monthlyBill?: number): QualOutcome {
   if (data.roofAgeRange === 'old') {
     redBlockers.push({ key: 'roof_old', messageFr: "Toiture de plus de 25 ans", messageEn: "Roof over 25 years old", actionFr: "Planifier le remplacement de la toiture. Le solaire peut être installé immédiatement après", actionEn: "Plan roof replacement. Solar can be installed immediately after" });
   }
-  // RED: Bill too low
-  if (monthlyBill !== undefined && monthlyBill > 0 && monthlyBill < 1500) {
-    redBlockers.push({ key: 'bill_low', messageFr: "Facture mensuelle trop basse pour un projet C&I viable", messageEn: "Monthly bill too low for viable C&I project", actionFr: "Le solaire commercial est optimal pour des factures de 2 500$/mois et plus", actionEn: "Commercial solar is optimal for bills of $2,500/month and above" });
+  // RED: Bill too low (aligned with qualification engine BILL_THRESHOLDS.LOW = 2500)
+  if (monthlyBill !== undefined && monthlyBill > 0 && monthlyBill < 2500) {
+    redBlockers.push({ key: 'bill_low', messageFr: "Facture mensuelle trop basse pour un projet C&I viable", messageEn: "Monthly bill too low for viable C&I project", actionFr: "Le solaire commercial est optimal pour des factures de 2 500$/mois et plus. Contactez-nous pour explorer d'autres options.", actionEn: "Commercial solar is optimal for bills of $2,500/month and above. Contact us to explore other options." });
   }
   if (redBlockers.length > 0) {
     return { color: 'red', blockers: redBlockers, nextStepFr: "Le solaire n'est peut-être pas la meilleure option pour vous en ce moment. Voici ce qui pourrait changer la donne:", nextStepEn: "Solar may not be the best option for you right now. Here's what could change that:" };
@@ -471,6 +471,17 @@ export default function LandingPage() {
         description: language === "fr"
           ? "Veuillez entrer une adresse courriel valide."
           : "Please enter a valid email address.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!quickAddress || quickAddress.trim() === '') {
+      toast({
+        title: language === "fr" ? "Adresse requise" : "Address required",
+        description: language === "fr"
+          ? "Veuillez entrer l'adresse du bâtiment pour l'analyse."
+          : "Please enter the building address for the analysis.",
         variant: "destructive",
       });
       return;

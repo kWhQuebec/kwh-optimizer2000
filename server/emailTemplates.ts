@@ -78,6 +78,7 @@ export function renderEmailTemplate(
 ): { subject: string; html: string; text?: string } {
   const allTemplates: Record<string, typeof emailTemplates[string]> = {
     ...emailTemplates,
+    welcomePersonalized,
     nurtureCTA1,
     nurtureReengagement,
   };
@@ -107,6 +108,49 @@ export function renderEmailTemplate(
 
   return { subject, html, text };
 }
+
+export const welcomePersonalized = {
+  subject_fr: "Votre analyse solaire pour {{address}} — kWh Québec",
+  body_fr: `
+      <h2>Bonjour {{contactName}},</h2>
+      <p>Merci pour votre intérêt envers le solaire pour votre bâtiment situé au <strong>{{address}}</strong>.</p>
+
+      <div class="highlight">
+        <p>Selon notre analyse préliminaire, un système de <strong>{{systemSizeKw}} kW</strong> pourrait vous faire économiser environ <strong>{{annualSavings}} $/an</strong> sur votre facture d'électricité.</p>
+      </div>
+
+      <p>Saviez-vous que chaque année sans solaire représente un coût d'inaction d'environ <strong>{{costOfInaction}} $</strong>?</p>
+
+      <h3>Prochaine étape</h3>
+      <p>Pour obtenir une analyse détaillée gratuite avec des projections financières précises sur 25 ans, vous pouvez nous autoriser à récupérer vos données de consommation directement auprès d'Hydro-Québec :</p>
+
+      <p style="text-align: center; margin: 30px 0;">
+        <a href="{{procurationUrl}}" class="button">Autoriser l'accès à mes données →</a>
+      </p>
+
+      <p style="font-size: 13px; color: #666;">Cette procuration est limitée à la consultation de vos données de consommation et peut être révoquée en tout temps. Analyse détaillée livrée en 7 jours ouvrables.</p>
+  `,
+  subject_en: "Your solar analysis for {{address}} — kWh Québec",
+  body_en: `
+      <h2>Hello {{contactName}},</h2>
+      <p>Thank you for your interest in solar for your building at <strong>{{address}}</strong>.</p>
+
+      <div class="highlight">
+        <p>Based on our preliminary analysis, a <strong>{{systemSizeKw}} kW</strong> system could save you approximately <strong>{{annualSavings}} $/year</strong> on your electricity bill.</p>
+      </div>
+
+      <p>Did you know that each year without solar represents a cost of inaction of approximately <strong>{{costOfInaction}} $</strong>?</p>
+
+      <h3>Next step</h3>
+      <p>To receive a free detailed analysis with precise 25-year financial projections, you can authorize us to retrieve your consumption data directly from Hydro-Québec:</p>
+
+      <p style="text-align: center; margin: 30px 0;">
+        <a href="{{procurationUrl}}" class="button">Authorize access to my data →</a>
+      </p>
+
+      <p style="font-size: 13px; color: #666;">This authorization is limited to viewing your consumption data and can be revoked at any time. Detailed analysis delivered within 7 business days.</p>
+  `
+};
 
 // Email template for nurtureCTA1 (Day 1)
 export const nurtureCTA1 = {
