@@ -971,13 +971,66 @@ export async function runAutoAnalysisForSite(siteId: string): Promise<void> {
   });
 
   const tracedSolarAreaSqM = solarPolygons.reduce((sum, p) => sum + (p.areaSqM || 0), 0);
-  const effectiveRoofAreaSqM = tracedSolarAreaSqM > 0
+  let effectiveRoofAreaSqM = tracedSolarAreaSqM > 0
     ? tracedSolarAreaSqM
     : (site.roofAreaSqM || site.roofAreaAutoSqM || 0);
 
   if (effectiveRoofAreaSqM <= 0) {
-    log.warn(`No roof area for site ${siteId}, skipping auto-analysis`);
-    return;
+    if (site.address) {
+      try {
+        const { db } = await import("../db");
+        const { sites: sitesTable, roofPolygons: roofPolygonsTable } = await import("@shared/schema");
+        const { eq, ne, and, desc } = await import("drizzle-orm");
+
+        const siblingPolygons = await db.select({
+          siteId: roofPolygonsTable.siteId,
+          label: roofPolygonsTable.label,
+          coordinates: roofPolygonsTable.coordinates,
+          areaSqM: roofPolygonsTable.areaSqM,
+          color: roofPolygonsTable.color,
+          orientation: roofPolygonsTable.orientation,
+          tiltDegrees: roofPolygonsTable.tiltDegrees,
+        })
+          .from(roofPolygonsTable)
+          .innerJoin(sitesTable, eq(roofPolygonsTable.siteId, sitesTable.id))
+          .where(and(eq(sitesTable.address, site.address), ne(sitesTable.id, siteId)))
+          .orderBy(desc(sitesTable.updatedAt));
+
+        if (siblingPolygons.length > 0) {
+          const sourceSiteId = siblingPolygons[0].siteId;
+          const sourcePolygons = siblingPolygons.filter(p => p.siteId === sourceSiteId);
+
+          for (const polygon of sourcePolygons) {
+            await storage.createRoofPolygon({
+              siteId,
+              label: polygon.label,
+              coordinates: polygon.coordinates,
+              areaSqM: polygon.areaSqM,
+              color: polygon.color || undefined,
+              orientation: polygon.orientation || undefined,
+              tiltDegrees: polygon.tiltDegrees || undefined,
+            });
+          }
+
+          const copiedAreaSqM = sourcePolygons.reduce((sum, p) => sum + (p.areaSqM || 0), 0);
+          if (copiedAreaSqM > 0) {
+            await storage.updateSite(siteId, {
+              roofAreaSqM: copiedAreaSqM,
+              buildingSqFt: Math.round(copiedAreaSqM * 10.764),
+            });
+            effectiveRoofAreaSqM = copiedAreaSqM;
+            log.info(`Auto-copied ${sourcePolygons.length} roof polygons (${Math.round(copiedAreaSqM)}m²) from sibling ${sourceSiteId} for auto-analysis`);
+          }
+        }
+      } catch (e) {
+        log.warn(`Failed to auto-copy sibling polygons for site ${siteId}: ${e}`);
+      }
+    }
+
+    if (effectiveRoofAreaSqM <= 0) {
+      log.warn(`No roof area for site ${siteId}, skipping auto-analysis`);
+      return;
+    }
   }
 
   analysisAssumptions.roofAreaSqFt = effectiveRoofAreaSqM * 10.764;

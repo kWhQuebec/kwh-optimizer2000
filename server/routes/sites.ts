@@ -754,7 +754,12 @@ router.post("/:siteId/quick-potential", authMiddleware, requireStaff, asyncHandl
   }
 
   if (totalRoofAreaSqM <= 0) {
-    throw new BadRequestError("No roof area available. Please draw roof areas in Step 1 (Roof Drawing Tool) or set a building area for this site.");
+    const copyResult = await autocopySiblingRoofPolygons(siteId, site.address);
+    if (copyResult.copied && copyResult.areaSqM && copyResult.areaSqM > 0) {
+      totalRoofAreaSqM = copyResult.areaSqM;
+    } else {
+      throw new BadRequestError("No roof area available. Please draw roof areas in Step 1 (Roof Drawing Tool) or set a building area for this site.");
+    }
   }
 
   // Import pricing and yield functions
@@ -1036,9 +1041,14 @@ router.post("/:siteId/run-potential-analysis", authMiddleware, requireStaff, asy
     effectiveRoofAreaSqM = site.buildingSqFt * 0.0929;
   }
 
-  // Guard: require roof area to prevent NaN in calculations
+  // Guard: require roof area — auto-copy from sibling site if available
   if (effectiveRoofAreaSqM <= 0) {
-    throw new BadRequestError("No roof area available. Please draw roof areas in Step 1 (Roof Drawing Tool) or set a building area for this site.");
+    const copyResult = await autocopySiblingRoofPolygons(siteId, site.address);
+    if (copyResult.copied && copyResult.areaSqM && copyResult.areaSqM > 0) {
+      effectiveRoofAreaSqM = copyResult.areaSqM;
+    } else {
+      throw new BadRequestError("No roof area available. Please draw roof areas in Step 1 (Roof Drawing Tool) or set a building area for this site.");
+    }
   }
 
   analysisAssumptions.roofAreaSqFt = effectiveRoofAreaSqM * 10.764;
@@ -1794,6 +1804,62 @@ router.post("/:siteId/send-hq-procuration", authMiddleware, requireStaff, asyncH
 
   res.json({ success: true });
 }));
+
+async function autocopySiblingRoofPolygons(siteId: string, address: string | null): Promise<{ copied: boolean; sourceId?: string; polygonCount?: number; areaSqM?: number }> {
+  if (!address) return { copied: false };
+
+  const existingPolygons = await storage.getRoofPolygons(siteId);
+  if (existingPolygons.length > 0) return { copied: false };
+
+  const siblingPolygons = await db.select({
+    polygonId: roofPolygonsTable.id,
+    siteId: roofPolygonsTable.siteId,
+    label: roofPolygonsTable.label,
+    coordinates: roofPolygonsTable.coordinates,
+    areaSqM: roofPolygonsTable.areaSqM,
+    color: roofPolygonsTable.color,
+    orientation: roofPolygonsTable.orientation,
+    tiltDegrees: roofPolygonsTable.tiltDegrees,
+  })
+    .from(roofPolygonsTable)
+    .innerJoin(sitesTable, eq(roofPolygonsTable.siteId, sitesTable.id))
+    .where(
+      and(
+        eq(sitesTable.address, address),
+        ne(sitesTable.id, siteId)
+      )
+    )
+    .orderBy(desc(sitesTable.updatedAt));
+
+  if (siblingPolygons.length === 0) return { copied: false };
+
+  const sourceSiteId = siblingPolygons[0].siteId;
+  const sourcePolygons = siblingPolygons.filter(p => p.siteId === sourceSiteId);
+
+  for (const polygon of sourcePolygons) {
+    await storage.createRoofPolygon({
+      siteId,
+      label: polygon.label,
+      coordinates: polygon.coordinates,
+      areaSqM: polygon.areaSqM,
+      color: polygon.color || undefined,
+      orientation: polygon.orientation || undefined,
+      tiltDegrees: polygon.tiltDegrees || undefined,
+    });
+  }
+
+  const totalAreaSqM = sourcePolygons.reduce((sum, p) => sum + (p.areaSqM || 0), 0);
+  if (totalAreaSqM > 0) {
+    await storage.updateSite(siteId, {
+      roofAreaSqM: totalAreaSqM,
+      buildingSqFt: Math.round(totalAreaSqM * 10.764),
+    });
+  }
+
+  log.info(`Auto-copied ${sourcePolygons.length} roof polygons (${Math.round(totalAreaSqM)}m²) from sibling site ${sourceSiteId} to ${siteId} (address: "${address}")`);
+
+  return { copied: true, sourceId: sourceSiteId, polygonCount: sourcePolygons.length, areaSqM: totalAreaSqM };
+}
 
 router.get("/:id/copy-roof-from-address", authMiddleware, asyncHandler(async (req: AuthRequest, res) => {
   const currentSite = await storage.getSite(req.params.id);
