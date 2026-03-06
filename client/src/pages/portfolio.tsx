@@ -291,8 +291,8 @@ export default function Portfolio() {
             <div className="text-center max-w-3xl mx-auto space-y-4">
               <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight text-white">
                 {language === "fr" 
-                  ? "Portfolio de projets solaires" 
-                  : "Solar Projects Portfolio"}
+                  ? "Portfolio de projets" 
+                  : "Projects Portfolio"}
               </h1>
               <p className="text-lg text-white/70 max-w-2xl mx-auto">
                 {language === "fr"
