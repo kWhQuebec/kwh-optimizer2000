@@ -545,25 +545,25 @@ export default function RessourcesPage() {
   // Checklist d'éligibilité
   const eligibilityCriteria = [
     {
-      criterion: language === "fr" ? "Propriétaire du bâtiment ou bail long terme (10+ ans)" : "Building owner or long-term lease (10+ years)",
+      criterion: language === "fr" ? "Propriétaire du bâtiment ou locataire avec droit d'utilisation du toit" : "Building owner or tenant with roof usage rights",
       required: true,
       info: language === "fr" 
-        ? "Nécessaire pour justifier l'investissement et bénéficier des incitatifs."
-        : "Necessary to justify investment and benefit from incentives."
+        ? "L'autorisation d'installer sur le toit est essentielle. Locataires : un bail long terme (10+ ans) avec accès au toit est requis."
+        : "Authorization to install on the roof is essential. Tenants: a long-term lease (10+ years) with roof access is required."
     },
     {
-      criterion: language === "fr" ? "Toiture en bon état (10+ ans de vie restante)" : "Roof in good condition (10+ years remaining life)",
+      criterion: language === "fr" ? "Toiture récente ou à remplacer prochainement" : "Recent roof or upcoming roof replacement",
       required: true,
       info: language === "fr"
-        ? "Les panneaux durent 25 ans - la toiture doit supporter cette durée."
-        : "Panels last 25 years - roof must support this duration."
+        ? "Toiture refaite il y a 5 ans ou moins? Idéal. À remplacer d'ici 5 ans? C'est l'occasion de coordonner les deux projets."
+        : "Roof replaced within the last 5 years? Ideal. Due for replacement within 5 years? It's the perfect time to coordinate both projects."
     },
     {
       criterion: language === "fr" ? "Facture Hydro-Québec disponible (12 mois)" : "Hydro-Québec bill available (12 months)",
       required: true,
       info: language === "fr"
-        ? "Nécessaire pour l'analyse de votre profil de consommation et le dimensionnement optimal."
-        : "Necessary for consumption profile analysis and optimal sizing."
+        ? "Nécessaire pour l'analyse de votre profil de consommation et le dimensionnement optimal. Un volume de consommation minimum est requis pour un projet C&I rentable."
+        : "Required for consumption profile analysis and optimal sizing. A minimum consumption level is needed for a viable C&I project."
     },
     {
       criterion: language === "fr" ? "Espace de toit dégagé (peu d'obstacles)" : "Clear roof space (few obstacles)",
