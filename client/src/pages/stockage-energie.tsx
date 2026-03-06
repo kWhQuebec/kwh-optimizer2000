@@ -200,7 +200,7 @@ export default function StockageEnergiePage() {
                 ? "Réduisez vos frais de puissance, sécurisez vos opérations et maximisez la valeur de votre solaire avec le stockage par batterie."
                 : "Reduce your demand charges, secure your operations and maximize your solar value with battery storage."}
             </p>
-            <p className="text-base text-white/70 max-w-2xl mx-auto mb-8">
+            <p className="text-base text-white/85 max-w-2xl mx-auto mb-8">
               {language === "fr"
                 ? "Solutions BESS clé en main pour les bâtiments commerciaux et industriels au Québec."
                 : "Turnkey BESS solutions for commercial and industrial buildings in Quebec."}

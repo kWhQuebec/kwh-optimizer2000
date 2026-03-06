@@ -271,7 +271,7 @@ export default function SolaireCommercialPage() {
                 "Reduce your energy costs by up to 70% with a turnkey solar system, paying for itself in 5 to 9 years thanks to available incentives."
               )}
             </p>
-            <p className="text-base text-white/70 max-w-2xl mx-auto mb-8">
+            <p className="text-base text-white/85 max-w-2xl mx-auto mb-8">
               {t(
                 "Licence RBQ, équipe certifiée CCQ & CNESST, ingénierie scellée — partout au Québec.",
                 "RBQ licensed, CCQ & CNESST certified team, sealed engineering — across Quebec."
