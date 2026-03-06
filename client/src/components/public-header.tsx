@@ -124,6 +124,15 @@ export function PublicHeader() {
           </Link>
           
           <nav className="hidden md:flex items-center gap-6" aria-label="Navigation principale">
+            {location !== "/" && (
+              <Link
+                href="/"
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                data-testid="link-nav-home"
+              >
+                {language === "fr" ? "Accueil" : "Home"}
+              </Link>
+            )}
             <ServicesDropdown language={language} location={location} />
             {NAV_ITEMS.map((item) => {
               const hrefPath = item.href.split("?")[0];
@@ -208,6 +217,17 @@ export function PublicHeader() {
         data-testid="nav-mobile-menu"
       >
         <div className="flex flex-col py-4 px-4 gap-1 overflow-y-auto h-full">
+          {location !== "/" && (
+            <Link
+              href="/"
+              className="block px-3 py-2.5 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+              data-testid="link-mobile-home"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              {language === "fr" ? "Accueil" : "Home"}
+            </Link>
+          )}
+          {location !== "/" && <div className="h-px bg-border my-2" />}
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-3 mb-1">
             {language === "fr" ? SERVICES_DROPDOWN.labelFr : SERVICES_DROPDOWN.labelEn}
           </p>
