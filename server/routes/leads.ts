@@ -1997,29 +1997,29 @@ router.post("/api/quick-log", asyncHandler(async (req: Request, res: Response) =
     return res.status(400).json({ error: "Au moins un nom de contact ou d'entreprise est requis" });
   }
 
-  // 1. Create the lead (minimal fields)
+  // 1. Create the lead (minimal fields — respect NOT NULL constraints)
+  const leadName = contactName || "Inconnu";
+  const leadCompany = companyName || "Non spécifié";
+  const leadEmail = email || `quick-log-${Date.now()}@temp.kwh.quebec`;
+
   const [lead] = await db.insert(leads).values({
-    contactName: contactName || null,
-    companyName: companyName || null,
+    contactName: leadName,
+    companyName: leadCompany,
     phone: phone || null,
-    email: email || null,
+    email: leadEmail,
     source: callDirection === "inbound" ? "inbound_call" : "cold_call",
     status: "new",
-    estimatedTariffCode: estimatedTariff || null,
-    notes: notes || null,
-    assignedToEmail: assignedTo || (req as any).user?.email || null,
-    leadColor: "unscored",
+    notes: notes ? `[Tarif estimé: ${estimatedTariff || "?"}] ${notes}` : (estimatedTariff ? `Tarif estimé: ${estimatedTariff}` : null),
+    leadColor: null,
   }).returning();
 
   // 2. Create the call activity
   await db.insert(activities).values({
     leadId: lead.id,
-    type: "call",
+    activityType: "call",
     direction: callDirection || "outbound",
-    subject: `Appel ${callDirection === "inbound" ? "entrant" : "sortant"} — ${companyName || contactName}`,
-    notes: notes || null,
-    performedBy: assignedTo || (req as any).user?.email || "system",
-    performedAt: new Date(),
+    subject: `Appel ${callDirection === "inbound" ? "entrant" : "sortant"} — ${leadCompany} (${leadName})`,
+    description: notes || null,
   });
 
   log.info(`Quick-log: lead ${lead.id} created with call activity — ${companyName || contactName}`);
