@@ -6,7 +6,7 @@
 export const BRAND_CONTENT = {
   // === STATS DE CRÉDIBILITÉ ===
   stats: {
-    yearsExperience: { value: "15+", labelFr: "Années d'expérience", labelEn: "Years of experience" },
+    yearsExperience: { value: "15+", labelFr: "Années d'expérience cumulée en énergie", labelEn: "Years of combined energy experience" },
     mwInstalled: { value: "120", labelFr: "MW installés", labelEn: "MW installed" },
     projectsCI: { value: "25+", labelFr: "Projets C&I", labelEn: "C&I Projects" },
   },

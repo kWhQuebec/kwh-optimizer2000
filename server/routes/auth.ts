@@ -181,17 +181,16 @@ router.post("/api/auth/forgot-password", forgotPasswordLimiter, asyncHandler(asy
     return;
   }
   
-  // Generate secure temporary password (no modulo bias)
   const tempPassword = generateSecurePassword(14);
   
   const passwordHash = await bcrypt.hash(tempPassword, 10);
+  
+  await sendPasswordResetEmail(user.email, tempPassword, language);
   
   await storage.updateUser(user.id, { 
     passwordHash,
     forcePasswordChange: true
   });
-  
-  await sendPasswordResetEmail(user.email, tempPassword, language);
   
   log.info(`Password reset email sent to: ${normalizedEmail}`);
   

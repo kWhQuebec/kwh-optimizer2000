@@ -53,19 +53,28 @@ const emailTemplates: Record<string, {
   },
 };
 
-const emailBaseLayout = (body: string, logoUrl?: string) => `
+export const emailBaseLayout = (body: string, logoUrl?: string) => `
 <!DOCTYPE html>
 <html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
-<body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f4f4f5;">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  .button { display:inline-block; background:#FFB005; color:#003DA6 !important; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:600; font-size:15px; }
+  .highlight { background:#f0f9ff; border-left:4px solid #003DA6; padding:16px; margin:20px 0; border-radius:0 8px 8px 0; }
+  .positive { color:#16A34A; font-weight:600; }
+</style>
+</head>
+<body style="margin:0;padding:0;font-family:'Segoe UI',Tahoma,Geneva,sans-serif;background:#f4f4f5;">
 <div style="max-width:600px;margin:0 auto;padding:20px;">
-  <div style="background:#003DA6;padding:20px;text-align:center;border-radius:8px 8px 0 0;">
-    ${logoUrl ? `<img src="${logoUrl}" alt="kWh Québec" style="max-height:40px;" />` : '<span style="color:#fff;font-size:22px;font-weight:700;">kWh Québec</span>'}
+  <div style="background:linear-gradient(135deg, #003DA6 0%, #002B75 100%);padding:24px;text-align:center;border-radius:8px 8px 0 0;">
+    ${logoUrl ? `<img src="${logoUrl}" alt="kWh Québec" style="max-width:150px;" />` : '<span style="color:#fff;font-size:22px;font-weight:700;">kWh Québec</span>'}
   </div>
   <div style="background:#fff;padding:30px;border-radius:0 0 8px 8px;">
     ${body}
   </div>
-  <p style="text-align:center;color:#888;font-size:12px;margin-top:20px;">kWh Québec Inc. | info@kwhquebec.ca</p>
+  <div style="text-align:center;color:#888;font-size:12px;margin-top:20px;line-height:1.6;">
+    <p style="margin:0;"><a href="https://www.kwh.quebec" style="color:#003DA6;font-weight:600;text-decoration:none;">kWh Québec</a></p>
+    <p style="margin:4px 0 0 0;"><a href="mailto:info@kwh.quebec" style="color:#888;text-decoration:none;">info@kwh.quebec</a> | <a href="tel:+15144278871" style="color:#888;text-decoration:none;">(514) 427-8871</a></p>
+  </div>
 </div>
 </body>
 </html>

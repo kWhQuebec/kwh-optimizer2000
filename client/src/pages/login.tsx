@@ -1,7 +1,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation } from "wouter";
 import { AlertCircle, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -39,6 +39,61 @@ export default function LoginPage() {
       password: "",
     },
   });
+
+  const emailRef = useRef<HTMLInputElement | null>(null);
+  const passwordRef = useRef<HTMLInputElement | null>(null);
+
+  const syncAutofillValue = useCallback((inputEl: HTMLInputElement, fieldName: "email" | "password") => {
+    const currentValue = form.getValues(fieldName);
+    if (inputEl.value && inputEl.value !== currentValue) {
+      form.setValue(fieldName, inputEl.value, { shouldValidate: true, shouldDirty: true });
+    }
+  }, [form]);
+
+  useEffect(() => {
+    const emailEl = emailRef.current;
+    const passwordEl = passwordRef.current;
+
+    const handleAnimationStart = (e: AnimationEvent) => {
+      if (e.animationName === "onAutoFillStart") {
+        const target = e.target as HTMLInputElement;
+        setTimeout(() => {
+          if (target === emailEl) {
+            syncAutofillValue(target, "email");
+          } else if (target === passwordEl) {
+            syncAutofillValue(target, "password");
+          }
+        }, 50);
+      }
+    };
+
+    const handleInput = (e: Event) => {
+      const target = e.target as HTMLInputElement;
+      if (target === emailEl) {
+        syncAutofillValue(target, "email");
+      } else if (target === passwordEl) {
+        syncAutofillValue(target, "password");
+      }
+    };
+
+    emailEl?.addEventListener("animationstart", handleAnimationStart as EventListener);
+    passwordEl?.addEventListener("animationstart", handleAnimationStart as EventListener);
+    emailEl?.addEventListener("input", handleInput);
+    passwordEl?.addEventListener("input", handleInput);
+
+    const autofillCheckTimer = setTimeout(() => {
+      if (emailEl) syncAutofillValue(emailEl, "email");
+      if (passwordEl) syncAutofillValue(passwordEl, "password");
+    }, 500);
+
+    return () => {
+      emailEl?.removeEventListener("animationstart", handleAnimationStart as EventListener);
+      passwordEl?.removeEventListener("animationstart", handleAnimationStart as EventListener);
+      emailEl?.removeEventListener("input", handleInput);
+      passwordEl?.removeEventListener("input", handleInput);
+      clearTimeout(autofillCheckTimer);
+    };
+  }, [syncAutofillValue]);
 
   const onSubmit = async (data: LoginFormValues) => {
     setError(null);
@@ -114,7 +169,11 @@ export default function LoginPage() {
                         <Input 
                           type="email" 
                           autoComplete="email"
-                          {...field} 
+                          {...field}
+                          ref={(el) => {
+                            field.ref(el);
+                            emailRef.current = el;
+                          }}
                           data-testid="input-login-email" 
                         />
                       </FormControl>
@@ -134,7 +193,11 @@ export default function LoginPage() {
                           <Input 
                             type={showPassword ? "text" : "password"} 
                             autoComplete="current-password"
-                            {...field} 
+                            {...field}
+                            ref={(el) => {
+                              field.ref(el);
+                              passwordRef.current = el;
+                            }}
                             data-testid="input-login-password" 
                           />
                           <Button

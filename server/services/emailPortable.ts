@@ -203,15 +203,16 @@ export async function sendProposalEmail(
     to: clientEmail,
     subject: `Votre proposition solaire — ${projectName} | kWh Québec`,
     htmlBody: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px;">
-        <h2>Bonjour ${clientName},</h2>
+      <div style="font-family: 'Segoe UI', Tahoma, Geneva, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #003DA6;">Bonjour ${clientName},</h2>
         <p>Veuillez trouver ci-joint votre proposition solaire pour <strong>${projectName}</strong>.</p>
         <p>N'hésitez pas à nous contacter pour toute question.</p>
         <br/>
         <p>L'équipe kWh Québec</p>
         <hr style="border: none; border-top: 1px solid #eee;" />
-        <p style="font-size: 12px; color: #999;">
-          kWh Québec — Solutions solaires commerciales
+        <p style="font-size: 12px; color: #999; text-align: center;">
+          <a href="https://www.kwh.quebec" style="color:#003DA6;font-weight:600;text-decoration:none;">kWh Québec</a><br/>
+          <a href="mailto:info@kwh.quebec" style="color:#666;text-decoration:none;">info@kwh.quebec</a> | <a href="tel:+15144278871" style="color:#666;text-decoration:none;">(514) 427-8871</a>
         </p>
       </div>
     `,
@@ -238,11 +239,11 @@ export async function sendDesignAgreementConfirmation(
     to: clientEmail,
     subject: 'Confirmation Design Agreement — kWh Québec',
     htmlBody: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px;">
-        <h2>Merci ${clientName}!</h2>
+      <div style="font-family: 'Segoe UI', Tahoma, Geneva, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #003DA6;">Merci ${clientName}!</h2>
         <p>Nous confirmons la réception de votre paiement de <strong>2 500 $ CAD</strong> pour le Design Agreement.</p>
         <p>Ce montant sera <strong>crédité intégralement</strong> sur votre contrat EPC final.</p>
-        <h3>Prochaines étapes:</h3>
+        <h3 style="color: #003DA6;">Prochaines étapes:</h3>
         <ol>
           <li>Visite de site (dans les 5 jours ouvrables)</li>
           <li>Analyse structurale et électrique</li>
@@ -253,6 +254,11 @@ export async function sendDesignAgreementConfirmation(
         <p>Référence: <strong>Lead #${leadId}</strong></p>
         <br/>
         <p>L'équipe kWh Québec</p>
+        <hr style="border: none; border-top: 1px solid #eee;" />
+        <p style="font-size: 12px; color: #999; text-align: center;">
+          <a href="https://www.kwh.quebec" style="color:#003DA6;font-weight:600;text-decoration:none;">kWh Québec</a><br/>
+          <a href="mailto:info@kwh.quebec" style="color:#666;text-decoration:none;">info@kwh.quebec</a> | <a href="tel:+15144278871" style="color:#666;text-decoration:none;">(514) 427-8871</a>
+        </p>
       </div>
     `,
     replyTo: 'info@kwh.quebec',

@@ -283,7 +283,7 @@ export function generatePortalInvitationEmail(params: {
 <head>
   <meta charset="UTF-8">
   <style>
-    body { font-family: 'Montserrat', 'Segoe UI', Tahoma, sans-serif; line-height: 1.6; color: #333; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, sans-serif; line-height: 1.6; color: #333; }
     .container { max-width: 600px; margin: 0 auto; padding: 20px; }
     .header { background: linear-gradient(135deg, #003DA6 0%, #002B75 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
     .header h1 { margin: 0; font-size: 24px; margin-top: 15px; }
@@ -299,7 +299,7 @@ export function generatePortalInvitationEmail(params: {
 <body>
   <div class="container">
     <div class="header">
-      <img src="${logoUrl}" alt="kWh Québec" style="max-width: 180px; height: auto;" />
+      <img src="${logoUrl}" alt="kWh Québec" style="max-width: 150px; height: auto;" />
       <h1>Bienvenue sur le portail client</h1>
     </div>
     <div class="content">
@@ -327,8 +327,8 @@ export function generatePortalInvitationEmail(params: {
       L'équipe kWh Québec</p>
     </div>
     <div class="footer">
-      <p>kWh Québec - Solaire + Stockage</p>
-      <p>Ce courriel a été envoyé automatiquement.</p>
+      <p><a href="https://www.kwh.quebec" style="color:#003DA6;font-weight:600;text-decoration:none;">kWh Québec</a></p>
+      <p><a href="mailto:info@kwh.quebec" style="color:#666;text-decoration:none;">info@kwh.quebec</a> | <a href="tel:+15144278871" style="color:#666;text-decoration:none;">(514) 427-8871</a></p>
     </div>
   </div>
 </body>
@@ -361,7 +361,7 @@ L'équipe kWh Québec`
 <head>
   <meta charset="UTF-8">
   <style>
-    body { font-family: 'Montserrat', 'Segoe UI', Tahoma, sans-serif; line-height: 1.6; color: #333; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, sans-serif; line-height: 1.6; color: #333; }
     .container { max-width: 600px; margin: 0 auto; padding: 20px; }
     .header { background: linear-gradient(135deg, #003DA6 0%, #002B75 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
     .header h1 { margin: 0; font-size: 24px; margin-top: 15px; }
@@ -377,7 +377,7 @@ L'équipe kWh Québec`
 <body>
   <div class="container">
     <div class="header">
-      <img src="${logoUrl}" alt="kWh Québec" style="max-width: 180px; height: auto;" />
+      <img src="${logoUrl}" alt="kWh Québec" style="max-width: 150px; height: auto;" />
       <h1>Welcome to the Client Portal</h1>
     </div>
     <div class="content">
@@ -405,8 +405,8 @@ L'équipe kWh Québec`
       The kWh Québec Team</p>
     </div>
     <div class="footer">
-      <p>kWh Québec - Solar + Storage</p>
-      <p>This email was sent automatically.</p>
+      <p><a href="https://www.kwh.quebec" style="color:#003DA6;font-weight:600;text-decoration:none;">kWh Québec</a></p>
+      <p><a href="mailto:info@kwh.quebec" style="color:#666;text-decoration:none;">info@kwh.quebec</a> | <a href="tel:+15144278871" style="color:#666;text-decoration:none;">(514) 427-8871</a></p>
     </div>
   </div>
 </body>

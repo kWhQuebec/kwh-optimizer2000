@@ -614,8 +614,8 @@ export default function LandingPage() {
           >
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-white mb-4" data-testid="hero-headline">
               {language === "fr" 
-                ? "Jusqu'à 15% de rendement" 
-                : "Up to 15% ROI"}
+                ? "Jusqu'à 20% de rendement" 
+                : "Up to 20% ROI"}
             </h1>
             
             <p className="text-2xl sm:text-3xl text-white/90 font-medium mb-2" data-testid="hero-subtitle">
@@ -1484,7 +1484,7 @@ export default function LandingPage() {
               </div>
               <div className="flex items-center gap-1.5">
                 <Award aria-hidden="true" className="w-4 h-4 text-primary" />
-                <span>{language === "fr" ? "Équipe cumulant 15+ ans" : "Team with 15+ yrs combined"}</span>
+                <span>{language === "fr" ? "Équipe cumulant 15+ ans d'expérience en énergie" : "Team with 15+ yrs combined energy experience"}</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <CheckCircle2 aria-hidden="true" className="w-4 h-4 text-primary" />
@@ -2095,7 +2095,7 @@ export default function LandingPage() {
                 {language === "fr" ? "ans" : "years"}
               </p>
               <p className="text-xs sm:text-sm text-muted-foreground">
-                {language === "fr" ? "d'expérience" : "experience"}
+                {language === "fr" ? "d'expérience cumulée en énergie" : "combined energy experience"}
               </p>
             </div>
 
@@ -2206,7 +2206,7 @@ export default function LandingPage() {
                   </Badge>
                   <Badge className="bg-primary/10 text-primary border-primary/20 text-xs">
                     <Award aria-hidden="true" className="w-3 h-3 mr-1" />
-                    {language === "fr" ? "15+ ans cumulés" : "15+ yrs combined"}
+                    {language === "fr" ? "15+ ans cumulés en énergie" : "15+ yrs combined energy exp."}
                   </Badge>
                 </div>
               </motion.div>

@@ -238,10 +238,10 @@ function generateQuickAnalysisEmailHtml(data: QuickAnalysisData, lang: 'fr' | 'e
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body { font-family: 'Montserrat', 'Segoe UI', Tahoma, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f5f5f5; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f5f5f5; }
     .container { max-width: 600px; margin: 0 auto; background: white; }
     .header { background: linear-gradient(135deg, #003DA6 0%, #002B75 100%); color: white; padding: 30px; text-align: center; }
-    .header img { max-width: 180px; height: auto; }
+    .header img { max-width: 150px; height: auto; }
     .header h1 { margin: 15px 0 0; font-size: 22px; font-weight: 600; }
     .content { padding: 30px; }
     .intro { font-size: 15px; color: #555; margin-bottom: 25px; }
@@ -263,7 +263,7 @@ function generateQuickAnalysisEmailHtml(data: QuickAnalysisData, lang: 'fr' | 'e
 <body>
   <div class="container">
     <div class="header">
-      <img src="${logoUrl}" alt="kWh Québec" style="max-width: 180px; height: auto;" />
+      <img src="${logoUrl}" alt="kWh Québec" style="max-width: 150px; height: auto;" />
       <h1>${txt.analysisTitle}</h1>
     </div>
     
@@ -313,8 +313,8 @@ function generateQuickAnalysisEmailHtml(data: QuickAnalysisData, lang: 'fr' | 'e
     </div>
     
     <div class="footer">
-      <p><strong>${txt.footer}</strong></p>
-      <p>${txt.footerContact}</p>
+      <p><a href="https://www.kwh.quebec" style="color:#003DA6;font-weight:600;text-decoration:none;">kWh Québec</a></p>
+      <p><a href="mailto:info@kwh.quebec" style="color:#666;text-decoration:none;">info@kwh.quebec</a> | <a href="tel:+15144278871" style="color:#666;text-decoration:none;">(514) 427-8871</a></p>
       <p style="font-size: 11px; color: #999;">${txt.footerNote}</p>
     </div>
   </div>
@@ -658,10 +658,10 @@ function generateHqProcurationEmailHtml(clientName: string, lang: 'fr' | 'en', b
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body { font-family: 'Montserrat', 'Segoe UI', Tahoma, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f5f5f5; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f5f5f5; }
     .container { max-width: 600px; margin: 0 auto; background: white; }
     .header { background: white; padding: 15px 20px 5px; text-align: center; }
-    .header img { max-width: 180px; height: auto; }
+    .header img { max-width: 150px; height: auto; }
     .header h1 { display: none; }
     .content { padding: 10px 30px 20px; }
     .greeting { font-size: 14px; color: #555; margin-bottom: 12px; }
@@ -680,7 +680,7 @@ function generateHqProcurationEmailHtml(clientName: string, lang: 'fr' | 'en', b
 <body>
   <div class="container">
     <div class="header">
-      <img src="${logoUrl}" alt="kWh Québec" style="max-width: 180px; height: auto;" />
+      <img src="${logoUrl}" alt="kWh Québec" style="max-width: 150px; height: auto;" />
       <h1>${lang === 'fr' ? 'Autorisation d\'accès aux données Hydro-Québec' : 'Hydro-Québec Data Access Authorization'}</h1>
     </div>
     
@@ -712,7 +712,8 @@ function generateHqProcurationEmailHtml(clientName: string, lang: 'fr' | 'en', b
     </div>
     
     <div class="footer">
-      <strong>${txt.footer}</strong>
+      <p><a href="https://www.kwh.quebec" style="color:#003DA6;font-weight:600;text-decoration:none;">kWh Québec</a></p>
+      <p><a href="mailto:info@kwh.quebec" style="color:#666;text-decoration:none;">info@kwh.quebec</a> | <a href="tel:+15144278871" style="color:#666;text-decoration:none;">(514) 427-8871</a></p>
     </div>
   </div>
 </body>
