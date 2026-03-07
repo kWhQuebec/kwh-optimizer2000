@@ -6,6 +6,8 @@ import { authMiddleware, requireStaff, requireAdmin, type AuthRequest } from "..
 import { asyncHandler, BadRequestError, NotFoundError } from "../middleware/errorHandler";
 import { estimateLimiter, leadSubmissionLimiter } from "../middleware/rateLimiter";
 import { storage } from "../storage";
+import { db } from "../db";
+import { leads, activities } from "@shared/schema";
 import { insertLeadSchema } from "@shared/schema";
 import { sendQuickAnalysisEmail, sendProcurationCompletedNotification, sendNewLeadNotification, sendTemplateEmail } from "../emailService";
 import { sendEmail } from "../gmail";
