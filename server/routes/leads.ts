@@ -57,6 +57,16 @@ const upload = multer({
 router.post("/api/quick-estimate", estimateLimiter, asyncHandler(async (req, res) => {
   const { address, email, clientName, phone, monthlyBill, buildingType, tariffCode, annualConsumptionKwh, roofAgeYears, ownershipType, language, utm_source, utm_medium, utm_campaign, utm_term, utm_content } = req.body;
 
+    // m2: Phone validation - min 10 digits
+    if (phone && String(phone).replace(/\D/g, "").length < 10) {
+      throw new BadRequestError("Phone number must have at least 10 digits");
+    }
+
+    // m3: Monthly bill range validation
+    if (monthlyBill !== undefined && monthlyBill !== null && (Number(monthlyBill) < 50 || Number(monthlyBill) > 500000)) {
+      throw new BadRequestError("Monthly bill must be between $50 and $500,000");
+    }
+
   // Either annualConsumptionKwh or monthlyBill is required
   if (!annualConsumptionKwh && !monthlyBill) {
     throw new BadRequestError("Annual consumption or monthly bill is required");
@@ -1691,7 +1701,7 @@ router.put("/api/admin/settings/:key", authMiddleware, requireAdmin, asyncHandle
 
 router.post("/api/leads/:id/nurture/start", authMiddleware, requireStaff, asyncHandler(async (req, res) => {
   const lead = await storage.getLead(req.params.id);
-  if (!lead) throw new NotFoundError("Lead not found");
+  if (!lead) throw new NotFoundError("Lead");
 
   await storage.cancelScheduledEmails(lead.id);
   await scheduleNurtureSequence(storage, lead.id);
@@ -1705,7 +1715,7 @@ router.post("/api/leads/:id/nurture/start", authMiddleware, requireStaff, asyncH
 
 router.post("/api/leads/:id/nurture/pause", authMiddleware, requireStaff, asyncHandler(async (req, res) => {
   const lead = await storage.getLead(req.params.id);
-  if (!lead) throw new NotFoundError("Lead not found");
+  if (!lead) throw new NotFoundError("Lead");
 
   await storage.cancelScheduledEmails(lead.id);
   await storage.updateLead(lead.id, { nurtureStatus: "paused" });
@@ -1715,7 +1725,7 @@ router.post("/api/leads/:id/nurture/pause", authMiddleware, requireStaff, asyncH
 
 router.post("/api/leads/:id/nurture/stop", authMiddleware, requireStaff, asyncHandler(async (req, res) => {
   const lead = await storage.getLead(req.params.id);
-  if (!lead) throw new NotFoundError("Lead not found");
+  if (!lead) throw new NotFoundError("Lead");
 
   await storage.cancelScheduledEmails(lead.id);
   await storage.updateLead(lead.id, { nurtureStatus: "stopped" });
@@ -1725,7 +1735,7 @@ router.post("/api/leads/:id/nurture/stop", authMiddleware, requireStaff, asyncHa
 
 router.get("/api/leads/:id/nurture/status", authMiddleware, requireStaff, asyncHandler(async (req, res) => {
   const lead = await storage.getLead(req.params.id);
-  if (!lead) throw new NotFoundError("Lead not found");
+  if (!lead) throw new NotFoundError("Lead");
 
   const scheduledEmails = await storage.getScheduledEmailsByLead(lead.id);
 
@@ -1757,7 +1767,7 @@ router.get("/api/leads/:id/nurture/status", authMiddleware, requireStaff, asyncH
 // Public endpoint — called from the landing page after self-qualification
 router.patch("/api/leads/:id/self-qualification", asyncHandler(async (req, res) => {
   const lead = await storage.getLead(req.params.id);
-  if (!lead) throw new NotFoundError("Lead not found");
+  if (!lead) throw new NotFoundError("Lead");
 
   const { ownershipType, paysHydroDirectly, roofAgeRange, roofUsageRight, leadColor } = req.body;
 
@@ -1802,7 +1812,7 @@ router.patch("/api/leads/:id/self-qualification", asyncHandler(async (req, res) 
 // Updates business-related fields for the Call Script Wizard
 router.patch("/api/leads/:id/business-context", authMiddleware, requireStaff, asyncHandler(async (req, res) => {
   const lead = await storage.getLead(req.params.id);
-  if (!lead) throw new NotFoundError("Lead not found");
+  if (!lead) throw new NotFoundError("Lead");
 
   const {
     businessDriver,
