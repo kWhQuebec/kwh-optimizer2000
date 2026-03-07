@@ -1,6 +1,7 @@
 export type BuildingTypeKey =
   | 'office'
   | 'retail'
+  | 'auto_dealership'
   | 'hotel'
   | 'restaurant'
   | 'warehouse'
@@ -68,6 +69,23 @@ export const BUILDING_TYPES_REGISTRY: Record<BuildingTypeKey, BuildingTypeDefini
       energyIntensity: { average: 340, top25: 250, bottom25: 450 },
       solarAdoption: 8,
       avgPayback: 5.8,
+    },
+  },
+  auto_dealership: {
+    key: 'auto_dealership',
+    cubfRange: '2350',
+    category: 'commercial',
+    labelFr: 'Concessionnaire automobile',
+    labelEn: 'Auto Dealership',
+    iconName: 'Car',
+    intensityKwhPerSqFt: 19,
+    operatingStart: 7, operatingEnd: 21,
+    baseNight: 0.25, weekendFactor: 0.40, loadFactor: 0.42,
+    monthlyFactors: [1.05, 1.0, 0.95, 0.90, 0.85, 0.90, 1.05, 1.10, 1.0, 0.95, 1.0, 1.15],
+    benchmark: {
+      energyIntensity: { average: 290, top25: 210, bottom25: 390 },
+      solarAdoption: 10,
+      avgPayback: 4.8,
     },
   },
   hotel: {
@@ -290,7 +308,9 @@ export function getCubfCategory(cubfCode: string): BuildingTypeKey | null {
   if (isNaN(code)) return null;
 
   if (code >= 2100 && code < 2300) return 'office';
-  if (code >= 2300 && code < 2500) return 'retail';
+  if (code >= 2300 && code < 2350) return 'retail';
+  if (code >= 2350 && code < 2400) return 'auto_dealership';
+  if (code >= 2400 && code < 2500) return 'retail';
   if (code >= 2500 && code < 2600) return 'hotel';
   if (code >= 2600 && code < 3000) return 'restaurant';
   if (code >= 3000 && code < 3100) return 'industrial';
