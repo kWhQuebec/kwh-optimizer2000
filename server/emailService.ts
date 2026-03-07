@@ -496,9 +496,10 @@ kWh Québec | 514.427.8871 | info@kwh.quebec`;
 export async function sendQuickAnalysisEmail(
   email: string,
   data: QuickAnalysisData,
-  baseUrl: string
+  baseUrl: string,
+  explicitLanguage?: 'fr' | 'en'
 ): Promise<{ success: boolean; error?: string }> {
-  const lang = detectLanguage(data.tariffCode, data.address);
+  const lang = explicitLanguage || detectLanguage(data.tariffCode, data.address);
   
   const subject = lang === 'fr' 
     ? '[kWh Québec] Votre analyse rapide solaire' 

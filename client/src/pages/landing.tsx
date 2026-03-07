@@ -442,6 +442,7 @@ export default function LandingPage() {
           phone: data.phone || '',
           roofAgeYears: data.roofAgeYears,
           ownershipType: data.ownershipType,
+          language,
           ...getStoredUTMParams(),
         }),
       });

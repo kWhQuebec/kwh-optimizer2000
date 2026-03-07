@@ -53,7 +53,7 @@ const upload = multer({
 // Quick estimate endpoint for landing page calculator (no auth required)
 // Consumption-based sizing with 3 offset scenarios (70%, 85%, 100%)
 router.post("/api/quick-estimate", estimateLimiter, asyncHandler(async (req, res) => {
-  const { address, email, clientName, phone, monthlyBill, buildingType, tariffCode, annualConsumptionKwh, roofAgeYears, ownershipType, utm_source, utm_medium, utm_campaign, utm_term, utm_content } = req.body;
+  const { address, email, clientName, phone, monthlyBill, buildingType, tariffCode, annualConsumptionKwh, roofAgeYears, ownershipType, language, utm_source, utm_medium, utm_campaign, utm_term, utm_content } = req.body;
 
   // Either annualConsumptionKwh or monthlyBill is required
   if (!annualConsumptionKwh && !monthlyBill) {
@@ -396,6 +396,7 @@ router.post("/api/quick-estimate", estimateLimiter, asyncHandler(async (req, res
     const host = req.get("host") || "localhost:5000";
     const baseUrl = `${protocol}://${host}`;
 
+    const explicitLang = (language === 'fr' || language === 'en') ? language : undefined;
     sendQuickAnalysisEmail(email, {
       address: address || "",
       annualConsumptionKWh: annualKWh,
@@ -421,7 +422,7 @@ router.post("/api/quick-estimate", estimateLimiter, asyncHandler(async (req, res
       monthlyBillBefore: estimatedMonthlyBill,
       hasRoofData: false,
       roofAreaM2: undefined,
-    }, baseUrl).catch(err => {
+    }, baseUrl, explicitLang).catch(err => {
       log.error("Email sending failed:", err);
     });
     emailSent = true;
@@ -544,11 +545,16 @@ router.post("/api/quick-estimate", estimateLimiter, asyncHandler(async (req, res
       const baseUrl = `${protocol}://${host}`;
       const procurationUrl = `${baseUrl}/autorisation-hq?clientId=${clientId || lead.id}`;
 
-      // Detect language from address
-      const frenchIndicators = ['rue', 'avenue', 'boulevard', 'chemin', 'montréal', 'québec', 'laval', 'sherbrooke', 'trois-rivières', 'saint-', 'sainte-'];
-      const lowerAddress = (address || '').toLowerCase();
-      const isFrench = frenchIndicators.some(indicator => lowerAddress.includes(indicator));
-      const welcomeLanguage = isFrench ? 'fr' : 'en';
+      // Use explicit language from frontend, fallback to address-based detection
+      let welcomeLanguage: 'fr' | 'en' = 'fr';
+      if (language === 'fr' || language === 'en') {
+        welcomeLanguage = language;
+      } else {
+        const frenchIndicators = ['rue', 'avenue', 'boulevard', 'chemin', 'montréal', 'québec', 'laval', 'sherbrooke', 'trois-rivières', 'saint-', 'sainte-'];
+        const lowerAddress = (address || '').toLowerCase();
+        const isFrench = frenchIndicators.some(indicator => lowerAddress.includes(indicator));
+        welcomeLanguage = isFrench ? 'fr' : 'en';
+      }
 
       sendTemplateEmail(
         'welcomePersonalized',
