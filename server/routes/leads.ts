@@ -1976,4 +1976,57 @@ router.get("/api/leads/qualification-summary", authMiddleware, requireStaff, asy
   res.json(summary);
 }));
 
+
+// ─── Quick Log: Create lead + call activity in one shot ────────────────────
+// Mobile-first endpoint for sales reps to log calls in 30 seconds
+router.post("/api/quick-log", asyncHandler(async (req: Request, res: Response) => {
+  const {
+    contactName,
+    companyName,
+    phone,
+    email,
+    estimatedTariff,    // "G" | "M" | "L" | null
+    notes,
+    callDirection,      // "inbound" | "outbound"
+    assignedTo,         // email of the rep
+  } = req.body;
+
+  if (!contactName && !companyName) {
+    return res.status(400).json({ error: "Au moins un nom de contact ou d'entreprise est requis" });
+  }
+
+  // 1. Create the lead (minimal fields)
+  const [lead] = await db.insert(leads).values({
+    contactName: contactName || null,
+    companyName: companyName || null,
+    phone: phone || null,
+    email: email || null,
+    source: callDirection === "inbound" ? "inbound_call" : "cold_call",
+    status: "new",
+    estimatedTariffCode: estimatedTariff || null,
+    notes: notes || null,
+    assignedToEmail: assignedTo || (req as any).user?.email || null,
+    leadColor: "unscored",
+  }).returning();
+
+  // 2. Create the call activity
+  await db.insert(activities).values({
+    leadId: lead.id,
+    type: "call",
+    direction: callDirection || "outbound",
+    subject: `Appel ${callDirection === "inbound" ? "entrant" : "sortant"} — ${companyName || contactName}`,
+    notes: notes || null,
+    performedBy: assignedTo || (req as any).user?.email || "system",
+    performedAt: new Date(),
+  });
+
+  log.info(`Quick-log: lead ${lead.id} created with call activity — ${companyName || contactName}`);
+
+  res.status(201).json({
+    success: true,
+    leadId: lead.id,
+    message: `Lead créé: ${companyName || contactName}`,
+  });
+}));
+
 export default router;
