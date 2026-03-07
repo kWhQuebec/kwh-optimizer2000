@@ -5,7 +5,6 @@ import fs from "fs";
 import { authMiddleware, requireStaff, requireAdmin, type AuthRequest } from "../middleware/auth";
 import { asyncHandler, BadRequestError, NotFoundError } from "../middleware/errorHandler";
 import { estimateLimiter, leadSubmissionLimiter } from "../middleware/rateLimiter";
-import { verifyTurnstile } from "../middleware/turnstile";
 import { storage } from "../storage";
 import { db } from "../db";
 import { leads, activities } from "@shared/schema";
@@ -55,7 +54,7 @@ const upload = multer({
 
 // Quick estimate endpoint for landing page calculator (no auth required)
 // Consumption-based sizing with 3 offset scenarios (70%, 85%, 100%)
-router.post("/api/quick-estimate", estimateLimiter, verifyTurnstile, asyncHandler(async (req, res) => {
+router.post("/api/quick-estimate", estimateLimiter, asyncHandler(async (req, res) => {
   const { address, email, clientName, phone, monthlyBill, buildingType, tariffCode, annualConsumptionKwh, roofAgeYears, ownershipType, language, utm_source, utm_medium, utm_campaign, utm_term, utm_content } = req.body;
 
     // m2: Phone validation - min 10 digits
@@ -679,7 +678,7 @@ router.post("/api/quick-estimate", estimateLimiter, verifyTurnstile, asyncHandle
 }));
 
 // Detailed analysis request with procuration and file uploads
-router.post("/api/detailed-analysis-request", leadSubmissionLimiter, upload.any(), verifyTurnstile, asyncHandler(async (req, res) => {
+router.post("/api/detailed-analysis-request", leadSubmissionLimiter, upload.any(), asyncHandler(async (req, res) => {
   const {
     companyName,
     firstName,
@@ -1343,7 +1342,7 @@ router.post("/api/detailed-analysis-request", leadSubmissionLimiter, upload.any(
   });
 }));
 
-router.post("/api/leads", leadSubmissionLimiter, verifyTurnstile, asyncHandler(async (req, res) => {
+router.post("/api/leads", leadSubmissionLimiter, asyncHandler(async (req, res) => {
   const parsed = insertLeadSchema.safeParse(req.body);
   if (!parsed.success) {
     throw new BadRequestError("Validation error", parsed.error.errors);
@@ -1613,7 +1612,7 @@ const billUpload = multer({
   }
 });
 
-router.post("/api/parse-hq-bill", billUpload.single('file'), verifyTurnstile, asyncHandler(async (req, res) => {
+router.post("/api/parse-hq-bill", billUpload.single('file'), asyncHandler(async (req, res) => {
   let imageBase64: string | undefined;
   let mimeType = 'image/jpeg';
   let fileBuffer: Buffer | undefined;
@@ -1766,7 +1765,7 @@ router.get("/api/leads/:id/nurture/status", authMiddleware, requireStaff, asyncH
 
 // PATCH /api/leads/:id/self-qualification
 // Public endpoint — called from the landing page after self-qualification
-router.patch("/api/leads/:id/self-qualification", verifyTurnstile, asyncHandler(async (req, res) => {
+router.patch("/api/leads/:id/self-qualification", asyncHandler(async (req, res) => {
   const lead = await storage.getLead(req.params.id);
   if (!lead) throw new NotFoundError("Lead");
 
@@ -1992,7 +1991,7 @@ router.get("/api/leads/qualification-summary", authMiddleware, requireStaff, asy
 
 // ─── Quick Log: Create lead + call activity in one shot ────────────────────
 // Mobile-first endpoint for sales reps to log calls in 30 seconds
-router.post("/api/quick-log", verifyTurnstile, asyncHandler(async (req: Request, res: Response) => {
+router.post("/api/quick-log", asyncHandler(async (req: Request, res: Response) => {
   const {
     contactName,
     companyName,
