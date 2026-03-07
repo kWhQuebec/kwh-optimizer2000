@@ -5,6 +5,7 @@ import fs from "fs";
 import { authMiddleware, requireStaff, requireAdmin, type AuthRequest } from "../middleware/auth";
 import { asyncHandler, BadRequestError, NotFoundError } from "../middleware/errorHandler";
 import { estimateLimiter, leadSubmissionLimiter } from "../middleware/rateLimiter";
+import { verifyTurnstile } from "../middleware/turnstile";
 import { storage } from "../storage";
 import { db } from "../db";
 import { leads, activities } from "@shared/schema";

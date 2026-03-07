@@ -46,3 +46,5 @@ integrations = ["google-mail:1.0.0", "stripe:2.0.0", "javascript_gemini_ai_integ
 
 [userenv.shared]
 PUPPETEER_EXECUTABLE_PATH = "/nix/store/zi4f80l169xlmivz8vja8wlphq74qqk0-chromium-125.0.6422.141/bin/chromium"
+TURNSTILE_SECRET_KEY = "0x4AAAAAACnyhF2EMDtjk6_bwQ_nQ_qYQ2s"
+VITE_TURNSTILE_SITE_KEY = "0x4AAAAAACnyhPiEAxcFduPu"

@@ -1,3 +1,4 @@
+import { getTurnstileToken, clearTurnstileToken } from "../components/TurnstileWidget";
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
 function getAuthToken(): string | null {
@@ -73,7 +74,15 @@ export async function apiRequest<T = unknown>(
   const res = await authFetch(url, {
     method,
     headers,
-    body: data ? JSON.stringify(data) : undefined,
+    body: data ? JSON.stringify((() => {
+      const payload = typeof data === "object" && data !== null ? { ...data } : data;
+      const turnstileToken = getTurnstileToken();
+      if (turnstileToken && typeof payload === "object" && payload !== null) {
+        (payload as Record<string, unknown>)["cf-turnstile-response"] = turnstileToken;
+        clearTurnstileToken();
+      }
+      return payload;
+    })()) : undefined,
     credentials: "include",
   });
 
