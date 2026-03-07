@@ -30,6 +30,7 @@ import { LanguageToggle } from "@/components/language-toggle";
 import { PublicHeader, PublicFooter } from "@/components/public-header";
 import { useI18n } from "@/lib/i18n";
 import { apiRequest } from "@/lib/queryClient";
+import TurnstileWidget, { getTurnstileToken, clearTurnstileToken } from "@/components/TurnstileWidget";
 import { useToast } from "@/hooks/use-toast";
 import { FunnelEvents, getStoredUTMParams } from "@/lib/analytics";
 import { SEOHead, seoContent, getLocalBusinessSchema, getServiceSchema, getLandingFAQSchema, organizationSchema } from "@/components/seo-head";
@@ -374,6 +375,11 @@ export default function LandingPage() {
     // Parse the bill with AI
     const formData = new FormData();
     formData.append('file', file);
+    const billToken = getTurnstileToken();
+    if (billToken) {
+      formData.append('cf-turnstile-response', billToken);
+      clearTurnstileToken();
+    }
 
     fetch('/api/parse-hq-bill', {
       method: 'POST',
@@ -431,10 +437,8 @@ export default function LandingPage() {
       roofAgeYears?: number;
       ownershipType?: string;
     }) => {
-      const response = await fetch('/api/quick-estimate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const estimateToken = getTurnstileToken();
+      const estimatePayload: Record<string, unknown> = {
           annualConsumptionKwh: data.annualKwh,
           email: data.email,
           clientName: data.clientName || '',
@@ -444,7 +448,15 @@ export default function LandingPage() {
           ownershipType: data.ownershipType,
           language,
           ...getStoredUTMParams(),
-        }),
+      };
+      if (estimateToken) {
+        estimatePayload['cf-turnstile-response'] = estimateToken;
+        clearTurnstileToken();
+      }
+      const response = await fetch('/api/quick-estimate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(estimatePayload),
       });
       if (!response.ok) throw new Error('Failed to get quick analysis');
       return response.json();
@@ -1014,6 +1026,7 @@ export default function LandingPage() {
                             />
                           </div>
                         </div>
+                        <TurnstileWidget size="compact" className="flex justify-center mb-3" />
                         <Button
                           onClick={handleQuickAnalysis}
                           disabled={quickAnalysisMutation.isPending || !quickEmail || !quickCompany}
@@ -1223,10 +1236,16 @@ export default function LandingPage() {
                           setFlowStep('qualifiedResult');
                           if (quickAnalysisResult?.leadId) {
                             try {
+                              const qualToken = getTurnstileToken();
+                              const qualPayload: Record<string, unknown> = { ...selfQualData, leadColor: outcome.color };
+                              if (qualToken) {
+                                qualPayload['cf-turnstile-response'] = qualToken;
+                                clearTurnstileToken();
+                              }
                               await fetch(`/api/leads/${quickAnalysisResult.leadId}/self-qualification`, {
                                 method: 'PATCH',
                                 headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ ...selfQualData, leadColor: outcome.color }),
+                                body: JSON.stringify(qualPayload),
                               });
                             } catch (e) { console.error('Failed to save qualification:', e); }
                           }
@@ -1455,7 +1474,8 @@ export default function LandingPage() {
                             />
                           </div>
                         </div>
-                        <Button 
+                        <TurnstileWidget size="compact" className="flex justify-center mb-3" />
+                        <Button
                           onClick={handleQuickAnalysis}
                           disabled={quickAnalysisMutation.isPending || !manualKwh || !quickEmail || !quickCompany}
                           className="w-full gap-2"
