@@ -1,0 +1,1157 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Personas Clients Idéaux — kWh Québec</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --primary: #003DA6;
+  --primary-dark: #002D7A;
+  --primary-light: #0052CC;
+  --accent: #FFB005;
+  --accent-dark: #E09D00;
+  --accent-light: #FFC940;
+  --gray: #AAAAAA;
+  --gray-light: #F0F2F5;
+  --gray-dark: #555;
+  --text: #1A1A2E;
+  --text-light: #4A4A68;
+  --white: #FFFFFF;
+  --success: #16A34A;
+  --danger: #DC2626;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Inter', -apple-system, sans-serif;
+  background: var(--gray-light);
+  color: var(--text);
+  overflow: hidden;
+  height: 100vh;
+}
+
+/* === SLIDE CONTAINER === */
+.slide-deck {
+  width: 100vw;
+  height: 100vh;
+  position: relative;
+}
+
+.slide {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  display: none;
+  flex-direction: column;
+  padding: 48px 64px;
+  overflow-y: auto;
+}
+
+.slide.active { display: flex; }
+
+/* === NAVIGATION === */
+.nav-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0; right: 0;
+  background: rgba(0, 61, 166, 0.95);
+  backdrop-filter: blur(12px);
+  padding: 12px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 100;
+  border-top: 3px solid var(--accent);
+}
+
+.nav-bar .progress {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.nav-bar .dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.3);
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.nav-bar .dot.active {
+  background: var(--accent);
+  width: 28px;
+  border-radius: 5px;
+}
+
+.nav-bar .dot:hover { background: rgba(255,255,255,0.6); }
+
+.nav-btn {
+  background: rgba(255,255,255,0.15);
+  color: white;
+  border: 1px solid rgba(255,255,255,0.25);
+  padding: 8px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.nav-btn:hover { background: rgba(255,255,255,0.25); }
+.nav-btn:disabled { opacity: 0.3; cursor: default; }
+
+.lang-toggle {
+  background: var(--accent);
+  color: var(--primary-dark);
+  border: none;
+  padding: 6px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.slide-counter {
+  color: rgba(255,255,255,0.7);
+  font-size: 12px;
+  font-weight: 500;
+  min-width: 50px;
+  text-align: center;
+}
+
+/* === COVER SLIDE === */
+.slide-cover {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 60%, #001A4D 100%);
+  color: white;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.slide-cover::before {
+  content: '';
+  position: absolute;
+  top: -30%; right: -20%;
+  width: 800px; height: 800px;
+  background: radial-gradient(circle, rgba(255,176,5,0.12) 0%, transparent 70%);
+  border-radius: 50%;
+}
+
+.slide-cover::after {
+  content: '';
+  position: absolute;
+  bottom: -40%; left: -10%;
+  width: 600px; height: 600px;
+  background: radial-gradient(circle, rgba(0,82,204,0.2) 0%, transparent 70%);
+  border-radius: 50%;
+}
+
+.cover-content { position: relative; z-index: 1; max-width: 800px; }
+
+.cover-logo { height: 60px; margin-bottom: 40px; }
+
+.cover-tag {
+  display: inline-block;
+  background: var(--accent);
+  color: var(--primary-dark);
+  padding: 6px 18px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 24px;
+}
+
+.cover-title {
+  font-size: 42px;
+  font-weight: 800;
+  line-height: 1.15;
+  margin-bottom: 16px;
+  letter-spacing: -0.5px;
+}
+
+.cover-subtitle {
+  font-size: 18px;
+  font-weight: 300;
+  opacity: 0.85;
+  line-height: 1.5;
+  margin-bottom: 32px;
+}
+
+.cover-meta {
+  font-size: 13px;
+  opacity: 0.5;
+  font-weight: 400;
+}
+
+/* === SECTION HEADERS === */
+.slide-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 32px;
+  padding-bottom: 16px;
+  border-bottom: 3px solid var(--accent);
+}
+
+.slide-header .icon {
+  width: 48px; height: 48px;
+  background: var(--primary);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  color: white;
+  flex-shrink: 0;
+}
+
+.slide-header h2 {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--primary);
+  letter-spacing: -0.3px;
+}
+
+.slide-header .subtitle {
+  font-size: 14px;
+  color: var(--text-light);
+  font-weight: 400;
+}
+
+/* === INSIGHT SLIDE === */
+.insight-box {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+  border-radius: 16px;
+  padding: 40px 48px;
+  color: white;
+  margin-bottom: 24px;
+}
+
+.insight-box h3 {
+  font-size: 32px;
+  font-weight: 800;
+  margin-bottom: 16px;
+  line-height: 1.2;
+}
+
+.insight-box p {
+  font-size: 17px;
+  line-height: 1.6;
+  opacity: 0.9;
+}
+
+.rate-compare {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 24px;
+  align-items: center;
+  margin-top: 24px;
+}
+
+.rate-card {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  text-align: center;
+}
+
+.rate-card .tariff {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--primary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+}
+
+.rate-card .rate {
+  font-size: 36px;
+  font-weight: 900;
+  color: var(--text);
+}
+
+.rate-card .unit { font-size: 14px; color: var(--gray); }
+
+.rate-card.highlight {
+  border: 3px solid var(--accent);
+  box-shadow: 0 4px 20px rgba(255,176,5,0.25);
+}
+
+.rate-card.highlight .rate { color: var(--accent-dark); }
+
+.vs-badge {
+  background: var(--accent);
+  color: var(--primary-dark);
+  width: 48px; height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 14px;
+}
+
+/* === OVERVIEW TABLE === */
+.overview-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  flex: 1;
+}
+
+.persona-card {
+  background: white;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  display: flex;
+  flex-direction: column;
+}
+
+.persona-card .card-header {
+  padding: 20px 24px;
+  color: white;
+  position: relative;
+}
+
+.persona-card .card-header h3 {
+  font-size: 17px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.persona-card .card-header .tag {
+  font-size: 12px;
+  opacity: 0.85;
+  font-weight: 400;
+}
+
+.p1 .card-header { background: linear-gradient(135deg, #E09D00, #FFB005); color: var(--primary-dark); }
+.p2 .card-header { background: linear-gradient(135deg, var(--primary-dark), var(--primary)); }
+.p3 .card-header { background: linear-gradient(135deg, #5B21B6, #7C3AED); }
+
+.card-body { padding: 20px 24px; flex: 1; }
+
+.kpi-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--gray-light);
+  font-size: 13px;
+}
+
+.kpi-row:last-child { border-bottom: none; }
+
+.kpi-row .label { color: var(--text-light); font-weight: 400; }
+.kpi-row .value { font-weight: 700; color: var(--text); }
+.kpi-row .value.accent { color: var(--accent-dark); }
+.kpi-row .value.primary { color: var(--primary); }
+
+/* === PERSONA DEEP DIVE === */
+.persona-deep {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  flex: 1;
+}
+
+.persona-deep .col { display: flex; flex-direction: column; gap: 16px; }
+
+.info-panel {
+  background: white;
+  border-radius: 12px;
+  padding: 20px 24px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+
+.info-panel h4 {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--primary);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sector-list {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.sector-list li {
+  background: var(--gray-light);
+  padding: 4px 12px;
+  border-radius: 16px;
+  font-size: 12px;
+  color: var(--text-light);
+  font-weight: 500;
+}
+
+.capex-waterfall {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.waterfall-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+}
+
+.waterfall-row .bar-label { width: 110px; text-align: right; font-weight: 500; color: var(--text-light); white-space: nowrap; }
+.waterfall-row .bar-container { flex: 1; height: 22px; background: var(--gray-light); border-radius: 4px; position: relative; overflow: hidden; }
+.waterfall-row .bar { height: 100%; border-radius: 4px; display: flex; align-items: center; padding-left: 8px; font-size: 11px; font-weight: 600; color: white; }
+.waterfall-row .bar.gross { background: var(--primary); }
+.waterfall-row .bar.hq { background: var(--accent); color: var(--primary-dark); }
+.waterfall-row .bar.cii { background: var(--success); }
+.waterfall-row .bar.dpa { background: #059669; }
+.waterfall-row .bar.net { background: var(--primary); }
+
+.kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.kpi-chip {
+  background: white;
+  border-radius: 10px;
+  padding: 14px;
+  text-align: center;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+
+.kpi-chip .val {
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.kpi-chip .lbl {
+  font-size: 11px;
+  color: var(--text-light);
+  margin-top: 2px;
+  font-weight: 500;
+}
+
+.kpi-chip.gold { border-bottom: 3px solid var(--accent); }
+.kpi-chip.gold .val { color: var(--accent-dark); }
+
+.kpi-chip.blue { border-bottom: 3px solid var(--primary); }
+.kpi-chip.blue .val { color: var(--primary); }
+
+.kpi-chip.green { border-bottom: 3px solid var(--success); }
+.kpi-chip.green .val { color: var(--success); }
+
+.objection-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.objection-table th {
+  text-align: left;
+  padding: 8px 12px;
+  background: var(--primary);
+  color: white;
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.objection-table th:first-child { border-radius: 6px 0 0 0; }
+.objection-table th:last-child { border-radius: 0 6px 0 0; }
+
+.objection-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--gray-light);
+  vertical-align: top;
+  line-height: 1.4;
+}
+
+.objection-table tr:nth-child(even) td { background: #FAFBFC; }
+
+.msg-quote {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+  border-radius: 10px;
+  padding: 16px 20px;
+  color: white;
+  font-size: 13px;
+  line-height: 1.5;
+  font-style: italic;
+  position: relative;
+}
+
+.msg-quote::before {
+  content: '"';
+  font-size: 40px;
+  position: absolute;
+  top: 4px;
+  left: 12px;
+  opacity: 0.3;
+  font-style: normal;
+}
+
+/* === STRATEGY SLIDE === */
+.strategy-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  flex: 1;
+}
+
+.alloc-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.alloc-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.alloc-row .color-dot {
+  width: 16px; height: 16px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.alloc-row .alloc-bar-container {
+  flex: 1;
+  height: 36px;
+  background: var(--gray-light);
+  border-radius: 8px;
+  overflow: hidden;
+  position: relative;
+}
+
+.alloc-row .alloc-bar {
+  height: 100%;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  font-weight: 700;
+  font-size: 14px;
+  color: white;
+}
+
+.alloc-row .alloc-label {
+  min-width: 160px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.alloc-row .alloc-pct {
+  min-width: 40px;
+  font-size: 15px;
+  font-weight: 800;
+  text-align: right;
+}
+
+.next-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.step-item {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  background: white;
+  border-radius: 10px;
+  padding: 16px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+}
+
+.step-num {
+  width: 32px; height: 32px;
+  background: var(--primary);
+  color: white;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.step-item h4 { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+.step-item p { font-size: 12px; color: var(--text-light); line-height: 1.4; }
+
+/* === BATTERY INSIGHT === */
+.battery-compare {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.compare-col {
+  background: white;
+  border-radius: 10px;
+  padding: 16px;
+  text-align: center;
+}
+
+.compare-col h5 {
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--gray-light);
+}
+
+.compare-col.better { border: 2px solid var(--success); }
+.compare-col.better h5 { color: var(--success); border-color: var(--success); }
+
+.compare-metric {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  font-size: 12px;
+}
+
+.compare-metric .label { color: var(--text-light); }
+.compare-metric .val { font-weight: 700; }
+
+/* === RESPONSIVE OVERFLOW === */
+.slide { padding-bottom: 80px; }
+
+/* === PRINT === */
+@media print {
+  .nav-bar { display: none; }
+  .slide { position: relative; display: flex !important; page-break-after: always; height: auto; min-height: 100vh; }
+}
+</style>
+</head>
+<body>
+
+<div class="slide-deck" id="deck">
+
+<!-- ======================== SLIDE 1: COVER ======================== -->
+<div class="slide slide-cover active" data-slide="0">
+  <div class="cover-content">
+    <img class="cover-logo logo-fr" src="/assets/logo-fr-white.png" alt="kWh Québec">
+    <img class="cover-logo logo-en" src="/assets/logo-en-white.png" alt="kWh Quebec" style="display:none">
+    <div class="cover-tag" data-fr="ANALYSE STRATÉGIQUE" data-en="STRATEGIC ANALYSIS"></div>
+    <h1 class="cover-title" data-fr="Personas Clients Idéaux" data-en="Ideal Client Personas"></h1>
+    <p class="cover-subtitle" data-fr="Basé sur le reverse-engineering du moteur financier de l'Optimizer<br>Tarifs HQ avril 2025 — 3 personas, 3 stratégies" data-en="Based on reverse-engineering the Optimizer's financial engine<br>HQ rates April 2025 — 3 personas, 3 strategies"></p>
+    <p class="cover-meta" data-fr="Document interne — Mars 2026 — info@kwh.quebec" data-en="Internal document — March 2026 — info@kwh.quebec"></p>
+  </div>
+</div>
+
+<!-- ======================== SLIDE 2: KEY INSIGHT ======================== -->
+<div class="slide" data-slide="1" style="background:var(--gray-light);">
+  <div class="slide-header">
+    <div class="icon">⚡</div>
+    <div>
+      <h2 data-fr="L'insight clé" data-en="The Key Insight"></h2>
+      <div class="subtitle" data-fr="Le tarif HQ détermine tout" data-en="The HQ tariff determines everything"></div>
+    </div>
+  </div>
+
+  <div class="insight-box">
+    <h3 data-fr="Le Tarif G à 11.93¢/kWh est notre meilleur allié" data-en="Tariff G at 11.93¢/kWh is our strongest ally"></h3>
+    <p data-fr="Chaque kWh autoconsommé par un client Tarif G vaut presque le double d'un client Tarif M. C'est ce qui rend le solaire ultra-rentable pour les commerces : payback en 5 ans, TRI 20%+, zéro batterie requise." data-en="Every self-consumed kWh for a Tariff G client is worth nearly double vs Tariff M. This makes solar ultra-profitable for commercial buildings: 5-year payback, 20%+ IRR, zero battery needed."></p>
+    <div class="rate-compare" style="margin-top:28px;">
+      <div class="rate-card highlight">
+        <div class="tariff" data-fr="TARIF G — Commercial" data-en="TARIFF G — Commercial"></div>
+        <div class="rate">11.93<span class="unit">¢/kWh</span></div>
+      </div>
+      <div class="vs-badge">VS</div>
+      <div class="rate-card">
+        <div class="tariff" data-fr="TARIF M — Industriel" data-en="TARIFF M — Industrial"></div>
+        <div class="rate">6.06<span class="unit">¢/kWh</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="kpi-strip" style="margin-top:auto;">
+    <div class="kpi-chip gold">
+      <div class="val" data-fr="97%" data-en="97%"></div>
+      <div class="lbl" data-fr="Plus de valeur/kWh (G vs M)" data-en="More value/kWh (G vs M)"></div>
+    </div>
+    <div class="kpi-chip blue">
+      <div class="val" data-fr="0$" data-en="$0"></div>
+      <div class="lbl" data-fr="Batterie requise (Tarif G)" data-en="Battery needed (Tariff G)"></div>
+    </div>
+    <div class="kpi-chip green">
+      <div class="val" data-fr="5 ans" data-en="5 yrs"></div>
+      <div class="lbl" data-fr="Payback moyen Tarif G" data-en="Avg payback Tariff G"></div>
+    </div>
+    <div class="kpi-chip gold">
+      <div class="val" data-fr="20%+" data-en="20%+"></div>
+      <div class="lbl" data-fr="TRI typique Tarif G" data-en="Typical IRR Tariff G"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ======================== SLIDE 3: OVERVIEW ======================== -->
+<div class="slide" data-slide="2" style="background:var(--gray-light);">
+  <div class="slide-header">
+    <div class="icon">👥</div>
+    <div>
+      <h2 data-fr="Vue d'ensemble : 3 Personas" data-en="Overview: 3 Personas"></h2>
+      <div class="subtitle" data-fr="Comparaison côte à côte" data-en="Side-by-side comparison"></div>
+    </div>
+  </div>
+
+  <div class="overview-grid">
+    <!-- Persona 1 -->
+    <div class="persona-card p1">
+      <div class="card-header">
+        <h3 data-fr="Le Commerçant Rentable" data-en="The Profitable Retailer"></h3>
+        <div class="tag" data-fr="Tarif G — 11.93¢/kWh" data-en="Tariff G — 11.93¢/kWh"></div>
+      </div>
+      <div class="card-body">
+        <div class="kpi-row"><span class="label" data-fr="Taille système" data-en="System size"></span><span class="value">50-150 kWc</span></div>
+        <div class="kpi-row"><span class="label" data-fr="TRI typique" data-en="Typical IRR"></span><span class="value accent">18-25%</span></div>
+        <div class="kpi-row"><span class="label" data-fr="Payback" data-en="Payback"></span><span class="value accent" data-fr="4-6 ans" data-en="4-6 yrs"></span></div>
+        <div class="kpi-row"><span class="label" data-fr="CAPEX net/deal" data-en="Net CAPEX/deal"></span><span class="value">$35k-$100k</span></div>
+        <div class="kpi-row"><span class="label" data-fr="Complexité" data-en="Complexity"></span><span class="value" data-fr="Faible" data-en="Low"></span></div>
+        <div class="kpi-row"><span class="label" data-fr="Batterie" data-en="Battery"></span><span class="value" data-fr="Non requise" data-en="Not needed"></span></div>
+        <div class="kpi-row"><span class="label" data-fr="Priorité" data-en="Priority"></span><span class="value accent">★★★★★</span></div>
+      </div>
+    </div>
+    <!-- Persona 2 -->
+    <div class="persona-card p2">
+      <div class="card-header">
+        <h3 data-fr="L'Industriel Volumique" data-en="The Volume Industrial"></h3>
+        <div class="tag" data-fr="Tarif M — 6.06¢/kWh + puissance" data-en="Tariff M — 6.06¢/kWh + demand"></div>
+      </div>
+      <div class="card-body">
+        <div class="kpi-row"><span class="label" data-fr="Taille système" data-en="System size"></span><span class="value">200-700 kWc</span></div>
+        <div class="kpi-row"><span class="label" data-fr="TRI typique" data-en="Typical IRR"></span><span class="value primary">12-18%</span></div>
+        <div class="kpi-row"><span class="label" data-fr="Payback" data-en="Payback"></span><span class="value primary" data-fr="6-9 ans" data-en="6-9 yrs"></span></div>
+        <div class="kpi-row"><span class="label" data-fr="CAPEX net/deal" data-en="Net CAPEX/deal"></span><span class="value">$140k-$450k</span></div>
+        <div class="kpi-row"><span class="label" data-fr="Complexité" data-en="Complexity"></span><span class="value" data-fr="Moyenne" data-en="Medium"></span></div>
+        <div class="kpi-row"><span class="label" data-fr="Batterie" data-en="Battery"></span><span class="value" data-fr="Optionnelle" data-en="Optional"></span></div>
+        <div class="kpi-row"><span class="label" data-fr="Priorité" data-en="Priority"></span><span class="value primary">★★★★☆</span></div>
+      </div>
+    </div>
+    <!-- Persona 3 -->
+    <div class="persona-card p3">
+      <div class="card-header">
+        <h3 data-fr="Le Gestionnaire Multi-Sites" data-en="The Multi-Site Manager"></h3>
+        <div class="tag" data-fr="Mix G + M — Portfolio" data-en="G + M Mix — Portfolio"></div>
+      </div>
+      <div class="card-body">
+        <div class="kpi-row"><span class="label" data-fr="Taille programme" data-en="Program size"></span><span class="value" data-fr="5-30 sites" data-en="5-30 sites"></span></div>
+        <div class="kpi-row"><span class="label" data-fr="TRI pondéré" data-en="Weighted IRR"></span><span class="value" style="color:#7C3AED">14-20%</span></div>
+        <div class="kpi-row"><span class="label" data-fr="Payback" data-en="Payback"></span><span class="value" style="color:#7C3AED" data-fr="5-8 ans" data-en="5-8 yrs"></span></div>
+        <div class="kpi-row"><span class="label" data-fr="CAPEX total" data-en="Total CAPEX"></span><span class="value">$500k-$3M+</span></div>
+        <div class="kpi-row"><span class="label" data-fr="Complexité" data-en="Complexity"></span><span class="value" data-fr="Élevée" data-en="High"></span></div>
+        <div class="kpi-row"><span class="label" data-fr="Batterie" data-en="Battery"></span><span class="value" data-fr="Cas par cas" data-en="Case by case"></span></div>
+        <div class="kpi-row"><span class="label" data-fr="Priorité" data-en="Priority"></span><span class="value" style="color:#7C3AED">★★★★★</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======================== SLIDE 4: PERSONA 1 DEEP DIVE ======================== -->
+<div class="slide" data-slide="3" style="background:var(--gray-light);">
+  <div class="slide-header">
+    <div class="icon" style="background:var(--accent);color:var(--primary-dark);">1</div>
+    <div>
+      <h2 data-fr="Le Commerçant Rentable" data-en="The Profitable Retailer" style="color:var(--accent-dark);"></h2>
+      <div class="subtitle" data-fr="Tarif G — TRI 18-25% — Payback 4-6 ans" data-en="Tariff G — IRR 18-25% — Payback 4-6 yrs"></div>
+    </div>
+  </div>
+
+  <div class="persona-deep">
+    <div class="col">
+      <div class="info-panel">
+        <h4 data-fr="🏢 Secteurs clés" data-en="🏢 Key Sectors"></h4>
+        <ul class="sector-list">
+          <li data-fr="Concessionnaires auto" data-en="Auto dealers"></li>
+          <li data-fr="Commerces + entrepôt" data-en="Retail + warehouse"></li>
+          <li data-fr="Gyms" data-en="Gyms"></li>
+          <li data-fr="Restaurants/chaînes" data-en="Restaurant chains"></li>
+          <li data-fr="Cliniques" data-en="Clinics"></li>
+          <li data-fr="Garages" data-en="Garages"></li>
+          <li data-fr="Bureaux" data-en="Offices"></li>
+        </ul>
+      </div>
+
+      <div class="info-panel">
+        <h4 data-fr="📐 Profil type" data-en="📐 Typical Profile"></h4>
+        <div class="kpi-row"><span class="label" data-fr="Puissance" data-en="Demand"></span><span class="value">30-65 kW</span></div>
+        <div class="kpi-row"><span class="label" data-fr="Consommation" data-en="Consumption"></span><span class="value">150k-500k kWh/an</span></div>
+        <div class="kpi-row"><span class="label" data-fr="Surface bâtiment" data-en="Building area"></span><span class="value">500-3,000 m²</span></div>
+        <div class="kpi-row"><span class="label" data-fr="Facture HQ" data-en="HQ bill"></span><span class="value">$18k-$60k/an</span></div>
+      </div>
+
+      <div class="info-panel">
+        <h4 data-fr="⚡ Cascade CAPEX — 100 kWc" data-en="⚡ CAPEX Cascade — 100 kWp"></h4>
+        <div class="capex-waterfall">
+          <div class="waterfall-row"><span class="bar-label" data-fr="CAPEX brut" data-en="Gross CAPEX"></span><div class="bar-container"><div class="bar gross" style="width:100%">$230k</div></div></div>
+          <div class="waterfall-row"><span class="bar-label" data-fr="HQ OSE 6.0" data-en="HQ OSE 6.0"></span><div class="bar-container"><div class="bar hq" style="width:40%">-$92k</div></div></div>
+          <div class="waterfall-row"><span class="bar-label" data-fr="CII 30%" data-en="ITC 30%"></span><div class="bar-container"><div class="bar cii" style="width:18%">-$41k</div></div></div>
+          <div class="waterfall-row"><span class="bar-label">DPA</span><div class="bar-container"><div class="bar dpa" style="width:10%">-$23k</div></div></div>
+          <div class="waterfall-row"><span class="bar-label" data-fr="CAPEX net" data-en="Net CAPEX"></span><div class="bar-container"><div class="bar net" style="width:32%">$74k</div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col">
+      <div class="kpi-strip" style="grid-template-columns:repeat(2,1fr);">
+        <div class="kpi-chip gold"><div class="val">~19%</div><div class="lbl">TRI / IRR</div></div>
+        <div class="kpi-chip gold"><div class="val" data-fr="5.9 ans" data-en="5.9 yrs"></div><div class="lbl">Payback</div></div>
+        <div class="kpi-chip blue"><div class="val">$110k</div><div class="lbl" data-fr="VAN 25 ans" data-en="NPV 25 yrs"></div></div>
+        <div class="kpi-chip green"><div class="val">$0.74/W</div><div class="lbl" data-fr="Coût effectif" data-en="Effective cost"></div></div>
+      </div>
+
+      <div class="msg-quote" style="background:linear-gradient(135deg, #E09D00, #FFB005); color:var(--primary-dark);">
+        <span data-fr="Votre facture à 12¢/kWh est la plus chère au Québec commercial. C'est aussi ce qui rend le solaire ultra-rentable pour vous : payback en 5 ans, 20% de rendement, zéro batterie." data-en="Your bill at 12¢/kWh is the most expensive in commercial Quebec. That's exactly what makes solar ultra-profitable for you: 5-year payback, 20% return, zero battery."></span>
+      </div>
+
+      <div class="info-panel" style="flex:1;">
+        <h4 data-fr="💬 Objections & réponses" data-en="💬 Objections & Responses"></h4>
+        <table class="objection-table">
+          <tr><th data-fr="Objection" data-en="Objection"></th><th data-fr="Réponse" data-en="Response"></th></tr>
+          <tr><td data-fr="Mon toit est trop petit" data-en="My roof is too small"></td><td data-fr="50 kWc sur 400 m² fonctionne déjà. Chaque kWh vaut 12¢." data-en="50 kWp on 400 m² already works. Each kWh is worth 12¢."></td></tr>
+          <tr><td data-fr="Je suis locataire" data-en="I'm a tenant"></td><td data-fr="Structure PPA si bail > 7 ans. Sinon, convaincre le propriétaire." data-en="PPA structure if lease > 7 yrs. Otherwise, convince the owner."></td></tr>
+          <tr><td data-fr="L'électricité est cheap au QC" data-en="Electricity is cheap in QC"></td><td data-fr="Pas au Tarif G. Vous payez 12¢ — comparable à l'Ontario." data-en="Not on Tariff G. You pay 12¢ — comparable to Ontario."></td></tr>
+          <tr><td data-fr="C'est risqué" data-en="It's risky"></td><td data-fr="Garantie 25 ans. HQ paie le surplus. TRI > 18%." data-en="25-year warranty. HQ pays surplus. IRR > 18%."></td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======================== SLIDE 5: PERSONA 2 DEEP DIVE ======================== -->
+<div class="slide" data-slide="4" style="background:var(--gray-light);">
+  <div class="slide-header">
+    <div class="icon">2</div>
+    <div>
+      <h2 data-fr="L'Industriel Volumique" data-en="The Volume Industrial"></h2>
+      <div class="subtitle" data-fr="Tarif M — TRI 12-18% — Payback 6-9 ans" data-en="Tariff M — IRR 12-18% — Payback 6-9 yrs"></div>
+    </div>
+  </div>
+
+  <div class="persona-deep">
+    <div class="col">
+      <div class="info-panel">
+        <h4 data-fr="🏭 Secteurs clés" data-en="🏭 Key Sectors"></h4>
+        <ul class="sector-list">
+          <li data-fr="Entrepôts frigo" data-en="Cold storage"></li>
+          <li data-fr="Centres de distribution" data-en="Distribution centers"></li>
+          <li data-fr="Manufacturiers" data-en="Manufacturing"></li>
+          <li data-fr="Transformation alimentaire" data-en="Food processing"></li>
+          <li data-fr="Data centers" data-en="Data centers"></li>
+          <li data-fr="Supermarchés" data-en="Supermarkets"></li>
+        </ul>
+      </div>
+
+      <div class="info-panel">
+        <h4 data-fr="📐 Profil type" data-en="📐 Typical Profile"></h4>
+        <div class="kpi-row"><span class="label" data-fr="Puissance" data-en="Demand"></span><span class="value">200-1,000 kW</span></div>
+        <div class="kpi-row"><span class="label" data-fr="Consommation" data-en="Consumption"></span><span class="value">1M-5M kWh/an</span></div>
+        <div class="kpi-row"><span class="label" data-fr="Surface" data-en="Area"></span><span class="value">3,000-20,000 m²</span></div>
+        <div class="kpi-row"><span class="label" data-fr="Facture HQ" data-en="HQ bill"></span><span class="value">$100k-$600k/an</span></div>
+      </div>
+
+      <div class="info-panel">
+        <h4 data-fr="🔋 Batterie : avec vs sans" data-en="🔋 Battery: with vs without"></h4>
+        <div class="battery-compare">
+          <div class="compare-col">
+            <h5 data-fr="Avec batterie" data-en="With battery"></h5>
+            <div class="compare-metric"><span class="label">CAPEX net</span><span class="val">$337k</span></div>
+            <div class="compare-metric"><span class="label">Payback</span><span class="val" data-fr="12.3 ans" data-en="12.3 yrs"></span></div>
+            <div class="compare-metric"><span class="label">TRI</span><span class="val">~12%</span></div>
+          </div>
+          <div class="compare-col better">
+            <h5 data-fr="★ Sans batterie" data-en="★ Without battery"></h5>
+            <div class="compare-metric"><span class="label">CAPEX net</span><span class="val">$244k</span></div>
+            <div class="compare-metric"><span class="label">Payback</span><span class="val" data-fr="9.2 ans" data-en="9.2 yrs"></span></div>
+            <div class="compare-metric"><span class="label">TRI</span><span class="val">~14%</span></div>
+          </div>
+        </div>
+        <p style="font-size:11px;color:var(--text-light);margin-top:10px;line-height:1.4;" data-fr="⚠️ La batterie dilue le TRI sur charges stables. Proposer en option, pas en standard." data-en="⚠️ Battery dilutes IRR on stable loads. Offer as option, not standard."></p>
+      </div>
+    </div>
+
+    <div class="col">
+      <div class="kpi-strip" style="grid-template-columns:repeat(2,1fr);">
+        <div class="kpi-chip blue"><div class="val">12-14%</div><div class="lbl">TRI / IRR</div></div>
+        <div class="kpi-chip blue"><div class="val" data-fr="9-12 ans" data-en="9-12 yrs"></div><div class="lbl">Payback</div></div>
+        <div class="kpi-chip green"><div class="val">$160k</div><div class="lbl" data-fr="VAN 25 ans" data-en="NPV 25 yrs"></div></div>
+        <div class="kpi-chip gold"><div class="val">3-5×</div><div class="lbl" data-fr="Deal plus gros" data-en="Bigger deal"></div></div>
+      </div>
+
+      <div class="msg-quote">
+        <span data-fr="Votre facture M à $300k/an finance un investissement qui se rembourse en 9 ans et génère $1.5M de profit sur 25 ans. Avec les incitatifs actuels, votre coût net est de $0.96/W." data-en="Your M bill at $300k/yr funds an investment that pays back in 9 years and generates $1.5M profit over 25 years. With current incentives, your net cost is $0.96/W."></span>
+      </div>
+
+      <div class="info-panel" style="flex:1;">
+        <h4 data-fr="💬 Objections & réponses" data-en="💬 Objections & Responses"></h4>
+        <table class="objection-table">
+          <tr><th data-fr="Objection" data-en="Objection"></th><th data-fr="Réponse" data-en="Response"></th></tr>
+          <tr><td data-fr="Le payback est trop long" data-en="Payback is too long"></td><td data-fr="TRI de 12-14% sur actif garanti 25 ans > n'importe quel placement." data-en="12-14% IRR on a 25-year guaranteed asset > any investment."></td></tr>
+          <tr><td data-fr="On pourrait déménager" data-en="We might relocate"></td><td data-fr="Le solaire augmente la valeur de revente du bâtiment." data-en="Solar increases building resale value."></td></tr>
+          <tr><td data-fr="Pas le budget" data-en="No budget"></td><td data-fr="Modèle PPA/leasing disponible. Savings dès le jour 1." data-en="PPA/leasing available. Savings from day 1."></td></tr>
+          <tr><td data-fr="Batterie trop chère" data-en="Battery too expensive"></td><td data-fr="PV seul = TRI encore meilleur. Batterie en option." data-en="PV only = even better IRR. Battery optional."></td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======================== SLIDE 6: PERSONA 3 DEEP DIVE ======================== -->
+<div class="slide" data-slide="5" style="background:var(--gray-light);">
+  <div class="slide-header">
+    <div class="icon" style="background:#7C3AED;">3</div>
+    <div>
+      <h2 data-fr="Le Gestionnaire Multi-Sites" data-en="The Multi-Site Manager" style="color:#5B21B6;"></h2>
+      <div class="subtitle" data-fr="Portfolio 5-30 sites — TRI 14-20% — Programme 3 ans" data-en="Portfolio 5-30 sites — IRR 14-20% — 3-year program"></div>
+    </div>
+  </div>
+
+  <div class="persona-deep">
+    <div class="col">
+      <div class="info-panel">
+        <h4 data-fr="🏗️ Organisations clés" data-en="🏗️ Key Organizations"></h4>
+        <ul class="sector-list">
+          <li data-fr="REIT industriels" data-en="Industrial REITs"></li>
+          <li data-fr="REIT commerciaux" data-en="Commercial REITs"></li>
+          <li data-fr="Chaînes de franchises" data-en="Franchise chains"></li>
+          <li data-fr="Groupes immobiliers" data-en="Real estate groups"></li>
+          <li data-fr="Multi-usines" data-en="Multi-plant cos"></li>
+        </ul>
+      </div>
+
+      <div class="info-panel">
+        <h4 data-fr="📊 Scénario : REIT 15 sites, 3 phases" data-en="📊 Scenario: REIT 15 sites, 3 phases"></h4>
+        <div class="kpi-row"><span class="label" data-fr="Phase 1 — 5 sites (G)" data-en="Phase 1 — 5 sites (G)"></span><span class="value" style="color:var(--accent-dark);">TRI 22%</span></div>
+        <div class="kpi-row"><span class="label" data-fr="CAPEX net Phase 1" data-en="Phase 1 net CAPEX"></span><span class="value">$423k</span></div>
+        <div class="kpi-row"><span class="label" data-fr="Phase 2-3 — 10 sites (G+M)" data-en="Phase 2-3 — 10 sites (G+M)"></span><span class="value" style="color:#7C3AED;">TRI 16%</span></div>
+        <div class="kpi-row"><span class="label" data-fr="CAPEX net total" data-en="Total net CAPEX"></span><span class="value">~$1.15M</span></div>
+        <div style="margin-top:12px;padding:12px;background:var(--gray-light);border-radius:8px;">
+          <div style="font-size:11px;color:var(--text-light);text-transform:uppercase;font-weight:700;letter-spacing:0.5px;margin-bottom:6px;" data-fr="Profit portfolio 25 ans" data-en="Portfolio profit 25 yrs"></div>
+          <div style="font-size:28px;font-weight:900;color:#5B21B6;">~$6.35M</div>
+        </div>
+      </div>
+
+      <div class="info-panel">
+        <h4 data-fr="⚠️ Attention OBNL / Municipalités" data-en="⚠️ Caution: Non-profits / Municipalities"></h4>
+        <p style="font-size:12px;line-height:1.5;color:var(--text-light);" data-fr="Pas de CII/DPA. Le payback passe de ~5 à ~10-12 ans. Proposer un modèle PPA à la place." data-en="No ITC/CCA. Payback goes from ~5 to ~10-12 yrs. Propose PPA model instead."></p>
+      </div>
+    </div>
+
+    <div class="col">
+      <div class="info-panel">
+        <h4 data-fr="🎯 Approche de vente en 3 étapes" data-en="🎯 3-Step Sales Approach"></h4>
+        <div class="next-steps">
+          <div class="step-item">
+            <div class="step-num" style="background:#7C3AED;">1</div>
+            <div>
+              <h4 data-fr="Audit de portefeuille gratuit" data-en="Free portfolio audit"></h4>
+              <p data-fr="Scanner les 15-100 sites. Heat map : vert/jaune/rouge. Chiffrer le programme." data-en="Scan 15-100 sites. Heat map: green/yellow/red. Quantify the program."></p>
+            </div>
+          </div>
+          <div class="step-item">
+            <div class="step-num" style="background:#7C3AED;">2</div>
+            <div>
+              <h4 data-fr="Plan de déploiement" data-en="Deployment plan"></h4>
+              <p data-fr="Sites G d'abord (meilleur TRI). Ensuite les M. Échelonner 2-3 ans." data-en="G sites first (best IRR). Then M. Phase over 2-3 years."></p>
+            </div>
+          </div>
+          <div class="step-item">
+            <div class="step-num" style="background:#7C3AED;">3</div>
+            <div>
+              <h4 data-fr="Exécution par vagues" data-en="Phased execution"></h4>
+              <p data-fr="Lot 1: quick wins (5 sites, 6 mois) → Lot 2: moyens → Lot 3: complexes." data-en="Batch 1: quick wins (5 sites, 6 mo) → Batch 2: mid → Batch 3: complex."></p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="msg-quote" style="background:linear-gradient(135deg, #5B21B6, #7C3AED);">
+        <span data-fr="Nous avons analysé vos 15 bâtiments : 5 sites à eux seuls génèrent un TRI de 22% avec un payback de moins de 5 ans. Voulez-vous voir le plan complet?" data-en="We've analyzed your 15 buildings: 5 sites alone generate a 22% IRR with payback under 5 years. Want to see the full plan?"></span>
+      </div>
+
+      <div class="info-panel">
+        <h4 data-fr="💬 Objections & réponses" data-en="💬 Objections & Responses"></h4>
+        <table class="objection-table">
+          <tr><th data-fr="Objection" data-en="Objection"></th><th data-fr="Réponse" data-en="Response"></th></tr>
+          <tr><td data-fr="Gros engagement" data-en="Big commitment"></td><td data-fr="Phase 1 = 5 sites seulement. Résultats prouvés avant Phase 2." data-en="Phase 1 = 5 sites only. Proven results before Phase 2."></td></tr>
+          <tr><td data-fr="Sites hétérogènes" data-en="Heterogeneous sites"></td><td data-fr="Avantage : on priorise les meilleurs et on optimise le mix." data-en="Advantage: we prioritize the best and optimize the mix."></td></tr>
+          <tr><td data-fr="On veut un RFP" data-en="We want an RFP"></td><td data-fr="L'audit gratuit vous donne la base. Vous décidez du processus." data-en="The free audit gives you the basis. You decide the process."></td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======================== SLIDE 7: STRATEGY ======================== -->
+<div class="slide" data-slide="6" style="background:var(--gray-light);">
+  <div class="slide-header">
+    <div class="icon" style="background:var(--success);">📈</div>
+    <div>
+      <h2 data-fr="Stratégie de vente & prochaines étapes" data-en="Sales Strategy & Next Steps"></h2>
+      <div class="subtitle" data-fr="Allocation d'effort et actions immédiates" data-en="Effort allocation and immediate actions"></div>
+    </div>
+  </div>
+
+  <div class="strategy-grid">
+    <div style="display:flex;flex-direction:column;gap:20px;">
+      <div class="info-panel">
+        <h4 data-fr="🎯 Allocation effort de prospection" data-en="🎯 Prospecting Effort Allocation"></h4>
+        <div class="alloc-chart">
+          <div class="alloc-row">
+            <div class="color-dot" style="background:var(--accent);"></div>
+            <span class="alloc-label" data-fr="Commerçant G" data-en="Retailer G"></span>
+            <div class="alloc-bar-container"><div class="alloc-bar" style="width:40%;background:var(--accent);color:var(--primary-dark);">40%</div></div>
+          </div>
+          <div class="alloc-row">
+            <div class="color-dot" style="background:#7C3AED;"></div>
+            <span class="alloc-label" data-fr="Multi-Sites" data-en="Multi-Site"></span>
+            <div class="alloc-bar-container"><div class="alloc-bar" style="width:35%;background:#7C3AED;">35%</div></div>
+          </div>
+          <div class="alloc-row">
+            <div class="color-dot" style="background:var(--primary);"></div>
+            <span class="alloc-label" data-fr="Industriel M" data-en="Industrial M"></span>
+            <div class="alloc-bar-container"><div class="alloc-bar" style="width:25%;background:var(--primary);">25%</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-panel" style="flex:1;">
+        <h4 data-fr="🔧 Améliorations Optimizer" data-en="🔧 Optimizer Improvements"></h4>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <div style="display:flex;gap:10px;align-items:flex-start;font-size:12px;">
+            <span style="color:var(--accent);font-weight:800;">①</span>
+            <span data-fr="Flag « batterie recommandée : oui/non » conditionnel au tarif" data-en="'Battery recommended: yes/no' flag conditional on tariff"></span>
+          </div>
+          <div style="display:flex;gap:10px;align-items:flex-start;font-size:12px;">
+            <span style="color:var(--accent);font-weight:800;">②</span>
+            <span data-fr="Afficher le ¢/kWh évité en gros — c'est le chiffre qui vend" data-en="Display avoided ¢/kWh prominently — it's the number that sells"></span>
+          </div>
+          <div style="display:flex;gap:10px;align-items:flex-start;font-size:12px;">
+            <span style="color:var(--accent);font-weight:800;">③</span>
+            <span data-fr="Scoring automatique des leads par persona" data-en="Automatic lead scoring by persona"></span>
+          </div>
+          <div style="display:flex;gap:10px;align-items:flex-start;font-size:12px;">
+            <span style="color:var(--accent);font-weight:800;">④</span>
+            <span data-fr="Mode portfolio : analyse groupée N sites avec ranking TRI" data-en="Portfolio mode: grouped analysis of N sites with IRR ranking"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:20px;">
+      <div class="info-panel">
+        <h4 data-fr="🚀 Actions immédiates" data-en="🚀 Immediate Actions"></h4>
+        <div class="next-steps">
+          <div class="step-item"><div class="step-num">1</div><div><h4 data-fr="Site web" data-en="Website"></h4><p data-fr="Segmenter le message : parcours Commerce / Industrie / Portfolio" data-en="Segment messaging: Commerce / Industry / Portfolio paths"></p></div></div>
+          <div class="step-item"><div class="step-num">2</div><div><h4 data-fr="Campagne LinkedIn" data-en="LinkedIn Campaign"></h4><p data-fr="Cibler par secteur. Message Tarif G : « payback 5 ans, TRI 20%+ »" data-en="Target by sector. Tariff G message: 'payback 5 yrs, IRR 20%+'"></p></div></div>
+          <div class="step-item"><div class="step-num">3</div><div><h4 data-fr="Cold outreach" data-en="Cold Outreach"></h4><p data-fr="Prioriser les propriétaires commerciaux Tarif G (registre foncier)" data-en="Prioritize Tariff G commercial owners (land registry)"></p></div></div>
+          <div class="step-item"><div class="step-num">4</div><div><h4 data-fr="Études de cas" data-en="Case Studies"></h4><p data-fr="1 concessionnaire, 1 entrepôt, 1 REIT — un par persona" data-en="1 car dealer, 1 warehouse, 1 REIT — one per persona"></p></div></div>
+        </div>
+      </div>
+
+      <div style="background:linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);border-radius:12px;padding:24px;color:white;">
+        <div style="font-size:12px;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:8px;">info@kwh.quebec | 514.427.8871</div>
+        <div style="font-size:18px;font-weight:700;" data-fr="Prêts à accélérer la prospection?" data-en="Ready to accelerate prospecting?"></div>
+        <div style="font-size:13px;opacity:0.8;margin-top:6px;" data-fr="Ce document est un outil interne. Les chiffres sont basés sur les taux HQ avril 2025 et le moteur financier de l'Optimizer v2." data-en="This document is an internal tool. Numbers are based on HQ rates April 2025 and the Optimizer v2 financial engine."></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- end slide-deck -->
+
+<!-- NAVIGATION BAR -->
+<div class="nav-bar">
+  <button class="nav-btn" id="prevBtn" onclick="navigate(-1)" data-fr="◀ Précédent" data-en="◀ Previous">◀ Précédent</button>
+  <div class="progress" id="progressDots"></div>
+  <span class="slide-counter" id="slideCounter">1 / 7</span>
+  <button class="lang-toggle" id="langBtn" onclick="toggleLang()">EN</button>
+  <button class="nav-btn" id="nextBtn" onclick="navigate(1)" data-fr="Suivant ▶" data-en="Next ▶">Suivant ▶</button>
+</div>
+
+<script>
+let currentSlide = 0;
+let lang = 'fr';
+const slides = document.querySelectorAll('.slide');
+const totalSlides = slides.length;
+
+// Build progress dots
+const dotsContainer = document.getElementById('progressDots');
+for (let i = 0; i < totalSlides; i++) {
+  const dot = document.createElement('div');
+  dot.className = 'dot' + (i === 0 ? ' active' : '');
+  dot.onclick = () => goToSlide(i);
+  dotsContainer.appendChild(dot);
+}
+
+function goToSlide(n) {
+  slides[currentSlide].classList.remove('active');
+  dotsContainer.children[currentSlide].classList.remove('active');
+  currentSlide = n;
+  slides[currentSlide].classList.add('active');
+  dotsContainer.children[currentSlide].classList.add('active');
+  document.getElementById('slideCounter').textContent = (currentSlide + 1) + ' / ' + totalSlides;
+  document.getElementById('prevBtn').disabled = currentSlide === 0;
+  document.getElementById('nextBtn').disabled = currentSlide === totalSlides - 1;
+}
+
+function navigate(dir) {
+  const next = currentSlide + dir;
+  if (next >= 0 && next < totalSlides) goToSlide(next);
+}
+
+function setLang(newLang) {
+  lang = newLang;
+  document.getElementById('langBtn').textContent = lang === 'fr' ? 'EN' : 'FR';
+  document.querySelectorAll('[data-fr]').forEach(el => {
+    const val = el.getAttribute('data-' + lang);
+    if (val !== null) {
+      if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') el.value = val;
+      else el.innerHTML = val;
+    }
+  });
+  // Toggle logos
+  document.querySelectorAll('.logo-fr').forEach(el => el.style.display = lang === 'fr' ? '' : 'none');
+  document.querySelectorAll('.logo-en').forEach(el => el.style.display = lang === 'en' ? '' : 'none');
+}
+
+function toggleLang() {
+  setLang(lang === 'fr' ? 'en' : 'fr');
+}
+
+// Keyboard navigation
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+  if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+});
+
+// Initialize — populate all data-fr content on load
+goToSlide(0);
+setLang('fr');
+</script>
+
+</body>
+</html>
