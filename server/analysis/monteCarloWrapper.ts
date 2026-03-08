@@ -189,7 +189,8 @@ export function createSimplifiedScenarioRunner(
       const degradationFactor = Math.pow(1 - degradationRate, year);
       const escalationFactor = Math.pow(1 + escalationRate, year);
       const yearEnergySavings = energySavingsY1 * degradationFactor * escalationFactor;
-      const yearSurplus = year >= 3 ? surplusRevenueY1 * degradationFactor * escalationFactor : 0;
+      // FIX: surplus revenue applies from Y1 (aligned with siteAnalysisHelpers — no regulatory basis for Y3 delay)
+      const yearSurplus = surplusRevenueY1 * degradationFactor * escalationFactor;
       const yearDemandSavings = demandSavingsY1 * escalationFactor;
       const yearOm = omCostY1 * Math.pow(1 + omEscalation, year);
       const netCashflow = yearEnergySavings + yearSurplus + yearDemandSavings - yearOm;
