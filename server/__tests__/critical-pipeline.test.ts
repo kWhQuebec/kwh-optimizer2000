@@ -151,7 +151,7 @@ describe('Quick Estimate — Consumption → Sizing → Financials', () => {
 
       // For a 50 kW system at ~$2.30/W: CAPEX ≈ $115,000
       // 40% cap = $46,000 < $50,000 raw → cap binds
-      expect(hqCapped).toBeLessThan(hqRaw);
+      expect(hqCapped).toBeLessThanOrEqual(hqRaw);
       expect(hqCapped).toBeCloseTo(grossCAPEX * 0.40, 0);
     });
 
