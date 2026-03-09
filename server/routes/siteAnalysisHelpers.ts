@@ -589,7 +589,7 @@ export function runPotentialAnalysis(
           capexGross, capexNet, incentivesHQ, incentivesHQSolar, incentivesHQBattery,
           incentivesFederal, taxShield, co2AvoidedTonnesPerYear,
           npv25, npv20, npv10, npv30, irr25, irr20, irr10, irr30,
-          lcoe, lcoe30, simplePaybackYears, selfSufficiencyPercent,
+          lcoe, lcoe30, simplePaybackYears,
           cashflows, breakdown } = financials;
   const capexPV = financials.capexSolar;
   const capexBattery = financials.capexBattery;
