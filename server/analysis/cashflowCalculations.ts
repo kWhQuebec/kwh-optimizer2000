@@ -11,7 +11,7 @@
  * - HQ OSE 6.0: $1000/kW solar (max 1 MW), 40% cap on admissible CAPEX (solar only)
  * - Federal ITC: 30% of (CAPEX - HQ incentives)
  * - Tax shield (DPA/CCA): 90% × taxRate × (CAPEX - HQ - ITC)
- * - Battery: No standalone HQ incentive (discontinued Dec 2024), only gets leftover cap room if paired with solar
+ * - Battery: No HQ incentive (discontinued Dec 2024, no leftover cap room accepted by HQ)
  *
  * @module cashflowCalculations
  */
@@ -240,24 +240,19 @@ export function calculateIncentives(
   // HQ incentive calculation
   const eligibleSolarKW = Math.min(pvSizeKW, HQ_MAX_ELIGIBLE_KW);
   const potentialHQSolar = eligibleSolarKW * HQ_INCENTIVE_PER_KW;
-  const potentialHQBattery = 0; // Discontinued Dec 2024
+  const potentialHQBattery = 0; // No HQ battery incentive
   const capexAdmissible = capexPV; // Only solar is admissible for 40% cap
   const cap40Percent = capexAdmissible * HQ_CAP_PERCENT;
 
   let incentivesHQSolar = Math.min(potentialHQSolar, cap40Percent);
 
-  // Battery gets leftover cap room only if paired with solar
-  let incentivesHQBattery = 0;
-  if (pvSizeKW > 0 && battEnergyKWh > 0) {
-    const remainingCap = Math.max(0, cap40Percent - incentivesHQSolar);
-    incentivesHQBattery = Math.min(remainingCap, capexBattery);
-  }
+  // No HQ incentive on batteries (HQ does not accept leftover cap room for storage)
+  const incentivesHQBattery = 0;
 
-  const incentivesHQ = incentivesHQSolar + incentivesHQBattery;
+  const incentivesHQ = incentivesHQSolar; // Solar only
 
-  // Battery HQ incentive: 50% year 0, 50% year 1
-  const batterySubY0 = incentivesHQBattery * 0.5;
-  const batterySubY1 = incentivesHQBattery * 0.5;
+  const batterySubY0 = 0;
+  const batterySubY1 = 0;
 
   // Federal ITC: 30% of remaining after HQ
   const itcBasis = capexGross - incentivesHQ;
