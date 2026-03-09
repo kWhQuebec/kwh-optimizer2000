@@ -564,8 +564,6 @@ export function runPotentialAnalysis(
   const peakDemandKW = peakKW;
   const peakAfterKW = simResult.peakAfter;
   const annualDemandReductionKW = peakKW - peakAfterKW;
-  const selfSufficiencyPercent = annualConsumptionKWh > 0 ? (selfConsumptionKWh / annualConsumptionKWh) * 100 : 0;
-  
   // ── Financial calculations via shared module ──────────────────────────
   const financials = calculateCashflowMetrics({
     pvSizeKW,
