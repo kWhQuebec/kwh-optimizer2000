@@ -1,3 +1,5 @@
+import { getLogoDataUri } from './emailLogo';
+
 function escapeHtml(str: string): string {
   return str
     .replace(/&/g, '&amp;')
@@ -53,32 +55,57 @@ const emailTemplates: Record<string, {
   },
 };
 
-export const emailBaseLayout = (body: string, logoUrl?: string) => `
-<!DOCTYPE html>
+// ─── Inline CSS post-processing ─────────────────────────────────────────────
+// Email clients strip <style> tags. We replace CSS class references with inline styles.
+function inlineEmailStyles(html: string): string {
+  return html
+    // .button → branded CTA button
+    .replace(
+      /class="button"/g,
+      'style="display:inline-block;background:#003DA6;color:#ffffff;padding:14px 32px;border-radius:6px;text-decoration:none;font-weight:600;font-size:16px;"'
+    )
+    // .highlight → info box with left border accent
+    .replace(
+      /class="highlight"/g,
+      'style="background:#EBF2FF;border-left:4px solid #003DA6;padding:16px 20px;border-radius:4px;margin:20px 0;"'
+    )
+    // .positive → green accent for positive values
+    .replace(
+      /class="positive"/g,
+      'style="color:#16A34A;font-weight:600;"'
+    );
+}
+
+// ─── Branded Base Layout ────────────────────────────────────────────────────
+// Used by ALL client/lead-facing emails for consistent branding.
+// Logo is ALWAYS included via base64 data URI (no external fetch needed by email client).
+export function emailBaseLayout(body: string, lang: 'fr' | 'en' = 'fr'): string {
+  const logoDataUri = getLogoDataUri(lang);
+  const logoHtml = logoDataUri
+    ? `<img src="${logoDataUri}" alt="kWh Québec" style="max-height:50px;" />`
+    : '<span style="color:#fff;font-size:22px;font-weight:700;">kWh Québec</span>';
+
+  const rawHtml = `<!DOCTYPE html>
 <html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<style>
-  .button { display:inline-block; background:#FFB005; color:#003DA6 !important; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:600; font-size:15px; }
-  .highlight { background:#f0f9ff; border-left:4px solid #003DA6; padding:16px; margin:20px 0; border-radius:0 8px 8px 0; }
-  .positive { color:#16A34A; font-weight:600; }
-</style>
-</head>
-<body style="margin:0;padding:0;font-family:'Segoe UI',Tahoma,Geneva,sans-serif;background:#f4f4f5;">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin:0;padding:0;font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,Roboto,sans-serif;background:#f4f4f5;color:#1a1a1a;">
 <div style="max-width:600px;margin:0 auto;padding:20px;">
-  <div style="background:linear-gradient(135deg, #003DA6 0%, #002B75 100%);padding:24px;text-align:center;border-radius:8px 8px 0 0;">
-    ${logoUrl ? `<img src="${logoUrl}" alt="kWh Québec" style="max-width:150px;" />` : '<span style="color:#fff;font-size:22px;font-weight:700;">kWh Québec</span>'}
+  <div style="background:#003DA6;padding:24px;text-align:center;border-radius:8px 8px 0 0;">
+    ${logoHtml}
   </div>
-  <div style="background:#fff;padding:30px;border-radius:0 0 8px 8px;">
+  <div style="background:#ffffff;padding:32px;border-radius:0 0 8px 8px;line-height:1.6;">
     ${body}
   </div>
-  <div style="text-align:center;color:#888;font-size:12px;margin-top:20px;line-height:1.6;">
-    <p style="margin:0;"><a href="https://www.kwh.quebec" style="color:#003DA6;font-weight:600;text-decoration:none;">kWh Québec</a></p>
-    <p style="margin:4px 0 0 0;"><a href="mailto:info@kwh.quebec" style="color:#888;text-decoration:none;">info@kwh.quebec</a> | <a href="tel:+15144278871" style="color:#888;text-decoration:none;">(514) 427-8871</a></p>
+  <div style="text-align:center;padding:20px 0;">
+    <p style="color:#888;font-size:12px;margin:4px 0;">kWh Québec Inc. — Solutions solaires commerciales</p>
+    <p style="color:#888;font-size:12px;margin:4px 0;">info@kwh.quebec | (514) 427-8871</p>
   </div>
 </div>
 </body>
-</html>
-`;
+</html>`;
+
+  return inlineEmailStyles(rawHtml);
+}
 
 export function renderEmailTemplate(
   templateKey: string,
@@ -87,7 +114,6 @@ export function renderEmailTemplate(
 ): { subject: string; html: string; text?: string } {
   const allTemplates: Record<string, typeof emailTemplates[string]> = {
     ...emailTemplates,
-    welcomePersonalized,
     nurtureCTA1,
     nurtureReengagement,
   };
@@ -112,54 +138,11 @@ export function renderEmailTemplate(
     body = body.replace(new RegExp(placeholder.replace(/[{}]/g, '\\$&'), 'g'), safeValue);
   }
 
-  const html = emailBaseLayout(body, data.logoUrl);
+  const html = emailBaseLayout(body, language);
   const text = body.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
 
   return { subject, html, text };
 }
-
-export const welcomePersonalized = {
-  subject_fr: "Votre analyse solaire pour {{address}} — kWh Québec",
-  body_fr: `
-      <h2>Bonjour {{contactName}},</h2>
-      <p>Merci pour votre intérêt envers le solaire pour votre bâtiment situé au <strong>{{address}}</strong>.</p>
-
-      <div class="highlight">
-        <p>Selon notre analyse préliminaire, un système de <strong>{{systemSizeKw}} kW</strong> pourrait vous faire économiser environ <strong>{{annualSavings}} $/an</strong> sur votre facture d'électricité.</p>
-      </div>
-
-      <p>Saviez-vous que chaque année sans solaire représente un coût d'inaction d'environ <strong>{{costOfInaction}} $</strong>?</p>
-
-      <h3>Prochaine étape</h3>
-      <p>Pour obtenir une analyse détaillée gratuite avec des projections financières précises sur 25 ans, vous pouvez nous autoriser à récupérer vos données de consommation directement auprès d'Hydro-Québec :</p>
-
-      <p style="text-align: center; margin: 30px 0;">
-        <a href="{{procurationUrl}}" class="button">Autoriser l'accès à mes données →</a>
-      </p>
-
-      <p style="font-size: 13px; color: #666;">Cette procuration est limitée à la consultation de vos données de consommation et peut être révoquée en tout temps. Analyse détaillée livrée en 7 jours ouvrables.</p>
-  `,
-  subject_en: "Your solar analysis for {{address}} — kWh Québec",
-  body_en: `
-      <h2>Hello {{contactName}},</h2>
-      <p>Thank you for your interest in solar for your building at <strong>{{address}}</strong>.</p>
-
-      <div class="highlight">
-        <p>Based on our preliminary analysis, a <strong>{{systemSizeKw}} kW</strong> system could save you approximately <strong>{{annualSavings}} $/year</strong> on your electricity bill.</p>
-      </div>
-
-      <p>Did you know that each year without solar represents a cost of inaction of approximately <strong>{{costOfInaction}} $</strong>?</p>
-
-      <h3>Next step</h3>
-      <p>To receive a free detailed analysis with precise 25-year financial projections, you can authorize us to retrieve your consumption data directly from Hydro-Québec:</p>
-
-      <p style="text-align: center; margin: 30px 0;">
-        <a href="{{procurationUrl}}" class="button">Authorize access to my data →</a>
-      </p>
-
-      <p style="font-size: 13px; color: #666;">This authorization is limited to viewing your consumption data and can be revoked at any time. Detailed analysis delivered within 7 business days.</p>
-  `
-};
 
 // Email template for nurtureCTA1 (Day 1)
 export const nurtureCTA1 = {
@@ -179,7 +162,7 @@ export const nurtureCTA1 = {
       </ul>
 
       <p style="text-align: center; margin: 30px 0;">
-        <a href="mailto:ventes@kwh.quebec?subject=Demande%20appel%20d%C3%A9couverte&body=Bonjour%2C%20j'aimerais%20planifier%20un%20appel%20d%C3%A9couverte%20pour%20mon%20projet%20solaire." class="button">Demander un appel découverte →</a>
+        <a href="{{calendlyUrl}}" class="button">Réserver mon appel découverte →</a>
       </p>
   `,
   subject_en: "Hello {{contactName}}, here's your solar analysis",
@@ -198,7 +181,7 @@ export const nurtureCTA1 = {
       </ul>
 
       <p style="text-align: center; margin: 30px 0;">
-        <a href="mailto:sales@kwh.quebec?subject=Discovery%20call%20request&body=Hello%2C%20I'd%20like%20to%20schedule%20a%20discovery%20call%20for%20my%20solar%20project." class="button">Request a discovery call →</a>
+        <a href="{{calendlyUrl}}" class="button">Book my discovery call →</a>
       </p>
   `
 };

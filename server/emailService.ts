@@ -234,90 +234,64 @@ function generateQuickAnalysisEmailHtml(data: QuickAnalysisData, lang: 'fr' | 'e
   return `
 <!DOCTYPE html>
 <html lang="${lang}">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    body { font-family: 'Segoe UI', Tahoma, Geneva, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f5f5f5; }
-    .container { max-width: 600px; margin: 0 auto; background: white; }
-    .header { background: linear-gradient(135deg, #003DA6 0%, #002B75 100%); color: white; padding: 30px; text-align: center; }
-    .header img { max-width: 150px; height: auto; }
-    .header h1 { margin: 15px 0 0; font-size: 22px; font-weight: 600; }
-    .content { padding: 30px; }
-    .intro { font-size: 15px; color: #555; margin-bottom: 25px; }
-    .section { margin-bottom: 25px; }
-    .section-title { font-size: 18px; font-weight: 600; color: #003DA6; margin-bottom: 15px; padding-bottom: 8px; border-bottom: 2px solid #FFB005; }
-    .info-grid { display: table; width: 100%; margin-bottom: 20px; }
-    .info-row { display: table-row; }
-    .info-label { display: table-cell; padding: 8px 10px 8px 0; color: #666; font-size: 14px; width: 50%; }
-    .info-value { display: table-cell; padding: 8px 0; font-weight: 600; color: #333; font-size: 14px; text-align: right; }
-    .scenarios-intro { font-size: 14px; color: #555; margin-bottom: 20px; }
-    .cta-section { background: #003DA6; color: white; padding: 25px; text-align: center; margin-top: 20px; }
-    .cta-section h3 { margin: 0 0 10px; font-size: 18px; }
-    .cta-section p { margin: 0 0 20px; font-size: 14px; opacity: 0.9; }
-    .cta-button { display: inline-block; background: #FFB005; color: #003DA6; padding: 14px 30px; text-decoration: none; border-radius: 6px; font-weight: 700; font-size: 15px; }
-    .disclaimer { font-size: 12px; color: #888; padding: 20px 30px; background: #fafafa; border-top: 1px solid #eee; }
-    .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; background: #f0f0f0; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="header">
-      <img src="${logoUrl}" alt="kWh Québec" style="max-width: 150px; height: auto;" />
-      <h1>${txt.analysisTitle}</h1>
-    </div>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin:0;padding:0;font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,Roboto,sans-serif;background:#f4f4f5;color:#1a1a1a;">
+<div style="max-width:600px;margin:0 auto;padding:20px;">
+  <div style="background:#003DA6;padding:24px;text-align:center;border-radius:8px 8px 0 0;">
+    <img src="${logoUrl}" alt="kWh Québec" style="max-height:50px;" />
+    <h1 style="margin:12px 0 0;font-size:20px;font-weight:600;color:#ffffff;">${txt.analysisTitle}</h1>
+  </div>
+  <div style="background:#ffffff;padding:32px;line-height:1.6;">
+    <p style="font-size:15px;color:#555;margin-bottom:25px;">${txt.greeting}<br><br>${txt.intro}</p>
     
-    <div class="content">
-      <p class="intro">${txt.greeting}<br><br>${txt.intro}</p>
-      
-      <div class="section">
-        <div class="info-grid">
-          <div class="info-row">
-            <div class="info-label">${txt.addressLabel}</div>
-            <div class="info-value">${data.address || '-'}</div>
-          </div>
-          <div class="info-row">
-            <div class="info-label">${txt.consumptionLabel}</div>
-            <div class="info-value">${formatNumber(data.annualConsumptionKWh)} kWh</div>
-          </div>
-          <div class="info-row">
-            <div class="info-label">${txt.buildingTypeLabel}</div>
-            <div class="info-value">${getBuildingTypeLabel(data.buildingType, lang)}</div>
-          </div>
-          <div class="info-row">
-            <div class="info-label">${txt.tariffLabel}</div>
-            <div class="info-value">${data.tariffCode}</div>
-          </div>
-          <div class="info-row">
-            <div class="info-label">${txt.currentBillLabel}</div>
-            <div class="info-value">${formatCurrency(data.monthlyBillBefore)}</div>
-          </div>
+    <div style="margin-bottom:25px;">
+      <div style="display:table;width:100%;margin-bottom:20px;">
+        <div style="display:table-row;">
+          <div style="display:table-cell;padding:8px 10px 8px 0;color:#666;font-size:14px;width:50%;">${txt.addressLabel}</div>
+          <div style="display:table-cell;padding:8px 0;font-weight:600;color:#333;font-size:14px;text-align:right;">${data.address || '-'}</div>
+        </div>
+        <div style="display:table-row;">
+          <div style="display:table-cell;padding:8px 10px 8px 0;color:#666;font-size:14px;width:50%;">${txt.consumptionLabel}</div>
+          <div style="display:table-cell;padding:8px 0;font-weight:600;color:#333;font-size:14px;text-align:right;">${formatNumber(data.annualConsumptionKWh)} kWh</div>
+        </div>
+        <div style="display:table-row;">
+          <div style="display:table-cell;padding:8px 10px 8px 0;color:#666;font-size:14px;width:50%;">${txt.buildingTypeLabel}</div>
+          <div style="display:table-cell;padding:8px 0;font-weight:600;color:#333;font-size:14px;text-align:right;">${getBuildingTypeLabel(data.buildingType, lang)}</div>
+        </div>
+        <div style="display:table-row;">
+          <div style="display:table-cell;padding:8px 10px 8px 0;color:#666;font-size:14px;width:50%;">${txt.tariffLabel}</div>
+          <div style="display:table-cell;padding:8px 0;font-weight:600;color:#333;font-size:14px;text-align:right;">${data.tariffCode}</div>
+        </div>
+        <div style="display:table-row;">
+          <div style="display:table-cell;padding:8px 10px 8px 0;color:#666;font-size:14px;width:50%;">${txt.currentBillLabel}</div>
+          <div style="display:table-cell;padding:8px 0;font-weight:600;color:#333;font-size:14px;text-align:right;">${formatCurrency(data.monthlyBillBefore)}</div>
         </div>
       </div>
-      
-      <div class="section">
-        <div class="section-title">${txt.scenariosTitle}</div>
-        <p class="scenarios-intro">${txt.scenariosIntro}</p>
-        ${scenariosHtml}
-      </div>
     </div>
     
-    <div class="cta-section">
-      <h3>${txt.ctaTitle}</h3>
-      <p>${txt.ctaText}</p>
-      <a href="mailto:ventes@kwh.quebec?subject=Demande%20appel%20d%C3%A9couverte&body=Bonjour%2C%20j'aimerais%20planifier%20un%20appel%20d%C3%A9couverte%20pour%20mon%20projet%20solaire." class="cta-button">${txt.ctaButton}</a>
-    </div>
-    
-    <div class="disclaimer">
-      ${txt.disclaimer}
-    </div>
-    
-    <div class="footer">
-      <p><a href="https://www.kwh.quebec" style="color:#003DA6;font-weight:600;text-decoration:none;">kWh Québec</a></p>
-      <p><a href="mailto:info@kwh.quebec" style="color:#666;text-decoration:none;">info@kwh.quebec</a> | <a href="tel:+15144278871" style="color:#666;text-decoration:none;">(514) 427-8871</a></p>
-      <p style="font-size: 11px; color: #999;">${txt.footerNote}</p>
+    <div style="margin-bottom:25px;">
+      <div style="font-size:18px;font-weight:600;color:#003DA6;margin-bottom:15px;padding-bottom:8px;border-bottom:2px solid #FFB005;">${txt.scenariosTitle}</div>
+      <p style="font-size:14px;color:#555;margin-bottom:20px;">${txt.scenariosIntro}</p>
+      ${scenariosHtml}
     </div>
   </div>
+  
+  <div style="background:#003DA6;color:#ffffff;padding:25px;text-align:center;">
+    <h3 style="margin:0 0 10px;font-size:18px;color:#ffffff;">${txt.ctaTitle}</h3>
+    <p style="margin:0 0 20px;font-size:14px;color:rgba(255,255,255,0.9);">${txt.ctaText}</p>
+    <a href="mailto:ventes@kwh.quebec?subject=Demande%20appel%20d%C3%A9couverte&body=Bonjour%2C%20j'aimerais%20planifier%20un%20appel%20d%C3%A9couverte%20pour%20mon%20projet%20solaire." style="display:inline-block;background:#FFB005;color:#003DA6;padding:14px 30px;text-decoration:none;border-radius:6px;font-weight:700;font-size:15px;">${txt.ctaButton}</a>
+  </div>
+  
+  <div style="font-size:12px;color:#888;padding:20px 30px;background:#fafafa;border-top:1px solid #eee;">
+    ${txt.disclaimer}
+  </div>
+  
+  <div style="text-align:center;padding:20px 0;">
+    <p style="color:#888;font-size:12px;margin:4px 0;">kWh Québec Inc. — Solutions solaires commerciales</p>
+    <p style="color:#888;font-size:12px;margin:4px 0;">info@kwh.quebec | (514) 427-8871</p>
+    <p style="font-size:11px;color:#999;margin:4px 0;">${txt.footerNote}</p>
+  </div>
+</div>
 </body>
 </html>`;
 }
@@ -654,68 +628,44 @@ function generateHqProcurationEmailHtml(clientName: string, lang: 'fr' | 'en', b
   return `
 <!DOCTYPE html>
 <html lang="${lang}">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    body { font-family: 'Segoe UI', Tahoma, Geneva, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f5f5f5; }
-    .container { max-width: 600px; margin: 0 auto; background: white; }
-    .header { background: white; padding: 15px 20px 5px; text-align: center; }
-    .header img { max-width: 150px; height: auto; }
-    .header h1 { display: none; }
-    .content { padding: 10px 30px 20px; }
-    .greeting { font-size: 14px; color: #555; margin-bottom: 12px; }
-    .intro { font-size: 14px; color: #555; margin-bottom: 15px; line-height: 1.5; }
-    .section { margin-bottom: 15px; }
-    .section-title { font-size: 15px; font-weight: 600; color: #003DA6; margin-bottom: 8px; }
-    .section-text { font-size: 14px; color: #555; margin-bottom: 6px; }
-    .benefit-list { margin: 0; padding-left: 20px; font-size: 14px; }
-    .benefit-list li { margin-bottom: 2px; color: #555; line-height: 1.4; }
-    .cta-section { text-align: center; margin: 20px 0; }
-    .cta-button { display: inline-block; background: #FFB005; color: #003DA6; padding: 16px 40px; text-decoration: none; border-radius: 6px; font-weight: 700; font-size: 16px; }
-    .questions { font-size: 14px; color: #666; text-align: center; margin-top: 15px; }
-    .footer { text-align: center; padding: 15px; color: #666; font-size: 13px; background: #f0f0f0; border-top: 1px solid #ddd; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="header">
-      <img src="${logoUrl}" alt="kWh Québec" style="max-width: 150px; height: auto;" />
-      <h1>${lang === 'fr' ? 'Autorisation d\'accès aux données Hydro-Québec' : 'Hydro-Québec Data Access Authorization'}</h1>
-    </div>
-    
-    <div class="content">
-      <p class="greeting">${txt.greeting}</p>
-      <p class="intro">${txt.intro}</p>
-      
-      <div class="section">
-        <div class="section-title">${txt.whyTitle}</div>
-        <p class="section-text">${txt.whyText}</p>
-        <ul class="benefit-list">
-          <li>${txt.benefit1}</li>
-          <li>${txt.benefit2}</li>
-          <li>${txt.benefit3}</li>
-          <li>${txt.benefit4}</li>
-        </ul>
-      </div>
-      
-      <div class="section">
-        <div class="section-title">${txt.actionTitle}</div>
-        <p class="section-text">${txt.actionText}</p>
-      </div>
-      
-      <div class="cta-section">
-        <a href="${procurationUrl}" class="cta-button">${txt.ctaButton}</a>
-      </div>
-      
-      <p class="questions">${txt.questions}</p>
-    </div>
-    
-    <div class="footer">
-      <p><a href="https://www.kwh.quebec" style="color:#003DA6;font-weight:600;text-decoration:none;">kWh Québec</a></p>
-      <p><a href="mailto:info@kwh.quebec" style="color:#666;text-decoration:none;">info@kwh.quebec</a> | <a href="tel:+15144278871" style="color:#666;text-decoration:none;">(514) 427-8871</a></p>
-    </div>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin:0;padding:0;font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,Roboto,sans-serif;background:#f4f4f5;color:#1a1a1a;">
+<div style="max-width:600px;margin:0 auto;padding:20px;">
+  <div style="background:#003DA6;padding:24px;text-align:center;border-radius:8px 8px 0 0;">
+    <img src="${logoUrl}" alt="kWh Québec" style="max-height:50px;" />
   </div>
+  <div style="background:#ffffff;padding:32px;line-height:1.6;border-radius:0 0 8px 8px;">
+    <p style="font-size:14px;color:#555;margin-bottom:12px;">${txt.greeting}</p>
+    <p style="font-size:14px;color:#555;margin-bottom:15px;line-height:1.5;">${txt.intro}</p>
+    
+    <div style="margin-bottom:15px;">
+      <div style="font-size:15px;font-weight:600;color:#003DA6;margin-bottom:8px;">${txt.whyTitle}</div>
+      <p style="font-size:14px;color:#555;margin-bottom:6px;">${txt.whyText}</p>
+      <ul style="margin:0;padding-left:20px;font-size:14px;">
+        <li style="margin-bottom:2px;color:#555;line-height:1.4;">${txt.benefit1}</li>
+        <li style="margin-bottom:2px;color:#555;line-height:1.4;">${txt.benefit2}</li>
+        <li style="margin-bottom:2px;color:#555;line-height:1.4;">${txt.benefit3}</li>
+        <li style="margin-bottom:2px;color:#555;line-height:1.4;">${txt.benefit4}</li>
+      </ul>
+    </div>
+    
+    <div style="margin-bottom:15px;">
+      <div style="font-size:15px;font-weight:600;color:#003DA6;margin-bottom:8px;">${txt.actionTitle}</div>
+      <p style="font-size:14px;color:#555;margin-bottom:6px;">${txt.actionText}</p>
+    </div>
+    
+    <div style="text-align:center;margin:20px 0;">
+      <a href="${procurationUrl}" style="display:inline-block;background:#FFB005;color:#003DA6;padding:16px 40px;text-decoration:none;border-radius:6px;font-weight:700;font-size:16px;">${txt.ctaButton}</a>
+    </div>
+    
+    <p style="font-size:14px;color:#666;text-align:center;margin-top:15px;">${txt.questions}</p>
+  </div>
+  
+  <div style="text-align:center;padding:20px 0;">
+    <p style="color:#888;font-size:12px;margin:4px 0;">kWh Québec Inc. — Solutions solaires commerciales</p>
+    <p style="color:#888;font-size:12px;margin:4px 0;">info@kwh.quebec | (514) 427-8871</p>
+  </div>
+</div>
 </body>
 </html>`;
 }

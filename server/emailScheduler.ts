@@ -8,7 +8,7 @@ const NURTURE_SEQUENCE = [
 export const scheduleEmail = async (lead: any) => {
   const emailData = {
     leadId: lead.id,
-    contactName: lead.contactName,
+    contactName: lead.contactName || '',
     companyName: lead.companyName,
     estimatedSystemSize: lead.estimatedSystemSize ? `${Math.round(lead.estimatedSystemSize)} kW` : "",
     estimatedSavings: lead.estimatedSavings ? `$${Math.round(lead.estimatedSavings).toLocaleString()}` : "",
@@ -50,12 +50,12 @@ export function startEmailScheduler(config: EmailSchedulerConfig): () => void {
           if (!lead || !lead.email) continue;
 
           const data: Record<string, string> = {
-            contactName: lead.contactName || lead.companyName || '',
+            contactName: lead.contactName || '',
             companyName: lead.companyName || '',
             estimatedSystemSize: lead.estimatedSystemSize ? `${Math.round(lead.estimatedSystemSize)} kW` : '',
             estimatedSavings: lead.estimatedSavings ? `$${Math.round(lead.estimatedSavings).toLocaleString()}` : '',
             monthlyBill: lead.monthlyBill ? `$${Math.round(lead.monthlyBill).toLocaleString()}` : '',
-            calendlyUrl: 'mailto:ventes@kwh.quebec?subject=Demande%20appel%20d%C3%A9couverte&body=Bonjour%2C%20j%27aimerais%20planifier%20un%20appel%20d%C3%A9couverte%20pour%20mon%20projet%20solaire.',
+            calendlyUrl: 'https://calendly.com/kwhquebec/decouverte',
           };
 
           const result = await sendTemplateEmail(email.templateKey, lead.email, data, 'fr');
