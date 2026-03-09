@@ -309,11 +309,11 @@ describe('Cashflow Module — calculateCashflowMetrics()', () => {
       expect(result.incentivesHQSolar).toBeLessThanOrEqual(result.capexSolar * 0.40 + 1);
     });
 
-    it('should give zero battery HQ incentive (discontinued Dec 2024)', () => {
+    it('should give zero battery HQ incentive (no HQ incentive on storage)', () => {
       const result = calculateCashflowMetrics(buildInputs());
-      // Battery gets leftover cap room only if solar doesn't exhaust the 40% cap
-      // Total HQ = solar + battery, capped at 40% of gross admissible
-      expect(result.incentivesHQ).toBe(result.incentivesHQSolar + result.incentivesHQBattery);
+      // HQ does not accept leftover cap room for batteries — zero always
+      expect(result.incentivesHQBattery).toBe(0);
+      expect(result.incentivesHQ).toBe(result.incentivesHQSolar);
     });
   });
 
@@ -708,3 +708,4 @@ describe('Cross-Module Consistency — Quick Estimate vs Cashflow Module', () =>
     expect(BASELINE_YIELD).toBe(1150);
   });
 });
+
