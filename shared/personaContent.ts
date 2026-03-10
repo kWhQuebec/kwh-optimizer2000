@@ -83,7 +83,7 @@ export const PERSONA_COMMERCIAL: PersonaData = {
   heroStatTertiary: { label: { fr: "Batterie requise", en: "Battery required" }, value: "Non" },
   tariff: "G",
   tariffRate: "11,93¢/kWh",
-  systemSize: "50-150 kWc",
+  systemSize: "50-150 kWc (100-300 panneaux)",
   typicalTRI: "18-25%",
   typicalPayback: "4-6 ans",
   sectors: [
@@ -119,16 +119,16 @@ export const PERSONA_COMMERCIAL: PersonaData = {
     },
   ],
   scenario: {
-    title: { fr: "Scénario réel : Concessionnaire auto, 100 kWc", en: "Real scenario: Car dealership, 100 kW" },
+    title: { fr: "Scénario réel : Concessionnaire auto, 100 kWc (≈200 panneaux)", en: "Real scenario: Car dealership, 100 kW (≈200 panels)" },
     subtitle: {
-      fr: "Consommation 350 000 kWh/an · Toit 1 200 m² plat TPO blanc · Bifacial",
-      en: "350,000 kWh/yr consumption · 1,200 m² flat white TPO roof · Bifacial",
+      fr: "Consommation 350 000 kWh/an · Toit 1 200 m² (12 900 pi²) plat TPO blanc · Bifacial",
+      en: "350,000 kWh/yr consumption · 1,200 m² (12,900 ft²) flat white TPO roof · Bifacial",
     },
     params: [
       { label: { fr: "Consommation annuelle", en: "Annual consumption" }, value: "350 000 kWh" },
       { label: { fr: "Appel de puissance", en: "Demand" }, value: "55 kW" },
       { label: { fr: "Tarif HQ", en: "HQ Rate" }, value: "G — 11,93¢/kWh" },
-      { label: { fr: "Système PV", en: "PV System" }, value: "100 kWc bifacial" },
+      { label: { fr: "Système PV", en: "PV System" }, value: "100 kWc bifacial (≈200 panneaux)" },
       { label: { fr: "Production annuelle", en: "Annual production" }, value: "132 200 kWh" },
       { label: { fr: "Autoconsommation", en: "Self-consumption" }, value: "~93%" },
     ],
@@ -154,7 +154,7 @@ export const PERSONA_COMMERCIAL: PersonaData = {
   },
   signals: [
     { icon: "🏢", text: { fr: "Bâtiment commercial avec grand stationnement asphalté", en: "Commercial building with large paved parking lot" } },
-    { icon: "📐", text: { fr: "Toit plat 400+ m² sans résidentiel au-dessus", en: "400+ m² flat roof with no residential above" } },
+    { icon: "📐", text: { fr: "Toit plat 400+ m² (4 300+ pi²) sans résidentiel au-dessus", en: "400+ m² (4,300+ ft²) flat roof with no residential above" } },
     { icon: "🔌", text: { fr: "Facture HQ mensuelle entre 1 500 $ et 5 000 $", en: "Monthly HQ bill between $1,500 and $5,000" } },
     { icon: "☀️", text: { fr: "Toit clair ou blanc (bonus bifacial)", en: "Light or white roof (bifacial bonus)" } },
     { icon: "🏪", text: { fr: "Enseigne visible = consommation diurne active", en: "Visible signage = active daytime consumption" } },
@@ -167,8 +167,8 @@ export const PERSONA_COMMERCIAL: PersonaData = {
     {
       question: { fr: "Mon toit est trop petit", en: "My roof is too small" },
       answer: {
-        fr: "50 kWc sur 400 m² fonctionne déjà très bien. Et chaque kWh vaut 12¢ — même un petit système est rentable rapidement.",
-        en: "50 kW on 400 m² works very well. And each kWh is worth 12¢ — even a small system pays back quickly.",
+        fr: "50 kWc (≈100 panneaux) sur 400 m² (4 300 pi²) fonctionne déjà très bien. Et chaque kWh vaut 12¢ — même un petit système est rentable rapidement.",
+        en: "50 kW (≈100 panels) on 400 m² (4,300 ft²) works very well. And each kWh is worth 12¢ — even a small system pays back quickly.",
       },
     },
     {
@@ -179,7 +179,7 @@ export const PERSONA_COMMERCIAL: PersonaData = {
       },
     },
     {
-      question: { fr: "L'électricité est cheap au Québec", en: "Electricity is cheap in Quebec" },
+      question: { fr: "L'électricité est peu coûteuse au Québec", en: "Electricity is inexpensive in Quebec" },
       answer: {
         fr: "Pas au Tarif G. Vous payez 12¢/kWh — comparable à l'Ontario. C'est exactement pourquoi le solaire est si rentable pour vous.",
         en: "Not on Rate G. You pay 12¢/kWh — comparable to Ontario. That's exactly why solar is so profitable for you.",
@@ -228,8 +228,8 @@ export const PERSONA_INDUSTRIAL: PersonaData = {
     en: "Rate M industrials turn their biggest expense into an investment",
   },
   heroDescription: {
-    fr: "Un système de 350 kWc avec les incitatifs actuels (HQ + fédéral) coûte $0,96/W net — un tiers du prix catalogue. Avec un toit de 3 500 m², vous générez $1,5M de profit sur 25 ans.",
-    en: "A 350 kW system with current incentives (HQ + federal) costs $0.96/W net — a third of list price. With a 3,500 m² roof, you generate $1.5M profit over 25 years.",
+    fr: "Un système de 350 kWc (≈700 panneaux) avec les incitatifs actuels (HQ + fédéral) coûte $0,96/W net — un tiers du prix catalogue. Avec un toit de 3 500 m² (37 700 pi²), vous générez $1,5M de profit sur 25 ans.",
+    en: "A 350 kW (≈700 panels) system with current incentives (HQ + federal) costs $0.96/W net — a third of list price. With a 3,500 m² (37,700 ft²) roof, you generate $1.5M profit over 25 years.",
   },
   heroBadge: { fr: "Deals $140k-$450k+", en: "Deals $140k-$450k+" },
   heroStatPrimary: { label: { fr: "TRI typique", en: "Typical IRR" }, value: "12-18%" },
@@ -237,7 +237,7 @@ export const PERSONA_INDUSTRIAL: PersonaData = {
   heroStatTertiary: { label: { fr: "Coût net", en: "Net cost" }, value: "0,96$/W" },
   tariff: "M",
   tariffRate: "6,06¢/kWh",
-  systemSize: "200-700 kWc",
+  systemSize: "200-700 kWc (400-1 400 panneaux)",
   typicalTRI: "12-18%",
   typicalPayback: "6-9 ans",
   sectors: [
@@ -275,14 +275,14 @@ export const PERSONA_INDUSTRIAL: PersonaData = {
   scenario: {
     title: { fr: "Scénario réel : Entrepôt frigorifique, 350 kWc", en: "Real scenario: Cold storage warehouse, 350 kW" },
     subtitle: {
-      fr: "Consommation 1 800 000 kWh/an · Toit 3 500 m² plat TPO blanc · Sans batterie (meilleur TRI)",
-      en: "1,800,000 kWh/yr consumption · 3,500 m² flat white TPO roof · No battery (better IRR)",
+      fr: "Consommation 1 800 000 kWh/an · Toit 3 500 m² (37 700 pi²) plat TPO blanc · Sans batterie (meilleur TRI)",
+      en: "1,800,000 kWh/yr consumption · 3,500 m² (37,700 ft²) flat white TPO roof · No battery (better IRR)",
     },
     params: [
       { label: { fr: "Consommation annuelle", en: "Annual consumption" }, value: "1 800 000 kWh" },
       { label: { fr: "Appel de puissance", en: "Demand" }, value: "450 kW" },
       { label: { fr: "Tarif HQ", en: "HQ Rate" }, value: "M — 6,06¢/kWh + 17,57$/kW" },
-      { label: { fr: "Système PV", en: "PV System" }, value: "350 kWc bifacial (PV seul)" },
+      { label: { fr: "Système PV", en: "PV System" }, value: "350 kWc bifacial (≈700 panneaux, PV seul)" },
       { label: { fr: "Production annuelle", en: "Annual production" }, value: "462 700 kWh" },
       { label: { fr: "Autoconsommation", en: "Self-consumption" }, value: "~95%" },
     ],
@@ -307,7 +307,7 @@ export const PERSONA_INDUSTRIAL: PersonaData = {
     },
   },
   signals: [
-    { icon: "🏭", text: { fr: "Bâtiment industriel/logistique > 3 000 m²", en: "Industrial/logistics building > 3,000 m²" } },
+    { icon: "🏭", text: { fr: "Bâtiment industriel/logistique > 3 000 m² (32 300 pi²)", en: "Industrial/logistics building > 3,000 m² (32,300 ft²)" } },
     { icon: "🚚", text: { fr: "Quais de chargement visibles (= distribution)", en: "Visible loading docks (= distribution)" } },
     { icon: "❄️", text: { fr: "Unités de réfrigération sur le toit (= charge 24/7)", en: "Rooftop refrigeration units (= 24/7 load)" } },
     { icon: "📊", text: { fr: "Facture HQ annuelle $100k-$600k", en: "Annual HQ bill $100k-$600k" } },
@@ -434,10 +434,10 @@ export const PERSONA_PORTFOLIO: PersonaData = {
     },
     params: [
       { label: { fr: "Sites Phase 1", en: "Phase 1 Sites" }, value: "5 sites Tarif G" },
-      { label: { fr: "Capacité Phase 1", en: "Phase 1 Capacity" }, value: "630 kWc" },
+      { label: { fr: "Capacité Phase 1", en: "Phase 1 Capacity" }, value: "630 kWc (≈1 260 panneaux)" },
       { label: { fr: "Prix volume", en: "Volume price" }, value: "2,10 $/W (-5%)" },
       { label: { fr: "Sites Phase 2-3", en: "Phase 2-3 Sites" }, value: "10 sites mix G+M" },
-      { label: { fr: "Capacité totale", en: "Total Capacity" }, value: "1 830 kWc (1,83 MW)" },
+      { label: { fr: "Capacité totale", en: "Total Capacity" }, value: "1 830 kWc (≈3 660 panneaux / 1,83 MW)" },
       { label: { fr: "CO₂ évité (25 ans)", en: "CO₂ avoided (25 yrs)" }, value: "~850 tonnes" },
     ],
     capexCascade: [
