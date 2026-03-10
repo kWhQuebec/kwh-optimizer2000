@@ -3302,6 +3302,7 @@ export const newsArticles = pgTable("news_articles", {
   publishedAt: timestamp("published_at"),
 
   aiRelevanceScore: integer("ai_relevance_score"),
+  aiTitleFr: text("ai_title_fr"),
   aiSummaryFr: text("ai_summary_fr"),
   aiCommentFr: text("ai_comment_fr"),
   aiSocialPostFr: text("ai_social_post_fr"),

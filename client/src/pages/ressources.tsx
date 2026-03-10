@@ -116,7 +116,7 @@ function NewsArticleCard({ article }: { article: NewsArticle }) {
           <div className="aspect-video overflow-hidden rounded-t-lg">
             <img
               src={article.imageUrl}
-              alt={article.originalTitle}
+              alt={(article.aiTitleFr || article.originalTitle)}
               className="w-full h-full object-cover"
               onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
             />
@@ -145,7 +145,7 @@ function NewsArticleCard({ article }: { article: NewsArticle }) {
           <div className="flex items-start gap-2 mb-2">
             <Link href={`/nouvelles/${article.slug}`} className="group flex-1" data-testid={`link-news-${article.id}`}>
               <h3 className="text-lg font-semibold group-hover:underline" data-testid={`text-news-title-${article.id}`}>
-                {article.originalTitle}
+                {(article.aiTitleFr || article.originalTitle)}
               </h3>
             </Link>
             <Button size="icon" variant="ghost" asChild data-testid={`link-external-${article.id}`}>

@@ -89,7 +89,8 @@ export async function runNewsFetchJob(storage: IStorage): Promise<{
           const shouldReject = result.analysis.relevanceScore < AUTO_REJECT_THRESHOLD;
           await storage.updateNewsArticle(result.articleId, {
             aiRelevanceScore: result.analysis.relevanceScore,
-            aiSummaryFr: result.analysis.summaryFr,
+            aiTitleFr: result.analysis.titleFr,
+          aiSummaryFr: result.analysis.summaryFr,
             aiCommentFr: result.analysis.commentFr,
             aiSocialPostFr: result.analysis.socialPostFr,
             aiSocialPostEn: result.analysis.socialPostEn,

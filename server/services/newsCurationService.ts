@@ -14,6 +14,7 @@ const ai = new GoogleGenAI({
 
 export interface ArticleAnalysis {
   relevanceScore: number;
+  titleFr: string;
   summaryFr: string;
   commentFr: string;
   socialPostFr: string;
@@ -51,6 +52,7 @@ CRITÈRES DE PERTINENCE (score 0-100) — sois STRICT:
 Réponds UNIQUEMENT en JSON valide avec cette structure exacte (pas de markdown, pas de backticks):
 {
   "relevanceScore": <number 0-100>,
+  "titleFr": "<titre traduit en français, court et accrocheur, max 100 caractères>",
   "summaryFr": "<résumé en français, 2-3 phrases, focalisé sur l'impact pour les entreprises québécoises>",
   "commentFr": "<commentaire expert kWh Québec, 2-3 phrases, perspective d'affaires concrète pour le C&I québécois>",
   "socialPostFr": "<post LinkedIn en français, max 200 caractères, avec hashtags #SolaireQuébec #ÉnergieCI>",
@@ -71,6 +73,7 @@ Réponds UNIQUEMENT en JSON valide avec cette structure exacte (pas de markdown,
 
     return {
       relevanceScore: Math.max(0, Math.min(100, Number(result.relevanceScore) || 0)),
+      titleFr: String(result.titleFr || ""),
       summaryFr: String(result.summaryFr || ""),
       commentFr: String(result.commentFr || ""),
       socialPostFr: String(result.socialPostFr || "").substring(0, 300),
