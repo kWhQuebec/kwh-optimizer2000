@@ -612,6 +612,7 @@ export function runPotentialAnalysis(
   const peakDemandReductionKw = battPowerKW > 0 ? annualDemandReductionKW : 0;
   const peakDemandSavingsAnnual = demandSavings;
   const selfConsumptionPercent = totalProductionKWh > 0 ? (selfConsumptionKWh / totalProductionKWh) * 100 : 0;
+  const selfSufficiencyPercent = annualConsumptionKWh > 0 ? (selfConsumptionKWh / annualConsumptionKWh) * 100 : 0;
   const gridExportPercent = totalProductionKWh > 0 ? (totalExportedKWh / totalProductionKWh) * 100 : 0;
   const clippingLossPercent = totalProductionKWh > 0 ? (simResult.clippingLossKWh / (totalProductionKWh + simResult.clippingLossKWh)) * 100 : 0;
 
