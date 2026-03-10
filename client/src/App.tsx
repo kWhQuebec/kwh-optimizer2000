@@ -83,6 +83,9 @@ const RoofCapturePage = lazy(() => import("@/pages/roof-capture"));
 import NouvellesPage from "@/pages/nouvelles";
 import StockageEnergiePage from "@/pages/stockage-energie";
 import SolaireCommercialPage from "@/pages/solaire-commercial";
+import CommercesPage from "@/pages/commerces";
+import IndustrielPage from "@/pages/industriel-page";
+import MultiSitesPage from "@/pages/multi-sites";
 
 function BlogRedirect() {
   const [location] = useLocation();
@@ -326,6 +329,9 @@ function AppRoutes() {
       <Route path="/mandat-de-conception-preliminaire" component={MandatConceptionPage} />
       <Route path="/solaire-commercial" component={SolaireCommercialPage} />
       <Route path="/stockage-energie" component={StockageEnergiePage} />
+      <Route path="/commerces" component={CommercesPage} />
+      <Route path="/industriel" component={IndustrielPage} />
+      <Route path="/multi-sites" component={MultiSitesPage} />
       <Route path="/portfolio" component={PortfolioPage} />
       <Route path="/portfolio/:id" component={PortfolioProjectPage} />
       <Route path="/privacy" component={PrivacyPage} />
@@ -875,3 +881,4 @@ function App() {
 }
 
 export default App;
+
