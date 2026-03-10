@@ -176,16 +176,6 @@ export default function AProposPage() {
     },
   ];
 
-  const partners = [
-    {
-      titleFr: "SoluSolaire",
-      titleEn: "SoluSolaire",
-      descFr: "Installateur partenaire certifié",
-      descEn: "Certified partner installer",
-      url: "https://solusolaire.ca/",
-    },
-  ];
-
   const programs = [
     {
       titleFr: "Renoclimat",
@@ -196,8 +186,8 @@ export default function AProposPage() {
       titleEn: "Écopack Industriel — Expert Conseil",
     },
     {
-      titleFr: "Hydro-Québec — Programme d'aide à l'efficacité énergétique",
-      titleEn: "Hydro-Québec — Energy Efficiency Assistance Program",
+      titleFr: "Hydro-Québec — Programme d'aide OSE 6.0",
+      titleEn: "Hydro-Québec — OSE 6.0 Assistance Program",
     },
   ];
 
@@ -547,7 +537,7 @@ export default function AProposPage() {
             </h2>
           </motion.div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-2 gap-8">
             <div>
               <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
                 <Wrench aria-hidden="true" className="w-5 h-5 text-primary" />
@@ -568,33 +558,6 @@ export default function AProposPage() {
                           {language === "fr" ? cert.descFr : cert.descEn}
                         </p>
                       </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
-                <Users aria-hidden="true" className="w-5 h-5 text-primary" />
-                {t("Installateurs partenaires", "Partner Installers")}
-              </h3>
-              <div className="space-y-4">
-                {partners.map((partner, i) => (
-                  <Card key={i}>
-                    <CardContent className="p-4">
-                      <a
-                        href={partner.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="font-medium text-sm text-primary hover:underline"
-                        data-testid={`link-partner-${i}`}
-                      >
-                        {language === "fr" ? partner.titleFr : partner.titleEn}
-                      </a>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {language === "fr" ? partner.descFr : partner.descEn}
-                      </p>
                     </CardContent>
                   </Card>
                 ))}
