@@ -15,6 +15,7 @@ import { BRAND_CONTENT } from "@shared/brandContent";
 
 import heroImage from "@assets/dynamic-teamwork-solar-energy-diverse-technicians-installing-p_1764967501352.jpg";
 import brandImage from "@assets/kWh__Quebec_Brand_Guideline_1764967501349.jpg";
+import foundersImage from "@assets/Screenshot_2026-03-07_at_5.15.34_PM_1773105406548.png";
 
 const TEAM_MEMBERS = [
   {
@@ -366,6 +367,14 @@ export default function AProposPage() {
                 "Each brings over 20 years of experience in their field of expertise, along with their experienced teams."
               )}
             </p>
+            <div className="flex justify-center pt-4 pb-2">
+              <img
+                src={foundersImage}
+                alt={t("Étienne Lecompte et Marc-André La Barre, co-fondateurs de kWh Québec", "Étienne Lecompte and Marc-André La Barre, co-founders of kWh Québec")}
+                className="rounded-md w-full max-w-2xl object-cover"
+                data-testid="img-founders"
+              />
+            </div>
             <div className="grid sm:grid-cols-2 gap-6 pt-4">
               <Card>
                 <CardContent className="p-6">
