@@ -396,7 +396,7 @@ export default function MandatConceptionPage() {
                           {item.question}
                         </span>
                       </AccordionTrigger>
-                      <AccordionContent className="text-muted-foreground pb-4">
+                      <AccordionContent className="text-foreground/80 pb-4 leading-relaxed">
                         {item.answer}
                       </AccordionContent>
                     </AccordionItem>
