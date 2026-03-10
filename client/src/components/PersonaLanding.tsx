@@ -60,7 +60,7 @@ const PERSONA_HERO_QUESTION: Record<string, { fr: string; en: string }> = {
   portfolio: { fr: "Vous gérez 5+ bâtiments?", en: "Do you manage 5+ buildings?" },
 };
 
-export default function PersonaLanding({ persona }: { persona: PersonaData }) {
+export default function PersonaLanding({ persona, heroImage }: { persona: PersonaData; heroImage?: string }) {
   const { language } = useI18n();
   const [, navigate] = useLocation();
   const colors = PERSONA_COLORS[persona.id] || PERSONA_COLORS.commercial;
@@ -114,8 +114,16 @@ export default function PersonaLanding({ persona }: { persona: PersonaData }) {
         {/* ============================================================ */}
         {/* HERO */}
         {/* ============================================================ */}
-        <section className={`py-16 px-4 sm:px-6 lg:px-8 ${colors.bg}`}>
-          <div className="max-w-5xl mx-auto">
+        <section className={`relative py-16 px-4 sm:px-6 lg:px-8 ${heroImage ? '' : colors.bg}`}>
+          {heroImage && (
+            <>
+              <div className="absolute inset-0">
+                <img src={heroImage} alt="" className="w-full h-full object-cover" aria-hidden="true" />
+              </div>
+              <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/60 to-black/70" />
+            </>
+          )}
+          <div className={`max-w-5xl mx-auto ${heroImage ? 'relative z-10' : ''}`}>
             <motion.div
               className="text-center"
               initial={{ opacity: 0, y: 20 }}
@@ -123,10 +131,10 @@ export default function PersonaLanding({ persona }: { persona: PersonaData }) {
               transition={{ duration: 0.5 }}
             >
               {/* Persona icon + self-identification */}
-              <div className={`inline-flex items-center gap-3 mb-6 ${colors.primary}`}>
+              <div className={`inline-flex items-center gap-3 mb-6 ${heroImage ? 'text-white' : colors.primary}`}>
                 {PERSONA_ICONS[persona.id]}
               </div>
-              <p className={`text-lg font-semibold mb-3 ${colors.text}`}>
+              <p className={`text-lg font-semibold mb-3 ${heroImage ? 'text-white/90' : colors.text}`}>
                 {t(language, PERSONA_HERO_QUESTION[persona.id] || PERSONA_HERO_QUESTION.commercial)}
               </p>
 
@@ -134,15 +142,15 @@ export default function PersonaLanding({ persona }: { persona: PersonaData }) {
                 {t(language, persona.heroBadge)}
               </Badge>
 
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight mb-4 max-w-4xl mx-auto">
+              <h1 className={`text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight mb-4 max-w-4xl mx-auto ${heroImage ? 'text-white' : ''}`}>
                 {t(language, persona.heroTitle)}
               </h1>
 
-              <p className="text-lg sm:text-xl text-muted-foreground mb-2 max-w-3xl mx-auto">
+              <p className={`text-lg sm:text-xl mb-2 max-w-3xl mx-auto ${heroImage ? 'text-white/80' : 'text-muted-foreground'}`}>
                 {t(language, persona.heroSubtitle)}
               </p>
 
-              <p className="text-base text-foreground/80 max-w-2xl mx-auto mb-8">
+              <p className={`text-base max-w-2xl mx-auto mb-8 ${heroImage ? 'text-white/70' : 'text-foreground/80'}`}>
                 {t(language, persona.heroDescription)}
               </p>
 
@@ -151,13 +159,13 @@ export default function PersonaLanding({ persona }: { persona: PersonaData }) {
                 {[persona.heroStatPrimary, persona.heroStatSecondary, persona.heroStatTertiary].map((stat, i) => (
                   <motion.div
                     key={i}
-                    className="bg-white dark:bg-slate-950 rounded-lg p-4 border shadow-sm"
+                    className={`rounded-lg p-4 border shadow-sm ${heroImage ? 'bg-white/10 backdrop-blur-sm border-white/20' : 'bg-white dark:bg-slate-950'}`}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3, delay: 0.2 + i * 0.1 }}
                   >
-                    <p className={`text-2xl sm:text-3xl font-bold ${colors.primary}`}>{stat.value}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{t(language, stat.label)}</p>
+                    <p className={`text-2xl sm:text-3xl font-bold ${heroImage ? 'text-yellow-400' : colors.primary}`}>{stat.value}</p>
+                    <p className={`text-xs mt-1 ${heroImage ? 'text-white/70' : 'text-muted-foreground'}`}>{t(language, stat.label)}</p>
                   </motion.div>
                 ))}
               </div>
