@@ -541,6 +541,18 @@ export default function LandingPage() {
   };
 
   const handleDetailedPath = () => {
+    // B4: Gate — require email before proceeding to detailed analysis
+    if (!quickEmail || !quickEmail.trim()) {
+      toast({
+        title: language === "fr" ? "Courriel requis" : "Email required",
+        description: language === "fr"
+          ? "Veuillez entrer votre courriel pour accéder à l'analyse complète."
+          : "Please enter your email to access the full analysis.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     FunnelEvents.procurationStarted();
 
     if (parsedBillData) {
@@ -1116,7 +1128,7 @@ export default function LandingPage() {
                           {language === "fr" ? "Parlons de votre bâtiment" : "Tell us about your building"}
                         </h3>
                         <p className="text-xs text-muted-foreground">
-                          {language === "fr" ? "4 questions, 30 secondes" : "4 questions, 30 seconds"}
+                          {language === "fr" ? "Quelques questions rapides · 30 secondes" : "A few quick questions · 30 seconds"}
                         </p>
                       </div>
 
