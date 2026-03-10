@@ -351,14 +351,22 @@ export default function ClientPortalPage({ previewClientId }: { previewClientId?
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
                 <div className="p-3 rounded-full bg-blue-100 dark:bg-blue-900/30">
-                  <FileCheck className="w-5 h-5 text-blue-600" />
+                  <Zap className="w-5 h-5 text-blue-600" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold" data-testid="kpi-designs-approved">
-                    {sitesWithDesign}/{totalSites}
+                  <p className="text-2xl font-bold" data-testid="kpi-total-capacity">
+                    {(() => {
+                      const totalKw = normalizedSites.reduce((sum, site) => {
+                        if (site.simulationRuns && site.simulationRuns.length > 0) {
+                          return sum + (site.simulationRuns[site.simulationRuns.length - 1]?.pvSizeKW || 0);
+                        }
+                        return sum;
+                      }, 0);
+                      return totalKw > 0 ? `${totalKw.toLocaleString("fr-CA")} kW` : "-";
+                    })()}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    {language === "fr" ? "Designs approuvés" : "Designs Approved"}
+                    {language === "fr" ? "Capacité totale" : "Total Capacity"}
                   </p>
                 </div>
               </div>
@@ -366,6 +374,26 @@ export default function ClientPortalPage({ previewClientId }: { previewClientId?
           </Card>
         </div>
       )}
+
+      {/* Environmental Impact Summary */}
+      {(() => {
+        const totalCO2 = normalizedSites.reduce((sum, site) => {
+          if (site.simulationRuns && site.simulationRuns.length > 0) {
+            return sum + (site.simulationRuns[site.simulationRuns.length - 1]?.co2AvoidedTonnesPerYear || 0);
+          }
+          return sum;
+        }, 0);
+        return totalCO2 > 0 ? (
+          <div className="flex items-center gap-3 rounded-lg border border-green-200 bg-green-50/50 dark:border-green-800 dark:bg-green-950/20 px-4 py-3" data-testid="environmental-impact">
+            <Leaf className="w-5 h-5 text-green-600 shrink-0" />
+            <p className="text-sm text-green-800 dark:text-green-200">
+              {language === "fr"
+                ? `Vos projets solaires éviteraient ${totalCO2.toFixed(0)} tonnes de CO₂ par année — l'équivalent de ${Math.round(totalCO2 * 0.22)} voitures retirées de la route.`
+                : `Your solar projects would avoid ${totalCO2.toFixed(0)} tonnes of CO₂ per year — equivalent to removing ${Math.round(totalCO2 * 0.22)} cars from the road.`}
+            </p>
+          </div>
+        ) : null;
+      })()}
 
       {/* Pending Actions Alert */}
       {pendingActions.length > 0 && (
