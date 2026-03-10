@@ -3,7 +3,7 @@ import { Link } from "wouter";
 import {
   ArrowRight, Phone, Linkedin, Award, Sparkles,
   Heart, Shield, Star, Building2, Wrench, Users,
-  Target, Eye
+  Target, Eye, ExternalLink
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -405,6 +405,21 @@ export default function AProposPage() {
                 "By combining renewable energy and technical project management, they co-founded kWh Québec to offer simple, turnkey solutions for commercial and industrial property owners in Quebec."
               )}
             </p>
+            <div className="flex justify-center pt-6">
+              <a
+                href="https://www.journaldemontreal.com/2025/09/15/avec-le-solaire-kwh-quebecaide-la-planete-et-les-entreprises"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
+                data-testid="link-journal-article"
+              >
+                <ExternalLink aria-hidden="true" className="w-4 h-4" />
+                {t(
+                  "Lire l'article paru dans le Journal de Montréal",
+                  "Read the article published in the Journal de Montréal"
+                )}
+              </a>
+            </div>
           </motion.div>
         </div>
       </section>
