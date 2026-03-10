@@ -38,6 +38,24 @@ async function refreshAccessToken(): Promise<string | null> {
   }
 }
 
+export async function getFreshToken(): Promise<string | null> {
+  const token = getAuthToken();
+  if (!token) {
+    const refreshToken = localStorage.getItem("refreshToken");
+    if (refreshToken) return refreshAccessToken();
+    return null;
+  }
+  try {
+    const res = await fetch("/api/auth/me", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.ok) return token;
+    return refreshAccessToken();
+  } catch {
+    return token;
+  }
+}
+
 async function authFetch(url: string, init?: RequestInit): Promise<Response> {
   const res = await fetch(url, init);
   if (res.status !== 401) return res;
