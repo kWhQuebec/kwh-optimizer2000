@@ -400,6 +400,17 @@ export function AnalysisResults({
   const dashboardCo2Tonnes = displayedScenario.co2AvoidedTonnesPerYear ?? simulation.co2AvoidedTonnesPerYear ?? 0;
 
   const dashboardAccountingProfit = useMemo(() => {
+    const cfArray = displayedScenario.scenarioBreakdown?.cashflows
+      || ((simulation.cashflows || []) as Array<{year: number; netCashflow: number}>);
+
+    if (cfArray.length > 0) {
+      let total = 0;
+      for (const cf of cfArray) {
+        if (cf.year <= 25) total += (Number(cf.netCashflow) || 0);
+      }
+      return total;
+    }
+
     const degradation = assumptions?.degradationRatePercent ?? 0.004;
     const inflation = assumptions?.inflationRate ?? 0.035;
     const omRate = assumptions?.omPerKwc ?? 15;
