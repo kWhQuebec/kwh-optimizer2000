@@ -3,16 +3,14 @@ import {
   Wallet,
   CreditCard,
   FileCheck,
-  Zap,
   Clock,
   TrendingUp,
-  Info,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { useI18n } from "@/lib/i18n";
-import type { SimulationRun, AnalysisAssumptions, ScenarioBreakdown } from "@shared/schema";
+import type { SimulationRun, CashflowEntry } from "@shared/schema";
 import {
   LineChart,
   Line,
@@ -24,70 +22,66 @@ import {
   Legend,
 } from "recharts";
 import type { DisplayedScenarioType } from "../types";
-import { formatNumber } from "../utils";
 
 export const FINANCING_COLORS = {
   cash: { bg: "bg-[#16A34A]", text: "text-[#16A34A]", border: "border-[#16A34A]", stroke: "#16A34A", hsl: "hsl(142, 72%, 36%)" },
   loan: { bg: "bg-[#003DA6]", text: "text-[#003DA6]", border: "border-[#003DA6]", stroke: "#003DA6", hsl: "hsl(218, 100%, 33%)" },
   lease: { bg: "bg-[#FFB005]", text: "text-[#FFB005]", border: "border-[#FFB005]", stroke: "#FFB005", hsl: "hsl(41, 100%, 51%)" },
-  ppa: { bg: "bg-[#3B82F6]", text: "text-[#3B82F6]", border: "border-[#3B82F6]", stroke: "#3B82F6", hsl: "hsl(217, 91%, 60%)" },
 };
 
 export function FinancingCalculator({ simulation, displayedScenario }: { simulation: SimulationRun; displayedScenario: DisplayedScenarioType }) {
   const { t, language } = useI18n();
-  const [financingType, setFinancingType] = useState<"cash" | "loan" | "lease" | "ppa">("cash");
+  const [financingType, setFinancingType] = useState<"cash" | "loan" | "lease">("cash");
   const [loanTerm, setLoanTerm] = useState(10);
   const [interestRate, setInterestRate] = useState(5.5);
   const [downPayment, setDownPayment] = useState(20);
   const [leaseImplicitRate, setLeaseImplicitRate] = useState(8.5);
-  const [leaseTerm, setLeaseTerm] = useState(15); // Default 15-year lease term
-
-  // PPA (Third-Party Power Purchase Agreement) - TRC Solar actual terms from Market Intelligence
-  // TRC offers 40% discount off HQ rate = client pays 60% of HQ rate
-  // Billing on PRODUCTION (not consumption) = client pays for energy they may not fully use
-  const [ppaTerm, setPpaTerm] = useState(16); // 16 years per TRC proposal #112525a
-  const [ppaYear1Rate, setPpaYear1Rate] = useState(60); // 60% of HQ rate = 40% discount (TRC actual)
-  const [ppaYear2Rate, setPpaYear2Rate] = useState(60); // Same 40% discount all years (TRC actual)
-  const [ppaBuyoutPct, setPpaBuyoutPct] = useState(15); // Buyout cost as % of original CAPEX at end of term (conservative FMV)
-  const [ppaSelfConsumptionPct, setPpaSelfConsumptionPct] = useState(70); // % of production actually consumed on-site
-
-  const degradationRate = 0.004; // 0.4% per year panel degradation
+  const [leaseTerm, setLeaseTerm] = useState(15);
 
   const scenarioBreakdown = displayedScenario.scenarioBreakdown;
-  const assumptions = simulation.assumptions as AnalysisAssumptions | null;
-
-  // Pull engine assumptions for consistency (inflation, O&M, escalation)
-  const inflationRate = assumptions?.inflationRate ?? 0.035; // HQ tariff inflation 3.5%/yr
-  const omPerKwc = assumptions?.omPerKwc ?? 15; // $15/kW/year O&M
-  const omEscalation = assumptions?.omEscalation ?? 0.025; // 2.5%/yr O&M escalation
-
-  const baseCapexNet = simulation.capexNet || 0;
 
   const capexNet = displayedScenario.capexNet || 0;
-  const capexGross = scenarioBreakdown?.capexGross || baseCapexNet;
-  const annualSavings = displayedScenario.annualSavings || simulation.annualSavings || 0;
-  const annualSurplusRevenue = (scenarioBreakdown as Record<string, unknown>)?.annualSurplusRevenue as number || 0;
-  const selfConsumptionKWh = scenarioBreakdown?.annualEnergySavingsKWh || simulation.annualEnergySavingsKWh || 0;
-
-  const pvSizeKW = displayedScenario.pvSizeKW || 0;
-  const totalAnnualProductionKWh = displayedScenario.totalProductionKWh || simulation.totalProductionKWh || 0;
+  const capexGross = scenarioBreakdown?.capexGross || (simulation.capexNet || 0);
 
   const hqSolar = scenarioBreakdown?.actualHQSolar || 0;
   const hqBattery = scenarioBreakdown?.actualHQBattery || 0;
   const federalITC = scenarioBreakdown?.itcAmount || 0;
   const taxShield = scenarioBreakdown?.taxShield || 0;
-
-  // Realistic cash flow timing for cash purchase:
-  // Day 0: Pay Gross CAPEX, receive HQ Solar rebate immediately (often direct to installer)
-  // Year 0: Receive 50% of HQ Battery rebate
-  // Year 1: Receive remaining 50% HQ Battery + Tax shield (CCA)
-  // Year 2: Federal ITC as tax credit
-  const upfrontCashNeeded = capexGross - hqSolar - (hqBattery * 0.5); // What client actually pays
-  const year1Returns = (hqBattery * 0.5) + taxShield;
-  const year2Returns = federalITC;
   const totalIncentives = hqSolar + hqBattery + federalITC + taxShield;
 
-  // Loan calculation: loan on gross CAPEX, incentives return separately
+  const upfrontCashNeeded = capexGross - hqSolar - (hqBattery * 0.5);
+  const year1Returns = (hqBattery * 0.5) + taxShield;
+  const year2Returns = federalITC;
+
+  const serverCashflows: CashflowEntry[] = (simulation.cashflows as CashflowEntry[] || []);
+  const scenarioCashflows: Array<{ year: number; netCashflow: number }> =
+    displayedScenario.scenarioBreakdown?.cashflows || [];
+  const hasFullDetail = serverCashflows.length > 1 &&
+    typeof serverCashflows[1]?.ebitda === "number" && serverCashflows[1]?.ebitda !== 0;
+
+  const analysisHorizon = 25;
+
+  const getYearCashflow = (year: number) => {
+    if (hasFullDetail) {
+      return serverCashflows.find(cf => cf.year === year) || null;
+    }
+    const scf = scenarioCashflows.find(cf => cf.year === year);
+    return scf ? { ...scf, ebitda: 0, investment: 0, dpa: 0, incentives: 0 } : null;
+  };
+
+  const totalServerNet25 = (() => {
+    const source = hasFullDetail ? serverCashflows : scenarioCashflows;
+    return source
+      .filter(cf => cf.year >= 0 && cf.year <= analysisHorizon)
+      .reduce((sum, cf) => sum + cf.netCashflow, 0);
+  })();
+
+  const totalOperating25 = hasFullDetail
+    ? serverCashflows
+        .filter(cf => cf.year >= 1 && cf.year <= analysisHorizon)
+        .reduce((sum, cf) => sum + cf.ebitda + cf.investment, 0)
+    : totalServerNet25 + upfrontCashNeeded - totalIncentives;
+
   const loanDownPaymentAmount = capexGross * downPayment / 100;
   const loanAmount = capexGross - loanDownPaymentAmount;
   const monthlyRate = interestRate / 100 / 12;
@@ -95,14 +89,9 @@ export function FinancingCalculator({ simulation, displayedScenario }: { simulat
   const monthlyPayment = monthlyRate > 0
     ? (loanAmount * monthlyRate * Math.pow(1 + monthlyRate, numPayments)) / (Math.pow(1 + monthlyRate, numPayments) - 1)
     : loanAmount / numPayments;
-  const totalLoanPayments = monthlyPayment * numPayments + loanDownPaymentAmount; // Total cash out for loan
-  const effectiveLoanCost = totalLoanPayments - totalIncentives; // Net after incentives return
+  const totalLoanPayments = monthlyPayment * numPayments + loanDownPaymentAmount;
+  const effectiveLoanCost = totalLoanPayments - totalIncentives;
 
-  // Capital Lease (Crédit-bail) calculation:
-  // In Quebec, HQ requires the client to be both owner AND operator for incentive eligibility.
-  // In a lease, the lessor owns the system — client is NOT eligible for HQ incentives.
-  // Only the federal ITC (30%) applies: claimed by lessor, reflected in reduced lease payments.
-  // No HQ solar, no HQ battery, no tax shield for the lessee.
   const leaseFinancedAmount = capexGross - federalITC;
   const leaseMonthlyRate = leaseImplicitRate / 100 / 12;
   const leaseNumPayments = leaseTerm * 12;
@@ -110,11 +99,11 @@ export function FinancingCalculator({ simulation, displayedScenario }: { simulat
     ? (leaseFinancedAmount * leaseMonthlyRate * Math.pow(1 + leaseMonthlyRate, leaseNumPayments)) / (Math.pow(1 + leaseMonthlyRate, leaseNumPayments) - 1)
     : leaseFinancedAmount / Math.max(1, leaseNumPayments);
   const leaseTotalPayments = leaseMonthlyPayment * leaseNumPayments;
-  const leaseTotalIncentives = 0;
   const effectiveLeaseCost = leaseTotalPayments;
 
+  const leaseNetSavings = totalOperating25 - effectiveLeaseCost;
+
   const formatCurrency = (value: number) => {
-    // For values >= 1M, show as "X,XM$" format
     if (Math.abs(value) >= 1000000) {
       const millions = value / 1000000;
       if (language === "fr") {
@@ -129,231 +118,96 @@ export function FinancingCalculator({ simulation, displayedScenario }: { simulat
     }).format(value);
   };
 
-  // Use consistent 25-year horizon for all financing comparisons
-  const analysisHorizon = 25;
-
-  // O&M base cost (annual, consistent with simulationEngine)
-  const omBaseAnnual = omPerKwc * pvSizeKW;
-
-  // Total annual revenue = annualSavings (self-consumption + demand) + surplus revenue
-  // This matches the engine's: revenue = savingsRevenue + surplusRevenue
-  const totalAnnualRevenue = annualSavings + annualSurplusRevenue;
-
-  // Total net savings over analysis horizon — consistent with simulationEngine:
-  // Revenue = totalAnnualRevenue × degradation × inflation (savings grow with HQ tariffs)
-  // O&M = omBaseAnnual × omEscalation (costs grow with inflation)
-  // Net = Revenue - O&M
-  const totalDegradedSavings = Array.from({ length: analysisHorizon }, (_, i) => {
-    const revenue = totalAnnualRevenue * Math.pow(1 - degradationRate, i) * Math.pow(1 + inflationRate, i);
-    const om = omBaseAnnual * Math.pow(1 + omEscalation, i);
-    return revenue - om;
-  }).reduce((a, b) => a + b, 0);
-
-  // Capital Lease: payments with incentives, then free energy after lease term (you own the system)
-  // Net savings = Total degraded savings over 25 years - effective cost (lease payments - incentives)
-  const leaseNetSavings = totalDegradedSavings - effectiveLeaseCost;
-
-  // PPA (Third-Party Power Purchase Agreement) calculation:
-  // Based on TRC Solar ACTUAL terms from Market Intelligence DB:
-  // - Client pays ppaYear1Rate% of HQ rate for electricity produced (not consumed!)
-  // - TRC bills on PRODUCTION, not consumption → overproduction risk
-  // - After term: Client must buy out system at fair market value (~10% of original CAPEX)
-  // - Post-buyout: Client owns system and gets full savings
-  // - IMPORTANT: All incentives (HQ rebates, federal ITC, tax shield) are RETAINED by PPA provider
-  const hqTariffRate = assumptions?.tariffCode === "M" ? 0.06061 : 0.11933; // $/kWh based on tariff
-  const selfConsumptionRatio = ppaSelfConsumptionPct / 100; // What % of production is actually consumed on-site
-  const surplusCreditRate = 0.046; // HQ net metering surplus compensation $/kWh (cost of supply)
-
-  // Compute degradation-aware PPA totals
-  // KEY: PPA provider bills on TOTAL PRODUCTION, but client only avoids HQ costs on self-consumed portion
-  let ppaTotalPayments = 0; // What client pays PPA provider (based on production)
-  let hqCostAvoided = 0; // What client would have paid HQ (based on self-consumption only)
-  let surplusCredits = 0; // Net metering credits for overproduction
-  for (let y = 1; y <= ppaTerm; y++) {
-    const degradedProd = totalAnnualProductionKWh * Math.pow(1 - degradationRate, y - 1);
-    const selfConsumedKWh = degradedProd * selfConsumptionRatio;
-    const surplusKWh = degradedProd * (1 - selfConsumptionRatio);
-    const ppaRate = y === 1 ? (ppaYear1Rate / 100) : (ppaYear2Rate / 100);
-    // Client pays PPA provider for ALL production (TRC billing model)
-    ppaTotalPayments += degradedProd * hqTariffRate * ppaRate;
-    // Client avoids paying HQ only for self-consumed portion
-    hqCostAvoided += selfConsumedKWh * hqTariffRate;
-    // Surplus credits at HQ cost-of-supply rate (much lower than retail)
-    surplusCredits += surplusKWh * surplusCreditRate;
-  }
-  // PPA provider keeps ALL incentives - this is where they profit
-  const ppaProviderKeepsIncentives = totalIncentives;
-  // Buyout cost at end of PPA term (fair market value, typically 10% of original CAPEX)
-  const ppaBuyoutCost = capexGross * (ppaBuyoutPct / 100);
-  // Post-PPA savings: After buyout, client owns system — same net savings as ownership (with inflation, minus O&M)
-  let postPpaSavings = 0;
-  for (let y = ppaTerm + 1; y <= analysisHorizon; y++) {
-    const rev = totalAnnualRevenue * Math.pow(1 - degradationRate, y - 1) * Math.pow(1 + inflationRate, y - 1);
-    const om = omBaseAnnual * Math.pow(1 + omEscalation, y - 1);
-    postPpaSavings += rev - om;
-  }
-  // PPA net during term = HQ cost avoided + surplus credits - PPA payments
-  const ppaSavingsDuringTerm = hqCostAvoided + surplusCredits - ppaTotalPayments;
-  // Overproduction risk: amount client pays PPA for energy they don't directly consume at retail value
-  const ppaOverproductionCost = ppaTotalPayments - (totalAnnualProductionKWh * selfConsumptionRatio * hqTariffRate * ppaTerm * (ppaYear2Rate / 100));
-  // Total PPA "cost" = payments to PPA provider + buyout cost
-  const ppaEffectiveCost = ppaTotalPayments + ppaBuyoutCost;
-  // Net savings over 25 years = savings during PPA + free electricity after PPA - buyout cost
-  const ppaNetSavings = ppaSavingsDuringTerm + postPpaSavings - ppaBuyoutCost;
-  // Display values for PPA cost breakdown UI
-  const ppaYear1Annual = totalAnnualProductionKWh * hqTariffRate * (ppaYear1Rate / 100);
-  const ppaYear2Annual = totalAnnualProductionKWh * hqTariffRate * (ppaYear2Rate / 100);
-  const postPpaYears = Math.max(0, analysisHorizon - ppaTerm);
-  // Average monthly "payment" for display purposes
-  const ppaMonthlyPayment = ppaTotalPayments / (ppaTerm * 12);
+  const cashNetSavings = totalServerNet25;
+  const loanNetSavings = totalServerNet25 + upfrontCashNeeded - totalLoanPayments;
 
   const options = [
     {
       type: "cash" as const,
       icon: Wallet,
       label: t("financing.cash"),
-      upfrontCost: upfrontCashNeeded, // Realistic cash needed at signing
-      totalCost: capexNet, // Net after all incentives return
+      upfrontCost: upfrontCashNeeded,
+      totalCost: capexNet,
       monthlyPayment: 0,
-      netSavings: totalDegradedSavings - capexNet,
+      netSavings: cashNetSavings,
     },
     {
       type: "loan" as const,
       icon: CreditCard,
       label: t("financing.loan"),
       upfrontCost: loanDownPaymentAmount,
-      totalCost: effectiveLoanCost, // Net after incentives return
-      totalPayments: totalLoanPayments, // Gross cash out
+      totalCost: effectiveLoanCost,
+      totalPayments: totalLoanPayments,
       monthlyPayment: monthlyPayment,
-      netSavings: totalDegradedSavings - effectiveLoanCost,
+      netSavings: loanNetSavings,
     },
     {
       type: "lease" as const,
       icon: FileCheck,
       label: t("financing.lease"),
       upfrontCost: 0,
-      totalCost: effectiveLeaseCost, // Net after incentives return (like loan)
-      totalPayments: leaseTotalPayments, // Gross lease payments
+      totalCost: effectiveLeaseCost,
+      totalPayments: leaseTotalPayments,
       monthlyPayment: leaseMonthlyPayment,
-      netSavings: leaseNetSavings, // 25 years of savings minus effective cost
-    },
-    {
-      type: "ppa" as const,
-      icon: Zap,
-      label: t("financing.ppa"),
-      upfrontCost: 0, // No upfront cost for PPA
-      totalCost: ppaEffectiveCost, // Total payments to PPA provider
-      totalPayments: ppaTotalPayments,
-      monthlyPayment: ppaMonthlyPayment,
-      netSavings: ppaNetSavings, // Savings during term + free electricity after
-      isPpa: true, // Flag to show special PPA info
+      netSavings: leaseNetSavings,
     },
   ];
 
-  // Calculate cumulative cashflow for each financing option over analysis horizon
   const calculateCumulativeCashflows = () => {
-    const years = analysisHorizon;
-    const data: { year: number; cash: number; loan: number; lease: number; ppa: number }[] = [];
+    const data: { year: number; cash: number; loan: number; lease: number }[] = [];
 
-    // Cash option: upfront cost, then savings, with incentive returns
-    let cashCumulative = -upfrontCashNeeded;
-
-    // Loan option: down payment, then monthly payments + savings, with incentive returns
+    const year0cf = hasFullDetail
+      ? (serverCashflows.find(cf => cf.year === 0)?.netCashflow ?? -upfrontCashNeeded)
+      : -upfrontCashNeeded;
+    let cashCumulative = year0cf;
     let loanCumulative = -loanDownPaymentAmount;
-    const annualLoanPayment = monthlyPayment * 12;
-
-    // Capital Lease (Crédit-bail): rebates reduce financed amount, so no upfront cash received
-    // Year 0 starts at 0 (rebates already netted from the financed amount)
-    const annualLeasePayment = leaseMonthlyPayment * 12;
     let leaseCumulative = 0;
+    const annualLoanPayment = monthlyPayment * 12;
+    const annualLeasePayment = leaseMonthlyPayment * 12;
 
-    // PPA: No upfront cost, pay for electricity during term, free after term
-    let ppaCumulative = 0;
+    data.push({
+      year: 0,
+      cash: cashCumulative / 1000,
+      loan: loanCumulative / 1000,
+      lease: leaseCumulative / 1000,
+    });
 
-    for (let year = 0; year <= years; year++) {
-      if (year === 0) {
-        // Year 0: initial investments
-        data.push({
-          year,
-          cash: cashCumulative / 1000,
-          loan: loanCumulative / 1000,
-          lease: leaseCumulative / 1000,
-          ppa: ppaCumulative / 1000,
-        });
-      } else {
-        // Net savings each year = revenue (with inflation) - O&M (with escalation)
-        // Consistent with simulationEngine: savings × degradation × inflation - O&M × escalation
-        const yearRevenue = totalAnnualRevenue * Math.pow(1 - degradationRate, year - 1) * Math.pow(1 + inflationRate, year - 1);
-        const yearOm = omBaseAnnual * Math.pow(1 + omEscalation, year - 1);
-        const degradedSavings = yearRevenue - yearOm;
-        cashCumulative += degradedSavings;
-        loanCumulative += degradedSavings;
-        leaseCumulative += degradedSavings;
+    for (let year = 1; year <= analysisHorizon; year++) {
+      const cf = getYearCashflow(year);
 
-        // PPA: During term, client pays PPA provider for ALL production (billing on production)
-        // but only avoids HQ costs on self-consumed portion + surplus credits at low rate
-        // At end of term, client must buy out system at fair market value
-        // After buyout, client owns system — same savings as other ownership options
-        if (year <= ppaTerm) {
-          const degradedProduction = totalAnnualProductionKWh * Math.pow(1 - degradationRate, year - 1);
-          const selfConsumedKWh = degradedProduction * selfConsumptionRatio;
-          const surplusKWh = degradedProduction * (1 - selfConsumptionRatio);
-          const ppaRateThisYear = year === 1 ? (ppaYear1Rate / 100) : (ppaYear2Rate / 100);
-          // Client pays PPA provider for ALL production
-          const ppaCostThisYear = degradedProduction * hqTariffRate * ppaRateThisYear;
-          // Client avoids HQ costs only on self-consumed portion
-          const hqCostAvoidedThisYear = selfConsumedKWh * hqTariffRate;
-          // Surplus credits at net metering cost-of-supply rate
-          const surplusCreditsThisYear = surplusKWh * surplusCreditRate;
-          // Net = what client avoids paying HQ + surplus credits - what they pay PPA
-          ppaCumulative += (hqCostAvoidedThisYear + surplusCreditsThisYear - ppaCostThisYear);
-          if (year === ppaTerm) {
-            ppaCumulative -= ppaBuyoutCost;
-          }
-        } else {
-          // After buyout: client owns system — same total savings as ownership options
-          ppaCumulative += degradedSavings;
-        }
+      if (cf && hasFullDetail) {
+        cashCumulative += cf.netCashflow;
 
-        // Subtract payments for loan (if still in term)
-        if (year <= loanTerm) {
-          loanCumulative -= annualLoanPayment;
-        }
+        const operating = cf.ebitda + cf.investment;
+        loanCumulative += operating + cf.dpa + cf.incentives - (year <= loanTerm ? annualLoanPayment : 0);
+        leaseCumulative += operating - (year <= leaseTerm ? annualLeasePayment : 0);
+      } else if (cf) {
+        cashCumulative += cf.netCashflow;
 
-        // Subtract lease payments (during lease term)
-        if (year <= leaseTerm) {
-          leaseCumulative -= annualLeasePayment;
-        }
+        const operatingEstimate = cf.netCashflow
+          - (year === 1 ? year1Returns : 0)
+          - (year === 2 ? year2Returns : 0);
 
-        // Add incentive returns for cash and loan (client IS owner)
-        // Lease: NO incentives return — HQ requires owner/operator; ITC already in reduced payments
-        // PPA: NO incentives return to client (provider keeps them all)
-        if (year === 1) {
-          cashCumulative += year1Returns;
-          loanCumulative += year1Returns;
-        }
-        if (year === 2) {
-          cashCumulative += year2Returns;
-          loanCumulative += year2Returns;
-        }
+        loanCumulative += operatingEstimate
+          + (year === 1 ? year1Returns : 0)
+          + (year === 2 ? year2Returns : 0)
+          - (year <= loanTerm ? annualLoanPayment : 0);
 
-        data.push({
-          year,
-          cash: cashCumulative / 1000,
-          loan: loanCumulative / 1000,
-          lease: leaseCumulative / 1000,
-          ppa: ppaCumulative / 1000,
-        });
+        leaseCumulative += operatingEstimate - (year <= leaseTerm ? annualLeasePayment : 0);
       }
+
+      data.push({
+        year,
+        cash: cashCumulative / 1000,
+        loan: loanCumulative / 1000,
+        lease: leaseCumulative / 1000,
+      });
     }
 
     return data;
   };
 
   const cumulativeCashflowData = calculateCumulativeCashflows();
-
-  const finalYear = cumulativeCashflowData[cumulativeCashflowData.length - 1];
-  const ppaOutperformsCash = finalYear && finalYear.ppa > finalYear.cash;
 
   return (
     <Card id="pdf-section-financing" data-testid="card-financing-calculator">
@@ -365,7 +219,7 @@ export function FinancingCalculator({ simulation, displayedScenario }: { simulat
         <CardDescription>{t("financing.description")}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-3 gap-3">
           {options.map((option) => {
             const colors = FINANCING_COLORS[option.type];
             const isSelected = financingType === option.type;
@@ -495,153 +349,6 @@ export function FinancingCalculator({ simulation, displayedScenario }: { simulat
                 <p className="flex justify-between gap-2 pt-2 border-t">
                   <span>{language === "fr" ? "Paiement mensuel:" : "Monthly payment:"}</span>
                   <span className="font-mono font-semibold">{formatCurrency(leaseMonthlyPayment)}</span>
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* PPA Controls and Legal Warning */}
-        {financingType === "ppa" && (
-          <div className="space-y-4">
-            {/* Legal Warning - Prominent */}
-            <div className="p-4 bg-amber-50 dark:bg-amber-950/30 border-2 border-amber-300 dark:border-amber-700 rounded-lg">
-              <p className="text-sm text-amber-800 dark:text-amber-200 leading-relaxed">
-                {t("financing.ppaLegalWarning")}
-              </p>
-            </div>
-
-            {/* PPA Parameters */}
-            <div className="p-4 bg-muted/50 rounded-lg space-y-4">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-                <Zap className="w-4 h-4" />
-                <span>{t("financing.ppaCompetitorModel")}</span>
-              </div>
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>{t("financing.ppaTerm")}</Label>
-                  <div className="flex items-center gap-2">
-                    <Slider
-                      value={[ppaTerm]}
-                      onValueChange={([v]) => setPpaTerm(v)}
-                      min={10}
-                      max={25}
-                      step={1}
-                      data-testid="slider-ppa-term"
-                    />
-                    <span className="text-sm font-mono w-16">{ppaTerm} {language === "fr" ? "ans" : "yrs"}</span>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>{t("financing.ppaYear1Rate")}</Label>
-                  <div className="flex items-center gap-2">
-                    <Slider
-                      value={[ppaYear1Rate]}
-                      onValueChange={([v]) => setPpaYear1Rate(v)}
-                      min={80}
-                      max={110}
-                      step={5}
-                      data-testid="slider-ppa-year1-rate"
-                    />
-                    <span className="text-sm font-mono w-12">{ppaYear1Rate}%</span>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>{t("financing.ppaYear2Rate")}</Label>
-                  <div className="flex items-center gap-2">
-                    <Slider
-                      value={[ppaYear2Rate]}
-                      onValueChange={([v]) => setPpaYear2Rate(v)}
-                      min={50}
-                      max={95}
-                      step={5}
-                      data-testid="slider-ppa-year2-rate"
-                    />
-                    <span className="text-sm font-mono w-12">{ppaYear2Rate}%</span>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>{language === "fr" ? "Rachat fin de terme" : "End-of-term buyout"}</Label>
-                  <div className="flex items-center gap-2">
-                    <Slider
-                      value={[ppaBuyoutPct]}
-                      onValueChange={([v]) => setPpaBuyoutPct(v)}
-                      min={0}
-                      max={25}
-                      step={1}
-                      data-testid="slider-ppa-buyout"
-                    />
-                    <span className="text-sm font-mono w-12">{ppaBuyoutPct}%</span>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>{language === "fr" ? "Autoconsommation %" : "Self-consumption %"}</Label>
-                  <div className="flex items-center gap-2">
-                    <Slider
-                      value={[ppaSelfConsumptionPct]}
-                      onValueChange={([v]) => setPpaSelfConsumptionPct(v)}
-                      min={40}
-                      max={100}
-                      step={5}
-                      data-testid="slider-ppa-self-consumption"
-                    />
-                    <span className="text-sm font-mono w-12">{ppaSelfConsumptionPct}%</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Overproduction Risk Warning */}
-              {ppaSelfConsumptionPct < 100 && (
-                <div className="p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg">
-                  <p className="text-xs text-red-700 dark:text-red-300 leading-relaxed">
-                    {language === "fr"
-                      ? `⚠️ Risque de surproduction: TRC facture sur la PRODUCTION totale, mais vous ne consommez que ${ppaSelfConsumptionPct}% sur site. Les ${100 - ppaSelfConsumptionPct}% de surplus ne génèrent que ${formatCurrency(surplusCredits / ppaTerm)}/an en crédits HQ (au lieu de ${formatCurrency((totalAnnualProductionKWh * (1 - selfConsumptionRatio) * hqTariffRate))}/an au tarif plein).`
-                      : `⚠️ Overproduction risk: TRC bills on TOTAL production, but you only consume ${ppaSelfConsumptionPct}% on-site. The ${100 - ppaSelfConsumptionPct}% surplus only generates ${formatCurrency(surplusCredits / ppaTerm)}/yr in HQ credits (instead of ${formatCurrency((totalAnnualProductionKWh * (1 - selfConsumptionRatio) * hqTariffRate))}/yr at full rate).`}
-                  </p>
-                </div>
-              )}
-
-              {/* PPA Cost Breakdown */}
-              <div className="text-sm space-y-1 text-muted-foreground pt-2 border-t">
-                <p className="flex justify-between gap-2">
-                  <span>{language === "fr" ? "Paiement An 1:" : "Year 1 payment:"}</span>
-                  <span className="font-mono">{formatCurrency(ppaYear1Annual)}</span>
-                </p>
-                <p className="flex justify-between gap-2">
-                  <span>{language === "fr" ? `Paiement An 2-${ppaTerm}:` : `Year 2-${ppaTerm} payment:`}</span>
-                  <span className="font-mono">{formatCurrency(ppaYear2Annual)}{language === "fr" ? "/an" : "/yr"}</span>
-                </p>
-                <p className="flex justify-between gap-2 pt-2 border-t font-medium">
-                  <span>{language === "fr" ? `Total payé au fournisseur PPA (${ppaTerm} ans):` : `Total paid to PPA provider (${ppaTerm} years):`}</span>
-                  <span className="font-mono font-semibold">{formatCurrency(ppaTotalPayments)}</span>
-                </p>
-                <p className="flex justify-between gap-2 text-xs">
-                  <span>{language === "fr" ? `Coûts HQ évités (autoconsommation ${ppaSelfConsumptionPct}%):` : `HQ costs avoided (self-consumption ${ppaSelfConsumptionPct}%):`}</span>
-                  <span className="font-mono text-[#16A34A]">+{formatCurrency(hqCostAvoided)}</span>
-                </p>
-                {surplusCredits > 0 && (
-                  <p className="flex justify-between gap-2 text-xs">
-                    <span>{language === "fr" ? `Crédits surplus (${100 - ppaSelfConsumptionPct}% @ ${surplusCreditRate}$/kWh):` : `Surplus credits (${100 - ppaSelfConsumptionPct}% @ $${surplusCreditRate}/kWh):`}</span>
-                    <span className="font-mono text-[#16A34A]">+{formatCurrency(surplusCredits)}</span>
-                  </p>
-                )}
-                <p className="flex justify-between gap-2 pt-1 border-t text-xs font-medium">
-                  <span>{language === "fr" ? `Économie nette pendant PPA:` : `Net savings during PPA:`}</span>
-                  <span className={`font-mono font-semibold ${ppaSavingsDuringTerm >= 0 ? "text-[#16A34A]" : "text-red-600"}`}>{formatCurrency(ppaSavingsDuringTerm)}</span>
-                </p>
-                <p className="flex justify-between gap-2 pt-2 border-t text-xs text-red-600 dark:text-red-400">
-                  <span>{t("financing.ppaNoIncentives")}:</span>
-                  <span className="font-mono">-{formatCurrency(ppaProviderKeepsIncentives)}</span>
-                </p>
-                {ppaBuyoutCost > 0 && (
-                  <p className="flex justify-between gap-2 text-xs text-red-600 dark:text-red-400">
-                    <span>{language === "fr" ? `Rachat An ${ppaTerm} (${ppaBuyoutPct}% CAPEX):` : `Buyout Year ${ppaTerm} (${ppaBuyoutPct}% CAPEX):`}</span>
-                    <span className="font-mono">-{formatCurrency(ppaBuyoutCost)}</span>
-                  </p>
-                )}
-                <p className="flex justify-between gap-2 text-xs text-[#16A34A] dark:text-green-400">
-                  <span>{language === "fr" ? `Propriété post-rachat:` : `Post-buyout ownership:`}</span>
-                  <span className="font-mono">+{formatCurrency(postPpaSavings)} ({postPpaYears} {language === "fr" ? "ans" : "yrs"})</span>
                 </p>
               </div>
             </div>
@@ -803,8 +510,7 @@ export function FinancingCalculator({ simulation, displayedScenario }: { simulat
                       `$${(value * 1000).toLocaleString()}`,
                       name === "cash" ? (language === "fr" ? "Comptant" : "Cash") :
                       name === "loan" ? (language === "fr" ? "Prêt" : "Loan") :
-                      name === "lease" ? (language === "fr" ? "Crédit-bail" : "Capital Lease") :
-                      (language === "fr" ? "PPA Tiers" : "Third-Party PPA")
+                      (language === "fr" ? "Crédit-bail" : "Capital Lease")
                     ]}
                     labelFormatter={(year) => `${language === "fr" ? "Année" : "Year"} ${year}`}
                   />
@@ -812,8 +518,7 @@ export function FinancingCalculator({ simulation, displayedScenario }: { simulat
                     formatter={(value) =>
                       value === "cash" ? (language === "fr" ? "Comptant" : "Cash") :
                       value === "loan" ? (language === "fr" ? "Prêt" : "Loan") :
-                      value === "lease" ? (language === "fr" ? "Crédit-bail" : "Capital Lease") :
-                      (language === "fr" ? "PPA Tiers ⚠️" : "Third-Party PPA ⚠️")
+                      (language === "fr" ? "Crédit-bail" : "Capital Lease")
                     }
                   />
                   <Line
@@ -837,14 +542,6 @@ export function FinancingCalculator({ simulation, displayedScenario }: { simulat
                     strokeWidth={2}
                     dot={false}
                   />
-                  <Line
-                    type="monotone"
-                    dataKey="ppa"
-                    stroke={FINANCING_COLORS.ppa.stroke}
-                    strokeWidth={2}
-                    strokeDasharray="5 5"
-                    dot={false}
-                  />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -853,16 +550,6 @@ export function FinancingCalculator({ simulation, displayedScenario }: { simulat
                 ? "Flux de trésorerie cumulatif incluant tous les coûts, économies et incitatifs"
                 : "Cumulative cash flow including all costs, savings, and incentives"}
             </p>
-            {ppaOutperformsCash && (
-              <div className="flex items-start gap-3 mt-4 p-3 rounded-lg bg-muted/60 border border-muted-foreground/20" data-testid="banner-ppa-warning">
-                <Info className="w-5 h-5 text-muted-foreground shrink-0 mt-0.5" />
-                <p className="text-sm text-muted-foreground">
-                  {language === "fr"
-                    ? "Le PPA apparaît plus rentable que l'achat comptant, ce qui indique généralement un système surdimensionné. En pratique, un fournisseur PPA n'offrirait probablement pas ce projet."
-                    : "PPA appears more profitable than cash purchase, typically indicating an oversized system. In practice, a PPA provider would likely not offer this project."}
-                </p>
-              </div>
-            )}
           </div>
         )}
       </CardContent>

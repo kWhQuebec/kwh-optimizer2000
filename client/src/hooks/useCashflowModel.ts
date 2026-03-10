@@ -14,9 +14,6 @@ export interface UseCashflowModelProps {
   kwhInflation?: number;
   trcInflation?: number;
   degradation?: number;
-  ppaTerm?: number;
-  ppaDiscount?: number;
-  trcProjectCost?: number;
 }
 
 export function useCashflowModel(props: UseCashflowModelProps): CashflowModel | null {
@@ -41,10 +38,6 @@ export function useCashflowModel(props: UseCashflowModelProps): CashflowModel | 
       taxRate: DEFAULT_CASHFLOW_INPUTS.taxRate!,
       leaseTerm: DEFAULT_CASHFLOW_INPUTS.leaseTerm!,
       leasePremium: DEFAULT_CASHFLOW_INPUTS.leasePremium!,
-      ppaTerm: props.ppaTerm || DEFAULT_CASHFLOW_INPUTS.ppaTerm!,
-      ppaDiscount: props.ppaDiscount || DEFAULT_CASHFLOW_INPUTS.ppaDiscount!,
-      ppaOmRate: DEFAULT_CASHFLOW_INPUTS.ppaOmRate!,
-      trcProjectCost: props.trcProjectCost
     };
 
     return buildCashflowModel(inputs);
@@ -56,8 +49,5 @@ export function useCashflowModel(props: UseCashflowModelProps): CashflowModel | 
     props.kwhInflation,
     props.trcInflation,
     props.degradation,
-    props.ppaTerm,
-    props.ppaDiscount,
-    props.trcProjectCost
   ]);
 }

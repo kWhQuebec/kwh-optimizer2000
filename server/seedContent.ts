@@ -96,7 +96,7 @@ const DEFAULT_CONTENT = [
           "Modélisation 3D de votre toiture",
           "Design optimal du système PV + stockage",
           "Projections ROI sur 25 ans",
-          "Comparaison Cash vs Lease vs PPA",
+          "Comparaison Cash vs Lease vs Prêt",
           "Optimisation des incitatifs (Hydro-Québec + fédéral)"
         ],
         en: [
@@ -105,7 +105,7 @@ const DEFAULT_CONTENT = [
           "3D roof modeling",
           "Optimal PV + storage system design",
           "25-year ROI projections",
-          "Cash vs Lease vs PPA comparison",
+          "Cash vs Lease vs Loan comparison",
           "Incentive optimization (Hydro-Québec + federal)"
         ]
       },

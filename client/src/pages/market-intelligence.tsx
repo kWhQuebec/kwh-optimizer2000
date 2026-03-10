@@ -172,16 +172,13 @@ function FinancingComparisonSection({ proposal, competitorName, language, format
     kwhInflation: proposal.kwhInflationRate,
     trcInflation: proposal.compInflationRate,
     degradation: proposal.kwhDegradationRate,
-    ppaTerm: proposal.ppaTerm,
-    ppaDiscount: (proposal.ppaDiscountPercent || 40) / 100,
-    trcProjectCost: proposal.projectCostTotal
   });
 
   if (!cashflowModel) {
     return null;
   }
 
-  const { cash, lease, ppa, providerEconomics, foregoneIncentives } = cashflowModel;
+  const { cash, lease } = cashflowModel;
 
   return (
     <div className="space-y-4">
@@ -251,95 +248,14 @@ function FinancingComparisonSection({ proposal, competitorName, language, format
                 {language === "fr" ? `Année ${lease.ownershipYear}` : `Year ${lease.ownershipYear}`}
               </td>
             </tr>
-            <tr className="bg-red-50 dark:bg-red-950/30">
-              <td className="py-2 px-3 border-b font-medium text-red-700 dark:text-red-400">
-                <Building className="w-4 h-4 inline mr-1" />
-                PPA ({competitorName})
-              </td>
-              <td className={`text-center py-2 px-3 border-b font-bold ${ppa.avgAnnualSavings >= 0 ? 'text-amber-600' : 'text-red-600'}`} data-testid={`text-ppa-annual-${proposal.id}`}>
-                {ppa.avgAnnualSavings >= 0 
-                  ? `${formatCurrency(Math.round(ppa.avgAnnualSavings))}/an`
-                  : `(${formatCurrency(Math.round(Math.abs(ppa.avgAnnualSavings)))})/an`}
-              </td>
-              <td className="text-center py-2 px-3 border-b">
-                $0
-              </td>
-              <td className={`text-center py-2 px-3 border-b font-semibold ${ppa.totalSavings >= 0 ? 'text-amber-600' : 'text-red-600'}`} data-testid={`text-ppa-savings-${proposal.id}`}>
-                {ppa.totalSavings >= 0 
-                  ? formatCurrency(Math.round(ppa.totalSavings))
-                  : `(${formatCurrency(Math.round(Math.abs(ppa.totalSavings)))})`}
-              </td>
-              <td className="text-center py-2 px-3 border-b">
-                {language === "fr" ? `Année ${ppa.ownershipYear}` : `Year ${ppa.ownershipYear}`}
-              </td>
-            </tr>
           </tbody>
         </table>
       </div>
       
       <div className="text-xs text-muted-foreground">
         <p>{language === "fr" 
-          ? "Économies annuelles moyennes sur 25 ans. Crédit-bail inclut paiements sur 7 ans. PPA inclut rabais pendant le terme et frais O&M après." 
-          : "Average annual savings over 25 years. Lease includes payments over 7 years. PPA includes discount during term and O&M fees after."}</p>
-      </div>
-
-      <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800">
-        <h6 className="text-sm font-semibold mb-3 flex items-center gap-2 text-amber-800 dark:text-amber-300">
-          <DollarSign className="w-4 h-4" />
-          {language === "fr" ? "Comment le fournisseur PPA fait-il de l'argent?" : "How does the PPA provider make money?"}
-        </h6>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-          <div>
-            <p className="font-medium text-amber-700 dark:text-amber-400 mb-2">
-              {language === "fr" ? "Incitatifs captés par le fournisseur:" : "Incentives captured by provider:"}
-            </p>
-            <ul className="space-y-1 text-amber-900 dark:text-amber-200">
-              <li className="flex justify-between gap-2">
-                <span>{language === "fr" ? "Incitatif Hydro-Québec:" : "Hydro-Québec Incentive:"}</span>
-                <span className="font-mono">{formatCurrency(Math.round(providerEconomics.hqIncentive))}</span>
-              </li>
-              <li className="flex justify-between gap-2">
-                <span>{language === "fr" ? "ITC fédéral (30%):" : "Federal ITC (30%):"}</span>
-                <span className="font-mono">{formatCurrency(Math.round(providerEconomics.itc))}</span>
-              </li>
-              <li className="flex justify-between gap-2">
-                <span>{language === "fr" ? "Bouclier CCA (est.):" : "CCA Shield (est.):"}</span>
-                <span className="font-mono">{formatCurrency(Math.round(providerEconomics.ccaShield))}</span>
-              </li>
-              <li className="flex justify-between gap-2 font-semibold border-t border-amber-300 dark:border-amber-700 pt-1 mt-1">
-                <span>{language === "fr" ? "Total incitatifs:" : "Total incentives:"}</span>
-                <span className="font-mono">{formatCurrency(Math.round(providerEconomics.totalIncentives))}</span>
-              </li>
-            </ul>
-          </div>
-          
-          <div>
-            <p className="font-medium text-amber-700 dark:text-amber-400 mb-2">
-              {language === "fr" ? "Économique pour le fournisseur:" : "Provider economics:"}
-            </p>
-            <ul className="space-y-1 text-amber-900 dark:text-amber-200">
-              <li className="flex justify-between gap-2">
-                <span>{language === "fr" ? "Coût brut:" : "Gross cost:"}</span>
-                <span className="font-mono">{formatCurrency(providerEconomics.grossCost)}</span>
-              </li>
-              <li className="flex justify-between gap-2">
-                <span>{language === "fr" ? "- Incitatifs:" : "- Incentives:"}</span>
-                <span className="font-mono text-green-600">-{formatCurrency(Math.round(providerEconomics.totalIncentives))}</span>
-              </li>
-              <li className="flex justify-between gap-2 font-semibold border-t border-amber-300 dark:border-amber-700 pt-1 mt-1">
-                <span>{language === "fr" ? "Investissement réel:" : "Actual investment:"}</span>
-                <span className="font-mono">{formatCurrency(Math.round(providerEconomics.actualInvestment))}</span>
-              </li>
-            </ul>
-          </div>
-        </div>
-        
-        <p className="mt-3 text-xs text-amber-800 dark:text-amber-300 italic">
-          {language === "fr" 
-            ? "Le fournisseur PPA utilise les incitatifs gouvernementaux pour financer le système. Le client obtient de l'électricité à rabais, mais renonce aux avantages fiscaux." 
-            : "The PPA provider uses government incentives to fund the system. The client gets discounted electricity but gives up the tax benefits."}
-        </p>
+          ? "Économies annuelles moyennes sur 25 ans. Crédit-bail inclut paiements sur 7 ans." 
+          : "Average annual savings over 25 years. Lease includes payments over 7 years."}</p>
       </div>
 
       <div className="mt-4 p-4 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
@@ -350,10 +266,10 @@ function FinancingComparisonSection({ proposal, competitorName, language, format
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div className="text-center p-2 bg-white dark:bg-background rounded border" data-testid={`card-savings-advantage-${proposal.id}`}>
             <p className="text-2xl font-bold text-green-600">
-              +{formatCurrency(Math.round(cash.totalSavings - ppa.totalSavings))}
+              {formatCurrency(Math.round(cash.totalSavings))}
             </p>
             <p className="text-xs text-muted-foreground">
-              {language === "fr" ? "Économies additionnelles (Cash vs PPA)" : "Additional savings (Cash vs PPA)"}
+              {language === "fr" ? "Économies totales (Cash)" : "Total savings (Cash)"}
             </p>
           </div>
           <div className="text-center p-2 bg-white dark:bg-background rounded border" data-testid={`card-avg-savings-${proposal.id}`}>
@@ -1388,11 +1304,6 @@ export default function MarketIntelligencePage() {
                           </Badge>
                         )}
                         {getStatusBadge(proposal.status)}
-                        {proposal.dealType === "ppa" && (
-                          <Badge variant="outline" className="text-purple-600 border-purple-300">
-                            PPA {proposal.ppaTerm} {language === "fr" ? "ans" : "years"}
-                          </Badge>
-                        )}
                       </div>
                       <CardTitle className="text-lg" data-testid={`text-proposal-name-${proposal.id}`}>
                         {proposal.projectName}
@@ -1533,112 +1444,25 @@ export default function MarketIntelligencePage() {
                             );
                           })()}
 
-                          {/* Overproduction Billing Risk card - PPA only */}
-                          {proposal.dealType === "ppa" && (
-                            <div className="p-3 rounded-lg border bg-amber-50/50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900">
-                              <div className="flex items-start gap-3">
-                                <div className="p-2 rounded-full bg-amber-100 dark:bg-amber-900">
-                                  <FileQuestion className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                                </div>
-                                <div className="flex-1">
-                                  <div className="flex items-center justify-between">
-                                    <span className="font-medium text-sm">
-                                      {language === "fr" ? "Facturation surproduction" : "Overproduction Billing"}
-                                    </span>
-                                    {proposal.billingModel === "production" ? (
-                                      <Badge variant="outline" className="bg-red-50 text-red-700 border-red-300 dark:bg-red-900 dark:text-red-300 dark:border-red-700">
-                                        {language === "fr" ? "100% prod." : "100% prod."}
-                                      </Badge>
-                                    ) : proposal.billingModel === "consumption" ? (
-                                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300 dark:bg-green-900 dark:text-green-300 dark:border-green-700">
-                                        {language === "fr" ? "Conso. seulement" : "Consumption only"}
-                                      </Badge>
-                                    ) : (
-                                      <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-900 dark:text-amber-300 dark:border-amber-700">
-                                        {language === "fr" ? "À clarifier" : "To clarify"}
-                                      </Badge>
-                                    )}
-                                  </div>
-                                  <p className="text-xs text-muted-foreground mt-1">
-                                    {language === "fr"
-                                      ? proposal.billingModel === "production"
-                                        ? `Client paie 100% de la production, même les surplus exportés à Hydro-Québec. Risque: ${proposal.overproductionRiskValue ? formatCurrency(proposal.overproductionRiskValue) + "/an" : "à calculer"}`
-                                        : proposal.billingModel === "consumption"
-                                        ? "Client paie seulement l'énergie autoconsommée"
-                                        : "Demandez: Payez-vous 100% de la production ou seulement ce que vous consommez?"
-                                      : proposal.billingModel === "production"
-                                        ? `Client pays for 100% of production, even surplus exported to Hydro-Québec. Risk: ${proposal.overproductionRiskValue ? formatCurrency(proposal.overproductionRiskValue) + "/yr" : "to calculate"}`
-                                        : proposal.billingModel === "consumption"
-                                        ? "Client pays only for self-consumed energy"
-                                        : "Ask: Do you pay for 100% of production or only what you consume?"}
-                                  </p>
-                                </div>
-                              </div>
-                            </div>
-                          )}
                         </div>
                       </div>
-
-                      {/* Section 1.5: Questions to Clarify */}
-                      {proposal.dealType === "ppa" && (
-                        <div className="p-4 bg-amber-50/30 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-900">
-                          <h4 className="text-sm font-semibold mb-3 flex items-center gap-2 text-amber-700 dark:text-amber-400">
-                            <HelpCircle className="w-4 h-4" />
-                            {language === "fr" ? "Questions à clarifier avec le client" : "Questions to Clarify with Client"}
-                          </h4>
-                          <ul className="space-y-2 text-sm">
-                            {(!proposal.billingModel || proposal.billingModel === "unknown") && (
-                              <li className="flex items-start gap-2">
-                                <span className="text-amber-600 dark:text-amber-400 mt-0.5">•</span>
-                                <span>
-                                  {language === "fr"
-                                    ? `"Avec ${competitor?.name || "votre fournisseur"}, payez-vous pour 100% de l'électricité produite, ou seulement ce que vous consommez?"`
-                                    : `"With ${competitor?.name || "your provider"}, do you pay for 100% of electricity produced, or only what you consume?"`}
-                                </span>
-                              </li>
-                            )}
-                            <li className="flex items-start gap-2">
-                              <span className="text-amber-600 dark:text-amber-400 mt-0.5">•</span>
-                              <span>
-                                {language === "fr"
-                                  ? `"Qui garde les crédits de surplus accumulés après 24 mois (compensation Hydro-Québec à 4.54¢/kWh)?"`
-                                  : `"Who keeps the surplus credits accumulated after 24 months (Hydro-Québec compensation at 4.54¢/kWh)?"`}
-                              </span>
-                            </li>
-                            <li className="flex items-start gap-2">
-                              <span className="text-amber-600 dark:text-amber-400 mt-0.5">•</span>
-                              <span>
-                                {language === "fr"
-                                  ? `"Après ${proposal.ppaTerm || 16} ans, le système sera-t-il vraiment gratuit ou y a-t-il des frais de transfert?"`
-                                  : `"After ${proposal.ppaTerm || 16} years, will the system truly be free or are there transfer fees?"`}
-                              </span>
-                            </li>
-                          </ul>
-                        </div>
-                      )}
 
                       {/* Section 2: Financing comparison */}
                       <div className="p-4 bg-muted/30 rounded-lg border">
                         <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
                           <Banknote className="w-4 h-4 text-primary" />
-                          {language === "fr" ? '"Mais le PPA me coûte 0$ CAPEX!"' : '"But PPA costs me $0 CAPEX!"'}
+                          {language === "fr" ? "Comparaison des options de financement" : "Financing Options Comparison"}
                         </h4>
                         <p className="text-sm text-muted-foreground mb-4">
                           {language === "fr" 
-                            ? "Le crédit-bail aussi! Et vous gardez tous les avantages:"
-                            : "So does a capital lease! And you keep all the benefits:"}
+                            ? "Le crédit-bail offre 0$ de mise de fonds initiale et vous gardez tous les avantages:"
+                            : "A capital lease offers $0 upfront and you keep all the benefits:"}
                         </p>
                         <div className="overflow-x-auto">
                           <table className="w-full text-sm">
                             <thead>
                               <tr className="border-b">
                                 <th className="text-left py-2 pr-2 font-medium"></th>
-                                <th className="text-center py-2 px-2 font-medium text-orange-600">
-                                  <div className="flex flex-col items-center gap-1">
-                                    <CreditCard className="w-4 h-4" />
-                                    <span>PPA</span>
-                                  </div>
-                                </th>
                                 <th className="text-center py-2 px-2 font-medium text-primary">
                                   <div className="flex flex-col items-center gap-1">
                                     <Calendar className="w-4 h-4" />
@@ -1659,9 +1483,6 @@ export default function MarketIntelligencePage() {
                                 <td className="text-center py-2 px-2">
                                   <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300">0$</Badge>
                                 </td>
-                                <td className="text-center py-2 px-2">
-                                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300">0$</Badge>
-                                </td>
                                 <td className="text-center py-2 px-2 text-sm">
                                   {proposal.projectCostTotal && proposal.systemSizeKW
                                     ? (() => {
@@ -1675,9 +1496,6 @@ export default function MarketIntelligencePage() {
                               <tr className="border-b border-muted">
                                 <td className="py-2 pr-2">{language === "fr" ? "Propriété" : "Ownership"}</td>
                                 <td className="text-center py-2 px-2">
-                                  <CircleX className="w-4 h-4 text-red-500 mx-auto" />
-                                </td>
-                                <td className="text-center py-2 px-2">
                                   <CircleCheck className="w-4 h-4 text-green-500 mx-auto" />
                                 </td>
                                 <td className="text-center py-2 px-2">
@@ -1686,9 +1504,6 @@ export default function MarketIntelligencePage() {
                               </tr>
                               <tr className="border-b border-muted">
                                 <td className="py-2 pr-2">{language === "fr" ? "Incitatif Hydro-Québec ($1,000/kW)" : "Hydro-Québec Incentive ($1,000/kW)"}</td>
-                                <td className="text-center py-2 px-2">
-                                  <span className="text-xs text-muted-foreground">{language === "fr" ? "TRC garde" : "TRC keeps"}</span>
-                                </td>
                                 <td className="text-center py-2 px-2">
                                   <CircleCheck className="w-4 h-4 text-green-500 mx-auto" />
                                 </td>
@@ -1699,9 +1514,6 @@ export default function MarketIntelligencePage() {
                               <tr className="border-b border-muted">
                                 <td className="py-2 pr-2">{language === "fr" ? "Bouclier fiscal (CCA)" : "Tax Shield (CCA)"}</td>
                                 <td className="text-center py-2 px-2">
-                                  <CircleX className="w-4 h-4 text-red-500 mx-auto" />
-                                </td>
-                                <td className="text-center py-2 px-2">
                                   <CircleCheck className="w-4 h-4 text-green-500 mx-auto" />
                                 </td>
                                 <td className="text-center py-2 px-2">
@@ -1710,11 +1522,6 @@ export default function MarketIntelligencePage() {
                               </tr>
                               <tr>
                                 <td className="py-2 pr-2">{language === "fr" ? "Coût total 25 ans" : "25-year total cost"}</td>
-                                <td className="text-center py-2 px-2 text-red-600 font-semibold">
-                                  {proposal.totalAdvantageKwh && proposal.totalAdvantageKwh > 0
-                                    ? `+${formatCurrency(Math.round(proposal.totalAdvantageKwh / 100000) * 100000)}`
-                                    : "—"}
-                                </td>
                                 <td className="text-center py-2 px-2 text-green-600 font-semibold">
                                   {language === "fr" ? "Optimal" : "Optimal"}
                                 </td>
@@ -1749,12 +1556,8 @@ export default function MarketIntelligencePage() {
                                     const cashCapex = netCostAfterHQ * 0.7; // After 30% ITC
                                     const annualProduction = systemKW * 1200;
                                     
-                                    // Use TRC's actual data
-                                    const compElecRate = proposal.compElecRate || 0.12; // TRC's grid rate assumption
-                                    const ppaDiscountPercent = proposal.ppaDiscountPercent || 40; // TRC's discount
-                                    const ppaRate = compElecRate * (1 - ppaDiscountPercent / 100); // Calculate actual PPA rate
-                                    const ppaTerm = proposal.ppaTerm || 16; // TRC's 16-year term
-                                    const realInflationRate = proposal.kwhInflationRate || 0.035; // HQ tariff inflation (3.5%)
+                                    const compElecRate = proposal.compElecRate || 0.12;
+                                    const realInflationRate = proposal.kwhInflationRate || 0.035;
                                     
                                     const leasePayment = cashCapex / 7 * 1.15; // 7-year lease with interest
                                     
@@ -1790,7 +1593,6 @@ export default function MarketIntelligencePage() {
                                     }
                                     
                                     const data = [];
-                                    let ppaCumulative = 0;
                                     let leaseCumulative = 0;
                                     let cashCumulative = -cashCapex;
                                     
@@ -1798,47 +1600,27 @@ export default function MarketIntelligencePage() {
                                       if (year === 0) {
                                         data.push({
                                           year,
-                                          ppa: 0,
                                           lease: 0,
                                           cash: Math.round(cashCumulative / 100000) / 10,
                                         });
                                         continue;
                                       }
                                       
-                                      // Real grid rate with actual HQ inflation
                                       const realGridRate = compElecRate * Math.pow(1 + realInflationRate, year);
                                       const annualGridCost = annualProduction * realGridRate;
                                       
-                                      // Get CCA tax shield for this year (ownership benefits)
                                       const ccaBenefit = ccaBenefits[year - 1] as { cash: number; lease: number };
                                       
-                                      // PPA: Fixed rate for ppaTerm years (TRC's terms) - NO TAX BENEFITS during term
-                                      if (year <= ppaTerm) {
-                                        // During PPA: savings = grid cost - PPA payment (escalates 2%/year typically)
-                                        const ppaAnnualCost = annualProduction * ppaRate * Math.pow(1.02, year - 1);
-                                        ppaCumulative += (annualGridCost - ppaAnnualCost);
-                                      } else {
-                                        // After PPA ends (year 17+): client OWNS the system for $1
-                                        // Full solar savings minus O&M costs (TRC: 7% of solar value)
-                                        const omCostPercent = 0.07; // TRC charges 7% of annual solar value for O&M
-                                        const solarValue = annualGridCost; // Solar value = avoided grid cost
-                                        const omCost = solarValue * omCostPercent;
-                                        ppaCumulative += (solarValue - omCost); // Net savings after O&M
-                                      }
-                                      
-                                      // Credit-lease: 7-year payments then free solar + CCA benefits after ownership
                                       if (year <= 7) {
                                         leaseCumulative += (annualGridCost - leasePayment);
                                       } else {
                                         leaseCumulative += annualGridCost + ccaBenefit.lease;
                                       }
                                       
-                                      // Cash: Own the system from day 1, all savings + CCA tax shield
                                       cashCumulative += annualGridCost + ccaBenefit.cash;
                                       
                                       data.push({
                                         year,
-                                        ppa: Math.round(ppaCumulative / 100000) / 10,
                                         lease: Math.round(leaseCumulative / 100000) / 10,
                                         cash: Math.round(cashCumulative / 100000) / 10,
                                       });
@@ -1872,7 +1654,6 @@ export default function MarketIntelligencePage() {
                                     wrapperStyle={{ fontSize: '12px' }}
                                     formatter={(value) => {
                                       const labels: Record<string, string> = {
-                                        ppa: "PPA",
                                         lease: language === "fr" ? "Crédit-bail" : "Credit Lease",
                                         cash: language === "fr" ? "Comptant" : "Cash"
                                       };
@@ -1880,13 +1661,6 @@ export default function MarketIntelligencePage() {
                                     }}
                                   />
                                   <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
-                                  <Line 
-                                    type="monotone" 
-                                    dataKey="ppa" 
-                                    stroke="#DC2626" 
-                                    strokeWidth={2}
-                                    dot={false}
-                                  />
                                   <Line
                                     type="monotone"
                                     dataKey="lease"

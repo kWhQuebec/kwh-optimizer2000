@@ -372,11 +372,11 @@ export default function RessourcesPage() {
     {
       category: "financial",
       question: language === "fr"
-        ? "Qu'est-ce qu'un PPA et est-ce une bonne option?"
-        : "What is a PPA and is it a good option?",
+        ? "Pourquoi le PPA n'est-il pas offert au Québec?"
+        : "Why is a PPA not available in Quebec?",
       answer: language === "fr"
-        ? "Un PPA (Power Purchase Agreement) est un contrat où un tiers installe et possède le système - vous achetez l'électricité à tarif fixe. Avantage: 0$ d'investissement. Inconvénient: le tiers garde les incitatifs et une grande partie des économies. Pour les entreprises qui peuvent investir ou financer, l'achat direct offre généralement un meilleur rendement."
-        : "A PPA (Power Purchase Agreement) is a contract where a third party installs and owns the system - you buy electricity at a fixed rate. Advantage: $0 investment. Disadvantage: the third party keeps the incentives and most of the savings. For businesses that can invest or finance, direct purchase generally offers better returns."
+        ? "Au Québec, la réglementation actuelle ne permet pas les contrats d'achat d'énergie (PPA) de type tiers-investisseur pour le solaire commercial. Seul Hydro-Québec peut vendre de l'électricité aux consommateurs. C'est pourquoi nous proposons trois options d'acquisition adaptées: l'achat comptant, le prêt et le crédit-bail. Chacune vous permet de conserver les incitatifs gouvernementaux et de maximiser vos économies."
+        : "In Quebec, current regulations do not allow third-party Power Purchase Agreements (PPAs) for commercial solar. Only Hydro-Québec can sell electricity to consumers. That's why we offer three adapted acquisition options: cash purchase, loan, and capital lease. Each allows you to retain government incentives and maximize your savings."
     },
 
     // PROCESS (5 questions)
