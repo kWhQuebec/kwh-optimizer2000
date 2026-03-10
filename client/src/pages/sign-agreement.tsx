@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -34,7 +35,13 @@ import {
   Download,
   Mail,
   Phone,
-  ArrowRight
+  ArrowRight,
+  Shield,
+  Lock,
+  Scale,
+  Users,
+  Zap,
+  Target
 } from "lucide-react";
 
 interface PublicAgreementData {
@@ -746,56 +753,117 @@ function SignAgreementContent() {
           </CardContent>
         </Card>
 
-        <div className="bg-primary/5 rounded-lg p-4 border border-primary/10" data-testid="section-intro">
+        {/* Section 2: Purpose */}
+        <div className="bg-primary/5 rounded-lg p-4 border border-primary/10" data-testid="section-purpose">
           <div className="flex items-start gap-3">
-            <Info className="w-5 h-5 text-primary mt-0.5 shrink-0" />
+            <Target className="w-5 h-5 text-primary mt-0.5 shrink-0" />
             <div>
-              <h4 className="font-medium text-primary mb-1">{t("designAgreement.introduction")}</h4>
-              <p className="text-sm text-muted-foreground">{t("designAgreement.introText")}</p>
+              <h4 className="font-medium text-primary mb-1">
+                {language === "fr" ? "Objet de l'entente" : "Purpose of Agreement"}
+              </h4>
+              <p className="text-sm text-muted-foreground">
+                {language === "fr"
+                  ? "Le présent Mandat de conception autorise kWh Québec inc. à réaliser une étude technique et économique préliminaire (« Design Agreement ») pour évaluer la faisabilité d'un système solaire photovoltaïque et/ou de stockage d'énergie pour le bâtiment identifié ci-dessus. Cette étude est un prérequis à toute proposition EPC (Engineering, Procurement & Construction) ferme."
+                  : "This Design Agreement authorizes kWh Québec inc. to conduct a preliminary technical and economic study to evaluate the feasibility of a solar photovoltaic and/or energy storage system for the building identified above. This study is a prerequisite to any firm EPC (Engineering, Procurement & Construction) proposal."}
+              </p>
             </div>
           </div>
         </div>
 
-        <Card>
+        {/* Section 4: Scope A/B/C */}
+        <Card data-testid="section-scope">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5 text-green-600" />
-              {t("designAgreement.deliverablesDetailed")}
+              <FileText className="w-5 h-5 text-primary" />
+              {language === "fr" ? "Portée des travaux" : "Scope of Work"}
             </CardTitle>
-            <CardDescription>{t("publicAgreement.scopeDescription")}</CardDescription>
+            <CardDescription>
+              {language === "fr"
+                ? "Le Design Agreement couvre trois volets complémentaires"
+                : "The Design Agreement covers three complementary phases"}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Scope A */}
+            <div className="border rounded-lg p-4 bg-blue-50/50 dark:bg-blue-950/20">
+              <div className="flex items-center gap-2 mb-2">
+                <Badge variant="secondary" className="bg-primary text-primary-foreground">A</Badge>
+                <h4 className="font-semibold">{language === "fr" ? "Conception préliminaire (Desktop)" : "Desktop Design"}</h4>
+              </div>
+              <ul className="space-y-1 text-sm text-muted-foreground ml-8">
+                <li>• {language === "fr" ? "Analyse de la consommation et du profil de charge" : "Consumption and load profile analysis"}</li>
+                <li>• {language === "fr" ? "Dimensionnement solaire + stockage (si applicable)" : "Solar + storage sizing (if applicable)"}</li>
+                <li>• {language === "fr" ? "Modélisation financière 25 ans (NPV, TRI, cashflows)" : "25-year financial modeling (NPV, IRR, cashflows)"}</li>
+                <li>• {language === "fr" ? "Demande d'interconnexion Hydro-Québec" : "Hydro-Québec interconnection application"}</li>
+                <li>• {language === "fr" ? "Analyse des incitatifs (ITC fédéral, HQ, RS&DE)" : "Incentive analysis (Federal ITC, HQ, SR&ED)"}</li>
+              </ul>
+            </div>
+            {/* Scope B */}
+            <div className="border rounded-lg p-4 bg-amber-50/50 dark:bg-amber-950/20">
+              <div className="flex items-center gap-2 mb-2">
+                <Badge variant="secondary" className="bg-amber-500 text-white">B</Badge>
+                <h4 className="font-semibold">{language === "fr" ? "Visite de site" : "Site Visit"}</h4>
+              </div>
+              <ul className="space-y-1 text-sm text-muted-foreground ml-8">
+                <li>• {language === "fr" ? "Inspection toiture (état, pente, membrane, obstructions)" : "Roof inspection (condition, slope, membrane, obstructions)"}</li>
+                <li>• {language === "fr" ? "Évaluation électrique (panneau, capacité, point de raccord)" : "Electrical assessment (panel, capacity, connection point)"}</li>
+                <li>• {language === "fr" ? "Évaluation structurale préliminaire" : "Preliminary structural assessment"}</li>
+                <li>• {language === "fr" ? "Photos et mesures pour conception détaillée" : "Photos and measurements for detailed design"}</li>
+                <li>• {language === "fr" ? "Identification des risques (6 catégories)" : "Risk identification (6 categories)"}</li>
+              </ul>
+            </div>
+            {/* Scope C */}
+            <div className="border rounded-lg p-4 bg-green-50/50 dark:bg-green-950/20">
+              <div className="flex items-center gap-2 mb-2">
+                <Badge variant="secondary" className="bg-green-600 text-white">C</Badge>
+                <h4 className="font-semibold">{language === "fr" ? "Ingénierie & livrables" : "Engineering & Deliverables"}</h4>
+              </div>
+              <ul className="space-y-1 text-sm text-muted-foreground ml-8">
+                <li>• {language === "fr" ? "Plans d'implantation et schémas électriques (SLD)" : "Layout plans and single-line diagrams (SLD)"}</li>
+                <li>• {language === "fr" ? "Rapport technique complet avec recommandations" : "Complete technical report with recommendations"}</li>
+                <li>• {language === "fr" ? "Spécifications d'équipement (panneaux, onduleurs, racking)" : "Equipment specifications (panels, inverters, racking)"}</li>
+                <li>• {language === "fr" ? "Proposition EPC ferme avec prix et calendrier" : "Firm EPC proposal with pricing and schedule"}</li>
+              </ul>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Section 5: Client Responsibilities */}
+        <Card data-testid="section-client-responsibilities">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="w-5 h-5 text-primary" />
+              {language === "fr" ? "Responsabilités du client" : "Client Responsibilities"}
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <ul className="space-y-2">
-              {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
-                <li key={n} className="flex items-start gap-2" data-testid={`deliverable-${n}`}>
-                  <CheckCircle2 className="w-4 h-4 mt-0.5 text-green-500 shrink-0" />
-                  <span className="text-sm">{t(`designAgreement.deliverableDetail${n}`)}</span>
-                </li>
-              ))}
+            <ul className="space-y-2 text-sm text-muted-foreground">
+              <li className="flex items-start gap-2">
+                <CheckCircle2 className="w-4 h-4 mt-0.5 text-primary/70 shrink-0" />
+                <span>{language === "fr" ? "Fournir les 12 derniers relevés de facture Hydro-Québec (ou accès au compte en ligne)" : "Provide the last 12 Hydro-Québec bills (or online account access)"}</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <CheckCircle2 className="w-4 h-4 mt-0.5 text-primary/70 shrink-0" />
+                <span>{language === "fr" ? "Accorder l'accès à la toiture et au panneau électrique lors de la visite" : "Grant roof and electrical panel access during site visit"}</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <CheckCircle2 className="w-4 h-4 mt-0.5 text-primary/70 shrink-0" />
+                <span>{language === "fr" ? "Fournir les plans du bâtiment si disponibles (structure, toiture, électrique)" : "Provide building plans if available (structural, roof, electrical)"}</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <CheckCircle2 className="w-4 h-4 mt-0.5 text-primary/70 shrink-0" />
+                <span>{language === "fr" ? "Communiquer tout changement prévu (expansion, rénovation, électrification)" : "Communicate any planned changes (expansion, renovation, electrification)"}</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <CheckCircle2 className="w-4 h-4 mt-0.5 text-primary/70 shrink-0" />
+                <span>{language === "fr" ? "Désigner un interlocuteur principal pour la coordination" : "Designate a primary contact for coordination"}</span>
+              </li>
             </ul>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <XCircle className="w-5 h-5 text-destructive" />
-              {t("designAgreement.exclusions")}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ul className="space-y-2">
-              {[1, 2, 3, 4].map((n) => (
-                <li key={n} className="flex items-start gap-2" data-testid={`exclusion-${n}`}>
-                  <XCircle className="w-4 h-4 mt-0.5 text-destructive/70 shrink-0" />
-                  <span className="text-sm text-muted-foreground">{t(`designAgreement.exclusion${n}`)}</span>
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
-
-        <Card>
+        {/* Section 7: Timeline */}
+        <Card data-testid="section-timeline">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Calendar className="w-5 h-5 text-primary" />
@@ -803,16 +871,35 @@ function SignAgreementContent() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ul className="space-y-2">
-              <li className="flex items-start gap-2" data-testid="timeline-visit">
-                <Clock className="w-4 h-4 mt-0.5 text-primary/70 shrink-0" />
-                <span className="text-sm text-muted-foreground">{t("designAgreement.timelineVisit")}</span>
-              </li>
-              <li className="flex items-start gap-2" data-testid="timeline-delivery">
-                <Clock className="w-4 h-4 mt-0.5 text-primary/70 shrink-0" />
-                <span className="text-sm text-muted-foreground">{t("designAgreement.timelineDelivery")}</span>
-              </li>
-            </ul>
+            <div className="space-y-3">
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
+                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                  <span className="text-sm font-bold text-primary">1</span>
+                </div>
+                <div>
+                  <p className="font-medium text-sm">{language === "fr" ? "Visite de site" : "Site Visit"}</p>
+                  <p className="text-xs text-muted-foreground">{language === "fr" ? "Dans les 10 jours ouvrables suivant la signature" : "Within 10 business days of signing"}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
+                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                  <span className="text-sm font-bold text-primary">2</span>
+                </div>
+                <div>
+                  <p className="font-medium text-sm">{language === "fr" ? "Rapport technique + proposition EPC" : "Technical Report + EPC Proposal"}</p>
+                  <p className="text-xs text-muted-foreground">{language === "fr" ? "4-6 semaines après la visite de site" : "4-6 weeks after site visit"}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
+                <div className="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center shrink-0">
+                  <Clock className="w-4 h-4 text-amber-600" />
+                </div>
+                <div>
+                  <p className="font-medium text-sm">{language === "fr" ? "Interconnexion Hydro-Québec" : "Hydro-Québec Interconnection"}</p>
+                  <p className="text-xs text-muted-foreground">{language === "fr" ? "Délai variable: 4-16 semaines (en parallèle)" : "Variable delay: 4-16 weeks (in parallel)"}</p>
+                </div>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
@@ -914,6 +1001,141 @@ function SignAgreementContent() {
           </CardContent>
         </Card>
 
+        {/* Section 9: Assumptions & Exclusions */}
+        <Card data-testid="section-assumptions-exclusions">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-amber-600" />
+              {language === "fr" ? "Hypothèses et exclusions" : "Assumptions & Exclusions"}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <h4 className="text-sm font-semibold mb-2">{language === "fr" ? "Hypothèses" : "Assumptions"}</h4>
+              <ul className="space-y-1 text-sm text-muted-foreground">
+                <li>• {language === "fr" ? "Le client fournit un accès raisonnable au bâtiment pour la visite de site" : "Client provides reasonable building access for site visit"}</li>
+                <li>• {language === "fr" ? "Les données de consommation fournies sont exactes et représentatives" : "Consumption data provided is accurate and representative"}</li>
+                <li>• {language === "fr" ? "Aucune modification structurale majeure n'est requise (sauf avis contraire dans le rapport)" : "No major structural modifications required (unless noted in report)"}</li>
+                <li>• {language === "fr" ? "Les tarifs et incitatifs sont basés sur les programmes en vigueur au moment de l'étude" : "Rates and incentives are based on programs in effect at time of study"}</li>
+              </ul>
+            </div>
+            <Separator />
+            <div>
+              <h4 className="text-sm font-semibold mb-2">{language === "fr" ? "Exclusions" : "Exclusions"}</h4>
+              <ul className="space-y-1 text-sm text-muted-foreground">
+                <li className="flex items-start gap-2">
+                  <XCircle className="w-4 h-4 mt-0.5 text-destructive/70 shrink-0" />
+                  <span>{language === "fr" ? "Construction, installation ou mise en service du système" : "System construction, installation, or commissioning"}</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <XCircle className="w-4 h-4 mt-0.5 text-destructive/70 shrink-0" />
+                  <span>{language === "fr" ? "Travaux de toiture, réparations structurales ou mises à niveau électriques" : "Roofing work, structural repairs, or electrical upgrades"}</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <XCircle className="w-4 h-4 mt-0.5 text-destructive/70 shrink-0" />
+                  <span>{language === "fr" ? "Frais de tierce partie (ingénieur structural, HQ, arpenteur) — facturés séparément si requis" : "Third-party fees (structural engineer, HQ, surveyor) — billed separately if required"}</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <XCircle className="w-4 h-4 mt-0.5 text-destructive/70 shrink-0" />
+                  <span>{language === "fr" ? "Permis municipaux et autorisations réglementaires" : "Municipal permits and regulatory approvals"}</span>
+                </li>
+              </ul>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Sections 10-13: Legal terms (Accordion) */}
+        <Card data-testid="section-legal-terms">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Scale className="w-5 h-5 text-primary" />
+              {language === "fr" ? "Conditions générales" : "General Terms"}
+            </CardTitle>
+            <CardDescription>
+              {language === "fr" ? "Cliquez pour voir les détails" : "Click to view details"}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Accordion type="multiple" className="w-full">
+              {/* Section 10: Ownership */}
+              <AccordionItem value="ownership">
+                <AccordionTrigger className="text-sm font-medium">
+                  <span className="flex items-center gap-2">
+                    <FileText className="w-4 h-4" />
+                    {language === "fr" ? "Propriété intellectuelle" : "Ownership of Work Product"}
+                  </span>
+                </AccordionTrigger>
+                <AccordionContent className="text-sm text-muted-foreground space-y-2">
+                  <p>{language === "fr"
+                    ? "Les plans, rapports et documents produits dans le cadre de cette entente demeurent la propriété de kWh Québec inc. jusqu'au paiement intégral des frais du Design Agreement."
+                    : "Plans, reports, and documents produced under this agreement remain the property of kWh Québec inc. until full payment of the Design Agreement fees."}</p>
+                  <p>{language === "fr"
+                    ? "Après paiement complet, le client obtient une licence d'utilisation non exclusive pour les documents livrés, limitée au projet décrit dans l'entente. kWh Québec conserve les droits de propriété intellectuelle sur ses méthodologies, outils et processus."
+                    : "After full payment, the client receives a non-exclusive license to use the delivered documents, limited to the project described in this agreement. kWh Québec retains intellectual property rights over its methodologies, tools, and processes."}</p>
+                </AccordionContent>
+              </AccordionItem>
+
+              {/* Section 11: Confidentiality */}
+              <AccordionItem value="confidentiality">
+                <AccordionTrigger className="text-sm font-medium">
+                  <span className="flex items-center gap-2">
+                    <Lock className="w-4 h-4" />
+                    {language === "fr" ? "Confidentialité" : "Confidentiality"}
+                  </span>
+                </AccordionTrigger>
+                <AccordionContent className="text-sm text-muted-foreground space-y-2">
+                  <p>{language === "fr"
+                    ? "Les deux parties s'engagent à traiter comme confidentielle toute information technique, financière ou commerciale échangée dans le cadre de cette entente."
+                    : "Both parties agree to treat as confidential any technical, financial, or commercial information exchanged under this agreement."}</p>
+                  <p>{language === "fr"
+                    ? "Cette obligation de confidentialité survit à la terminaison de l'entente pour une période de deux (2) ans."
+                    : "This confidentiality obligation survives termination of the agreement for a period of two (2) years."}</p>
+                </AccordionContent>
+              </AccordionItem>
+
+              {/* Section 12: Limitation of Liability */}
+              <AccordionItem value="liability">
+                <AccordionTrigger className="text-sm font-medium">
+                  <span className="flex items-center gap-2">
+                    <Shield className="w-4 h-4" />
+                    {language === "fr" ? "Limitation de responsabilité" : "Limitation of Liability"}
+                  </span>
+                </AccordionTrigger>
+                <AccordionContent className="text-sm text-muted-foreground space-y-2">
+                  <p>{language === "fr"
+                    ? "La responsabilité totale de kWh Québec inc. dans le cadre de cette entente est limitée au montant des frais payés pour le Design Agreement."
+                    : "The total liability of kWh Québec inc. under this agreement is limited to the amount of fees paid for the Design Agreement."}</p>
+                  <p>{language === "fr"
+                    ? "kWh Québec ne saurait être tenu responsable des dommages indirects, consécutifs ou punitifs, incluant les pertes de profits ou de revenus."
+                    : "kWh Québec shall not be liable for indirect, consequential, or punitive damages, including lost profits or revenue."}</p>
+                </AccordionContent>
+              </AccordionItem>
+
+              {/* Section 13: Termination */}
+              <AccordionItem value="termination">
+                <AccordionTrigger className="text-sm font-medium">
+                  <span className="flex items-center gap-2">
+                    <XCircle className="w-4 h-4" />
+                    {language === "fr" ? "Résiliation" : "Termination"}
+                  </span>
+                </AccordionTrigger>
+                <AccordionContent className="text-sm text-muted-foreground space-y-2">
+                  <p>{language === "fr"
+                    ? "Le client peut résilier cette entente à tout moment par avis écrit. Les frais du Design Agreement ne sont pas remboursables."
+                    : "The client may terminate this agreement at any time by written notice. Design Agreement fees are non-refundable."}</p>
+                  <p>{language === "fr"
+                    ? "Si la résiliation survient avant la visite de site, kWh Québec remettra au client tous les livrables complétés à cette date."
+                    : "If termination occurs before the site visit, kWh Québec will deliver all completed deliverables as of that date."}</p>
+                  <p>{language === "fr"
+                    ? "kWh Québec se réserve le droit de résilier l'entente si le client ne remplit pas ses obligations (accès, documents requis) dans un délai raisonnable."
+                    : "kWh Québec reserves the right to terminate the agreement if the client fails to fulfill their obligations (access, required documents) within a reasonable timeframe."}</p>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          </CardContent>
+        </Card>
+
+        {/* Section 8 (expanded): Fee, Credit & Path to EPC */}
         <div className="bg-green-50 dark:bg-green-950/30 rounded-lg p-4 border border-green-200 dark:border-green-800" data-testid="section-credit-policy">
           <div className="flex items-start gap-3">
             <Gift className="w-5 h-5 text-green-600 mt-0.5 shrink-0" />
@@ -924,6 +1146,39 @@ function SignAgreementContent() {
           </div>
         </div>
 
+        {/* Section 14: Path to EPC Contract */}
+        <Card className="border-primary/30" data-testid="section-path-to-epc">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Zap className="w-5 h-5 text-primary" />
+              {language === "fr" ? "Chemin vers le contrat EPC" : "Path to EPC Contract"}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                {language === "fr"
+                  ? "Si l'étude confirme la viabilité du projet, kWh Québec présentera une proposition EPC ferme comprenant:"
+                  : "If the study confirms project viability, kWh Québec will present a firm EPC proposal including:"}
+              </p>
+              <ul className="space-y-1 text-sm text-muted-foreground ml-4">
+                <li>• {language === "fr" ? "Prix fixe garanti pour la conception, l'approvisionnement et la construction" : "Guaranteed fixed price for design, procurement, and construction"}</li>
+                <li>• {language === "fr" ? "Calendrier détaillé avec jalons de paiement" : "Detailed schedule with payment milestones"}</li>
+                <li>• {language === "fr" ? "Garanties de performance et de production" : "Performance and production guarantees"}</li>
+                <li>• {language === "fr" ? "Plan O&M 25 ans avec monitoring en temps réel" : "25-year O&M plan with real-time monitoring"}</li>
+              </ul>
+              <div className="bg-primary/5 rounded-lg p-3 mt-3">
+                <p className="text-sm font-medium text-primary">
+                  {language === "fr"
+                    ? "Le montant complet du Design Agreement sera crédité sur le contrat EPC si le projet va de l'avant."
+                    : "The full Design Agreement amount will be credited on the EPC contract if the project proceeds."}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Important Notes */}
         <div className="bg-amber-50 dark:bg-amber-950/30 rounded-lg p-4 border border-amber-200 dark:border-amber-800" data-testid="section-important-notes">
           <h4 className="font-medium text-amber-700 dark:text-amber-400 mb-2 flex items-center gap-2">
             <AlertCircle className="w-4 h-4" />
