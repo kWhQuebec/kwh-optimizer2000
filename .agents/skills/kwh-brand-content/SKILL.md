@@ -15,12 +15,11 @@ description: Brand and content rules for kWh Québec public-facing pages. Use wh
 
 ## Brand DNA
 
-- **Tagline**: "Turnkey solar and storage solutions for Quebec's commercial and industrial sectors."
-- **Business overview**: kWh Québec provides turnkey solar energy and battery storage solutions tailored for the commercial and industrial sectors across Quebec. Founded by industry experts, the company manages the entire project lifecycle—from free energy potential analysis and engineering to professional installation and the acquisition of government incentives.
-- **Brand values**: Simplicité (Simplicity), Fiabilité (Reliability), Pérennité (Sustainability), Fierté (Pride)
-- **Brand aesthetic**: industrial scale, sustainable technology, corporate trust, engineering precision, modern cleanliness
-- **Brand tone of voice**: Professional, Authoritative, Technical, Reassuring
-- **All brand DNA fields** are centralized in `shared/brandContent.ts` under `BRAND_CONTENT.tagline`, `.businessOverview`, `.brandAesthetic`, `.brandToneOfVoice`, and `.values`
+- **Tagline**: "Turnkey solar and storage solutions for Quebec's commercial and industrial sectors." / "Solutions solaires et de stockage clé en main pour les secteurs commercial et industriel du Québec."
+- **Brand Values**: Simplicity (Simplicité), Reliability (Fiabilité), Sustainability (Pérennité), Pride (Fierté)
+- **Brand Aesthetic**: industrial scale, sustainable technology, corporate trust, engineering precision, modern cleanliness
+- **Tone of Voice**: Professional, Authoritative, Technical, Reassuring
+- **Business Overview**: kWh Québec provides turnkey solar energy and battery storage solutions tailored for the commercial and industrial sectors across Quebec. Founded by industry experts, the company manages the entire project lifecycle—from free energy potential analysis and engineering to professional installation and the acquisition of government incentives.
 
 ## Company Identity
 

@@ -6,32 +6,29 @@
 export const BRAND_CONTENT = {
   // === BRAND DNA ===
   tagline: {
-    fr: "Solutions solaires et de stockage clé en main pour le secteur commercial et industriel du Québec.",
+    fr: "Solutions solaires et de stockage clé en main pour les secteurs commercial et industriel du Québec.",
     en: "Turnkey solar and storage solutions for Quebec's commercial and industrial sectors.",
   },
-
   businessOverview: {
-    fr: "kWh Québec offre des solutions clé en main en énergie solaire et en stockage par batteries, adaptées aux secteurs commercial et industriel partout au Québec. Fondée par des experts de l'industrie, l'entreprise gère l'ensemble du cycle de vie des projets — de l'analyse gratuite du potentiel énergétique et de l'ingénierie jusqu'à l'installation professionnelle et l'obtention des incitatifs gouvernementaux.",
+    fr: "kWh Québec offre des solutions clé en main d'énergie solaire et de stockage par batterie adaptées aux secteurs commercial et industriel du Québec. Fondée par des experts de l'industrie, l'entreprise gère l'ensemble du cycle de projet — de l'analyse gratuite du potentiel énergétique et de l'ingénierie à l'installation professionnelle et l'obtention des incitatifs gouvernementaux.",
     en: "kWh Québec provides turnkey solar energy and battery storage solutions tailored for the commercial and industrial sectors across Quebec. Founded by industry experts, the company manages the entire project lifecycle—from free energy potential analysis and engineering to professional installation and the acquisition of government incentives.",
   },
-
   brandAesthetic: ["industrial scale", "sustainable technology", "corporate trust", "engineering precision", "modern cleanliness"],
-
   brandToneOfVoice: ["Professional", "Authoritative", "Technical", "Reassuring"],
 
   // === STATS DE CRÉDIBILITÉ ===
   stats: {
-    yearsExperience: { value: "15+", labelFr: "Années d'expérience cumulée en énergie", labelEn: "Years of combined energy experience" },
+    yearsExperience: { value: "15+", labelFr: "Années d'expérience", labelEn: "Years of experience" },
     mwInstalled: { value: "120", labelFr: "MW installés", labelEn: "MW installed" },
     projectsCI: { value: "25+", labelFr: "Projets C&I", labelEn: "C&I Projects" },
   },
 
   // === POURQUOI kWh QUÉBEC — VALEURS ===
   values: [
-    { id: "simplicite", labelFr: "Simplicité", labelEn: "Simplicity", descFr: "Solution clé en main — on s'occupe de tout !", descEn: "Turnkey solution — we handle everything!" },
-    { id: "fiabilite", labelFr: "Fiabilité", labelEn: "Reliability", descFr: "Performance garantie. On respecte nos engagements, toujours !", descEn: "Guaranteed performance. We keep our commitments, always!" },
-    { id: "perennite", labelFr: "Pérennité", labelEn: "Sustainability", descFr: "On bâtit des relations et des solutions pour le long terme.", descEn: "We build relationships and solutions for the long term." },
-    { id: "fierte", labelFr: "Fierté", labelEn: "Pride", descFr: "On est fier des projets que nous réalisons et de l'impact qu'ils ont sur nos clients et sur l'environnement.", descEn: "We're proud of the projects we deliver and the impact they have on our clients and the environment." },
+    { id: "simplicite", labelFr: "Simplicité", labelEn: "Simplicity", descFr: "Un interlocuteur unique, du premier appel à la mise en service.", descEn: "A single point of contact, from first call to commissioning." },
+    { id: "fiabilite", labelFr: "Fiabilité", labelEn: "Reliability", descFr: "Licence RBQ, équipe certifiée CCQ & CNESST, ingénierie scellée.", descEn: "RBQ licensed, CCQ & CNESST certified team, sealed engineering." },
+    { id: "perennite", labelFr: "Pérennité", labelEn: "Sustainability", descFr: "Garantie 25 ans sur les panneaux, suivi de performance continu.", descEn: "25-year panel warranty, continuous performance monitoring." },
+    { id: "fierte", labelFr: "Fierté", labelEn: "Pride", descFr: "Entreprise québécoise engagée dans la transition énergétique.", descEn: "Quebec company committed to the energy transition." },
   ],
 
   // === CREDIBILITY DESCRIPTION ===
@@ -58,10 +55,10 @@ export const BRAND_CONTENT = {
   // === CALENDLY BOOKING ===
   calendly: {
     urlEnvVar: "VITE_CALENDLY_URL",
-    fallbackUrl: "mailto:ventes@kwh.quebec?subject=Demande%20appel%20d%C3%A9couverte",
+    fallbackUrl: "https://calendly.com/kwh-quebec/decouverte",
     height: "650px",
-    labelFr: "Demander un appel découverte",
-    labelEn: "Request a discovery call",
+    labelFr: "Réserver un appel découverte",
+    labelEn: "Book a discovery call",
     descriptionFr: "Un appel découverte de 10 minutes pour valider votre projet et planifier les prochaines étapes.",
     descriptionEn: "A 10-minute discovery call to validate your project and plan next steps.",
   },
@@ -116,11 +113,6 @@ export const BRAND_CONTENT = {
     {
       labelFr: "Panneaux Jinko Solar N-type TOPCon",
       labelEn: "Jinko Solar N-type TOPCon panels",
-      tierLabelFr: "Modules solaires Tier 1",
-      tierLabelEn: "Tier 1 Solar Modules",
-      tierDescFr: "Fabricant classé Tier 1 par Bloomberg NEF — fiabilité bancaire confirmée",
-      tierDescEn: "Bloomberg NEF Tier 1 rated manufacturer — bankability confirmed",
-      tier: "Tier 1",
       manufacturer: "Jinko Solar",
       warrantyFr: "30 ans",
       warrantyEn: "30 years",
@@ -136,11 +128,6 @@ export const BRAND_CONTENT = {
     {
       labelFr: "Onduleurs Kaco Blueplanet",
       labelEn: "Kaco Blueplanet inverters",
-      tierLabelFr: "Onduleurs Tier 1",
-      tierLabelEn: "Tier 1 Inverters",
-      tierDescFr: "Rendement > 98%, certifié pour interconnexion réseau nord-américain",
-      tierDescEn: "Efficiency > 98%, certified for North American grid interconnection",
-      tier: "Tier 1",
       manufacturer: "Kaco New Energy",
       warrantyFr: "10 ans (ext. 15 ans)",
       warrantyEn: "10 yrs (ext. 15 yrs)",
@@ -156,11 +143,6 @@ export const BRAND_CONTENT = {
     {
       labelFr: "Structure de montage KB Racking",
       labelEn: "KB Racking mounting structure",
-      tierLabelFr: "Structure de montage Tier 1",
-      tierLabelEn: "Tier 1 Mounting System",
-      tierDescFr: "Système ballasté sans pénétration — ingénierie scellée par un ingénieur",
-      tierDescEn: "Non-penetrating ballasted system — P.Eng. sealed engineering",
-      tier: "Tier 1",
       manufacturer: "KB Racking",
       warrantyFr: "25 ans",
       warrantyEn: "25 years",
@@ -176,11 +158,6 @@ export const BRAND_CONTENT = {
     {
       labelFr: "Main d'œuvre certifiée",
       labelEn: "Certified workmanship",
-      tierLabelFr: "Équipe certifiée kWh Québec",
-      tierLabelEn: "kWh Québec Certified Team",
-      tierDescFr: "Entrepreneur licencié RBQ, équipes CCQ & CNESST conformes",
-      tierDescEn: "RBQ licensed contractor, CCQ & CNESST compliant crews",
-      tier: "kWh",
       manufacturer: "kWh Québec",
       warrantyFr: "10 ans",
       warrantyEn: "10 years",
@@ -354,7 +331,7 @@ export const BRAND_CONTENT = {
   },
 
   clientProvides: [
-    { labelFr: "Données de consommation Hydro-Québec (CSV ou procuration)", labelEn: "Hydro-Québec consumption data (CSV or authorization)" },
+    { labelFr: "Factures Hydro-Québec (12-24 mois)", labelEn: "Hydro-Québec bills (12-24 months)" },
     { labelFr: "Informations toiture (âge, état)", labelEn: "Roof information (age, condition)" },
     { labelFr: "Schéma unifilaire (si disponible)", labelEn: "Single-line diagram (if available)" },
     { labelFr: "Confirmation propriété / bail", labelEn: "Ownership / lease confirmation" },
@@ -447,8 +424,8 @@ export const BRAND_CONTENT = {
         labelEn: "Significant reduction in installation costs",
       },
       {
-        labelFr: "Incitatifs Hydro-Québec (Solutions efficaces — OSE 6.0) — Jusqu'à 1 000 $/kW",
-        labelEn: "Hydro-Québec Incentives (Solutions efficaces — OSE 6.0) — Up to $1,000/kW",
+        labelFr: "Incitatifs Hydro-Québec — Jusqu'à 1 000 $/kW",
+        labelEn: "Hydro-Québec Incentives — Up to $1,000/kW",
       },
       {
         labelFr: "Crédit d'impôt fédéral (CII) jusqu'à 30% pour les entreprises admissibles",
@@ -483,31 +460,31 @@ export const BRAND_CONTENT = {
       {
         mythFr: "Les panneaux ne produisent pas en hiver",
         mythEn: "Panels don't produce in winter",
-        realityFr: "Votre système est conçu pour la production annuelle, pas quotidienne. Grâce au mesurage net, vos surplus d'été deviennent des crédits utilisables pendant 24 mois — l'hiver est déjà prévu dans le calcul.",
+        realityFr: "Dimensionné sur la production annuelle. Mesurage net = crédits sur 24 mois.",
         realityEn: "Sized on annual production. Net metering = 24-month credit bank.",
       },
       {
         mythFr: "Le froid réduit la performance",
         mythEn: "Cold reduces performance",
-        realityFr: "C'est l'inverse : les panneaux solaires sont plus efficaces par temps froid. Chaque degré sous 25 °C améliore leur rendement de 0,4 %. L'hiver québécois est un avantage, pas un obstacle.",
+        realityFr: "L'inverse : le froid améliore l'efficacité (+0,4%/°C sous 25 °C).",
         realityEn: "The opposite: cold improves efficiency (+0.4%/°C below 25°C).",
       },
       {
         mythFr: "La neige bloque les panneaux",
         mythEn: "Snow blocks panels",
-        realityFr: "Une étude rigoureuse du NAIT sur 5 ans à Edmonton montre seulement 5 % de perte annuelle due à la neige sur des panneaux inclinés. En prime, la réflexion de la neige (effet albédo) augmente la production de 5 à 10 %.",
+        realityFr: "Étude NAIT (5 ans, Edmonton) : seulement ~5% de perte annuelle à 10°. Effet albédo = bonus 5-10%.",
         realityEn: "NAIT study (5 years, Edmonton): only ~5% annual loss at 10°. Albedo effect = 5-10% bonus.",
       },
       {
         mythFr: "Journées courtes = non viable",
         mythEn: "Short days = unviable",
-        realityFr: "Au Québec, les longues journées d'été (plus de 15 heures de lumière) compensent largement les journées courtes d'hiver. C'est la production annuelle totale qui détermine votre rentabilité.",
+        realityFr: "Longs étés québécois (15h+) compensent. Production annuelle totale compte.",
         realityEn: "Long Quebec summers (15h+) compensate. Total annual production matters.",
       },
       {
         mythFr: "Pas fait ses preuves au Québec",
         mythEn: "Unproven in Quebec",
-        realityFr: "Le solaire commercial a plus de 25 ans de données réelles en climats nordiques. Des milliers de systèmes commerciaux et industriels fonctionnent avec succès au Canada et dans des conditions similaires.",
+        realityFr: "25+ ans de données réelles. Milliers de systèmes C&I en climats nordiques.",
         realityEn: "25+ years of real data. Thousands of C&I systems in northern climates.",
       },
     ],
@@ -772,9 +749,6 @@ export function getExclusions(lang: Lang) {
 export function getEquipment(lang: Lang) {
   return BRAND_CONTENT.equipment.map(e => ({
     label: lang === "fr" ? e.labelFr : e.labelEn,
-    tierLabel: lang === "fr" ? e.tierLabelFr : e.tierLabelEn,
-    tierDesc: lang === "fr" ? e.tierDescFr : e.tierDescEn,
-    tier: e.tier,
     manufacturer: e.manufacturer,
     warranty: lang === "fr" ? e.warrantyFr : e.warrantyEn,
     specs: lang === "fr" ? e.specsFr : e.specsEn,
