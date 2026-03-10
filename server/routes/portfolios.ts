@@ -453,17 +453,24 @@ router.post("/api/portfolios/:id/recalculate", authMiddleware, requireStaff, asy
   let weightedIrrSum = 0;
 
   for (const ps of portfolioSites) {
-    const pvSize = ps.overridePvSizeKW ?? ps.latestSimulation?.pvSizeKW ?? 0;
-    const battKWh = ps.overrideBatteryKWh ?? ps.latestSimulation?.battEnergyKWh ?? 0;
-    const capexNet = ps.overrideCapexNet ?? ps.latestSimulation?.capexNet ?? 0;
-    const npv = ps.overrideNpv ?? ps.latestSimulation?.npv25 ?? 0;
-    const irr = ps.overrideIrr ?? ps.latestSimulation?.irr25 ?? 0;
-    const annualSavings = ps.overrideAnnualSavings ?? ps.latestSimulation?.annualSavings ?? 0;
+    await storage.updatePortfolioSite(ps.id, {
+      overridePvSizeKW: null,
+      overrideBatteryKWh: null,
+      overrideCapexNet: null,
+      overrideNpv: null,
+      overrideIrr: null,
+      overrideAnnualSavings: null,
+    });
+
+    const pvSize = ps.latestSimulation?.pvSizeKW ?? 0;
+    const battKWh = ps.latestSimulation?.battEnergyKWh ?? 0;
+    const capexNet = ps.latestSimulation?.capexNet ?? 0;
+    const npv = ps.latestSimulation?.npv25 ?? 0;
+    const irr = ps.latestSimulation?.irr25 ?? 0;
+    const annualSavings = ps.latestSimulation?.annualSavings ?? 0;
     const co2 = ps.latestSimulation?.co2AvoidedTonnesPerYear ?? 0;
 
-    const hasData = pvSize > 0 || capexNet !== 0 || npv !== 0 || annualSavings !== 0 ||
-                   ps.overridePvSizeKW != null || ps.overrideCapexNet != null ||
-                   ps.overrideNpv != null || ps.overrideAnnualSavings != null;
+    const hasData = pvSize > 0 || capexNet !== 0 || npv !== 0 || annualSavings !== 0;
 
     if (hasData || ps.latestSimulation) {
       totalPvSizeKW += pvSize;

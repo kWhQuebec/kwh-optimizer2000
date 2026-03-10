@@ -80,9 +80,11 @@ router.post("/api/auth/login", loginLimiter, asyncHandler(async (req, res) => {
   await storage.updateUser(user.id, { lastLoginAt: new Date() });
 
   const token = signToken(user.id);
+  const refreshToken = signRefreshToken(user.id);
 
   res.json({
     token,
+    refreshToken,
     user: {
       id: user.id,
       email: user.email,
@@ -206,6 +208,13 @@ router.post("/api/auth/refresh", asyncHandler(async (req, res) => {
   }
   try {
     const { userId } = verifyRefreshToken(refreshToken);
+    const user = await storage.getUser(userId);
+    if (!user) {
+      return res.status(401).json({ error: "User not found" });
+    }
+    if (user.status === "inactive") {
+      return res.status(403).json({ error: "Account is deactivated" });
+    }
     const newToken = signToken(userId);
     res.json({ token: newToken });
   } catch (e) {

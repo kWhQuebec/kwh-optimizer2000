@@ -46,6 +46,15 @@ All building type data is centralized in `shared/buildingTypes.ts`, aligned with
 ### Google Places Address Autocomplete
 Site and Client creation forms use Google Places Autocomplete (`client/src/components/address-autocomplete.tsx`) to auto-fill city, province, postal code, and coordinates when an address is selected. The component uses the Google Maps JavaScript API with the `places` library (included alongside `drawing` and `geometry` in all Google Maps script loaders). The autocomplete dropdown is restricted to Canadian addresses. All three Google Maps script loaders (RoofVisualization, RoofDrawingModal, AddressAutocomplete) include `places` in their library list for compatibility.
 
+### Authentication & Token Refresh
+JWT access tokens expire after 15 minutes. Login returns both `token` (access) and `refreshToken` (7-day). The frontend (`client/src/lib/queryClient.ts`) automatically intercepts 401 responses, exchanges the refresh token at `/api/auth/refresh` for a new access token, and retries the failed request. The refresh endpoint validates user existence and active status before issuing new tokens.
+
+### Roof Area Source Tracking
+Both quick-potential and detailed analysis endpoints track the source of roof area data via a `roofAreaSource` field in responses: `"polygons"` (drawn), `"site"` (manual/Google Solar), `"sibling-copy"` (copied from same-address site), or `"consumption-estimate"` (reverse-engineered from consumption). The frontend displays an amber warning banner when results use estimated roof area.
+
+### Portfolio Synchronization
+The portfolio recalculate endpoint (`POST /api/portfolios/:id/recalculate`) clears all site-level overrides before recalculating totals from the latest simulations. This ensures the portfolio always reflects current analysis results after sync.
+
 ### Error Handling
 The backend uses a centralized error handling system with custom `AppError` classes and an `asyncHandler` wrapper for consistent error responses.
 

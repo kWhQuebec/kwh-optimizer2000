@@ -1812,6 +1812,22 @@ export default function SiteDetailPage() {
                     : "Analysis based only on drawn roof area. Full analysis requires consumption data."}
                 </p>
 
+                {quickPotential.roofAnalysis.roofAreaSource === "consumption-estimate" && (
+                  <div className="flex items-start gap-2 mt-2 p-3 rounded-md bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800" data-testid="alert-estimated-roof">
+                    <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                    <div className="text-sm">
+                      <p className="font-medium text-amber-800 dark:text-amber-300">
+                        {language === "fr" ? "Surface de toit estimée" : "Estimated Roof Area"}
+                      </p>
+                      <p className="text-amber-700 dark:text-amber-400">
+                        {language === "fr"
+                          ? "Aucune zone de toit n'a été dessinée. Les résultats sont basés sur une estimation à partir de la consommation. Dessinez les zones de toit pour des résultats fiables."
+                          : "No roof areas have been drawn. Results are based on an estimate from consumption data. Draw roof areas for reliable results."}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 {(site.structuralPassStatus === "no" || site.structuralPassStatus === "partial" || site.structuralBallastRemoval === "yes" || site.structuralNotes) && (
                   <div className="flex items-start gap-2 mt-2 p-3 rounded-md bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800" data-testid="alert-structural-warning">
                     <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />

@@ -748,15 +748,18 @@ router.post("/:siteId/quick-potential", authMiddleware, requireStaff, asyncHandl
   let totalRoofAreaSqM = polygonAreaSqM > 0
     ? polygonAreaSqM
     : (site.roofAreaSqM || site.roofAreaAutoSqM || 0);
+  let roofAreaSource: "polygons" | "site" | "sibling-copy" | "consumption-estimate" = polygonAreaSqM > 0 ? "polygons" : "site";
 
   if (totalRoofAreaSqM <= 0 && site.buildingSqFt && site.buildingSqFt > 0) {
     totalRoofAreaSqM = site.buildingSqFt * 0.0929;
+    roofAreaSource = "site";
   }
 
   if (totalRoofAreaSqM <= 0) {
     const copyResult = await autocopySiblingRoofPolygons(siteId, site.address);
     if (copyResult.copied && copyResult.areaSqM && copyResult.areaSqM > 0) {
       totalRoofAreaSqM = copyResult.areaSqM;
+      roofAreaSource = "sibling-copy";
     }
   }
 
@@ -773,6 +776,7 @@ router.post("/:siteId/quick-potential", authMiddleware, requireStaff, asyncHandl
     if (estKwh > 0) {
       const estPvKw = estKwh / 1150;
       totalRoofAreaSqM = (estPvKw / 0.660) * 3.71 / 0.85;
+      roofAreaSource = "consumption-estimate";
       log.warn(`No roof area for site ${siteId} â estimated ${Math.round(totalRoofAreaSqM)}mÂ² from consumption (${Math.round(estKwh)} kWh/yr â ${estPvKw.toFixed(1)} kWp)`);
     } else {
       throw new BadRequestError("No roof area available. Please draw roof areas in Step 1 (Roof Drawing Tool) or set a building area for this site.");
@@ -896,6 +900,7 @@ router.post("/:siteId/quick-potential", authMiddleware, requireStaff, asyncHandl
       utilizationRatio: effectiveUtilizationRatio,
       constraintFactor,
       polygonCount: solarPolygons.length > 0 ? solarPolygons.length : 1,
+      roofAreaSource,
     },
     systemSizing: {
       maxCapacityKW: Math.round(maxCapacityKW * 10) / 10,
@@ -1064,9 +1069,11 @@ router.post("/:siteId/run-potential-analysis", authMiddleware, requireStaff, asy
   let effectiveRoofAreaSqM = tracedSolarAreaSqM > 0
     ? tracedSolarAreaSqM
     : (site.roofAreaSqM || site.roofAreaAutoSqM || 0);
+  let detailedRoofAreaSource: "polygons" | "site" | "sibling-copy" | "consumption-estimate" = tracedSolarAreaSqM > 0 ? "polygons" : "site";
 
   if (effectiveRoofAreaSqM <= 0 && site.buildingSqFt && site.buildingSqFt > 0) {
     effectiveRoofAreaSqM = site.buildingSqFt * 0.0929;
+    detailedRoofAreaSource = "site";
   }
 
   // Guard: require roof area â auto-copy from sibling site if available
@@ -1074,6 +1081,7 @@ router.post("/:siteId/run-potential-analysis", authMiddleware, requireStaff, asy
     const copyResult = await autocopySiblingRoofPolygons(siteId, site.address);
     if (copyResult.copied && copyResult.areaSqM && copyResult.areaSqM > 0) {
       effectiveRoofAreaSqM = copyResult.areaSqM;
+      detailedRoofAreaSource = "sibling-copy";
     }
   }
 
@@ -1085,6 +1093,7 @@ router.post("/:siteId/run-potential-analysis", authMiddleware, requireStaff, asy
     if (estKwh > 0) {
       const estPvKw = estKwh / 1150;
       effectiveRoofAreaSqM = (estPvKw / 0.660) * 3.71 / 0.85;
+      detailedRoofAreaSource = "consumption-estimate";
       log.warn(`No roof area for site ${siteId} â estimated ${Math.round(effectiveRoofAreaSqM)}mÂ² from consumption (${Math.round(estKwh)} kWh/yr â ${estPvKw.toFixed(1)} kWp)`);
     } else {
       throw new BadRequestError("No roof area available. Please draw roof areas in Step 1 (Roof Drawing Tool) or set a building area for this site.");
@@ -1165,7 +1174,8 @@ router.post("/:siteId/run-potential-analysis", authMiddleware, requireStaff, asy
   res.json({
     simulationId: simulation.id,
     ...result,
-    yieldStrategy
+    yieldStrategy,
+    roofAreaSource: detailedRoofAreaSource,
   });
 }));
 
