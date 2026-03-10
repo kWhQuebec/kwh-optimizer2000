@@ -368,22 +368,22 @@ export default function AProposPage() {
             <div className="grid sm:grid-cols-2 gap-6 pt-4">
               <Card>
                 <CardContent className="p-6">
-                  <p className="font-semibold text-foreground mb-2" data-testid="text-etienne-name">Étienne Lecompte</p>
-                  <p className="text-sm" data-testid="text-etienne-bio">
+                  <p className="font-semibold text-foreground mb-2" data-testid="text-marcandre-name">Marc-André La Barre</p>
+                  <p className="text-sm" data-testid="text-marcandre-bio">
                     {t(
-                      "Entrepreneur visionnaire dans l'industrie des technologies propres. Son parcours l'a mené à fonder et développer trois entreprises innovantes. Animé par un engagement fort en faveur du développement durable et de l'innovation technologique, Étienne s'est imposé comme une figure de proue en faisant progresser des solutions logicielles à la pointe qui allient conformité et performance.",
-                      "Visionary entrepreneur in the cleantech industry. His journey led him to found and develop three innovative companies. Driven by a strong commitment to sustainable development and technological innovation, Étienne has established himself as a leading figure by advancing cutting-edge software solutions that combine compliance and performance."
+                      "Entrepreneur depuis près de 25 ans, dont maintenant plus de 16 ans comme entrepreneur général en construction. Fondateur de Lab.Space Construction, spécialisée dans la conception et la construction de projets techniques, tels que des laboratoires biotech, des cliniques médicales et des bureaux.",
+                      "Entrepreneur for nearly 25 years, including over 16 years as a general construction contractor. Founder of Lab.Space Construction, specializing in the design and construction of technical projects such as biotech laboratories, medical clinics, and offices."
                     )}
                   </p>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="p-6">
-                  <p className="font-semibold text-foreground mb-2" data-testid="text-marcandre-name">Marc-André La Barre</p>
-                  <p className="text-sm" data-testid="text-marcandre-bio">
+                  <p className="font-semibold text-foreground mb-2" data-testid="text-etienne-name">Étienne Lecompte</p>
+                  <p className="text-sm" data-testid="text-etienne-bio">
                     {t(
-                      "Entrepreneur depuis près de 25 ans, dont maintenant plus de 16 ans comme entrepreneur général en construction. Fondateur de Lab.Space Construction, spécialisée dans la conception et la construction de projets techniques, tels que des laboratoires biotech, des cliniques médicales et des bureaux.",
-                      "Entrepreneur for nearly 25 years, including over 16 years as a general construction contractor. Founder of Lab.Space Construction, specializing in the design and construction of technical projects such as biotech laboratories, medical clinics, and offices."
+                      "Entrepreneur visionnaire dans l'industrie des technologies propres. Son parcours l'a mené à fonder et développer trois entreprises innovantes. Animé par un engagement fort en faveur du développement durable et de l'innovation technologique, Étienne s'est imposé comme une figure de proue en faisant progresser des solutions logicielles à la pointe qui allient conformité et performance.",
+                      "Visionary entrepreneur in the cleantech industry. His journey led him to found and develop three innovative companies. Driven by a strong commitment to sustainable development and technological innovation, Étienne has established himself as a leading figure by advancing cutting-edge software solutions that combine compliance and performance."
                     )}
                   </p>
                 </CardContent>
