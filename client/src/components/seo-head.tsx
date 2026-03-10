@@ -520,13 +520,13 @@ export const getFAQSchema = (lang: "fr" | "en"): StructuredData => ({
     {
       "@type": "Question",
       "name": lang === "fr"
-        ? "Qu'est-ce qu'un PPA et est-ce une bonne option?"
-        : "What is a PPA and is it a good option?",
+        ? "Pourquoi le PPA (contrat d'achat d'énergie) n'est-il pas offert au Québec?"
+        : "Why are Power Purchase Agreements (PPAs) not available in Quebec?",
       "acceptedAnswer": {
         "@type": "Answer",
         "text": lang === "fr"
-          ? "Un PPA (Power Purchase Agreement) est un contrat où un tiers installe et possède le système - vous achetez l'électricité à tarif fixe. Avantage: 0$ d'investissement. Inconvénient: le tiers garde les incitatifs et une grande partie des économies. Pour les entreprises qui peuvent investir ou financer, l'achat direct offre généralement un meilleur rendement."
-          : "A PPA (Power Purchase Agreement) is a contract where a third party installs and owns the system - you buy electricity at a fixed rate. Advantage: $0 investment. Disadvantage: the third party keeps the incentives and most of the savings. For businesses that can invest or finance, direct purchase generally offers better returns."
+          ? "Au Québec, la Loi sur Hydro-Québec (RLRQ, c. H-5) confère à Hydro-Québec le rôle exclusif de distributeur d'électricité. La Loi sur la Régie de l'énergie (RLRQ, c. R-6.01) encadre la vente d'électricité aux consommateurs finals — dans le cadre réglementaire actuel, la vente d'électricité par un tiers via un PPA n'est pas permise, contrairement à l'Ontario, l'Alberta ou les États-Unis. kWh Québec propose trois modes d'acquisition adaptés: l'achat comptant, le prêt et le crédit-bail. Vous êtes propriétaire du système et conservez 100% des incitatifs gouvernementaux."
+          : "In Quebec, the Hydro-Québec Act (CQLR, c. H-5) grants Hydro-Québec the exclusive role of electricity distributor. The Act Respecting the Régie de l'énergie (CQLR, c. R-6.01) regulates electricity sales to end consumers — under the current regulatory framework, electricity sales by a third party through a PPA are not permitted, unlike in Ontario, Alberta, or the United States. kWh Québec offers three acquisition modes adapted to Quebec's framework: cash purchase, loan, and capital lease. You own the system and retain 100% of government incentives."
       }
     },
     {

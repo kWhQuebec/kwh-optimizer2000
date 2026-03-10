@@ -372,11 +372,11 @@ export default function RessourcesPage() {
     {
       category: "financial",
       question: language === "fr"
-        ? "Pourquoi le PPA n'est-il pas offert au Québec?"
-        : "Why is a PPA not available in Quebec?",
+        ? "Pourquoi le PPA (contrat d'achat d'énergie) n'est-il pas offert au Québec?"
+        : "Why are Power Purchase Agreements (PPAs) not available in Quebec?",
       answer: language === "fr"
-        ? "Au Québec, la réglementation actuelle ne permet pas les contrats d'achat d'énergie (PPA) de type tiers-investisseur pour le solaire commercial. Seul Hydro-Québec peut vendre de l'électricité aux consommateurs. C'est pourquoi nous proposons trois options d'acquisition adaptées: l'achat comptant, le prêt et le crédit-bail. Chacune vous permet de conserver les incitatifs gouvernementaux et de maximiser vos économies."
-        : "In Quebec, current regulations do not allow third-party Power Purchase Agreements (PPAs) for commercial solar. Only Hydro-Québec can sell electricity to consumers. That's why we offer three adapted acquisition options: cash purchase, loan, and capital lease. Each allows you to retain government incentives and maximize your savings."
+        ? "Au Québec, la Loi sur Hydro-Québec (RLRQ, c. H-5) confère à Hydro-Québec le rôle exclusif de distributeur d'électricité. La Loi sur la Régie de l'énergie (RLRQ, c. R-6.01) encadre la vente d'électricité aux consommateurs finals — dans le cadre réglementaire actuel, la vente d'électricité par un tiers investisseur via un PPA n'est pas permise. Le programme d'autoproduction permet le mesurage net (vous consommez votre propre production), mais un modèle PPA comme on le retrouve en Ontario, en Alberta ou aux États-Unis n'est pas disponible au Québec à ce jour. C'est pourquoi kWh Québec propose trois modes d'acquisition adaptés au cadre québécois: l'achat comptant, le prêt et le crédit-bail. Avec ces options, vous êtes propriétaire du système et conservez 100% des incitatifs gouvernementaux (Hydro-Québec OSE 6.0, crédit d'impôt fédéral de 30%, CCA 43.2)."
+        : "In Quebec, the Hydro-Québec Act (CQLR, c. H-5) grants Hydro-Québec the exclusive role of electricity distributor. The Act Respecting the Régie de l'énergie (CQLR, c. R-6.01) regulates electricity sales to end consumers — under the current regulatory framework, electricity sales by a third-party investor through a PPA are not permitted. The self-generation program allows net metering (you consume your own production), but a PPA model like those available in Ontario, Alberta, or the United States is not available in Quebec at this time. That is why kWh Québec offers three acquisition modes adapted to Quebec's regulatory framework: cash purchase, loan, and capital lease. With these options, you own the system and retain 100% of government incentives (Hydro-Québec OSE 6.0, 30% federal tax credit, CCA Class 43.2)."
     },
 
     // PROCESS (5 questions)
