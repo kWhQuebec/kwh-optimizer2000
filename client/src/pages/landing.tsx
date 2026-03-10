@@ -644,8 +644,8 @@ export default function LandingPage() {
             
             <p className="text-2xl sm:text-3xl text-white/90 font-medium mb-2" data-testid="hero-subtitle">
               {language === "fr" 
-                ? "Solaire et stockage commercial & industriel — Partout au Québec" 
-                : "Commercial & Industrial Solar + Storage — Across Quebec"}
+                ? "Solutions solaires et stockage clé en main pour le secteur commercial et industriel québécois." 
+                : "Turnkey solar and storage solutions for Quebec's commercial and industrial sectors."}
             </p>
             
             <p className="text-xl text-yellow-400 font-semibold mt-4 mb-8" data-testid="hero-value-prop">
