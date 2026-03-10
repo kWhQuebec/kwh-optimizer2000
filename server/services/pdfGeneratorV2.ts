@@ -182,15 +182,6 @@ export async function generateProfessionalPDFv2(
 
   pages.push(buildFinancialProjectionsPage(simulation, t, totalProductionKWh, nextPage()));
 
-  if (simulation.sensitivity && (simulation.sensitivity as any).frontier?.length > 0) {
-    const optPageNum = pageNum;
-    const optPage = buildOptimizationPage(simulation, t, optPageNum);
-    if (optPage) {
-      nextPage();
-      pages.push(optPage);
-    }
-  }
-
   pages.push(buildEquipmentPage(simulation, t, lang, nextPage()));
   pages.push(buildDeliveryAssurancePage(t, lang, nextPage()));
   pages.push(buildFitScorePage(simulation, t, lang, nextPage()));
@@ -774,15 +765,15 @@ function buildNetInvestmentPage(
         <tr><th>${t("&Eacute;l&eacute;ment", "Item")}</th><th style="text-align: right;">${t("Montant", "Amount")}</th></tr>
         <tr><td><span style="color: #6B7280; margin-right: 4px;">&#9679;</span>${t("Co&ucirc;t du syst&egrave;me (installation compl&egrave;te cl&eacute; en main)", "System cost (complete turnkey installation)")}</td><td class="number">${cur(sim.capexGross)}</td></tr>
         <tr><td><span style="color: #3B82F6; margin-right: 4px;">&#9679;</span>${t("Cr&eacute;dit d'imp&ocirc;t &agrave; l'investissement f&eacute;d&eacute;ral (ITC)", "Federal Investment Tax Credit (ITC)")}</td><td class="number" style="color: #3B82F6;">-${cur(sim.incentivesFederal)}</td></tr>
-        <tr><td><span style="color: #FFB005; margin-right: 4px;">&#9679;</span>${t("Incitatif Hydro-Qu&eacute;bec Solutions efficaces", "Hydro-Qu&eacute;bec Solutions efficaces Incentive")}${sim.incentivesHQSolar > 0 && sim.incentivesHQBattery > 0 ? ` (${t("Solaire", "Solar")}: ${cur(sim.incentivesHQSolar)}, ${t("Batterie", "Battery")}: ${cur(sim.incentivesHQBattery)})` : ""}</td><td class="number" style="color: #FFB005;">-${cur(sim.incentivesHQ)}</td></tr>
+        <tr><td><span style="color: #FFB005; margin-right: 4px;">&#9679;</span>${t("Incitatif Hydro-Qu&eacute;bec autoproduction", "Hydro-Qu&eacute;bec Self-Production Incentive")}${sim.incentivesHQSolar > 0 && sim.incentivesHQBattery > 0 ? ` (${t("Solaire", "Solar")}: ${cur(sim.incentivesHQSolar)}, ${t("Batterie", "Battery")}: ${cur(sim.incentivesHQBattery)})` : ""}</td><td class="number" style="color: #FFB005;">-${cur(sim.incentivesHQ)}</td></tr>
         ${sim.taxShield > 0 ? `<tr><td><span style="color: #3B82F6; margin-right: 4px;">&#9679;</span>${t("Bouclier fiscal (amortissement acc&eacute;l&eacute;r&eacute;)", "Tax shield (accelerated depreciation)")}</td><td class="number" style="color: #3B82F6;">-${cur(sim.taxShield)}</td></tr>` : ""}
         <tr class="total-row"><td><span style="color: white; margin-right: 4px;">&#9679;</span><strong>${t("INVESTISSEMENT NET", "NET INVESTMENT")}</strong></td><td class="number"><strong>${cur(sim.capexNet)}</strong></td></tr>
       </table>
     </div>
     <div class="info-box" style="background: #FFF8E1; border-left: 4px solid var(--accent); border-radius: 0;">
       <p style="font-size: 9pt; margin: 0;"><strong>${t("Conditions:", "Conditions:")}</strong> ${t(
-        "L'ITC f&eacute;d&eacute;ral s'applique aux projets d'&eacute;nergie propre admissibles (Loi C-69). L'incitatif Hydro-Qu&eacute;bec Solutions efficaces (OSE 6.0) est plafonn&eacute; &agrave; 1 000 $/kW (max 1 MW) et 40% des co&ucirc;ts admissibles. Panneaux certifi&eacute;s CSA requis.",
-        "The federal ITC applies to eligible clean energy projects (Bill C-69). The Hydro-Qu&eacute;bec Solutions efficaces (OSE 6.0) incentive is capped at $1,000/kW (max 1 MW) and 40% of admissible costs. CSA-certified panels required."
+        "L'ITC f&eacute;d&eacute;ral s'applique aux projets d'&eacute;nergie propre admissibles (Loi C-69). L'incitatif Hydro-Qu&eacute;bec Autoproduction est plafonn&eacute; &agrave; 1 000 $/kW (max 1 MW) et 40% du CAPEX.",
+        "The federal ITC applies to eligible clean energy projects (Bill C-69). The Hydro-Qu&eacute;bec Self-Production incentive is capped at $1,000/kW (max 1 MW) and 40% of CAPEX."
       )}</p>
     </div>
     ${footerHtml(t, pageNum)}
@@ -1316,181 +1307,6 @@ function buildFinancialProjectionsPage(
   </div>`;
 }
 
-function generateFrontierSVG(
-  sim: DocumentSimulationData,
-  t: (fr: string, en: string) => string
-): string {
-  const frontier = (sim.sensitivity as any)?.frontier as Array<{
-    type: string; capexNet: number; npv25: number; isOptimal: boolean;
-    pvSizeKW: number; battEnergyKWh: number; sweepSource?: string;
-    irr25?: number; simplePaybackYears?: number; annualSavings?: number;
-  }> | undefined;
-
-  if (!frontier || frontier.length === 0) return "";
-
-  const svgW = 600;
-  const svgH = 340;
-  const pad = { top: 30, right: 30, bottom: 55, left: 65 };
-  const chartW = svgW - pad.left - pad.right;
-  const chartH = svgH - pad.top - pad.bottom;
-
-  const capexVals = frontier.map(p => p.capexNet || 0);
-  const npvVals = frontier.map(p => p.npv25 || 0);
-  const minCapex = Math.min(0, ...capexVals);
-  const maxCapex = Math.max(...capexVals) * 1.1 || 1;
-  const minNpv = Math.min(...npvVals, 0) * 1.15;
-  const maxNpv = Math.max(...npvVals) * 1.15 || 1;
-  const capexRange = maxCapex - minCapex || 1;
-  const npvRange = maxNpv - minNpv || 1;
-
-  const toX = (v: number) => pad.left + ((v - minCapex) / capexRange) * chartW;
-  const toY = (v: number) => pad.top + chartH - ((v - minNpv) / npvRange) * chartH;
-
-  let svg = "";
-
-  svg += `<rect x="${pad.left}" y="${pad.top}" width="${chartW}" height="${chartH}" fill="#f9fafb" rx="2"/>`;
-
-  const yTicks = 5;
-  for (let i = 0; i <= yTicks; i++) {
-    const val = minNpv + (npvRange * i) / yTicks;
-    const y = toY(val);
-    svg += `<line x1="${pad.left}" y1="${y}" x2="${pad.left + chartW}" y2="${y}" stroke="#e5e7eb" stroke-width="0.5"/>`;
-    svg += `<text x="${pad.left - 6}" y="${y + 3}" text-anchor="end" font-size="7" fill="#6b7280">${smartCur(val)}</text>`;
-  }
-
-  const xTicks = 5;
-  for (let i = 0; i <= xTicks; i++) {
-    const val = minCapex + (capexRange * i) / xTicks;
-    const x = toX(val);
-    svg += `<line x1="${x}" y1="${pad.top}" x2="${x}" y2="${pad.top + chartH}" stroke="#e5e7eb" stroke-width="0.5"/>`;
-    svg += `<text x="${x}" y="${pad.top + chartH + 14}" text-anchor="middle" font-size="7" fill="#6b7280">${smartCur(val)}</text>`;
-  }
-
-  const zeroY = toY(0);
-  if (zeroY >= pad.top && zeroY <= pad.top + chartH) {
-    svg += `<line x1="${pad.left}" y1="${zeroY}" x2="${pad.left + chartW}" y2="${zeroY}" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="6,4"/>`;
-    svg += `<text x="${pad.left + chartW + 2}" y="${zeroY + 3}" font-size="6" fill="#ef4444" font-weight="600">${t("VAN=0", "NPV=0")}</text>`;
-  }
-
-  const colorMap: Record<string, string> = {
-    solar: "#FFB005",
-    battery: "#003DA6",
-    hybrid: "#16A34A",
-  };
-
-  let optimalSvg = "";
-  frontier.forEach((point) => {
-    const px = toX(point.capexNet || 0);
-    const py = toY(point.npv25 || 0);
-    const color = colorMap[point.type] || "#9CA3AF";
-    const isProfitable = (point.npv25 || 0) >= 0;
-    const opacity = isProfitable ? "1" : "0.35";
-
-    if (point.isOptimal) {
-      optimalSvg += `<circle cx="${px}" cy="${py}" r="7" fill="none" stroke="#1F2937" stroke-width="2"/>`;
-      optimalSvg += `<circle cx="${px}" cy="${py}" r="4" fill="${color}"/>`;
-      const labelX = px + 10;
-      const labelY = py - 8;
-      optimalSvg += `<text x="${labelX}" y="${labelY}" font-size="7" font-weight="700" fill="#1F2937">${t("Optimal", "Optimal")}</text>`;
-      const desc = point.pvSizeKW > 0 && point.battEnergyKWh > 0
-        ? `${Math.round(point.pvSizeKW)}kW + ${Math.round(point.battEnergyKWh)}kWh`
-        : point.pvSizeKW > 0
-          ? `${Math.round(point.pvSizeKW)}kW`
-          : `${Math.round(point.battEnergyKWh)}kWh`;
-      optimalSvg += `<text x="${labelX}" y="${labelY + 10}" font-size="6" fill="#6b7280">${desc} | VAN ${smartCur(point.npv25)}</text>`;
-    } else {
-      svg += `<circle cx="${px}" cy="${py}" r="3.5" fill="${color}" opacity="${opacity}"/>`;
-    }
-  });
-  svg += optimalSvg;
-
-  const legendY = svgH - 12;
-  const items = [
-    { label: t("Solaire", "Solar"), color: "#FFB005" },
-    { label: t("Stockage", "Storage"), color: "#003DA6" },
-    { label: t("Hybride", "Hybrid"), color: "#16A34A" },
-  ];
-  let legendX = pad.left;
-  items.forEach(item => {
-    svg += `<circle cx="${legendX + 5}" cy="${legendY}" r="3.5" fill="${item.color}"/>`;
-    svg += `<text x="${legendX + 12}" y="${legendY + 3}" font-size="7" fill="#374151">${item.label}</text>`;
-    legendX += 75;
-  });
-  svg += `<circle cx="${legendX + 5}" cy="${legendY}" r="5" fill="none" stroke="#1F2937" stroke-width="1.5"/>`;
-  svg += `<text x="${legendX + 14}" y="${legendY + 3}" font-size="7" fill="#374151">${t("Optimal", "Optimal")}</text>`;
-  legendX += 60;
-  svg += `<line x1="${legendX}" y1="${legendY}" x2="${legendX + 15}" y2="${legendY}" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="4,3"/>`;
-  svg += `<text x="${legendX + 20}" y="${legendY + 3}" font-size="7" fill="#374151">${t("Seuil (VAN=0)", "Threshold (NPV=0)")}</text>`;
-  legendX += 100;
-  svg += `<circle cx="${legendX + 5}" cy="${legendY}" r="3.5" fill="#9CA3AF" opacity="0.35"/>`;
-  svg += `<text x="${legendX + 12}" y="${legendY + 3}" font-size="7" fill="#374151">${t("Non rentable", "Unprofitable")}</text>`;
-
-  svg += `<text x="${pad.left + chartW / 2}" y="${pad.top + chartH + 30}" text-anchor="middle" font-size="8" fill="#6b7280">${t("Investissement net ($)", "Net Investment ($)")}</text>`;
-  svg += `<text x="12" y="${pad.top + chartH / 2}" text-anchor="middle" font-size="8" fill="#6b7280" transform="rotate(-90, 12, ${pad.top + chartH / 2})">${t("Valeur actuelle nette - 25 ans ($)", "Net Present Value - 25yr ($)")}</text>`;
-
-  return `<svg viewBox="0 0 ${svgW} ${svgH}" class="svg-chart" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`;
-}
-
-function buildOptimizationPage(
-  sim: DocumentSimulationData,
-  t: (fr: string, en: string) => string,
-  pageNum: number
-): string {
-  const frontierSVG = generateFrontierSVG(sim, t);
-  if (!frontierSVG) return "";
-
-  const frontier = (sim.sensitivity as any)?.frontier as Array<{
-    type: string; capexNet: number; npv25: number; isOptimal: boolean;
-    pvSizeKW: number; battEnergyKWh: number; irr25?: number;
-    simplePaybackYears?: number; annualSavings?: number;
-  }> | undefined;
-
-  const profitableCount = frontier?.filter(p => (p.npv25 || 0) > 0).length || 0;
-  const totalCount = frontier?.length || 0;
-  const optimal = frontier?.find(p => p.isOptimal);
-
-  let summaryHtml = "";
-  if (optimal) {
-    const sysDesc = optimal.pvSizeKW > 0 && optimal.battEnergyKWh > 0
-      ? `${Math.round(optimal.pvSizeKW)} kW ${t("solaire", "solar")} + ${Math.round(optimal.battEnergyKWh)} kWh ${t("batterie", "battery")}`
-      : optimal.pvSizeKW > 0
-        ? `${Math.round(optimal.pvSizeKW)} kW ${t("solaire", "solar")}`
-        : `${Math.round(optimal.battEnergyKWh)} kWh ${t("batterie", "battery")}`;
-
-    summaryHtml = `
-    <div class="info-box" style="background: #f0fdf4; border-left: 4px solid #16a34a; border-radius: 0; margin-top: 4mm;">
-      <h3 style="font-size: 10pt; color: #16a34a; margin-bottom: 2mm;">${t("Sc&eacute;nario optimal identifi&eacute;", "Optimal Scenario Identified")}</h3>
-      <p style="font-size: 9pt; margin: 0;">
-        ${t(
-          `Parmi <strong>${totalCount} configurations</strong> analys&eacute;es, <strong>${profitableCount}</strong> sont rentables (VAN &gt; 0). La configuration optimale est <strong>${sysDesc}</strong> avec une VAN de <strong>${cur(optimal.npv25)}</strong>, un investissement net de <strong>${cur(optimal.capexNet)}</strong>${optimal.irr25 ? ` et un TRI de <strong>${(optimal.irr25 * 100).toFixed(1)}%</strong>` : ""}.`,
-          `Among <strong>${totalCount} configurations</strong> analyzed, <strong>${profitableCount}</strong> are profitable (NPV &gt; 0). The optimal configuration is <strong>${sysDesc}</strong> with an NPV of <strong>${cur(optimal.npv25)}</strong>, a net investment of <strong>${cur(optimal.capexNet)}</strong>${optimal.irr25 ? ` and an IRR of <strong>${(optimal.irr25 * 100).toFixed(1)}%</strong>` : ""}.`
-        )}
-      </p>
-    </div>`;
-  }
-
-  return `
-  <div class="page">
-    <h2>${t("Analyse d'optimisation", "Optimization Analysis")}</h2>
-    <p class="subtitle">${t(
-      "Comparaison de toutes les configurations possibles &mdash; solaire, stockage et hybride",
-      "Comparison of all possible configurations &mdash; solar, storage and hybrid"
-    )}</p>
-    <div class="chart-container" style="padding: 5mm 3mm;">
-      <div class="chart-title">${t("Fronti&egrave;re d'efficacit&eacute; (tous sc&eacute;narios)", "Efficiency Frontier (all scenarios)")}</div>
-      ${frontierSVG}
-    </div>
-    ${summaryHtml}
-    <div class="section" style="margin-top: 4mm;">
-      <p style="font-size: 8pt; color: #6b7280;">${t(
-        "Chaque point repr&eacute;sente une configuration de syst&egrave;me unique (taille PV, capacit&eacute; batterie). L'axe horizontal montre l'investissement net apr&egrave;s incitatifs; l'axe vertical montre la valeur actuelle nette sur 25 ans. Les points au-dessus de la ligne rouge pointill&eacute;e (VAN=0) sont rentables. Le point optimal maximise la VAN.",
-        "Each point represents a unique system configuration (PV size, battery capacity). The horizontal axis shows net investment after incentives; the vertical axis shows 25-year net present value. Points above the red dashed line (NPV=0) are profitable. The optimal point maximizes NPV."
-      )}</p>
-    </div>
-    ${footerHtml(t, pageNum)}
-  </div>`;
-}
-
 function buildRoofConfigPage(
   sim: DocumentSimulationData,
   t: (fr: string, en: string) => string,
@@ -1708,7 +1524,7 @@ function buildAssumptionsPage(
           : t("Donn&eacute;es Hydro-Qu&eacute;bec r&eacute;elles (via procuration)", "Real Hydro-Qu&eacute;bec data (via power of attorney)")}</p>
         <p><strong>${t("Tarifs &eacute;lectriques:", "Electricity rates:")}</strong> Hydro-Qu&eacute;bec ${t("tarifs en vigueur 2026", "rates in effect 2026")}</p>
         <p><strong>${t("ITC f&eacute;d&eacute;ral:", "Federal ITC:")}</strong> ${t("Loi C-69 - Cr&eacute;dit d'imp&ocirc;t &agrave; l'investissement pour technologies propres", "Bill C-69 - Clean technology investment tax credit")}</p>
-        <p><strong>${t("Solutions efficaces Hydro-Qu&eacute;bec:", "Hydro-Qu&eacute;bec Solutions efficaces:")}</strong> ${t("Programme Solutions efficaces — OSE 6.0", "Solutions efficaces Program — OSE 6.0")}</p>
+        <p><strong>${t("Autoproduction Hydro-Qu&eacute;bec:", "Hydro-Qu&eacute;bec Self-Production:")}</strong> ${t("Programme Autoproduction d'Hydro-Qu&eacute;bec", "Hydro-Qu&eacute;bec Self-Production Program")}</p>
       </div>
     </div>
     <div class="info-box highlight">
@@ -2063,15 +1879,15 @@ function buildCredibilityPage(
   const iconSvgs: Record<string, string> = {
     simplicite: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#003DA6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`,
     fiabilite: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#003DA6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
-    longevite: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#003DA6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>`,
+    perennite: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#003DA6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>`,
     fierte: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#003DA6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>`,
   };
 
   const valueItems = [
-    { id: "simplicite", label: t("Simplicit&eacute;", "Simplicity"), desc: t("Solution cl&eacute; en main &mdash; on s'occupe de tout !", "Turnkey solution &mdash; we handle everything!") },
-    { id: "fiabilite", label: t("Fiabilit&eacute;", "Reliability"), desc: t("Performance garantie. On respecte nos engagements, toujours !", "Guaranteed performance. We keep our commitments, always!") },
-    { id: "perennite", label: t("P&eacute;rennit&eacute;", "Sustainability"), desc: t("On b&acirc;tit des relations et des solutions pour le long terme.", "We build relationships and solutions for the long term.") },
-    { id: "fierte", label: t("Fiert&eacute;", "Pride"), desc: t("On est fier des projets que nous r&eacute;alisons et de l'impact qu'ils ont sur nos clients et sur l'environnement.", "We're proud of the projects we deliver and the impact they have on our clients and the environment.") },
+    { id: "simplicite", label: t("Simplicit&eacute;", "Simplicity"), desc: t("Un seul interlocuteur de A &agrave; Z. Z&eacute;ro complexit&eacute; pour vous.", "One point of contact from A to Z. Zero complexity for you.") },
+    { id: "fiabilite", label: t("Fiabilit&eacute;", "Reliability"), desc: t("&Eacute;quipements certifi&eacute;s, entrepreneur licenci&eacute; RBQ.", "Certified equipment, RBQ licensed contractor.") },
+    { id: "perennite", label: t("P&eacute;rennit&eacute;", "Sustainability"), desc: t("Syst&egrave;mes con&ccedil;us pour 25+ ans de performance garantie.", "Systems designed for 25+ years of guaranteed performance.") },
+    { id: "fierte", label: t("Fiert&eacute;", "Pride"), desc: t("Entreprise qu&eacute;b&eacute;coise. Contribution &agrave; la transition &eacute;nerg&eacute;tique locale.", "Quebec company. Contributing to the local energy transition.") },
   ];
 
   const valuesHtml = valueItems.map(v =>
