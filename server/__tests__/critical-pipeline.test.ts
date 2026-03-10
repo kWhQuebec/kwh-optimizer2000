@@ -149,8 +149,8 @@ describe('Quick Estimate — Consumption → Sizing → Financials', () => {
       const hqRaw = systemSizeKW * HQ_INCENTIVE_PER_KW; // $50,000
       const hqCapped = Math.min(hqRaw, grossCAPEX * HQ_INCENTIVE_MAX_PERCENT);
 
-      // For a 50 kW system at $2.50/W: CAPEX = $125,000
-      // 40% cap = $50,000 <= $50,000 raw → cap binds or equals
+      // For a 50 kW system at ~$2.30/W: CAPEX ≈ $115,000
+      // 40% cap = $46,000 < $50,000 raw → cap binds
       expect(hqCapped).toBeLessThanOrEqual(hqRaw);
       expect(hqCapped).toBeCloseTo(grossCAPEX * 0.40, 0);
     });
@@ -231,7 +231,7 @@ describe('Quick Estimate — Consumption → Sizing → Financials', () => {
   });
 });
 
-// ─── SECTION 2: Cashflow Module Integration ─────────────────────────��───────
+// ─── SECTION 2: Cashflow Module Integration ─────────────────────────────────
 
 describe('Cashflow Module — calculateCashflowMetrics()', () => {
 
