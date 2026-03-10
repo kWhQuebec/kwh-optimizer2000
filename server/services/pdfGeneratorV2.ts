@@ -6,6 +6,8 @@ import { createLogger } from "../lib/logger";
 import { getWhySolarNow, getEquipmentTechnicalSummary, getExclusions, getEquipment, getBatteryEquipment, getTimeline, getCredibilityDescription, getDeliveryAssurance, getDeliveryPartners, getWarrantyRoadmap } from "@shared/brandContent";
 import { computeAcquisitionCashflows, type CumulativePoint } from "./acquisitionCashflows";
 import { computeFitScore, type FitScoreInput } from "@shared/fitScore";
+import type { RiskFlag, RiskFlagCategory } from "@shared/qualification/types";
+import { RISK_FLAG_CATEGORY_LABELS } from "@shared/qualification/engine";
 
 const log = createLogger("PDFv2");
 
@@ -115,7 +117,8 @@ const MONTHLY_DISTRIBUTION = [0.04, 0.055, 0.085, 0.10, 0.115, 0.125, 0.13, 0.11
 export async function generateProfessionalPDFv2(
   simulation: DocumentSimulationData,
   lang: "fr" | "en",
-  _siteSimulations?: DocumentSimulationData[]
+  _siteSimulations?: DocumentSimulationData[],
+  riskFlags?: RiskFlag[]
 ): Promise<Buffer> {
   const t = (fr: string, en: string) => (lang === "fr" ? fr : en);
 
@@ -185,6 +188,12 @@ export async function generateProfessionalPDFv2(
   pages.push(buildEquipmentPage(simulation, t, lang, nextPage()));
   pages.push(buildDeliveryAssurancePage(t, lang, nextPage()));
   pages.push(buildFitScorePage(simulation, t, lang, nextPage()));
+
+  // Risk flags page — only if flags were identified
+  if (riskFlags && riskFlags.length > 0) {
+    pages.push(buildRiskFlagsPage(riskFlags, t, lang, nextPage()));
+  }
+
   pages.push(buildAssumptionsPage(simulation, t, lang, isSyntheticData, nextPage()));
   pages.push(buildNextStepsPage(simulation, t, isSyntheticData, nextPage()));
   pages.push(buildCredibilityPage(t, lang, nextPage()));
@@ -1863,6 +1872,106 @@ function buildFitScorePage(
     <div class="info-box" style="background: ${fitResult.color}; border-radius: 3mm; padding: 6mm;">
       <p style="margin: 0; color: white; font-size: 11pt; font-weight: 600; text-align: center;">
         ${verdictLabel} &mdash; ${pct}/100
+      </p>
+    </div>
+    ${footerHtml(t, pageNum)}
+  </div>`;
+}
+
+function buildRiskFlagsPage(
+  flags: RiskFlag[],
+  t: (fr: string, en: string) => string,
+  lang: "fr" | "en",
+  pageNum: number
+): string {
+  // Group flags by category
+  const grouped = new Map<RiskFlagCategory, RiskFlag[]>();
+  for (const f of flags) {
+    const existing = grouped.get(f.category) || [];
+    existing.push(f);
+    grouped.set(f.category, existing);
+  }
+
+  const severityColors: Record<string, string> = {
+    critical: "#DC2626",
+    major: "#D97706",
+    minor: "#2563EB",
+    info: "#6B7280",
+  };
+
+  const severityLabels: Record<string, { fr: string; en: string }> = {
+    critical: { fr: "Critique", en: "Critical" },
+    major: { fr: "Majeur", en: "Major" },
+    minor: { fr: "Mineur", en: "Minor" },
+    info: { fr: "Info", en: "Info" },
+  };
+
+  const categoryOrder: RiskFlagCategory[] = ['lease', 'roof', 'electrical', 'interconnect', 'load', 'structural'];
+  const sections: string[] = [];
+
+  for (const cat of categoryOrder) {
+    const catFlags = grouped.get(cat);
+    if (!catFlags || catFlags.length === 0) continue;
+
+    const catLabel = RISK_FLAG_CATEGORY_LABELS[cat];
+    const catTitle = lang === "fr" ? catLabel.fr : catLabel.en;
+
+    const flagRows = catFlags.map(f => {
+      const sevColor = severityColors[f.severity] || severityColors.info;
+      const sevLabel = lang === "fr" ? severityLabels[f.severity]?.fr : severityLabels[f.severity]?.en;
+      const mitigation = f.mitigation
+        ? `<p style="font-size: 7.5pt; color: #059669; margin: 1mm 0 0 0;">&rarr; ${f.mitigation.replace(/'/g, "&rsquo;").replace(/é/g, "&eacute;").replace(/è/g, "&egrave;").replace(/ê/g, "&ecirc;").replace(/à/g, "&agrave;").replace(/ç/g, "&ccedil;")}</p>`
+        : "";
+      return `
+      <div style="border-left: 3px solid ${sevColor}; padding: 2mm 3mm; margin: 2mm 0; background: #FAFAFA; border-radius: 0 2mm 2mm 0;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 9pt; font-weight: 600;">${f.label.replace(/'/g, "&rsquo;").replace(/é/g, "&eacute;").replace(/è/g, "&egrave;").replace(/ê/g, "&ecirc;").replace(/à/g, "&agrave;").replace(/ç/g, "&ccedil;")}</span>
+          <span style="font-size: 7pt; color: ${sevColor}; font-weight: 600; text-transform: uppercase;">${sevLabel}</span>
+        </div>
+        <p style="font-size: 8pt; color: #4a5568; margin: 1mm 0 0 0;">${f.description.replace(/'/g, "&rsquo;").replace(/é/g, "&eacute;").replace(/è/g, "&egrave;").replace(/ê/g, "&ecirc;").replace(/à/g, "&agrave;").replace(/ç/g, "&ccedil;")}</p>
+        ${mitigation}
+      </div>`;
+    }).join("");
+
+    sections.push(`
+    <div style="margin-bottom: 4mm;">
+      <h3 style="font-size: 10pt; color: #003DA6; margin: 0 0 2mm 0; border-bottom: 1px solid #e5e7eb; padding-bottom: 1mm;">
+        ${catLabel.icon} ${catTitle}
+      </h3>
+      ${flagRows}
+    </div>`);
+  }
+
+  const criticalCount = flags.filter(f => f.severity === "critical").length;
+  const majorCount = flags.filter(f => f.severity === "major").length;
+  const minorCount = flags.filter(f => f.severity === "minor").length;
+
+  const summaryParts: string[] = [];
+  if (criticalCount > 0) summaryParts.push(`<span style="color: #DC2626; font-weight: 600;">${criticalCount} ${t("critique(s)", "critical")}</span>`);
+  if (majorCount > 0) summaryParts.push(`<span style="color: #D97706; font-weight: 600;">${majorCount} ${t("majeur(s)", "major")}</span>`);
+  if (minorCount > 0) summaryParts.push(`<span style="color: #2563EB; font-weight: 600;">${minorCount} ${t("mineur(s)", "minor")}</span>`);
+
+  return `
+  <div class="page">
+    <h2>${t("Drapeaux de risque &mdash; Points d'attention", "Risk Flags &mdash; Items Requiring Attention")}</h2>
+    <p class="subtitle">${t(
+      "Ces points seront investigu&eacute;s et r&eacute;solus pendant le processus de Design Agreement (visite de site, &eacute;valuation structurale, &eacute;tude &eacute;lectrique).",
+      "These items will be investigated and resolved during the Design Agreement process (site visit, structural evaluation, electrical study)."
+    )}</p>
+    <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 3mm; padding: 3mm 4mm; margin-bottom: 4mm;">
+      <p style="font-size: 9pt; margin: 0;">
+        ${t("R&eacute;sum&eacute;", "Summary")}: ${flags.length} ${t("drapeau(x) identifi&eacute;(s)", "flag(s) identified")}
+        &mdash; ${summaryParts.join(", ")}
+      </p>
+    </div>
+    ${sections.join("")}
+    <div class="info-box" style="background: #EFF6FF; border-left: 4px solid #003DA6; border-radius: 0; margin-top: 4mm;">
+      <p style="font-size: 8.5pt; margin: 0;">
+        <strong>${t("NOTE", "NOTE")}</strong> &mdash;
+        ${t(
+          "Chaque drapeau sera adress&eacute; dans le scope du Design Agreement. L'objectif est de fournir des solutions concr&egrave;tes et un co&ucirc;t pr&eacute;cis pour chaque item avant la proposition finale EPC.",
+          "Each flag will be addressed within the Design Agreement scope. The goal is to provide concrete solutions and accurate costs for each item before the final EPC proposal."
+        )}
       </p>
     </div>
     ${footerHtml(t, pageNum)}
