@@ -5,13 +5,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ThemeToggle } from "@/components/theme-toggle";
-import { LanguageToggle } from "@/components/language-toggle";
 import { useI18n } from "@/lib/i18n";
 import { SEOHead } from "@/components/seo-head";
+import { PublicHeader, PublicFooter } from "@/components/public-header";
 import type { NewsArticle } from "@shared/schema";
-import logoFr from "@assets/kWh_Quebec_Logo-01_-_Rectangulaire_1764799021536.png";
-import logoEn from "@assets/kWh_Quebec_Logo-02_-_Rectangle_1764799021536.png";
 
 const CATEGORY_LABELS: Record<string, { fr: string; en: string }> = {
   politique: { fr: "Politique", en: "Policy" },
@@ -25,7 +22,6 @@ export default function NouvelleDetailPage() {
   const { language } = useI18n();
   const [match, params] = useRoute("/nouvelles/:slug");
   const slug = params?.slug || "";
-  const currentLogo = language === "fr" ? logoFr : logoEn;
 
   const { data: article, isLoading, error } = useQuery<NewsArticle>({
     queryKey: [`/api/public/news/${slug}`],
@@ -73,27 +69,7 @@ export default function NouvelleDetailPage() {
       )}
 
       <div className="min-h-screen bg-background">
-        <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b">
-          <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-            <Link href="/">
-              <img src={currentLogo} alt="kWh Québec" className="h-[50px] cursor-pointer" data-testid="img-logo" />
-            </Link>
-            <nav className="flex items-center gap-4">
-              <Button variant="ghost" asChild data-testid="link-home">
-                <Link href="/">
-                  {language === "fr" ? "Accueil" : "Home"}
-                </Link>
-              </Button>
-              <Button variant="ghost" asChild data-testid="link-blog">
-                <Link href="/ressources">
-                  {language === "fr" ? "Ressources" : "Resources"}
-                </Link>
-              </Button>
-              <LanguageToggle />
-              <ThemeToggle />
-            </nav>
-          </div>
-        </header>
+        <PublicHeader />
 
         <main className="container mx-auto px-4 py-8 max-w-3xl">
           <Button variant="ghost" asChild className="mb-6" data-testid="button-back">
@@ -214,11 +190,7 @@ export default function NouvelleDetailPage() {
           )}
         </main>
 
-        <footer className="border-t py-8 mt-12">
-          <div className="container mx-auto px-4 text-center text-muted-foreground">
-            <p>© 2026 kWh Québec inc. | Licence RBQ: 5656-6136-01</p>
-          </div>
-        </footer>
+        <PublicFooter />
       </div>
     </>
   );
