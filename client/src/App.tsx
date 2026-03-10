@@ -38,7 +38,6 @@ import PortfolioPage from "@/pages/portfolio";
 import PortfolioProjectPage from "@/pages/portfolio-project";
 import PrivacyPage from "@/pages/privacy";
 import TermsPage from "@/pages/terms";
-import AProposPage from "@/pages/a-propos";
 import NotFound from "@/pages/not-found";
 
 const SiteDetailPage = lazy(() => import("@/pages/site-detail"));
@@ -46,6 +45,7 @@ const AnalysesPage = lazy(() => import("@/pages/analyses"));
 const DesignPage = lazy(() => import("@/pages/design"));
 const DesignsPage = lazy(() => import("@/pages/designs"));
 const CatalogPage = lazy(() => import("@/pages/catalog"));
+const PricingCatalogPage = lazy(() => import("@/pages/pricing-catalog"));
 const MethodologyPage = lazy(() => import("@/pages/methodology"));
 const ClientPortalPage = lazy(() => import("@/pages/client-portal"));
 const UsersPage = lazy(() => import("@/pages/users"));
@@ -82,20 +82,6 @@ const RoofCapturePage = lazy(() => import("@/pages/roof-capture"));
 
 import NouvellesPage from "@/pages/nouvelles";
 import StockageEnergiePage from "@/pages/stockage-energie";
-import SolaireCommercialPage from "@/pages/solaire-commercial";
-import CommercesPage from "@/pages/commerces";
-import IndustrielPage from "@/pages/industriel-page";
-import MultiSitesPage from "@/pages/multi-sites";
-
-function BlogRedirect() {
-  const [location] = useLocation();
-  const params = new URLSearchParams(location.split("?")[1] || "");
-  const tab = params.get("tab");
-  if (tab === "nouvelles") {
-    return <Redirect to="/ressources?tab=nouvelles" />;
-  }
-  return <Redirect to="/ressources?tab=guides" />;
-}
 
 function PortalPreviewRoute() {
   const params = useParams<{ clientId: string }>();
@@ -310,28 +296,23 @@ function AppRoutes() {
       {/* Redirect old pages to landing page */}
       <Route path="/services">{() => <Redirect to="/" />}</Route>
       <Route path="/comment-ca-marche">{() => <Redirect to="/" />}</Route>
-      <Route path="/a-propos" component={AProposPage} />
-      <Route path="/apropos">{() => <Redirect to="/a-propos" />}</Route>
+      <Route path="/apropos">{() => <Redirect to="/" />}</Route>
       <Route path="/contact">{() => <Redirect to="/#analyse" />}</Route>
       <Route path="/ressources" component={RessourcesPage} />
       <Route path="/ressources/calculateur-roi-solaire" component={CalculateurROIPage} />
-      <Route path="/blog">{() => <BlogRedirect />}</Route>
+      <Route path="/blog" component={BlogPage} />
       <Route path="/blog/:slug" component={BlogArticlePage} />
       <Route path="/nouvelles/:slug">
         <Suspense fallback={<PageLoader />}>
           <NouvelleDetailPage />
         </Suspense>
       </Route>
-      <Route path="/nouvelles">{() => <Redirect to="/ressources?tab=nouvelles" />}</Route>
+      <Route path="/nouvelles" component={NouvellesPage} />
       <Route path="/analyse-detaillee" component={AnalyseDetailleePage} />
       <Route path="/autorisation-hq" component={AutorisationHQPage} />
       <Route path="/merci" component={ThankYouPage} />
       <Route path="/mandat-de-conception-preliminaire" component={MandatConceptionPage} />
-      <Route path="/solaire-commercial" component={SolaireCommercialPage} />
       <Route path="/stockage-energie" component={StockageEnergiePage} />
-      <Route path="/commerces" component={CommercesPage} />
-      <Route path="/industriel" component={IndustrielPage} />
-      <Route path="/multi-sites" component={MultiSitesPage} />
       <Route path="/portfolio" component={PortfolioPage} />
       <Route path="/portfolio/:id" component={PortfolioProjectPage} />
       <Route path="/privacy" component={PrivacyPage} />
@@ -535,18 +516,6 @@ function AppRoutes() {
         </ProtectedRoute>
       </Route>
 
-      <Route path="/app/om-performance">
-        <ProtectedRoute>
-          <StaffRoute>
-            <AppLayout>
-              <Suspense fallback={<PageLoader />}>
-                <OmPerformancePage />
-              </Suspense>
-            </AppLayout>
-          </StaffRoute>
-        </ProtectedRoute>
-      </Route>
-
       <Route path="/app/om-performance/:siteId">
         <ProtectedRoute>
           <StaffRoute>
@@ -559,17 +528,21 @@ function AppRoutes() {
         </ProtectedRoute>
       </Route>
 
-      <Route path="/app/catalog">
+      {/* Unified Pricing & Catalog page (Q1 fusion) */}
+      <Route path="/app/pricing-catalog">
         <ProtectedRoute>
           <StaffRoute>
             <AppLayout>
               <Suspense fallback={<PageLoader />}>
-                <CatalogPage />
+                <PricingCatalogPage />
               </Suspense>
             </AppLayout>
           </StaffRoute>
         </ProtectedRoute>
       </Route>
+
+      {/* Legacy redirects → unified pricing-catalog */}
+      <Route path="/app/catalog">{() => <Redirect to="/app/pricing-catalog" />}</Route>
 
       <Route path="/app/methodology">
         <ProtectedRoute>
@@ -633,44 +606,10 @@ function AppRoutes() {
         </ProtectedRoute>
       </Route>
 
-      {/* Admin Market Intelligence */}
-      <Route path="/app/market-intelligence">
-        <ProtectedRoute>
-          <StaffRoute>
-            <AppLayout>
-              <Suspense fallback={<PageLoader />}>
-                <MarketIntelligencePage />
-              </Suspense>
-            </AppLayout>
-          </StaffRoute>
-        </ProtectedRoute>
-      </Route>
-
-      {/* Market Intelligence - Pricing */}
-      <Route path="/app/market-intelligence/pricing">
-        <ProtectedRoute>
-          <StaffRoute>
-            <AppLayout>
-              <Suspense fallback={<PageLoader />}>
-                <MarketIntelligencePricingPage />
-              </Suspense>
-            </AppLayout>
-          </StaffRoute>
-        </ProtectedRoute>
-      </Route>
-
-      {/* Admin Pricing Components */}
-      <Route path="/app/admin/pricing">
-        <ProtectedRoute>
-          <StaffRoute>
-            <AppLayout>
-              <Suspense fallback={<PageLoader />}>
-                <AdminPricingPage />
-              </Suspense>
-            </AppLayout>
-          </StaffRoute>
-        </ProtectedRoute>
-      </Route>
+      {/* Legacy redirects → unified pricing-catalog */}
+      <Route path="/app/market-intelligence">{() => <Redirect to="/app/pricing-catalog?tab=competitive" />}</Route>
+      <Route path="/app/market-intelligence/pricing">{() => <Redirect to="/app/pricing-catalog?tab=suppliers" />}</Route>
+      <Route path="/app/admin/pricing">{() => <Redirect to="/app/pricing-catalog?tab=pricing" />}</Route>
 
       {/* Admin Settings */}
       <Route path="/app/admin/settings">
@@ -698,18 +637,7 @@ function AppRoutes() {
         </ProtectedRoute>
       </Route>
 
-      {/* Admin News Curation */}
-      <Route path="/app/admin/news">
-        <ProtectedRoute>
-          <StaffRoute>
-            <AppLayout>
-              <Suspense fallback={<PageLoader />}>
-                <AdminNewsPage />
-              </Suspense>
-            </AppLayout>
-          </StaffRoute>
-        </ProtectedRoute>
-      </Route>
+      {/* Q5: Removed skeleton route — Admin News (rebuild when needed) */}
 
       {/* Admin Content Manager */}
       <Route path="/app/content-manager">
@@ -775,31 +703,7 @@ function AppRoutes() {
         </ProtectedRoute>
       </Route>
 
-      {/* Partnerships */}
-      <Route path="/app/partnerships">
-        <ProtectedRoute>
-          <StaffRoute>
-            <AppLayout>
-              <Suspense fallback={<PageLoader />}>
-                <PartnershipsPage />
-              </Suspense>
-            </AppLayout>
-          </StaffRoute>
-        </ProtectedRoute>
-      </Route>
-
-      {/* Batch Import */}
-      <Route path="/app/import">
-        <ProtectedRoute>
-          <StaffRoute>
-            <AppLayout>
-              <Suspense fallback={<PageLoader />}>
-                <BatchImportPage />
-              </Suspense>
-            </AppLayout>
-          </StaffRoute>
-        </ProtectedRoute>
-      </Route>
+      {/* Q5: Removed skeleton routes — Partnerships, Batch Import (rebuild when needed) */}
 
       {/* Call Script Wizard - Staff only */}
       <Route path="/app/leads/:id/call-script">
@@ -881,4 +785,3 @@ function App() {
 }
 
 export default App;
-
