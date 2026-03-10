@@ -1300,6 +1300,18 @@ export default function LandingPage() {
                           <button onClick={handleDetailedPath} className="block w-full text-sm text-primary hover:underline">
                             {language === "fr" ? "Ou voir mon analyse complète" : "Or view my complete analysis"}
                           </button>
+                          {/* Risk investigation preview */}
+                          <div className="mt-4 bg-blue-50 border border-blue-100 rounded-lg p-3 text-left">
+                            <p className="text-xs font-semibold text-blue-800 mb-1">
+                              {language === "fr" ? "Points investigués lors de la visite de site:" : "Items investigated during site visit:"}
+                            </p>
+                            <div className="grid grid-cols-2 gap-1 text-xs text-blue-700">
+                              <span>⚡ {language === "fr" ? "Capacité électrique" : "Electrical capacity"}</span>
+                              <span>🏗️ {language === "fr" ? "Structure du bâtiment" : "Building structure"}</span>
+                              <span>🔌 {language === "fr" ? "Interconnexion HQ" : "HQ interconnection"}</span>
+                              <span>🏠 {language === "fr" ? "État de la toiture" : "Roof condition"}</span>
+                            </div>
+                          </div>
                         </div>
                       )}
 
