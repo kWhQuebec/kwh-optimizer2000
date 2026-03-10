@@ -4,6 +4,21 @@
 // ============================================
 
 export const BRAND_CONTENT = {
+  // === BRAND DNA ===
+  tagline: {
+    fr: "Solutions solaires et de stockage clé en main pour le secteur commercial et industriel du Québec.",
+    en: "Turnkey solar and storage solutions for Quebec's commercial and industrial sectors.",
+  },
+
+  businessOverview: {
+    fr: "kWh Québec offre des solutions clé en main en énergie solaire et en stockage par batteries, adaptées aux secteurs commercial et industriel partout au Québec. Fondée par des experts de l'industrie, l'entreprise gère l'ensemble du cycle de vie des projets — de l'analyse gratuite du potentiel énergétique et de l'ingénierie jusqu'à l'installation professionnelle et l'obtention des incitatifs gouvernementaux.",
+    en: "kWh Québec provides turnkey solar energy and battery storage solutions tailored for the commercial and industrial sectors across Quebec. Founded by industry experts, the company manages the entire project lifecycle—from free energy potential analysis and engineering to professional installation and the acquisition of government incentives.",
+  },
+
+  brandAesthetic: ["industrial scale", "sustainable technology", "corporate trust", "engineering precision", "modern cleanliness"],
+
+  brandToneOfVoice: ["Professional", "Authoritative", "Technical", "Reassuring"],
+
   // === STATS DE CRÉDIBILITÉ ===
   stats: {
     yearsExperience: { value: "15+", labelFr: "Années d'expérience cumulée en énergie", labelEn: "Years of combined energy experience" },
