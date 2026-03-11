@@ -56,11 +56,106 @@ export function getSolarPricingTierLabel(pvSizeKW: number, lang: 'fr' | 'en' = '
   return tierLabels[price]?.[lang] || `$${price.toFixed(2)}/W`;
 }
 
+// ==================== DEFAULT SUPPLIER COSTS ====================
+
+/**
+ * Estimated supplier cost per watt by system size tier.
+ * These are kWh Québec's COST from suppliers (panels + racking + equipment).
+ * Labor is separate (default $0.40/W).
+ *
+ * Margin = sellPrice (tiered) - (supplierCost + labor)
+ *
+ * Cost structure breakdown (approximate, QC market 2025-2026):
+ * - Panels (Jinko/Canadian Solar): $0.38-0.45/W
+ * - Racking (KB Racking/Opsun): $0.25-0.40/W (depends on complexity)
+ * - Inverter (Kaco/Huawei): $0.10-0.18/W
+ * - BOS (cables, combiner, meter): $0.08-0.15/W
+ * - Permitting/engineering: $0.05-0.15/W (amortizes over larger systems)
+ *
+ * Total equipment cost scales down with volume — larger projects get
+ * better pricing from every supplier in the chain.
+ */
+export function getDefaultSupplierCostPerW(pvSizeKW: number): number {
+  if (pvSizeKW >= 3000) return 0.90;  // 3 MW+:       ~$0.90/W equipment
+  if (pvSizeKW >= 1000) return 0.95;  // 1-3 MW:      ~$0.95/W
+  if (pvSizeKW >= 500)  return 1.05;  // 500 kW-1 MW: ~$1.05/W
+  if (pvSizeKW >= 100)  return 1.15;  // 100-500 kW:  ~$1.15/W
+  if (pvSizeKW >= 30)   return 1.35;  // 30-100 kW:   ~$1.35/W
+  return 1.55;                         // < 30 kW:     ~$1.55/W
+}
+
+/**
+ * Calculate implied EPC margin by tier.
+ * Returns sell price, supplier cost (equip + labor), and margin.
+ */
+export function getTierMarginAnalysis(pvSizeKW: number, laborPerW: number = 0.40): {
+  sellPerW: number;
+  supplierEquipPerW: number;
+  laborPerW: number;
+  totalCostPerW: number;
+  marginPerW: number;
+  marginPercent: number;
+  tierLabel: string;
+} {
+  const sellPerW = getTieredSolarCostPerW(pvSizeKW);
+  const supplierEquipPerW = getDefaultSupplierCostPerW(pvSizeKW);
+  const totalCostPerW = supplierEquipPerW + laborPerW;
+  const marginPerW = sellPerW - totalCostPerW;
+  const marginPercent = sellPerW > 0 ? (marginPerW / sellPerW) * 100 : 0;
+  const tierLabel = getSolarPricingTierLabel(pvSizeKW);
+  return { sellPerW, supplierEquipPerW, laborPerW, totalCostPerW, marginPerW, marginPercent, tierLabel };
+}
+
+// ==================== PFM CALCULATION ====================
+
+/**
+ * Calculate PFM (Puissance à Facturer Minimale / Minimum Billing Demand)
+ * from Hydro-Québec consumption history.
+ *
+ * HQ Tarif M rules:
+ * - PFM = 65% of the highest monthly peak demand over the trailing 12 months
+ * - This is the FLOOR — HQ won't bill below this even if actual demand is lower
+ * - Critical for battery peak shaving: you CANNOT reduce billing below PFM
+ *
+ * @param hqConsumptionHistory - Array of {period, kWh, kW, amount} from HQ bill
+ * @param tariffDetail - Optional tariff string to adjust PFM ratio (M = 65%, G = N/A)
+ * @returns pfmKw or null if insufficient data
+ */
+export function calculatePfmFromHistory(
+  hqConsumptionHistory: any[] | null | undefined,
+  tariffDetail?: string | null,
+): number | null {
+  if (!hqConsumptionHistory || !Array.isArray(hqConsumptionHistory) || hqConsumptionHistory.length === 0) {
+    return null;
+  }
+
+  // Extract kW values from history entries
+  const kwValues = hqConsumptionHistory
+    .map((entry: any) => parseFloat(entry.kW || entry.kw || entry.puissance || 0))
+    .filter((v: number) => !isNaN(v) && v > 0);
+
+  if (kwValues.length === 0) return null;
+
+  // Take the max peak from the available history (ideally 12 months)
+  const maxPeak = Math.max(...kwValues);
+
+  // Tarif G doesn't have demand charges → PFM not applicable
+  const tariff = (tariffDetail || '').toUpperCase();
+  if (tariff === 'G' || tariff.startsWith('G ') || tariff === 'G9') {
+    return null; // No demand charges on Tarif G
+  }
+
+  // Tarif M, M avec GDP, LG, etc.: PFM = 65% of max peak
+  // Source: HQ Conditions de service, section sur la puissance à facturer minimale
+  const PFM_RATIO = 0.65;
+  return Math.round(maxPeak * PFM_RATIO * 10) / 10; // Round to 1 decimal
+}
+
 // ==================== BUILDING-TYPE SIZING FACTORS ====================
 
 /**
  * PV sizing factor by building type
- * 
+ *
  * Controls how much of annual consumption the system targets.
  * Factor < 1.0 = conservative (less surplus at low 4.6¢/kWh export rate)
  * Factor > 1.0 = aggressive (more surplus, justified by high baseload)

@@ -255,9 +255,15 @@ export function runHourlySimulation(
         battAction = -maxDischarge;
       } else if (net < 0 && soc < battEnergyKWh) {
         battAction = Math.min(Math.abs(net), battPowerKW, battEnergyKWh - soc);
-      } else if (hour >= 22 && soc < battEnergyKWh) {
-        battAction = Math.min(battPowerKW, battEnergyKWh - soc);
-        isGridCharging = true;
+      } else if (hour >= 22 && soc < battEnergyKWh * 0.5) {
+        // Grid charging: only when SOC below 50% (solar should handle most charging)
+        // This prevents excessive grid charging costs that eat demand savings
+        // Cap grid charge to 50% SOC — enough for morning peak, solar fills the rest
+        const targetSoc = battEnergyKWh * 0.5;
+        battAction = Math.min(battPowerKW, targetSoc - soc);
+        if (battAction > 0) {
+          isGridCharging = true;
+        }
       }
 
       soc += battAction;
@@ -475,7 +481,15 @@ export function runScenarioWithSizing(
     : h.solarYieldKWhPerKWp || BASELINE_YIELD;
 
   const yieldFactor = effectiveYield / BASELINE_YIELD;
-  const demandShavingSetpointKW = battPowerKW > 0 ? Math.round(peakKW * 0.90) : peakKW;
+  // Intelligent demand shaving setpoint:
+  // - Can't shave below PFM (puissance à facturer minimale) — HQ won't reduce billing below that
+  // - Can't shave more than battery power rating allows
+  // - Target: lowest achievable peak = max(peakKW - battPowerKW, PFM or 65% of peak as proxy)
+  // The 0.90 hardcode was losing 73% of potential shaving value
+  const pfmProxy = h.pfmKW || peakKW * 0.65; // Use actual PFM from DB, else 65% proxy
+  const demandShavingSetpointKW = battPowerKW > 0
+    ? Math.round(Math.max(peakKW - battPowerKW, pfmProxy))
+    : peakKW;
 
   const skipTempCorrection = storedStrategy
     ? storedStrategy.skipTempCorrection

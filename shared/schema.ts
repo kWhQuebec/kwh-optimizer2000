@@ -281,6 +281,7 @@ export const sites = pgTable("sites", {
   hqMeterNumber: text("hq_meter_number"), // Meter number from HQ
   subscribedPowerKw: real("subscribed_power_kw"), // Puissance souscrite
   maxDemandKw: real("max_demand_kw"), // Max demand recorded
+  pfmKw: real("pfm_kw"), // Puissance à facturer minimale (HQ Tarif M: 65% of max demand over trailing 12 months)
   serviceAddress: text("service_address"), // Service address from HQ (may differ from site address)
   
   // Auto-analysis flag: set when consumption data is available but roof not yet validated
@@ -2500,6 +2501,21 @@ export interface AnalysisAssumptions {
 
   // EPC gross margin applied to catalog cost prices for sell pricing
   epcMargin?: number; // Gross margin (default 0.35 = 35%) — sellPrice = cost / (1 - margin)
+
+  // ── Internal supplier costs (NOT client-facing) ──────────────────────
+  // Used to calculate kWh Québec margin per project. These are the costs
+  // kWh pays to suppliers — the difference with solarCostPerW/batteryCapacityCost
+  // is the EPC gross margin. If not set, margin cannot be calculated.
+  supplierSolarCostPerW?: number;         // $/W — kWh cost from panel/racking supplier
+  supplierBatteryCostPerKWh?: number;     // $/kWh — kWh cost from battery supplier (e.g. Levando $300-350)
+  supplierBatteryPowerCostPerKW?: number; // $/kW — kWh cost for inverter/BOS
+  laborCostPerW?: number;                 // $/W — installation labor cost (default ~$0.40/W)
+
+  // ── Hydro-Québec billing parameters ────────────────────────────────
+  // PFM = Puissance à Facturer Minimale (Tarif M: 65% of trailing-12-month max peak)
+  // This is the FLOOR for billing demand — battery peak shaving cannot reduce billing below PFM.
+  // If not set, falls back to 65% × peakKW as proxy (less accurate).
+  pfmKW?: number;                         // kW — minimum billing demand from HQ
 }
 
 // Default analysis assumptions
@@ -2525,8 +2541,8 @@ export const defaultAnalysisAssumptions: AnalysisAssumptions = {
   discountRate: 0.07, // 7% WACC (midpoint of 6-8% range)
   taxRate: 0.265, // 26.5% corporate tax
   solarCostPerW: 2.25, // $2.25/Wc
-  batteryCapacityCost: 540, // $540/kWh (supplier cost $350/kWh + 35% gross margin)
-  batteryPowerCost: 800, // $800/kW
+  batteryCapacityCost: 400, // $400/kWh (supplier cost $300-350/kWh + 15-30% margin — Levando QC benchmark)
+  batteryPowerCost: 300, // $300/kW (integrated inverter/BOS for C&I peak shaving systems)
   omSolarPercent: 0.01, // 1% of solar CAPEX (legacy fallback)
   omPerKwc: 15, // $15/kW/year — industry standard for commercial solar O&M
   omBatteryPercent: 0.005, // 0.5% of battery CAPEX
@@ -2613,6 +2629,23 @@ export interface FinancialBreakdown {
   
   // Net
   capexNet: number;
+
+  // ── Internal margin (NOT client-facing, not in PDFs) ─────────────────
+  internalMargin?: {
+    costSolar: number;
+    costBattery: number;
+    costTotal: number;
+    sellSolar: number;
+    sellBattery: number;
+    sellTotal: number;
+    marginDollarsSolar: number;
+    marginDollarsBattery: number;
+    marginDollarsTotal: number;
+    marginPercentSolar: number;
+    marginPercentBattery: number;
+    marginPercentTotal: number;
+    isEstimated?: boolean; // true = default tier costs, false = real supplier costs entered
+  };
 }
 
 // Hourly profile data for charts

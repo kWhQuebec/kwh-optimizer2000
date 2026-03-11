@@ -781,7 +781,11 @@ function runPotentialAnalysis(
   const battEnergyKWh = forcedSizing?.forceBatterySize !== undefined
     ? Math.round(forcedSizing.forceBatterySize)
     : Math.round(battPowerKW * 2); // 2-hour duration
-  const demandShavingSetpointKW = Math.round(peakKW * 0.90); // Target 10% peak reduction
+  // Intelligent demand shaving setpoint — see simulationEngine.ts for full rationale
+  const pfmProxy = h.pfmKW || peakKW * 0.65;
+  const demandShavingSetpointKW = battPowerKW > 0
+    ? Math.round(Math.max(peakKW - battPowerKW, pfmProxy))
+    : Math.round(peakKW * 0.90);
   
   // ========== STEP 3: Run hourly simulation ==========
   // Calculate yield factor relative to baseline (1150 kWh/kWp = 1.0)

@@ -541,7 +541,11 @@ export function runPotentialAnalysis(
   const battEnergyKWh = forcedSizing?.forceBatterySize !== undefined
     ? Math.round(forcedSizing.forceBatterySize)
     : Math.round(battPowerKW * 2);
-  const demandShavingSetpointKW = Math.round(peakKW * 0.90);
+  // Intelligent demand shaving setpoint — see simulationEngine.ts for full rationale
+  const pfmProxy = h.pfmKW || peakKW * 0.65;
+  const demandShavingSetpointKW = battPowerKW > 0
+    ? Math.round(Math.max(peakKW - battPowerKW, pfmProxy))
+    : Math.round(peakKW * 0.90);
   
   const yieldFactor = effectiveYield / 1150;
   
@@ -789,6 +793,11 @@ export async function runAutoAnalysisForSite(siteId: string): Promise<void> {
   }
 
   analysisAssumptions.roofAreaSqFt = effectiveRoofAreaSqM * 10.764;
+
+  // Inject PFM from DB into assumptions
+  if ((site as any).pfmKw && !analysisAssumptions.pfmKW) {
+    analysisAssumptions.pfmKW = (site as any).pfmKw;
+  }
 
   const roofUtilizationRatio = baseAssumptions.roofUtilizationRatio ?? 0.85;
   const usableAreaSqM = effectiveRoofAreaSqM * roofUtilizationRatio;

@@ -14,7 +14,7 @@ import { sendQuickAnalysisEmail, sendProcurationCompletedNotification, sendNewLe
 import * as googleSolar from "../googleSolarService";
 import { generateProcurationPDF, createProcurationData } from "../procurationPdfGenerator";
 import { parseHQBill, type HQBillData } from "../hqBillParser";
-import { getTieredSolarCostPerW, BASELINE_YIELD, QUEBEC_MONTHLY_TEMPS } from "../analysis/potentialAnalysis";
+import { getTieredSolarCostPerW, calculatePfmFromHistory, BASELINE_YIELD, QUEBEC_MONTHLY_TEMPS } from "../analysis/potentialAnalysis";
 import { objectStorageClient } from "../replit_integrations/object_storage";
 import { createLogger } from "../lib/logger";
 import { scheduleNurtureSequence } from "../emailScheduler";
@@ -888,6 +888,18 @@ router.post("/api/detailed-analysis-request", leadSubmissionLimiter, upload.any(
         hqContractNumber: hqContractNumber || null,
         hqTariffDetail: hqTariffDetail || tariffCode || null,
         hqConsumptionHistory: parsedConsumptionHistory,
+        // Auto-calculate PFM and maxDemand from consumption history
+        ...(parsedConsumptionHistory && Array.isArray(parsedConsumptionHistory) ? (() => {
+          const kwValues = parsedConsumptionHistory
+            .map((e: any) => parseFloat(e.kW || e.kw || 0))
+            .filter((v: number) => !isNaN(v) && v > 0);
+          const maxDemand = kwValues.length > 0 ? Math.max(...kwValues) : null;
+          const pfm = calculatePfmFromHistory(parsedConsumptionHistory, hqTariffDetail || tariffCode);
+          return {
+            ...(maxDemand ? { maxDemandKw: maxDemand } : {}),
+            ...(pfm ? { pfmKw: pfm } : {}),
+          };
+        })() : {}),
       });
 
       const detectedTariff = hqTariffDetail || tariffCode;
@@ -974,6 +986,18 @@ router.post("/api/detailed-analysis-request", leadSubmissionLimiter, upload.any(
               hqContractNumber: bill.contractNumber || null,
               hqTariffDetail: bill.tariffDetail || bill.tariffCode || null,
               hqConsumptionHistory: billConsumptionHistory,
+              // Auto-calculate PFM and maxDemand for additional sites from bill
+              ...(billConsumptionHistory && Array.isArray(billConsumptionHistory) ? (() => {
+                const kwVals = billConsumptionHistory
+                  .map((e: any) => parseFloat(e.kW || e.kw || 0))
+                  .filter((v: number) => !isNaN(v) && v > 0);
+                const maxD = kwVals.length > 0 ? Math.max(...kwVals) : null;
+                const pfm = calculatePfmFromHistory(billConsumptionHistory, bill.tariffDetail || bill.tariffCode);
+                return {
+                  ...(maxD ? { maxDemandKw: maxD } : {}),
+                  ...(pfm ? { pfmKw: pfm } : {}),
+                };
+              })() : {}),
             });
             const billTariff = bill.tariffDetail || bill.tariffCode;
             if (billTariff) {

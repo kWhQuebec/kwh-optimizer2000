@@ -2032,6 +2032,100 @@ export function AnalysisResults({
             </Card>
           )}
 
+          {/* Internal Margin (admin only — NOT in client-facing reports) */}
+          {(() => {
+            const bk = simulation.breakdown as any;
+            const margin = bk?.internalMargin;
+            if (!margin) return null;
+            return (
+              <Card className="border-amber-500/50 bg-amber-50/50 dark:bg-amber-950/20">
+                <CardHeader className="flex flex-row items-center justify-between gap-2 pb-2">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="border-amber-500 text-amber-700 dark:text-amber-400 text-xs">
+                      INTERNE
+                    </Badge>
+                    {margin.isEstimated && (
+                      <Badge variant="outline" className="border-orange-400 text-orange-600 dark:text-orange-400 text-xs">
+                        {language === "fr" ? "Coûts estimés" : "Estimated costs"}
+                      </Badge>
+                    )}
+                    <CardTitle className="text-lg text-amber-800 dark:text-amber-300">
+                      {language === "fr" ? "Marge EPC" : "EPC Margin"}
+                    </CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid md:grid-cols-3 gap-4">
+                    {/* Solar margin */}
+                    {margin.sellSolar > 0 && (
+                      <div className="p-3 bg-white/60 dark:bg-black/20 rounded-lg">
+                        <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide mb-2">
+                          {language === "fr" ? "Solaire" : "Solar"}
+                        </p>
+                        <div className="space-y-1 text-sm">
+                          <div className="flex justify-between">
+                            <span>{language === "fr" ? "Coût" : "Cost"}</span>
+                            <span className="font-mono">{formatSmartCurrency(margin.costSolar, language)}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>{language === "fr" ? "Prix vente" : "Sell price"}</span>
+                            <span className="font-mono">{formatSmartCurrency(margin.sellSolar, language)}</span>
+                          </div>
+                          <div className="flex justify-between border-t pt-1 font-semibold text-amber-700 dark:text-amber-400">
+                            <span>{language === "fr" ? "Marge" : "Margin"}</span>
+                            <span className="font-mono">{formatSmartCurrency(margin.marginDollarsSolar, language)} ({margin.marginPercentSolar.toFixed(1)}%)</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    {/* Battery margin */}
+                    {margin.sellBattery > 0 && (
+                      <div className="p-3 bg-white/60 dark:bg-black/20 rounded-lg">
+                        <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide mb-2">
+                          {language === "fr" ? "Stockage" : "Storage"}
+                        </p>
+                        <div className="space-y-1 text-sm">
+                          <div className="flex justify-between">
+                            <span>{language === "fr" ? "Coût" : "Cost"}</span>
+                            <span className="font-mono">{formatSmartCurrency(margin.costBattery, language)}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>{language === "fr" ? "Prix vente" : "Sell price"}</span>
+                            <span className="font-mono">{formatSmartCurrency(margin.sellBattery, language)}</span>
+                          </div>
+                          <div className="flex justify-between border-t pt-1 font-semibold text-amber-700 dark:text-amber-400">
+                            <span>{language === "fr" ? "Marge" : "Margin"}</span>
+                            <span className="font-mono">{formatSmartCurrency(margin.marginDollarsBattery, language)} ({margin.marginPercentBattery.toFixed(1)}%)</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    {/* Total margin */}
+                    <div className="p-3 bg-amber-100/60 dark:bg-amber-900/20 rounded-lg border border-amber-300/50">
+                      <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide mb-2">
+                        TOTAL
+                      </p>
+                      <div className="space-y-1 text-sm">
+                        <div className="flex justify-between">
+                          <span>{language === "fr" ? "Coût total" : "Total cost"}</span>
+                          <span className="font-mono">{formatSmartCurrency(margin.costTotal, language)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>{language === "fr" ? "Prix vente total" : "Total sell price"}</span>
+                          <span className="font-mono">{formatSmartCurrency(margin.sellTotal, language)}</span>
+                        </div>
+                        <div className="flex justify-between border-t pt-1 font-bold text-lg text-amber-700 dark:text-amber-400">
+                          <span>{language === "fr" ? "Marge brute" : "Gross margin"}</span>
+                          <span className="font-mono">{formatSmartCurrency(margin.marginDollarsTotal, language)} ({margin.marginPercentTotal.toFixed(1)}%)</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })()}
+
           {/* Analysis & Optimization */}
           {(simulation.sensitivity || isLoadingFullData) && (
             <>

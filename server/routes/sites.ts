@@ -1052,6 +1052,12 @@ router.post("/:siteId/run-potential-analysis", authMiddleware, requireStaff, asy
       log.info(`GDP tariff detected (hqTariffDetail="${site.hqTariffDetail}") — net metering auto-disabled for site ${siteId}`);
     }
 
+  // Inject PFM from DB into assumptions (for demand shaving setpoint calculation)
+  if (site.pfmKw && !analysisAssumptions.pfmKW) {
+    analysisAssumptions.pfmKW = site.pfmKw;
+    log.info(`PFM ${site.pfmKw} kW injected from DB for site ${siteId}`);
+  }
+
   // CRITICAL: Use manually traced roof polygons as source of truth (not site.roofAreaSqM)
   // Per methodology: "Manual roof tracing: Source of truth for roof surfaces (Google not reliable for C&I)"
   const polygons = await storage.getRoofPolygons(siteId);
@@ -2167,12 +2173,18 @@ router.post("/:siteId/baseline/snapshot", authMiddleware, requireStaff, asyncHan
   const annualCost = monthlyProfile.reduce((sum: number, m: any) => sum + (m.cost || 0), 0);
   const peakDemand = Math.max(...history.map((e: any) => e.kW || e.kw || 0), 0);
 
+  // Calculate PFM from consumption history
+  const { calculatePfmFromHistory } = await import("../analysis/potentialAnalysis");
+  const pfmKw = calculatePfmFromHistory(history, site.hqTariffDetail);
+
   await storage.updateSite(req.params.siteId, {
     baselineSnapshotDate: new Date(),
     baselineAnnualConsumptionKwh: annualKwh,
     baselineAnnualCostCad: annualCost,
     baselinePeakDemandKw: peakDemand || null,
     baselineMonthlyProfile: monthlyProfile,
+    ...(peakDemand ? { maxDemandKw: peakDemand } : {}),
+    ...(pfmKw ? { pfmKw } : {}),
   });
 
   log.info(`Baseline snapshot captured for site ${req.params.siteId}: ${annualKwh} kWh/yr, $${annualCost}/yr`);

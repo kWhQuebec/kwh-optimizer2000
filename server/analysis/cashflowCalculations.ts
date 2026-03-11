@@ -21,7 +21,7 @@ import type {
   CashflowEntry,
   FinancialBreakdown,
 } from "@shared/schema";
-import { getTieredSolarCostPerW } from "./potentialAnalysis";
+import { getTieredSolarCostPerW, getDefaultSupplierCostPerW } from "./potentialAnalysis";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -109,6 +109,24 @@ export interface CashflowResults {
 
   // Financial breakdown (detailed, for reports)
   breakdown: FinancialBreakdown;
+
+  // ── Internal margin (NOT client-facing) ──────────────────────────────
+  // Always populated. Uses real supplier costs if provided, else default tier estimates.
+  internalMargin?: {
+    costSolar: number;          // kWh cost for solar equipment + labor
+    costBattery: number;        // kWh cost for battery equipment
+    costTotal: number;          // Total kWh cost
+    sellSolar: number;          // Client price for solar
+    sellBattery: number;        // Client price for battery
+    sellTotal: number;          // Total client price
+    marginDollarsSolar: number; // $ margin on solar
+    marginDollarsBattery: number; // $ margin on battery
+    marginDollarsTotal: number; // $ total margin
+    marginPercentSolar: number; // Gross margin % on solar
+    marginPercentBattery: number; // Gross margin % on battery
+    marginPercentTotal: number; // Gross margin % overall
+    isEstimated?: boolean;      // true = default supplier costs, false = real project-specific
+  };
 }
 
 // ─── Constants ──────────────────────────────────────────────────────────────
@@ -598,7 +616,55 @@ export function calculateCashflowMetrics(inputs: CashflowInputs): CashflowResult
     batterySubY0: inc.batterySubY0,
     batterySubY1: inc.batterySubY1,
     capexNet: inc.capexNet,
+    internalMargin: undefined as any, // Populated below if supplier costs available
   };
+
+  // Step 10: Internal margin calculation
+  // ALWAYS calculated — uses explicit supplier costs if provided, otherwise default tier costs.
+  // Default supplier costs are estimated from QC market equipment pricing by system size.
+  let internalMargin: CashflowResults['internalMargin'];
+  {
+    const laborPerW = h.laborCostPerW ?? 0.40;
+    // Solar: use explicit supplier cost → else default tier cost
+    const supplierSolarPerW = h.supplierSolarCostPerW ?? getDefaultSupplierCostPerW(pvSizeKW);
+    const costSolar = pvSizeKW > 0
+      ? pvSizeKW * 1000 * (supplierSolarPerW + laborPerW)
+      : 0;
+    // Battery: use explicit supplier costs → else defaults from assumptions
+    // Battery sell price uses h.batteryCapacityCost/PowerCost (which may include margin)
+    // Battery supplier cost uses explicit supplier values or falls back to 85% of sell price
+    const supplierBattCapPerKWh = h.supplierBatteryCostPerKWh ?? (h.batteryCapacityCost * 0.85);
+    const supplierBattPowPerKW = h.supplierBatteryPowerCostPerKW ?? (h.batteryPowerCost * 0.85);
+    const costBattery =
+      battEnergyKWh * supplierBattCapPerKWh +
+      battPowerKW * supplierBattPowPerKW;
+    const costTotal = costSolar + costBattery;
+
+    const sellSolar = capexPV;
+    const sellBattery = capexBattery;
+    const sellTotal = capexGross;
+
+    const marginDollarsSolar = sellSolar - costSolar;
+    const marginDollarsBattery = sellBattery - costBattery;
+    const marginDollarsTotal = sellTotal - costTotal;
+
+    const marginPercentSolar = sellSolar > 0 ? (marginDollarsSolar / sellSolar) * 100 : 0;
+    const marginPercentBattery = sellBattery > 0 ? (marginDollarsBattery / sellBattery) * 100 : 0;
+    const marginPercentTotal = sellTotal > 0 ? (marginDollarsTotal / sellTotal) * 100 : 0;
+
+    // Flag whether these are real supplier costs or defaults
+    const isEstimated = h.supplierSolarCostPerW === undefined && h.supplierBatteryCostPerKWh === undefined;
+
+    internalMargin = {
+      costSolar, costBattery, costTotal,
+      sellSolar, sellBattery, sellTotal,
+      marginDollarsSolar, marginDollarsBattery, marginDollarsTotal,
+      marginPercentSolar, marginPercentBattery, marginPercentTotal,
+      isEstimated, // true = default supplier costs, false = real project-specific costs
+    };
+    // Also store in breakdown for DB persistence
+    breakdown.internalMargin = internalMargin;
+  }
 
   return {
     capexSolar: capexPV,
@@ -615,6 +681,7 @@ export function calculateCashflowMetrics(inputs: CashflowInputs): CashflowResult
     annualCostBefore: savings.annualCostBefore,
     annualCostAfter: savings.annualCostAfter,
     ...metrics,
+    internalMargin,
     lcoe,
     lcoe30,
     cashflows,
