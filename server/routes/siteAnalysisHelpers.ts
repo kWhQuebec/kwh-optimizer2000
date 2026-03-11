@@ -342,15 +342,31 @@ export function buildHourlyData(readings: Array<{ kWh: number | null; kW: number
   interpolatedMonths: number[];
 } {
   const hourlyByHourMonth: Map<string, { totalKWh: number; maxKW: number; count: number }> = new Map();
-  
+
+  // Detect interval from data to properly convert kW → kWh
+  // HQ 15-min data provides kW (puissance) but not kWh (énergie)
+  let intervalHours = 1;
+  if (readings.length >= 2) {
+    const sorted = [...readings].sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+    const gaps: number[] = [];
+    for (let i = 1; i < Math.min(sorted.length, 20); i++) {
+      const gapMs = sorted[i].timestamp.getTime() - sorted[i - 1].timestamp.getTime();
+      if (gapMs > 0 && gapMs <= 3600000) gaps.push(gapMs);
+    }
+    if (gaps.length > 0) {
+      const medianGap = gaps.sort((a, b) => a - b)[Math.floor(gaps.length / 2)];
+      intervalHours = medianGap / 3600000; // 0.25 for 15-min
+    }
+  }
+
   for (const r of readings) {
     const hour = r.timestamp.getHours();
     const month = r.timestamp.getMonth() + 1;
     const key = `${month}-${hour}`;
-    
+
     const existing = hourlyByHourMonth.get(key) || { totalKWh: 0, maxKW: 0, count: 0 };
     const kWhMissing = r.kWh == null || (r.kWh === 0 && r.kW != null && r.kW > 0);
-    const effectiveKWh = kWhMissing ? (r.kW != null && r.kW > 0 ? r.kW : 0) : r.kWh;
+    const effectiveKWh = kWhMissing ? ((r.kW || 0) * intervalHours) : (r.kWh || 0);
     existing.totalKWh += effectiveKWh;
     existing.maxKW = Math.max(existing.maxKW, r.kW || 0);
     existing.count++;
@@ -500,9 +516,29 @@ export function runPotentialAnalysis(
   
   let totalKWh = 0;
   let peakKW = 0;
-  
+
+  // Detect interval from data: if readings are sub-hourly (15-min), derive kWh = kW × intervalHours
+  // This handles HQ 15-min data where only kW (puissance) is provided, not kWh (énergie)
+  let intervalHours = 1; // default: hourly
+  if (readings.length >= 2) {
+    // Sort a small sample to detect interval
+    const sorted = [...readings].sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+    const gaps: number[] = [];
+    for (let i = 1; i < Math.min(sorted.length, 20); i++) {
+      const gapMs = sorted[i].timestamp.getTime() - sorted[i - 1].timestamp.getTime();
+      if (gapMs > 0 && gapMs <= 3600000) gaps.push(gapMs);
+    }
+    if (gaps.length > 0) {
+      const medianGap = gaps.sort((a, b) => a - b)[Math.floor(gaps.length / 2)];
+      intervalHours = medianGap / 3600000; // e.g. 0.25 for 15-min data
+    }
+  }
+
   for (const r of readings) {
-    totalKWh += r.kWh || 0;
+    // Derive kWh from kW when kWh is missing (common with HQ 15-min demand data)
+    const kWhMissing = r.kWh == null || (r.kWh === 0 && r.kW != null && r.kW > 0);
+    const effectiveKWh = kWhMissing ? ((r.kW || 0) * intervalHours) : (r.kWh || 0);
+    totalKWh += effectiveKWh;
     const kw = r.kW || 0;
     if (kw > peakKW) peakKW = kw;
   }
