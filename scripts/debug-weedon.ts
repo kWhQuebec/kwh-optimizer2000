@@ -40,7 +40,7 @@ async function main() {
   console.log(`  quickAnalysis: ${weedon.quickAnalysisSystemSizeKw} kW, payback ${weedon.quickAnalysisPaybackYears}y`);
 
   // Meter files
-  const meterFiles = await storage.getMeterFilesBySite(weedon.id);
+  const meterFiles = await storage.getMeterFiles(weedon.id);
   console.log(`\n📁 METER FILES: ${meterFiles.length}`);
   for (const mf of meterFiles) {
     console.log(`  - ${(mf as any).originalFileName || mf.id} | type: ${(mf as any).fileType} | isSynthetic: ${(mf as any).isSynthetic} | granularity: ${(mf as any).granularity}`);
