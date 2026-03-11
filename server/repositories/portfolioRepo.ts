@@ -1,6 +1,6 @@
-import { eq, desc, and, inArray, sql } from "drizzle-orm";
+import { eq, desc, and, inArray, sql, isNotNull, or } from "drizzle-orm";
 import { db } from "../db";
-import { portfolios, portfolioSites, sites, clients, simulationRuns } from "@shared/schema";
+import { portfolios, portfolioSites, sites, clients, simulationRuns, siteMeters } from "@shared/schema";
 import type {
   Portfolio, InsertPortfolio, PortfolioWithSites,
   PortfolioSite, InsertPortfolioSite, PortfolioSiteWithDetails,
@@ -272,38 +272,74 @@ export async function getPortfolioSites(portfolioId: string): Promise<PortfolioS
     createdAt: simulationRuns.createdAt,
   };
 
-  const scenarioSims = await db.select(simColumns).from(simulationRuns)
+  const validSims = await db.select(simColumns).from(simulationRuns)
     .where(and(
       inArray(simulationRuns.siteId, siteIds),
-      eq(simulationRuns.type, "SCENARIO"),
+      or(
+        isNotNull(simulationRuns.pvSizeKW),
+        isNotNull(simulationRuns.capexNet),
+        isNotNull(simulationRuns.npv25),
+      ),
     ))
     .orderBy(desc(simulationRuns.createdAt));
 
-  const scenarioMap = new Map<string, typeof scenarioSims[number]>();
-  for (const sim of scenarioSims) {
-    if (!scenarioMap.has(sim.siteId)) {
-      scenarioMap.set(sim.siteId, sim);
+  const latestSimBySite = new Map<string, typeof validSims[number]>();
+  const latestSimByMeter = new Map<string, typeof validSims[number]>();
+  for (const sim of validSims) {
+    if (!latestSimBySite.has(sim.siteId)) {
+      latestSimBySite.set(sim.siteId, sim);
+    }
+    if (sim.meterId && !latestSimByMeter.has(`${sim.siteId}::${sim.meterId}`)) {
+      latestSimByMeter.set(`${sim.siteId}::${sim.meterId}`, sim);
     }
   }
 
-  const sitesMissingScenario = siteIds.filter(id => !scenarioMap.has(id));
-  if (sitesMissingScenario.length > 0) {
-    const fallbackSims = await db.select(simColumns).from(simulationRuns)
-      .where(inArray(simulationRuns.siteId, sitesMissingScenario))
-      .orderBy(desc(simulationRuns.createdAt));
-    for (const sim of fallbackSims) {
-      if (!scenarioMap.has(sim.siteId)) {
-        scenarioMap.set(sim.siteId, sim);
-      }
+  const metersBySite = new Map<string, string[]>();
+  if (siteIds.length > 0) {
+    const meters = await db.select({
+      siteId: siteMeters.siteId,
+      meterId: siteMeters.id,
+    }).from(siteMeters)
+      .where(inArray(siteMeters.siteId, siteIds))
+      .orderBy(siteMeters.createdAt);
+    for (const m of meters) {
+      const existing = metersBySite.get(m.siteId) || [];
+      existing.push(m.meterId);
+      metersBySite.set(m.siteId, existing);
     }
   }
+
+  const siteIdCounts = new Map<string, number>();
+  for (const ps of entries) {
+    siteIdCounts.set(ps.siteId, (siteIdCounts.get(ps.siteId) || 0) + 1);
+  }
+
+  const siteIdIndex = new Map<string, number>();
 
   return entries.map(ps => {
     const site = portfolioSitesList.find(s => s.id === ps.siteId)!;
+
+    let simulation = latestSimBySite.get(ps.siteId);
+
+    const count = siteIdCounts.get(ps.siteId) || 1;
+    if (count > 1) {
+      const meters = metersBySite.get(ps.siteId) || [];
+      const idx = siteIdIndex.get(ps.siteId) || 0;
+      siteIdIndex.set(ps.siteId, idx + 1);
+
+      if (idx < meters.length) {
+        const meterKey = `${ps.siteId}::${meters[idx]}`;
+        const meterSim = latestSimByMeter.get(meterKey);
+        if (meterSim) {
+          simulation = meterSim;
+        }
+      }
+    }
+
     return {
       ...ps,
       site: site as any as Site,
-      latestSimulation: scenarioMap.get(ps.siteId),
+      latestSimulation: simulation,
     };
   });
 }
