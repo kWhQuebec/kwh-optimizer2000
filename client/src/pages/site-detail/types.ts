@@ -62,6 +62,7 @@ export interface QuickPotentialResult {
     perimeterSetbackRatio?: number;
     constraintFactor?: number;
     polygonCount: number;
+    roofAreaSource?: "polygons" | "site" | "sibling-copy" | "consumption-estimate";
   };
   systemSizing: {
     maxCapacityKW: number;

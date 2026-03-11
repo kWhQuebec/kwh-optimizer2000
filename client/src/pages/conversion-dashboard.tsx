@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
 interface ConversionFunnelMetrics {
   conversionRate: number;
@@ -26,7 +28,7 @@ interface EstimateAccuracy {
 }
 
 export const ConversionDashboard = ({ language }) => {
-  const [periodDays, setPeriodDays] = React.useState(90);
+  const [periodDays, setPeriodDays] = useState(90);
 
   const { data: metrics } = useQuery({
     queryKey: ["conversion-metrics", periodDays],

@@ -1,3 +1,5 @@
+import { getLogoDataUri } from './emailLogo';
+
 function escapeHtml(str: string): string {
   return str
     .replace(/&/g, '&amp;')
@@ -53,23 +55,57 @@ const emailTemplates: Record<string, {
   },
 };
 
-const emailBaseLayout = (body: string, logoUrl?: string) => `
-<!DOCTYPE html>
+// ─── Inline CSS post-processing ─────────────────────────────────────────────
+// Email clients strip <style> tags. We replace CSS class references with inline styles.
+function inlineEmailStyles(html: string): string {
+  return html
+    // .button → branded CTA button
+    .replace(
+      /class="button"/g,
+      'style="display:inline-block;background:#003DA6;color:#ffffff;padding:14px 32px;border-radius:6px;text-decoration:none;font-weight:600;font-size:16px;"'
+    )
+    // .highlight → info box with left border accent
+    .replace(
+      /class="highlight"/g,
+      'style="background:#EBF2FF;border-left:4px solid #003DA6;padding:16px 20px;border-radius:4px;margin:20px 0;"'
+    )
+    // .positive → green accent for positive values
+    .replace(
+      /class="positive"/g,
+      'style="color:#16A34A;font-weight:600;"'
+    );
+}
+
+// ─── Branded Base Layout ────────────────────────────────────────────────────
+// Used by ALL client/lead-facing emails for consistent branding.
+// Logo is ALWAYS included via base64 data URI (no external fetch needed by email client).
+export function emailBaseLayout(body: string, lang: 'fr' | 'en' = 'fr'): string {
+  const logoDataUri = getLogoDataUri(lang);
+  const logoHtml = logoDataUri
+    ? `<img src="${logoDataUri}" alt="kWh Québec" style="max-height:50px;" />`
+    : '<span style="color:#fff;font-size:22px;font-weight:700;">kWh Québec</span>';
+
+  const rawHtml = `<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
-<body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f4f4f5;">
+<body style="margin:0;padding:0;font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,Roboto,sans-serif;background:#f4f4f5;color:#1a1a1a;">
 <div style="max-width:600px;margin:0 auto;padding:20px;">
-  <div style="background:#003DA6;padding:20px;text-align:center;border-radius:8px 8px 0 0;">
-    ${logoUrl ? `<img src="${logoUrl}" alt="kWh Québec" style="max-height:40px;" />` : '<span style="color:#fff;font-size:22px;font-weight:700;">kWh Québec</span>'}
+  <div style="background:#003DA6;padding:24px;text-align:center;border-radius:8px 8px 0 0;">
+    ${logoHtml}
   </div>
-  <div style="background:#fff;padding:30px;border-radius:0 0 8px 8px;">
+  <div style="background:#ffffff;padding:32px;border-radius:0 0 8px 8px;line-height:1.6;">
     ${body}
   </div>
-  <p style="text-align:center;color:#888;font-size:12px;margin-top:20px;">kWh Québec Inc. | info@kwhquebec.ca</p>
+  <div style="text-align:center;padding:20px 0;">
+    <p style="color:#888;font-size:12px;margin:4px 0;">kWh Québec Inc. — Solutions solaires commerciales</p>
+    <p style="color:#888;font-size:12px;margin:4px 0;">info@kwh.quebec | (514) 427-8871</p>
+  </div>
 </div>
 </body>
-</html>
-`;
+</html>`;
+
+  return inlineEmailStyles(rawHtml);
+}
 
 export function renderEmailTemplate(
   templateKey: string,
@@ -102,7 +138,7 @@ export function renderEmailTemplate(
     body = body.replace(new RegExp(placeholder.replace(/[{}]/g, '\\$&'), 'g'), safeValue);
   }
 
-  const html = emailBaseLayout(body, data.logoUrl);
+  const html = emailBaseLayout(body, language);
   const text = body.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
 
   return { subject, html, text };

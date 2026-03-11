@@ -47,7 +47,7 @@ const translations: Translations = {
   "landing.whyNow.title": { fr: "Pourquoi maintenant?", en: "Why now?" },
   "landing.whyNow.subtitle": { fr: "Les incitatifs n'ont jamais été aussi généreux — et ils ne dureront pas", en: "Incentives have never been this generous — and they won't last" },
   "landing.whyNow.hq.title": { fr: "Crédit jusqu'à 40% par Hydro-Québec", en: "Up to 40% Credit by Hydro-Québec" },
-  "landing.whyNow.hq.description": { fr: "Programme Hydro-Québec: jusqu'à 1 000$/kW (max 40% du CAPEX)", en: "Hydro-Québec program: up to $1,000/kW (max 40% of CAPEX)" },
+  "landing.whyNow.hq.description": { fr: "Programme Solutions efficaces: jusqu'à 1 000$/kW (max 40% du CAPEX)", en: "Solutions efficaces program: up to $1,000/kW (max 40% of CAPEX)" },
   "landing.whyNow.federal.title": { fr: "Crédit fédéral 30%", en: "Federal 30% ITC" },
   "landing.whyNow.federal.description": { fr: "Crédit d'impôt à l'investissement pour technologies propres", en: "Investment tax credit for clean technology" },
   "landing.whyNow.fiscal.title": { fr: "100% déductible en 1ère année", en: "100% Deductible Year 1" },
@@ -200,6 +200,17 @@ const translations: Translations = {
   },
   "form.required": { fr: "Ce champ est requis", en: "This field is required" },
   "form.invalidEmail": { fr: "Courriel invalide", en: "Invalid email" },
+  "toast.success.title": { fr: "Succès", en: "Success" },
+  "toast.error.title": { fr: "Erreur", en: "Error" },
+  "toast.error.generic": { fr: "Une erreur est survenue. Veuillez réessayer.", en: "An error occurred. Please try again." },
+  "toast.leadSubmit.success": { fr: "Votre demande a été envoyée avec succès!", en: "Your request has been submitted successfully!" },
+  "toast.leadSubmit.error": { fr: "Impossible d'envoyer votre demande. Veuillez réessayer.", en: "Unable to submit your request. Please try again." },
+  "toast.billParse.success": { fr: "Facture analysée avec succès!", en: "Bill analyzed successfully!" },
+  "toast.billParse.error": { fr: "Impossible d'analyser la facture. Réessayez ou contactez-nous.", en: "Unable to analyze the bill. Try again or contact us." },
+  "toast.procuration.success": { fr: "Votre procuration a été envoyée avec succès!", en: "Your authorization has been submitted successfully!" },
+  "toast.procuration.error": { fr: "Impossible d'envoyer la procuration. Veuillez réessayer.", en: "Unable to submit the authorization. Please try again." },
+  "form.invalidPhone": { fr: "Numéro de téléphone invalide", en: "Invalid phone number" },
+  "form.optional": { fr: "(optionnel)", en: "(optional)" },
 
   // Login
   "login.title": { fr: "Connexion", en: "Login" },
@@ -583,17 +594,6 @@ const translations: Translations = {
   "financing.cumulativeCashflow": { fr: "Comparaison flux trésorerie cumulés", en: "Cumulative Cashflow Comparison" },
   "financing.cumulativeCashflowAxis": { fr: "Cashflow Cumulé ($)", en: "Cumulative Cashflow ($)" },
   "financing.years": { fr: "Années", en: "Years" },
-  "financing.ppa": { fr: "PPA Tiers", en: "Third-Party PPA" },
-  "financing.ppaTerm": { fr: "Durée PPA (ans)", en: "PPA Term (years)" },
-  "financing.ppaYear1Rate": { fr: "An 1: % tarif Hydro-Québec", en: "Year 1: % of Hydro-Québec rate" },
-  "financing.ppaYear2Rate": { fr: "An 2+: % tarif Hydro-Québec", en: "Year 2+: % of Hydro-Québec rate" },
-  "financing.ppaLegalWarning": { 
-    fr: "⚠️ AVERTISSEMENT LÉGAL: Au Québec, les PPA tiers (achat d'électricité d'un producteur autre qu'Hydro-Québec) opèrent dans une zone grise réglementaire. Cette option est présentée à titre comparatif uniquement. Consultez un avocat spécialisé en énergie avant de considérer ce modèle.", 
-    en: "⚠️ LEGAL WARNING: In Quebec, third-party PPAs (purchasing electricity from a producer other than Hydro-Québec) operate in a regulatory gray area. This option is presented for comparison purposes only. Consult an energy lawyer before considering this model." 
-  },
-  "financing.ppaNoIncentives": { fr: "Incitatifs conservés par le fournisseur PPA", en: "Incentives retained by PPA provider" },
-  "financing.ppaTransfer": { fr: "Transfert propriété après terme", en: "Ownership transfer after term" },
-  "financing.ppaCompetitorModel": { fr: "Modèle concurrent (ex: TRC Solar)", en: "Competitor model (e.g., TRC Solar)" },
 
   // Proposal Builder
   "proposal.title": { fr: "Générateur de proposition", en: "Proposal Builder" },
@@ -836,7 +836,9 @@ const translations: Translations = {
   "publicAgreement.nextSteps": { fr: "Notre équipe vous contactera sous peu pour planifier la visite technique.", en: "Our team will contact you shortly to schedule the technical visit." },
   "publicAgreement.signatureRequired": { fr: "Veuillez dessiner votre signature", en: "Please draw your signature" },
   "publicAgreement.nameRequired": { fr: "Veuillez entrer votre nom", en: "Please enter your name" },
+  "publicAgreement.nameMinLength": { fr: "Le nom doit contenir au moins 2 caractères", en: "Name must be at least 2 characters" },
   "publicAgreement.emailRequired": { fr: "Veuillez entrer votre courriel", en: "Please enter your email" },
+  "publicAgreement.emailInvalid": { fr: "Veuillez entrer un courriel valide", en: "Please enter a valid email" },
   "publicAgreement.notFound": { fr: "Entente introuvable", en: "Agreement not found" },
   "publicAgreement.loading": { fr: "Chargement...", en: "Loading..." },
   "publicAgreement.error": { fr: "Une erreur est survenue", en: "An error occurred" },
@@ -1010,7 +1012,7 @@ const translations: Translations = {
   "whykwh.subtitle": { fr: "Nous avons assemblé une équipe qui accompagne les entreprises partout au Canada dans leurs projets d'énergie renouvelable depuis 2010.", en: "We have assembled a team supporting businesses across Canada in renewable energy projects since 2010." },
   "whykwh.value1": { fr: "Simplicité", en: "Simplicity" },
   "whykwh.value2": { fr: "Fiabilité", en: "Reliability" },
-  "whykwh.value3": { fr: "Longévité", en: "Longevity" },
+  "whykwh.value3": { fr: "Pérennité", en: "Sustainability" },
   "whykwh.value4": { fr: "Fierté", en: "Pride" },
   "whykwh.benefit1": { fr: "Licence RBQ", en: "RBQ Licensed" },
   "whykwh.benefit2": { fr: "Financement flexible", en: "Flexible Financing" },
@@ -1053,6 +1055,19 @@ const translations: Translations = {
 
   "faq.item8.question": { fr: "Que se passe-t-il si je vends mon bâtiment?", en: "What happens if I sell my building?" },
   "faq.item8.answer": { fr: "Le système solaire reste avec le bâtiment et augmente sa valeur de revente. Les contrats d'achat-vente standard incluent le transfert du système au nouveau propriétaire. Si vous avez un contrat de financement, il peut généralement être assumé par le nouveau propriétaire ou refinancé à des conditions compétitives. La plupart des acheteurs voient le système solaire comme un atout majeur.", en: "The solar system stays with the building and increases its resale value. Standard purchase agreements include system transfer to the new owner. If you have financing, it can typically be assumed by the new owner or refinanced at competitive rates. Most buyers see the solar system as a major asset." },
+
+  "form.invalidHqAccount": { fr: "Format de compte Hydro-Québec invalide (10-12 chiffres)", en: "Invalid Hydro-Québec account format (10-12 digits)" },
+
+  "seo.privacy.title": { fr: "Politique de confidentialité | kWh Québec", en: "Privacy Policy | kWh Québec" },
+  "seo.privacy.description": { fr: "Politique de confidentialité de kWh Québec. Protection de vos renseignements personnels conformément à la Loi 25 du Québec.", en: "kWh Québec privacy policy. Protection of your personal information in accordance with Quebec's Law 25." },
+  "seo.terms.title": { fr: "Conditions d'utilisation | kWh Québec", en: "Terms of Service | kWh Québec" },
+  "seo.terms.description": { fr: "Conditions d'utilisation du site web et des services offerts par kWh Québec inc.", en: "Terms of service for the website and services offered by kWh Québec inc." },
+  "seo.autorisationHq.title": { fr: "Autorisation Hydro-Québec | kWh Québec", en: "Hydro-Québec Authorization | kWh Québec" },
+  "seo.autorisationHq.description": { fr: "Autorisez l'accès à vos données de consommation Hydro-Québec pour une analyse solaire détaillée.", en: "Authorize access to your Hydro-Québec consumption data for a detailed solar analysis." },
+  "seo.analyseDetaillee.title": { fr: "Analyse détaillée | kWh Québec", en: "Detailed Analysis | kWh Québec" },
+  "seo.analyseDetaillee.description": { fr: "Formulaire d'analyse détaillée et de procuration pour votre projet solaire commercial.", en: "Detailed analysis and authorization form for your commercial solar project." },
+  "seo.thankYou.title": { fr: "Merci | kWh Québec", en: "Thank You | kWh Québec" },
+  "seo.thankYou.description": { fr: "Merci pour votre demande. Notre équipe analyse votre dossier.", en: "Thank you for your request. Our team is analyzing your file." },
 };
 
 interface I18nContextType {

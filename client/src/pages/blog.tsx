@@ -10,11 +10,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LanguageToggle } from "@/components/language-toggle";
+import { PublicHeader, PublicFooter } from "@/components/public-header";
 import { useI18n } from "@/lib/i18n";
 import { SEOHead } from "@/components/seo-head";
 import type { BlogArticle, NewsArticle } from "@shared/schema";
-import logoFr from "@assets/kWh_Quebec_Logo-01_-_Rectangulaire_1764799021536.png";
-import logoEn from "@assets/kWh_Quebec_Logo-02_-_Rectangle_1764799021536.png";
 
 const categoryIcons: Record<string, typeof BookOpen> = {
   guide: BookOpen,
@@ -179,7 +178,6 @@ function NewsArticleCard({ article }: { article: NewsArticle }) {
 
 export default function BlogPage() {
   const { t, language } = useI18n();
-  const currentLogo = language === "fr" ? logoFr : logoEn;
 
   const [location, setLocation] = useLocation();
   const searchParams = new URLSearchParams(location.split("?")[1] || "");
@@ -241,26 +239,7 @@ export default function BlogPage() {
       />
       
       <div className="min-h-screen bg-background">
-        <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b">
-          <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-            <Link href="/">
-              <img src={currentLogo} alt={language === "fr" ? "Logo kWh Québec – Énergie solaire commerciale" : "kWh Québec Logo – Commercial Solar Energy"} className="h-[50px] cursor-pointer" data-testid="img-logo" />
-            </Link>
-            <nav className="flex items-center gap-4">
-              <Link href="/">
-                <Button variant="ghost" data-testid="link-home">{t("nav.home")}</Button>
-              </Link>
-              <Link href="/services">
-                <Button variant="ghost" data-testid="link-services">{language === "fr" ? "Services" : "Services"}</Button>
-              </Link>
-              <Link href="/blog">
-                <Button variant="ghost" className="bg-accent/50" data-testid="link-blog">{language === "fr" ? "Ressources" : "Resources"}</Button>
-              </Link>
-              <LanguageToggle />
-              <ThemeToggle />
-            </nav>
-          </div>
-        </header>
+        <PublicHeader />
 
         <main className="container mx-auto px-4 py-12">
           <motion.div 
@@ -378,7 +357,7 @@ export default function BlogPage() {
             <p className="text-muted-foreground mb-6 max-w-xl mx-auto" data-testid="text-cta-description">
               {t("blog.ctaDescription")}
             </p>
-            <Link href="/#contact">
+            <Link href="/#analyse">
               <Button size="lg" data-testid="button-cta">
                 {t("blog.ctaButton")}
                 <ArrowRight className="w-4 h-4 ml-2" />
@@ -387,11 +366,7 @@ export default function BlogPage() {
           </motion.div>
         </main>
 
-        <footer className="border-t py-8 mt-12">
-          <div className="container mx-auto px-4 text-center text-muted-foreground">
-            <p>© 2026 kWh Québec inc. | Licence RBQ: 5656-6136-01</p>
-          </div>
-        </footer>
+        <PublicFooter />
       </div>
     </>
   );

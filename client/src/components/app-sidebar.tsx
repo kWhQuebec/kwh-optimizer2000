@@ -12,12 +12,10 @@ import {
   FolderOpen,
   FolderKanban,
   UserCog,
-  FileSignature,
   Target,
   FileCheck,
   HardHat,
   Wrench,
-  Upload,
   GanttChart,
   ListTodo,
   Gauge,
@@ -27,9 +25,7 @@ import {
   Settings2,
   BookOpen,
   FileEdit,
-  Download,
   Rocket,
-  Newspaper,
 } from "lucide-react";
 import {
   Sidebar,
@@ -47,8 +43,16 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Badge } from "@/components/ui/badge";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
+import { useSectionStats, type SectionLevel } from "@/hooks/use-section-stats";
 import sidebarLogoFr from "@assets/solaire_fr-removebg-preview_1767985380511.png";
 import sidebarLogoEn from "@assets/solaire_en-removebg-preview_1767985380510.png";
+
+interface NavItem {
+  title: string;
+  url: string;
+  icon: typeof LayoutDashboard;
+  tooltip: string;
+}
 
 export function AppSidebar({ forceClientView, previewClientName }: { forceClientView?: boolean; previewClientName?: string } = {}) {
   const { t, language } = useI18n();
@@ -56,22 +60,29 @@ export function AppSidebar({ forceClientView, previewClientName }: { forceClient
   const [location] = useLocation();
   const isMobile = useIsMobile();
   const currentLogo = language === "fr" ? sidebarLogoFr : sidebarLogoEn;
+  const sectionStats = useSectionStats();
 
   const isStaff = forceClientView ? false : rawIsStaff;
   const isClient = forceClientView ? true : rawIsClient;
 
-  // Dashboard - always visible (not in a collapsible section)
-  const dashboardItems = [
+  // ─── Dashboard + EOS (always visible, not collapsible) ────────────
+  const dashboardItems: NavItem[] = [
     {
       title: t("nav.dashboard"),
       url: "/app",
       icon: LayoutDashboard,
       tooltip: language === "fr" ? "Vue d'ensemble du pipeline et des opportunités" : "Pipeline and opportunities overview",
     },
+    {
+      title: "EOS",
+      url: "/app/eos",
+      icon: Rocket,
+      tooltip: language === "fr" ? "Entrepreneurial Operating System — Scorecard, Rocks, L10" : "Entrepreneurial Operating System — Scorecard, Rocks, L10",
+    },
   ];
 
-  // SECTION 1: Exploration (workflow phase 1)
-  const explorationItems = [
+  // ─── SECTION 1: Exploration ───────────────────────────────────────
+  const explorationItems: NavItem[] = [
     {
       title: language === "fr" ? "Pipeline ventes" : "Sales Pipeline",
       url: "/app/pipeline",
@@ -104,8 +115,8 @@ export function AppSidebar({ forceClientView, previewClientName }: { forceClient
     },
   ];
 
-  // SECTION 2: Conception (workflow phase 2)
-  const designItems = [
+  // ─── SECTION 2: Conception ────────────────────────────────────────
+  const designItems: NavItem[] = [
     {
       title: t("nav.analyses"),
       url: "/app/analyses",
@@ -119,15 +130,15 @@ export function AppSidebar({ forceClientView, previewClientName }: { forceClient
       tooltip: language === "fr" ? "Configurations d'équipement et devis" : "Equipment configurations and quotes",
     },
     {
-      title: t("nav.catalog"),
-      url: "/app/catalog",
+      title: language === "fr" ? "Pricing & Catalogue" : "Pricing & Catalog",
+      url: "/app/pricing-catalog",
       icon: Package,
-      tooltip: language === "fr" ? "Composants solaires et prix" : "Solar components and pricing",
+      tooltip: language === "fr" ? "Composants, prix internes, fournisseurs et concurrence" : "Components, internal pricing, suppliers and competitive intel",
     },
   ];
 
-  // SECTION 3: Réalisation (workflow phase 3)
-  const constructionItems = [
+  // ─── SECTION 3: Réalisation ───────────────────────────────────────
+  const constructionItems: NavItem[] = [
     {
       title: language === "fr" ? "Projets" : "Projects",
       url: "/app/construction-projects",
@@ -154,8 +165,8 @@ export function AppSidebar({ forceClientView, previewClientName }: { forceClient
     },
   ];
 
-  // SECTION 4: Opération (workflow phase 4)
-  const operationsItems = [
+  // ─── SECTION 4: Opération ─────────────────────────────────────────
+  const operationsItems: NavItem[] = [
     {
       title: language === "fr" ? "Contrats O&M" : "O&M Contracts",
       url: "/app/om-contracts",
@@ -176,31 +187,14 @@ export function AppSidebar({ forceClientView, previewClientName }: { forceClient
     },
   ];
 
-  // SECTION 5: Admin
-  const adminItems = [
-    {
-      title: "EOS",
-      url: "/app/eos",
-      icon: Rocket,
-      tooltip: language === "fr" ? "Entrepreneurial Operating System" : "Entrepreneurial Operating System",
-    },
+  // ─── SECTION 5: Admin (cleaned up) ───────────────────────────────
+  // Removed: Procurations, HQ Data (→ Site Detail), Import, News, Market Intel (→ merged)
+  const adminItems: NavItem[] = [
     {
       title: t("nav.userManagement") || "User Management",
       url: "/app/users",
       icon: UserCog,
       tooltip: language === "fr" ? "Gestion des comptes utilisateurs" : "User account management",
-    },
-    {
-      title: t("nav.procurations") || "Procurations",
-      url: "/app/procurations",
-      icon: FileSignature,
-      tooltip: language === "fr" ? "Autorisations d'accès aux données Hydro-Québec" : "Hydro-Québec data access authorizations",
-    },
-    {
-      title: language === "fr" ? "Récupération Hydro-Québec" : "Hydro-Québec Data Retrieval",
-      url: "/app/admin/hq-data",
-      icon: Download,
-      tooltip: language === "fr" ? "Télécharger les données de consommation depuis le portail Hydro-Québec" : "Download consumption data from the Hydro-Québec portal",
     },
     {
       title: language === "fr" ? "Contenu" : "Content",
@@ -209,28 +203,10 @@ export function AppSidebar({ forceClientView, previewClientName }: { forceClient
       tooltip: language === "fr" ? "Gestion du contenu du site" : "Site content management",
     },
     {
-      title: language === "fr" ? "Import en lot" : "Batch Import",
-      url: "/app/import",
-      icon: Upload,
-      tooltip: language === "fr" ? "Importer des prospects via fichier CSV" : "Import prospects from CSV files",
-    },
-    {
-      title: language === "fr" ? "Intelligence marché" : "Market Intelligence",
-      url: "/app/market-intelligence/pricing",
-      icon: Target,
-      tooltip: language === "fr" ? "Prix fournisseurs, historique et tendances" : "Supplier pricing, history and trends",
-    },
-    {
       title: language === "fr" ? "Méthodologie" : "Methodology",
       url: "/app/methodology",
       icon: BookOpen,
       tooltip: language === "fr" ? "Hypothèses et explications des calculs" : "Calculation assumptions and explanations",
-    },
-    {
-      title: language === "fr" ? "Nouvelles" : "News Curation",
-      url: "/app/admin/news",
-      icon: Newspaper,
-      tooltip: language === "fr" ? "Curation des nouvelles de l'industrie" : "Industry news curation",
     },
     {
       title: language === "fr" ? "Paramètres" : "Settings",
@@ -240,11 +216,12 @@ export function AppSidebar({ forceClientView, previewClientName }: { forceClient
     },
   ];
 
-  const clientItems = [
+  const clientItems: NavItem[] = [
     {
       title: t("nav.mySites") || "My Sites",
       url: "/app/portal",
       icon: FolderOpen,
+      tooltip: language === "fr" ? "Mes sites et projets" : "My sites and projects",
     },
   ];
 
@@ -252,9 +229,34 @@ export function AppSidebar({ forceClientView, previewClientName }: { forceClient
     if (url === "/app" || url === "/app/portal") {
       return location === url;
     }
+    // Handle pricing-catalog matching for old URLs too
+    if (url === "/app/pricing-catalog") {
+      return location.startsWith("/app/pricing-catalog") ||
+        location.startsWith("/app/catalog") ||
+        location.startsWith("/app/admin/pricing") ||
+        location.startsWith("/app/market-intelligence");
+    }
     return location.startsWith(url);
   };
 
+  // ─── Dynamic Spotlight Logic ──────────────────────────────────────
+  const sectionRouteMap: Record<string, NavItem[]> = {
+    exploration: explorationItems,
+    conception: designItems,
+    construction: constructionItems,
+    operations: operationsItems,
+  };
+
+  const hasSectionActiveRoute = (sectionId: string): boolean => {
+    const items = sectionRouteMap[sectionId];
+    return items ? items.some((item) => isActive(item.url)) : false;
+  };
+
+  const getSectionLevel = (sectionId: string): SectionLevel => {
+    return sectionStats.getLevel(sectionId, hasSectionActiveRoute(sectionId));
+  };
+
+  // ─── UI Helpers ───────────────────────────────────────────────────
   const getRoleBadge = () => {
     if (isAdmin) return { label: "Admin", variant: "default" as const };
     if (isStaff) return { label: "Analyst", variant: "secondary" as const };
@@ -264,10 +266,9 @@ export function AppSidebar({ forceClientView, previewClientName }: { forceClient
 
   const roleBadge = getRoleBadge();
 
-  // Collapsible state for each section - collapse more on mobile
   const getDefaultSections = (mobile: boolean) => ({
     exploration: true,
-    design: !mobile, // Collapse on mobile
+    design: !mobile,
     construction: false,
     operations: false,
     admin: false,
@@ -275,93 +276,115 @@ export function AppSidebar({ forceClientView, previewClientName }: { forceClient
 
   const [openSections, setOpenSections] = useState<Record<string, boolean>>(getDefaultSections(false));
 
-  // Update collapsed state when switching to/from mobile
   useEffect(() => {
     setOpenSections(getDefaultSections(isMobile));
   }, [isMobile]);
 
-  const toggleSection = (section: string) => {
-    setOpenSections(prev => ({ ...prev, [section]: !prev[section] }));
-  };
-
-  // Check if any item in a section is active
-  const hasSectionActiveItem = (items: typeof explorationItems) => {
-    return items.some(item => isActive(item.url));
-  };
-
-  // Collapsible Section Component
+  // ─── Collapsible Section with Spotlight Styling ───────────────────
   const CollapsibleSection = ({
     id,
     label,
     icon: Icon,
     items,
-    labelColor = "text-sidebar-foreground"
+    labelColor = "text-sidebar-foreground",
+    sectionId,
+    futureLabel,
   }: {
     id: string;
     label: string;
     icon: typeof Settings;
-    items: typeof explorationItems;
+    items: NavItem[];
     labelColor?: string;
+    sectionId?: string; // for spotlight logic (exploration, conception, etc.)
+    futureLabel?: string; // shown as badge when section is "future"
   }) => {
-    const isOpen = openSections[id] || hasSectionActiveItem(items);
+    const level = sectionId ? getSectionLevel(sectionId) : "available";
+    const count = sectionId ? sectionStats.counts[sectionId as keyof typeof sectionStats.counts] : undefined;
+    const isOpen = openSections[id] || items.some((item) => isActive(item.url));
     const sectionRef = useRef<HTMLDivElement>(null);
-    
+
     const handleOpenChange = (open: boolean) => {
-      setOpenSections(prev => ({ ...prev, [id]: open }));
-      
-      // If opening (not closing), scroll to show the expanded content
+      setOpenSections((prev) => ({ ...prev, [id]: open }));
       if (open) {
-        // Wait for animation to complete then scroll the last item into view
         setTimeout(() => {
           if (!sectionRef.current) return;
-          
-          // Find the last menu item in the collapsible content
           const menuItems = sectionRef.current.querySelectorAll('[data-sidebar="menu-item"]');
           const lastItem = menuItems[menuItems.length - 1];
-          
           if (lastItem) {
-            lastItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            lastItem.scrollIntoView({ behavior: "smooth", block: "nearest" });
           }
         }, 350);
       }
     };
-    
+
+    // Visual styles per level
+    const triggerClass =
+      level === "spotlight"
+        ? "font-semibold text-sidebar-foreground"
+        : level === "future"
+          ? "text-sidebar-foreground/40"
+          : "text-sidebar-foreground/70";
+
+    const iconClass =
+      level === "spotlight"
+        ? `${labelColor} opacity-100`
+        : level === "future"
+          ? "text-sidebar-foreground/30"
+          : `${labelColor} opacity-70`;
+
+    const itemTextClass =
+      level === "future" ? "text-muted-foreground/50 text-[13px]" : "";
+
     return (
       <div ref={sectionRef}>
         <SidebarGroup>
           <Collapsible open={isOpen} onOpenChange={handleOpenChange}>
-          <CollapsibleTrigger asChild>
-            <button
-              className="flex items-center justify-between w-full px-2 py-1.5 text-xs font-medium text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 rounded-md transition-colors"
-              data-testid={`sidebar-section-${id}`}
-            >
-              <div className="flex items-center gap-2">
-                <Icon className={`w-4 h-4 ${labelColor}`} />
-                <span>{label}</span>
-              </div>
-              <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
-            </button>
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <SidebarGroupContent className="mt-1">
-              <SidebarMenu>
-                {items.map((item) => (
-                  <SidebarMenuItem key={item.url}>
-                    <SidebarMenuButton 
-                      asChild 
-                      isActive={isActive(item.url)}
-                      data-testid={`sidebar-link-${item.url.split("/").pop()}`}
-                      title={item.tooltip}
-                    >
-                      <Link href={item.url}>
-                        <item.icon className="w-4 h-4" />
-                        <span>{item.title}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
+            <CollapsibleTrigger asChild>
+              <button
+                className={`flex items-center justify-between w-full px-2 py-1.5 text-xs font-medium hover:text-sidebar-foreground hover:bg-sidebar-accent/50 rounded-md transition-colors ${triggerClass}`}
+                data-testid={`sidebar-section-${id}`}
+              >
+                <div className="flex items-center gap-2">
+                  <Icon className={`w-4 h-4 ${iconClass}`} />
+                  <span>{label}</span>
+                  {level === "spotlight" && count !== undefined && count > 0 && (
+                    <Badge variant="secondary" className="text-[10px] h-4 px-1.5 ml-1 bg-primary/10 text-primary">
+                      {count}
+                    </Badge>
+                  )}
+                  {level === "future" && futureLabel && (
+                    <span className="text-[10px] text-muted-foreground/40 ml-1">
+                      {futureLabel}
+                    </span>
+                  )}
+                </div>
+                <ChevronDown
+                  className={`w-4 h-4 transition-transform duration-200 ${isOpen ? "rotate-180" : ""} ${
+                    level === "future" ? "opacity-40" : ""
+                  }`}
+                />
+              </button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <SidebarGroupContent className="mt-1">
+                <SidebarMenu>
+                  {items.map((item) => (
+                    <SidebarMenuItem key={item.url}>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={isActive(item.url)}
+                        data-testid={`sidebar-link-${item.url.split("/").pop()}`}
+                        title={item.tooltip}
+                      >
+                        <Link href={item.url}>
+                          <item.icon className={`w-4 h-4 ${level === "future" ? "opacity-40" : ""}`} />
+                          <span className={itemTextClass}>{item.title}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
             </CollapsibleContent>
           </Collapsible>
         </SidebarGroup>
@@ -373,9 +396,9 @@ export function AppSidebar({ forceClientView, previewClientName }: { forceClient
     <Sidebar>
       <SidebarHeader className="border-b border-sidebar-border px-3 py-3 md:px-4 md:py-4">
         <a href="/" data-testid="link-logo-home">
-          <img 
-            src={currentLogo} 
-            alt={language === "fr" ? "Logo kWh Québec – CRM solaire" : "kWh Québec Logo – Solar CRM"} 
+          <img
+            src={currentLogo}
+            alt={language === "fr" ? "Logo kWh Québec – CRM solaire" : "kWh Québec Logo – Solar CRM"}
             className="h-[3.75rem] w-auto"
             data-testid="logo-sidebar"
           />
@@ -390,8 +413,8 @@ export function AppSidebar({ forceClientView, previewClientName }: { forceClient
               <SidebarMenu>
                 {clientItems.map((item) => (
                   <SidebarMenuItem key={item.url}>
-                    <SidebarMenuButton 
-                      asChild 
+                    <SidebarMenuButton
+                      asChild
                       isActive={isActive(item.url)}
                       data-testid={`sidebar-link-${item.url.split("/").pop()}`}
                     >
@@ -409,7 +432,7 @@ export function AppSidebar({ forceClientView, previewClientName }: { forceClient
 
         {isStaff && (
           <>
-            {/* Dashboard - Always visible at top, not collapsible */}
+            {/* Dashboard + EOS — Always visible at top, not collapsible */}
             <SidebarGroup>
               <SidebarGroupContent>
                 <SidebarMenu>
@@ -432,43 +455,49 @@ export function AppSidebar({ forceClientView, previewClientName }: { forceClient
               </SidebarGroupContent>
             </SidebarGroup>
 
-            {/* Section 1: Exploration - Collapsible */}
+            {/* Section 1: Exploration — Dynamic Spotlight */}
             <CollapsibleSection
               id="exploration"
               label={language === "fr" ? "Exploration" : "Exploration"}
               icon={Target}
               items={explorationItems}
-              labelColor="text-gray-500"
+              labelColor="text-emerald-500"
+              sectionId="exploration"
             />
 
-            {/* Section 2: Conception - Collapsible */}
+            {/* Section 2: Conception — Dynamic Spotlight */}
             <CollapsibleSection
               id="design"
               label={language === "fr" ? "Conception" : "Design"}
               icon={PenTool}
               items={designItems}
               labelColor="text-blue-500"
+              sectionId="conception"
             />
 
-            {/* Section 3: Réalisation - Collapsible */}
+            {/* Section 3: Réalisation — Dynamic Spotlight */}
             <CollapsibleSection
               id="construction"
               label={language === "fr" ? "Réalisation" : "Construction"}
               icon={HardHat}
               items={constructionItems}
               labelColor="text-amber-500"
+              sectionId="construction"
+              futureLabel={language === "fr" ? "bientôt" : "coming soon"}
             />
 
-            {/* Section 4: Opération - Collapsible */}
+            {/* Section 4: Opération — Dynamic Spotlight */}
             <CollapsibleSection
               id="operations"
               label={language === "fr" ? "Opération" : "Operations"}
               icon={Wrench}
               items={operationsItems}
               labelColor="text-green-500"
+              sectionId="operations"
+              futureLabel={language === "fr" ? "bientôt" : "coming soon"}
             />
 
-            {/* Section 5: Administration - Collapsible (admin only) */}
+            {/* Section 5: Administration (admin only, cleaned up) */}
             {isAdmin && (
               <CollapsibleSection
                 id="admin"
@@ -487,13 +516,13 @@ export function AppSidebar({ forceClientView, previewClientName }: { forceClient
             <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center shrink-0">
               <span className="text-sm font-medium">
                 {forceClientView
-                  ? (previewClientName?.charAt(0).toUpperCase() || "C")
-                  : ((user?.name || user?.email)?.charAt(0).toUpperCase() || "U")}
+                  ? previewClientName?.charAt(0).toUpperCase() || "C"
+                  : (user?.name || user?.email)?.charAt(0).toUpperCase() || "U"}
               </span>
             </div>
             <div className="min-w-0">
               <div className="text-sm font-medium truncate">
-                {forceClientView ? (previewClientName || "Client") : (user?.name || user?.email || "User")}
+                {forceClientView ? previewClientName || "Client" : user?.name || user?.email || "User"}
               </div>
               <div className="flex items-center gap-1">
                 <Badge variant={roleBadge.variant} className="text-[10px] h-4 px-1">

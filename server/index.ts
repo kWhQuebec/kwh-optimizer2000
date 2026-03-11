@@ -8,6 +8,7 @@ import { getStripeSync } from "./stripeClient";
 import { WebhookHandlers } from "./webhookHandlers";
 import { errorHandler } from "./middleware/errorHandler";
 import { createLogger } from "./lib/logger";
+import { trackRequest, trackError, trackUnhandledRejection, trackUncaughtException, getMetrics } from "./lib/errorMetrics";
 import { startUploadCleanupScheduler } from "./lib/uploadConfig";
 import { startEmailScheduler } from "./emailScheduler";
 import { renderEmailTemplate } from "./emailTemplates";
@@ -184,6 +185,19 @@ app.use((req, res, next) => {
   next();
 });
 
+
+// ─── Process-level error handlers ───────────────────────────────────────────
+process.on("unhandledRejection", (reason: unknown) => {
+  trackUnhandledRejection();
+  serverLog.error("Unhandled rejection:", reason);
+});
+
+process.on("uncaughtException", (error: Error) => {
+  trackUncaughtException();
+  serverLog.error("Uncaught exception:", error);
+  // Don't exit — let the process continue for non-fatal errors
+});
+
 (async () => {
   await initStripe();
   await registerRoutes(httpServer, app);
@@ -254,6 +268,24 @@ app.use((req, res, next) => {
 
   // Seed default CMS content if empty
   await seedDefaultContent();
+
+  // ─── Request tracking + Health endpoint ──────────────────────────────────
+  app.use((req, _res, next) => { trackRequest(); next(); });
+  
+  app.get("/api/health", (_req, res) => {
+    const m = getMetrics();
+    res.json({
+      status: "ok",
+      uptime: m.uptimeSeconds,
+      totalRequests: m.totalRequests,
+      totalErrors: m.totalErrors,
+      errorRate: m.errorRate,
+      unhandledRejections: m.unhandledRejections,
+      errorsByStatus: m.errorsByStatus,
+      startedAt: m.startedAt,
+      lastErrorAt: m.lastErrorAt,
+    });
+  });
 
   app.use(errorHandler);
 

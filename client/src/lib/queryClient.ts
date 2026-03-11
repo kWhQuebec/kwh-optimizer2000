@@ -1,3 +1,4 @@
+import { getTurnstileToken, clearTurnstileToken } from "../components/TurnstileWidget";
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
 function getAuthToken(): string | null {
@@ -37,6 +38,24 @@ async function refreshAccessToken(): Promise<string | null> {
   }
 }
 
+export async function getFreshToken(): Promise<string | null> {
+  const token = getAuthToken();
+  if (!token) {
+    const refreshToken = localStorage.getItem("refreshToken");
+    if (refreshToken) return refreshAccessToken();
+    return null;
+  }
+  try {
+    const res = await fetch("/api/auth/me", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.ok) return token;
+    return refreshAccessToken();
+  } catch {
+    return token;
+  }
+}
+
 async function authFetch(url: string, init?: RequestInit): Promise<Response> {
   const res = await fetch(url, init);
   if (res.status !== 401) return res;
@@ -73,7 +92,15 @@ export async function apiRequest<T = unknown>(
   const res = await authFetch(url, {
     method,
     headers,
-    body: data ? JSON.stringify(data) : undefined,
+    body: data ? JSON.stringify((() => {
+      const payload = typeof data === "object" && data !== null ? { ...data } : data;
+      const turnstileToken = getTurnstileToken();
+      if (turnstileToken && typeof payload === "object" && payload !== null) {
+        (payload as Record<string, unknown>)["cf-turnstile-response"] = turnstileToken;
+        clearTurnstileToken();
+      }
+      return payload;
+    })()) : undefined,
     credentials: "include",
   });
 

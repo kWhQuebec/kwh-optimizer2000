@@ -1,15 +1,14 @@
-import React, { useState, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import { Upload } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { useI18n } from "@/lib/i18n";
-import { useAuth } from "@/lib/auth";
+import { getFreshToken } from "@/lib/queryClient";
 
 export function FileUploadZone({ siteId, onUploadComplete }: { siteId: string; onUploadComplete: () => void }) {
   const { t, language } = useI18n();
   const { toast } = useToast();
-  const { token } = useAuth();
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [uploadPhase, setUploadPhase] = useState<"uploading" | "processing" | "done">("uploading");
@@ -29,6 +28,11 @@ export function FileUploadZone({ siteId, onUploadComplete }: { siteId: string; o
     });
 
     try {
+      const freshToken = await getFreshToken();
+      if (!freshToken) {
+        throw new Error("Not authenticated");
+      }
+
       await new Promise<void>((resolve, reject) => {
         const xhr = new XMLHttpRequest();
 
@@ -47,7 +51,7 @@ export function FileUploadZone({ siteId, onUploadComplete }: { siteId: string; o
             setUploadPhase("done");
             resolve();
           } else {
-            reject(new Error("Upload failed"));
+            reject(new Error(`Upload failed (${xhr.status})`));
           }
         });
 
@@ -56,7 +60,7 @@ export function FileUploadZone({ siteId, onUploadComplete }: { siteId: string; o
         });
 
         xhr.open("POST", `/api/sites/${siteId}/upload-meters`);
-        xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+        xhr.setRequestHeader("Authorization", `Bearer ${freshToken}`);
         xhr.send(formData);
       });
 
@@ -68,8 +72,12 @@ export function FileUploadZone({ siteId, onUploadComplete }: { siteId: string; o
       });
       onUploadComplete();
     } catch (error) {
+      const msg = error instanceof Error ? error.message : "";
       toast({
         title: language === "fr" ? "Erreur lors du téléversement" : "Upload error",
+        description: msg.includes("Not authenticated")
+          ? (language === "fr" ? "Veuillez vous reconnecter" : "Please log in again")
+          : undefined,
         variant: "destructive"
       });
     } finally {
@@ -77,7 +85,7 @@ export function FileUploadZone({ siteId, onUploadComplete }: { siteId: string; o
       setProgress(0);
       setUploadPhase("uploading");
     }
-  }, [siteId, token, toast, onUploadComplete, language]);
+  }, [siteId, toast, onUploadComplete, language]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,

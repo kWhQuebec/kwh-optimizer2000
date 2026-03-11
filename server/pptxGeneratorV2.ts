@@ -640,6 +640,156 @@ export async function generatePresentationPPTX(
     `, slideOpts));
   }
 
+  // ========== SLIDE 8b: OPTIMIZATION FRONTIER (conditional) ==========
+  {
+    const frontier = (simulation.sensitivity as any)?.frontier as Array<{
+      type: string; capexNet: number; npv25: number; isOptimal: boolean;
+      pvSizeKW: number; battEnergyKWh: number; sweepSource?: string;
+      irr25?: number; simplePaybackYears?: number; annualSavings?: number;
+    }> | undefined;
+
+    if (frontier && frontier.length > 0) {
+      const chartW = 1500;
+      const chartH = 520;
+      const padLeft = 140;
+      const padRight = 60;
+      const padTop = 30;
+      const padBottom = 70;
+      const plotW = chartW - padLeft - padRight;
+      const plotH = chartH - padTop - padBottom;
+
+      const capexVals = frontier.map(p => p.capexNet || 0);
+      const npvVals = frontier.map(p => p.npv25 || 0);
+      const minCapex = Math.min(0, ...capexVals);
+      const maxCapex = Math.max(...capexVals) * 1.1 || 1;
+      const minNpv = Math.min(...npvVals, 0) * 1.15;
+      const maxNpv = Math.max(...npvVals) * 1.15 || 1;
+      const capexRange = maxCapex - minCapex || 1;
+      const npvRange = maxNpv - minNpv || 1;
+
+      const toXF = (v: number) => padLeft + ((v - minCapex) / capexRange) * plotW;
+      const toYF = (v: number) => padTop + plotH - ((v - minNpv) / npvRange) * plotH;
+
+      const smartCurSlide = (v: number): string => {
+        if (Math.abs(v) >= 1000000) return `${(v / 1000000).toFixed(1)}M$`;
+        if (Math.abs(v) >= 1000) return `${Math.round(v / 1000)}k$`;
+        return `${Math.round(v)}$`;
+      };
+
+      let frontierSvg = "";
+      frontierSvg += `<rect x="${padLeft}" y="${padTop}" width="${plotW}" height="${plotH}" fill="#f9fafb" rx="4"/>`;
+
+      const yTF = 5;
+      for (let i = 0; i <= yTF; i++) {
+        const val = minNpv + (npvRange * i) / yTF;
+        const y = toYF(val);
+        frontierSvg += `<line x1="${padLeft}" y1="${y}" x2="${padLeft + plotW}" y2="${y}" stroke="#e5e7eb" stroke-width="1"/>`;
+        frontierSvg += `<text x="${padLeft - 12}" y="${y + 5}" text-anchor="end" font-size="14" fill="#6b7280">${smartCurSlide(val)}</text>`;
+      }
+
+      const xTF = 5;
+      for (let i = 0; i <= xTF; i++) {
+        const val = minCapex + (capexRange * i) / xTF;
+        const x = toXF(val);
+        frontierSvg += `<line x1="${x}" y1="${padTop}" x2="${x}" y2="${padTop + plotH}" stroke="#e5e7eb" stroke-width="1"/>`;
+        frontierSvg += `<text x="${x}" y="${padTop + plotH + 24}" text-anchor="middle" font-size="14" fill="#6b7280">${smartCurSlide(val)}</text>`;
+      }
+
+      const zeroYF = toYF(0);
+      if (zeroYF >= padTop && zeroYF <= padTop + plotH) {
+        frontierSvg += `<line x1="${padLeft}" y1="${zeroYF}" x2="${padLeft + plotW}" y2="${zeroYF}" stroke="#ef4444" stroke-width="2.5" stroke-dasharray="10,6"/>`;
+        frontierSvg += `<text x="${padLeft + plotW + 6}" y="${zeroYF + 5}" font-size="13" fill="#ef4444" font-weight="600">${t("VAN=0", "NPV=0")}</text>`;
+      }
+
+      const colorMapF: Record<string, string> = {
+        solar: "#FFB005",
+        battery: "#003DA6",
+        hybrid: "#16A34A",
+      };
+
+      let optimalSvgF = "";
+      frontier.forEach((point) => {
+        const px = toXF(point.capexNet || 0);
+        const py = toYF(point.npv25 || 0);
+        const color = colorMapF[point.type] || "#9CA3AF";
+        const isProfitable = (point.npv25 || 0) >= 0;
+        const opacity = isProfitable ? "1" : "0.35";
+
+        if (point.isOptimal) {
+          optimalSvgF += `<circle cx="${px}" cy="${py}" r="14" fill="none" stroke="#1F2937" stroke-width="3"/>`;
+          optimalSvgF += `<circle cx="${px}" cy="${py}" r="8" fill="${color}"/>`;
+          const labelX = px + 18;
+          const labelY = py - 14;
+          optimalSvgF += `<text x="${labelX}" y="${labelY}" font-size="15" font-weight="700" fill="#1F2937">${t("Optimal", "Optimal")}</text>`;
+          const desc = point.pvSizeKW > 0 && point.battEnergyKWh > 0
+            ? `${Math.round(point.pvSizeKW)}kW + ${Math.round(point.battEnergyKWh)}kWh`
+            : point.pvSizeKW > 0
+              ? `${Math.round(point.pvSizeKW)}kW`
+              : `${Math.round(point.battEnergyKWh)}kWh`;
+          optimalSvgF += `<text x="${labelX}" y="${labelY + 18}" font-size="13" fill="#6b7280">${desc} | ${t("VAN", "NPV")} ${smartCurSlide(point.npv25)}</text>`;
+        } else {
+          frontierSvg += `<circle cx="${px}" cy="${py}" r="7" fill="${color}" opacity="${opacity}"/>`;
+        }
+      });
+      frontierSvg += optimalSvgF;
+
+      const legendYF = chartH + 10;
+      const legendItems = [
+        { label: t("Solaire", "Solar"), color: "#FFB005" },
+        { label: t("Stockage", "Storage"), color: "#003DA6" },
+        { label: t("Hybride", "Hybrid"), color: "#16A34A" },
+      ];
+      let legendXF = padLeft;
+      legendItems.forEach(item => {
+        frontierSvg += `<circle cx="${legendXF + 8}" cy="${legendYF}" r="7" fill="${item.color}"/>`;
+        frontierSvg += `<text x="${legendXF + 20}" y="${legendYF + 5}" font-size="14" fill="#374151">${item.label}</text>`;
+        legendXF += 140;
+      });
+      frontierSvg += `<circle cx="${legendXF + 8}" cy="${legendYF}" r="10" fill="none" stroke="#1F2937" stroke-width="2.5"/>`;
+      frontierSvg += `<text x="${legendXF + 24}" y="${legendYF + 5}" font-size="14" fill="#374151">${t("Optimal", "Optimal")}</text>`;
+      legendXF += 120;
+      frontierSvg += `<line x1="${legendXF}" y1="${legendYF}" x2="${legendXF + 24}" y2="${legendYF}" stroke="#ef4444" stroke-width="2.5" stroke-dasharray="6,4"/>`;
+      frontierSvg += `<text x="${legendXF + 30}" y="${legendYF + 5}" font-size="14" fill="#374151">${t("Seuil (VAN=0)", "Threshold (NPV=0)")}</text>`;
+      legendXF += 200;
+      frontierSvg += `<circle cx="${legendXF + 8}" cy="${legendYF}" r="7" fill="#9CA3AF" opacity="0.35"/>`;
+      frontierSvg += `<text x="${legendXF + 20}" y="${legendYF + 5}" font-size="14" fill="#374151">${t("Non rentable", "Unprofitable")}</text>`;
+
+      frontierSvg += `<text x="${padLeft + plotW / 2}" y="${padTop + plotH + 52}" text-anchor="middle" font-size="15" fill="#6b7280">${t("Investissement net ($)", "Net Investment ($)")}</text>`;
+      frontierSvg += `<text x="20" y="${padTop + plotH / 2}" text-anchor="middle" font-size="15" fill="#6b7280" transform="rotate(-90, 20, ${padTop + plotH / 2})">${t("Valeur actuelle nette - 25 ans ($)", "Net Present Value - 25yr ($)")}</text>`;
+
+      const profitableCount = frontier.filter(p => (p.npv25 || 0) > 0).length;
+      const totalCount = frontier.length;
+      const optimal = frontier.find(p => p.isOptimal);
+
+      let summaryText = "";
+      if (optimal) {
+        const sysDesc = optimal.pvSizeKW > 0 && optimal.battEnergyKWh > 0
+          ? `${Math.round(optimal.pvSizeKW)} kW ${t("solaire", "solar")} + ${Math.round(optimal.battEnergyKWh)} kWh ${t("batterie", "battery")}`
+          : optimal.pvSizeKW > 0
+            ? `${Math.round(optimal.pvSizeKW)} kW ${t("solaire", "solar")}`
+            : `${Math.round(optimal.battEnergyKWh)} kWh ${t("batterie", "battery")}`;
+
+        summaryText = t(
+          `Parmi ${totalCount} configurations analysées, ${profitableCount} sont rentables (VAN > 0). Configuration optimale: ${sysDesc} — VAN ${fmtCurrency(optimal.npv25)}, investissement net ${fmtCurrency(optimal.capexNet)}${optimal.irr25 ? `, TRI ${(optimal.irr25 * 100).toFixed(1)}%` : ""}.`,
+          `Among ${totalCount} configurations analyzed, ${profitableCount} are profitable (NPV > 0). Optimal configuration: ${sysDesc} — NPV ${fmtCurrency(optimal.npv25)}, net investment ${fmtCurrency(optimal.capexNet)}${optimal.irr25 ? `, IRR ${(optimal.irr25 * 100).toFixed(1)}%` : ""}.`
+        );
+      }
+
+      slideHtmls.push(wrapSlide(`
+        <h2>${t("ANALYSE D'OPTIMISATION", "OPTIMIZATION ANALYSIS")}</h2>
+        <div class="subtitle">${t("Comparaison de toutes les configurations possibles — solaire, stockage et hybride", "Comparison of all possible configurations — solar, storage and hybrid")}</div>
+        <svg width="1700" height="${chartH + 40}" viewBox="0 0 ${chartW} ${chartH + 40}" style="margin-top:8px;">
+          ${frontierSvg}
+        </svg>
+        ${summaryText ? `
+        <div style="background:#F0FDF4;border-left:5px solid #16A34A;border-radius:0 8px 8px 0;padding:16px 24px;margin-top:8px;">
+          <div style="font-size:18px;font-weight:700;color:#16A34A;margin-bottom:6px;">${t("Scénario optimal identifié", "Optimal Scenario Identified")}</div>
+          <div style="font-size:15px;color:var(--dark);">${summaryText}</div>
+        </div>` : ''}
+      `, slideOpts));
+    }
+  }
+
   // ========== SLIDE 9: SURPLUS CREDITS (conditional) ==========
   {
     const surplusExportedKWh = simulation.totalExportedKWh || 0;

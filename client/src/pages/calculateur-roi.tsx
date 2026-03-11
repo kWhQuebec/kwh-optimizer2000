@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { PublicHeader, PublicFooter } from "@/components/public-header";
 
 const SEO_CONTENT = {
   fr: {
@@ -35,7 +36,7 @@ La plupart des organisations commerciales considèrent qu'un retour sur investis
 
 Le Crédit d'impôt à l'investissement (ITC) fédéral offre un remboursement pouvant atteindre 30% du coût admissible du système pour les entreprises admissibles. Pour un système de 100 kW coûtant 185 000$, cela représente 55 500$ de crédit d'impôt utilisable immédiatement. Les entreprises avec suffisamment de revenus imposables peuvent appliquer ce crédit dans les années fiscales courantes ou futures.
 
-Le programme d'Hydro-Québec offre 1 000$/kW installé, plafonné à 40% du coût du projet et à 1 MW de capacité. Pour un système de 100 kW, cela signifie potentiellement 74 000$ de réduction (le minimum entre 100 000$, 40% du coût total, et 1 000 000$). Ces fonds proviennent du fonds de développement des énergies renouvelables de la province.
+Le programme Solutions efficaces d'Hydro-Québec (OSE 6.0, en vigueur le 31 mars 2026) offre 1 000$/kW installé, plafonné à 40% des coûts admissibles et à 1 MW par abonnement. Pour un système de 100 kW, cela signifie potentiellement 74 000$ de réduction (le minimum entre 100 000$, 40% du coût total, et 1 000 000$). Les panneaux doivent être certifiés CSA et l'installateur doit détenir une licence RBQ.
 
 L'amortissement accéléré (DPA classe 43.1/43.2, sous réserve des conditions d'éligibilité en vigueur — consultez votre comptable) permet de déduire jusqu'à 50% du coût résiduel chaque année, créant un bouclier fiscal substantiel dès la première année. Une entreprise avec taux d'impôt marginal de 26% économise donc 26% du coût du système simplement en déductions fiscales supplémentaires.
 
@@ -254,16 +255,7 @@ export default function CalculateurROIPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="bg-[#003DA6] text-white py-4 px-4">
-        <div className="max-w-6xl mx-auto flex items-center justify-between flex-wrap gap-2">
-          <Link href="/" className="text-white font-bold text-lg hover:opacity-80" data-testid="link-home-logo">
-            kWh Québec
-          </Link>
-          <Link href="/" className="text-white/80 text-sm hover:text-white flex items-center gap-1" data-testid="link-back-to-site">
-            {language === "fr" ? "\u2190 Retour au site" : "\u2190 Back to site"}
-          </Link>
-        </div>
-      </header>
+      <PublicHeader />
       
       <section className="bg-gradient-to-b from-[#003DA6] to-[#002B75] text-white py-16 px-4">
         <div className="max-w-4xl mx-auto text-center">
@@ -378,19 +370,7 @@ export default function CalculateurROIPage() {
         </div>
       </section>
       
-      <footer className="py-8 px-4 border-t bg-muted/30 text-center">
-        <p className="text-sm text-muted-foreground">
-          © {new Date().getFullYear()} kWh Québec — 514.427.8871 | info@kwh.quebec
-        </p>
-        <div className="flex items-center justify-center gap-4 mt-2 text-xs text-muted-foreground flex-wrap">
-          <Link href="/privacy" className="hover:underline" data-testid="link-privacy">
-            {language === "fr" ? "Confidentialité" : "Privacy"}
-          </Link>
-          <Link href="/conditions" className="hover:underline" data-testid="link-terms">
-            {language === "fr" ? "Conditions" : "Terms"}
-          </Link>
-        </div>
-      </footer>
+      <PublicFooter />
     </div>
   );
 }

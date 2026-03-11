@@ -166,8 +166,8 @@ export const STANDARD_KITS: StandardKit[] = [
     basePrice: 950000,
     pricePerWatt: 1.90,
     targetMarket: 'industrial',
-    features: ['Utility scale', 'Corporate PPA ready', 'Full EPC service'],
-    featuresFr: ['Échelle utilitaire', 'Prêt pour AAE corporatif', 'Service EPC complet'],
+    features: ['Utility scale', 'Multi-year financing', 'Full EPC service'],
+    featuresFr: ['Échelle utilitaire', 'Financement pluriannuel', 'Service EPC complet'],
   },
   {
     id: 'kit-500-500',

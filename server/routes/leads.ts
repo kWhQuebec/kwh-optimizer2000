@@ -6,6 +6,8 @@ import { authMiddleware, requireStaff, requireAdmin, type AuthRequest } from "..
 import { asyncHandler, BadRequestError, NotFoundError } from "../middleware/errorHandler";
 import { estimateLimiter, leadSubmissionLimiter } from "../middleware/rateLimiter";
 import { storage } from "../storage";
+import { db } from "../db";
+import { leads, activities } from "@shared/schema";
 import { insertLeadSchema } from "@shared/schema";
 import { sendQuickAnalysisEmail, sendProcurationCompletedNotification, sendNewLeadNotification, sendTemplateEmail, sendEmail } from "../emailService";
 // gmail.ts import removed — emailService.sendEmail uses Resend (primary) → Gmail → Outlook fallback chain
@@ -53,7 +55,17 @@ const upload = multer({
 // Quick estimate endpoint for landing page calculator (no auth required)
 // Consumption-based sizing with 3 offset scenarios (70%, 85%, 100%)
 router.post("/api/quick-estimate", estimateLimiter, asyncHandler(async (req, res) => {
-  const { address, email, clientName, phone, monthlyBill, buildingType, tariffCode, annualConsumptionKwh, roofAgeYears, ownershipType, utm_source, utm_medium, utm_campaign, utm_term, utm_content } = req.body;
+  const { address, email, clientName, phone, monthlyBill, buildingType, tariffCode, annualConsumptionKwh, roofAgeYears, ownershipType, language, utm_source, utm_medium, utm_campaign, utm_term, utm_content } = req.body;
+
+    // m2: Phone validation - min 10 digits
+    if (phone && String(phone).replace(/\D/g, "").length < 10) {
+      throw new BadRequestError("Phone number must have at least 10 digits");
+    }
+
+    // m3: Monthly bill range validation
+    if (monthlyBill !== undefined && monthlyBill !== null && (Number(monthlyBill) < 50 || Number(monthlyBill) > 500000)) {
+      throw new BadRequestError("Monthly bill must be between $50 and $500,000");
+    }
 
   // Either annualConsumptionKwh or monthlyBill is required
   if (!annualConsumptionKwh && !monthlyBill) {
@@ -96,19 +108,25 @@ router.post("/api/quick-estimate", estimateLimiter, asyncHandler(async (req, res
   let estimatedMonthlyBill = monthlyBill || 0;
 
   if (annualConsumptionKwh && annualConsumptionKwh > 0) {
-    // Direct annual consumption provided (from bill parsing or manual entry)
     annualKWh = annualConsumptionKwh;
     monthlyKWh = annualKWh / 12;
-    // Estimate monthly bill if not provided
     if (!monthlyBill) {
       estimatedMonthlyBill = Math.round((annualKWh * energyRate) / energyPortion / 12);
     }
   } else {
-    // Calculate from monthly bill
     const monthlyEnergyBill = monthlyBill * energyPortion;
     monthlyKWh = monthlyEnergyBill / energyRate;
     annualKWh = monthlyKWh * 12 * buildingFactor;
   }
+
+  // Billing sanity check: cap blended rate at $0.20/kWh (2x realistic Quebec max)
+  const MAX_BLENDED_RATE = 0.20;
+  const computedBlendedRate = annualKWh > 0 ? (estimatedMonthlyBill * 12) / annualKWh : 0;
+  if (computedBlendedRate > MAX_BLENDED_RATE) {
+    log.warn(`Billing sanity check TRIGGERED: ${annualKWh} kWh/yr → $${estimatedMonthlyBill}/mo = $${(estimatedMonthlyBill * 12)}/yr (${computedBlendedRate.toFixed(4)} $/kWh). Capping to ${MAX_BLENDED_RATE} $/kWh.`);
+    estimatedMonthlyBill = Math.round((annualKWh * MAX_BLENDED_RATE) / 12);
+  }
+  log.info(`Billing calc: ${annualKWh} kWh/yr, tariff=${tariff}, rate=${energyRate}, portion=${energyPortion}, bill=$${estimatedMonthlyBill}/mo ($${estimatedMonthlyBill * 12}/yr), blended=${(annualKWh > 0 ? (estimatedMonthlyBill * 12 / annualKWh).toFixed(4) : 'N/A')} $/kWh`);
 
   // ============================================================
   // UNIFIED METHODOLOGY - Matches Detailed Analysis (potentialAnalysis.ts)
@@ -543,25 +561,28 @@ router.post("/api/quick-estimate", estimateLimiter, asyncHandler(async (req, res
       const protocol = process.env.NODE_ENV === "production" ? "https" : "http";
       const host = req.get("host") || "localhost:5000";
       const baseUrl = `${protocol}://${host}`;
-      const procurationUrl = `${baseUrl}/analysis/${lead.id}/procuration`;
+      const procurationUrl = `${baseUrl}/autorisation-hq?clientId=${clientId || lead.id}`;
 
-      // Detect language from address
-      const frenchIndicators = ['rue', 'avenue', 'boulevard', 'chemin', 'montréal', 'québec', 'laval', 'sherbrooke', 'trois-rivières', 'saint-', 'sainte-'];
-      const lowerAddress = (address || '').toLowerCase();
-      const isFrench = frenchIndicators.some(indicator => lowerAddress.includes(indicator));
-      const welcomeLanguage = isFrench ? 'fr' : 'en';
+      // Use explicit language from frontend, fallback to address-based detection
+      let welcomeLanguage: 'fr' | 'en' = 'fr';
+      if (language === 'fr' || language === 'en') {
+        welcomeLanguage = language;
+      } else {
+        const frenchIndicators = ['rue', 'avenue', 'boulevard', 'chemin', 'montréal', 'québec', 'laval', 'sherbrooke', 'trois-rivières', 'saint-', 'sainte-'];
+        const lowerAddress = (address || '').toLowerCase();
+        const isFrench = frenchIndicators.some(indicator => lowerAddress.includes(indicator));
+        welcomeLanguage = isFrench ? 'fr' : 'en';
+      }
 
       sendTemplateEmail(
         'welcomePersonalized',
         leadEmail,
         {
-          contactName: contactName || clientName || 'Friend',
-          address: address || 'Your location',
-          buildingType: buildingType || 'Commercial',
-          annualConsumptionKwh: Math.round(annualKWh).toString(),
+          contactName: contactName || clientName || (welcomeLanguage === 'fr' ? 'Bonjour' : 'Hello'),
+          address: address || (welcomeLanguage === 'fr' ? 'Votre emplacement' : 'Your location'),
           systemSizeKw: Math.round(primaryScenario.systemSizeKW).toString(),
-          annualSavings: Math.round(primaryScenario.annualSavings).toString(),
-          costOfInaction: Math.round(costOfInaction).toString(),
+          annualSavings: Math.round(primaryScenario.annualSavings).toLocaleString('fr-CA'),
+          costOfInaction: Math.round(costOfInaction).toLocaleString('fr-CA'),
           procurationUrl: procurationUrl,
         },
         welcomeLanguage
@@ -1694,7 +1715,7 @@ router.put("/api/admin/settings/:key", authMiddleware, requireAdmin, asyncHandle
 
 router.post("/api/leads/:id/nurture/start", authMiddleware, requireStaff, asyncHandler(async (req, res) => {
   const lead = await storage.getLead(req.params.id);
-  if (!lead) throw new NotFoundError("Lead not found");
+  if (!lead) throw new NotFoundError("Lead");
 
   await storage.cancelScheduledEmails(lead.id);
   await scheduleNurtureSequence(storage, lead.id);
@@ -1708,7 +1729,7 @@ router.post("/api/leads/:id/nurture/start", authMiddleware, requireStaff, asyncH
 
 router.post("/api/leads/:id/nurture/pause", authMiddleware, requireStaff, asyncHandler(async (req, res) => {
   const lead = await storage.getLead(req.params.id);
-  if (!lead) throw new NotFoundError("Lead not found");
+  if (!lead) throw new NotFoundError("Lead");
 
   await storage.cancelScheduledEmails(lead.id);
   await storage.updateLead(lead.id, { nurtureStatus: "paused" });
@@ -1718,7 +1739,7 @@ router.post("/api/leads/:id/nurture/pause", authMiddleware, requireStaff, asyncH
 
 router.post("/api/leads/:id/nurture/stop", authMiddleware, requireStaff, asyncHandler(async (req, res) => {
   const lead = await storage.getLead(req.params.id);
-  if (!lead) throw new NotFoundError("Lead not found");
+  if (!lead) throw new NotFoundError("Lead");
 
   await storage.cancelScheduledEmails(lead.id);
   await storage.updateLead(lead.id, { nurtureStatus: "stopped" });
@@ -1728,7 +1749,7 @@ router.post("/api/leads/:id/nurture/stop", authMiddleware, requireStaff, asyncHa
 
 router.get("/api/leads/:id/nurture/status", authMiddleware, requireStaff, asyncHandler(async (req, res) => {
   const lead = await storage.getLead(req.params.id);
-  if (!lead) throw new NotFoundError("Lead not found");
+  if (!lead) throw new NotFoundError("Lead");
 
   const scheduledEmails = await storage.getScheduledEmailsByLead(lead.id);
 
@@ -1760,7 +1781,7 @@ router.get("/api/leads/:id/nurture/status", authMiddleware, requireStaff, asyncH
 // Public endpoint — called from the landing page after self-qualification
 router.patch("/api/leads/:id/self-qualification", asyncHandler(async (req, res) => {
   const lead = await storage.getLead(req.params.id);
-  if (!lead) throw new NotFoundError("Lead not found");
+  if (!lead) throw new NotFoundError("Lead");
 
   const { ownershipType, paysHydroDirectly, roofAgeRange, roofUsageRight, leadColor } = req.body;
 
@@ -1775,7 +1796,7 @@ router.patch("/api/leads/:id/self-qualification", asyncHandler(async (req, res) 
   if (leadColor) {
     updateData.leadColor = leadColor;
     updateData.leadColorReason = 'self_qualification';
-    updateData.leadColorUpdatedAt = new Date().toISOString();
+    updateData.leadColorUpdatedAt = new Date();
   }
 
   const updatedLead = await storage.updateLead(req.params.id, updateData);
@@ -1805,7 +1826,7 @@ router.patch("/api/leads/:id/self-qualification", asyncHandler(async (req, res) 
 // Updates business-related fields for the Call Script Wizard
 router.patch("/api/leads/:id/business-context", authMiddleware, requireStaff, asyncHandler(async (req, res) => {
   const lead = await storage.getLead(req.params.id);
-  if (!lead) throw new NotFoundError("Lead not found");
+  if (!lead) throw new NotFoundError("Lead");
 
   const {
     businessDriver,
@@ -1979,6 +2000,59 @@ router.get("/api/leads/qualification-summary", authMiddleware, requireStaff, asy
   summary.yellowLeads.sort((a, b) => a.blockerCount - b.blockerCount);
 
   res.json(summary);
+}));
+
+
+// ─── Quick Log: Create lead + call activity in one shot ────────────────────
+// Mobile-first endpoint for sales reps to log calls in 30 seconds
+router.post("/api/quick-log", asyncHandler(async (req: Request, res: Response) => {
+  const {
+    contactName,
+    companyName,
+    phone,
+    email,
+    estimatedTariff,    // "G" | "M" | "L" | null
+    notes,
+    callDirection,      // "inbound" | "outbound"
+    assignedTo,         // email of the rep
+  } = req.body;
+
+  if (!contactName && !companyName) {
+    return res.status(400).json({ error: "Au moins un nom de contact ou d'entreprise est requis" });
+  }
+
+  // 1. Create the lead (minimal fields — respect NOT NULL constraints)
+  const leadName = contactName || "Inconnu";
+  const leadCompany = companyName || "Non spécifié";
+  const leadEmail = email || `quick-log-${Date.now()}@temp.kwh.quebec`;
+
+  const [lead] = await db.insert(leads).values({
+    contactName: leadName,
+    companyName: leadCompany,
+    phone: phone || null,
+    email: leadEmail,
+    source: callDirection === "inbound" ? "inbound_call" : "cold_call",
+    status: "new",
+    notes: notes ? `[Tarif estimé: ${estimatedTariff || "?"}] ${notes}` : (estimatedTariff ? `Tarif estimé: ${estimatedTariff}` : null),
+    leadColor: null,
+  }).returning();
+
+  // 2. Create the call activity
+  await db.insert(activities).values({
+    leadId: lead.id,
+    activityType: "call",
+    direction: callDirection || "outbound",
+    subject: `Appel ${callDirection === "inbound" ? "entrant" : "sortant"} — ${leadCompany} (${leadName})`,
+    description: notes || null,
+  });
+
+  log.info(`Quick-log: lead ${lead.id} created with call activity — ${companyName || contactName}`);
+
+  res.status(201).json({
+    success: true,
+    leadId: lead.id,
+    message: `Lead créé: ${companyName || contactName}`,
+  });
 }));
 
 export default router;

@@ -297,7 +297,7 @@ export default function CommentCaMarchePage() {
               ? "Les 3 premières étapes sont entièrement gratuites et sans engagement."
               : "The first 3 steps are completely free with no commitment."}
           </p>
-          <Link href="/#paths">
+          <Link href="/#analyse">
             <Button size="lg" variant="secondary" className="gap-2" data-testid="button-start">
               {language === "fr" ? "Commencer maintenant" : "Start now"}
               <ArrowRight className="w-4 h-4" />

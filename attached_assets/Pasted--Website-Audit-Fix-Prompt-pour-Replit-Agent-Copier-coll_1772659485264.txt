@@ -1,0 +1,271 @@
+# Website Audit Fix — Prompt pour Replit Agent
+
+**Copier-coller ce prompt dans Replit Agent. Exécuter en une seule session.**
+
+---
+
+## CONTEXTE
+
+Un audit complet du site web public kWh Optimizer a identifié 20 correctifs à faire avant publication. Le site est un React 18 + Wouter + TanStack Query + Radix UI + Tailwind app. Les pages publiques (landing, blog, portfolio, ressources, etc.) doivent être production-ready.
+
+**Règle #1:** Ne JAMAIS casser les 548 tests existants. Run `npm test` après chaque groupe de changements.
+**Règle #2:** Tout le contenu public doit être bilingue (FR/EN) via le système i18n existant dans `client/src/lib/i18n.tsx`.
+**Règle #3:** Ne modifie PAS les pages protégées `/app/*` sauf les 3 bugs spécifiques listés.
+
+---
+
+## PHASE 1 — Formulaires publics (PRIORITÉ MAXIMALE)
+
+### FIX-01: sign-agreement.tsx — Ajouter validation Zod
+
+**Fichier:** `client/src/pages/sign-agreement.tsx`
+
+Ajouter un schéma Zod pour valider:
+- `signerName` — requis, min 2 chars
+- `signerEmail` — requis, format email valide
+- `signerTitle` — requis, min 2 chars
+- `signature` — requis, non vide (le canvas signature pad doit avoir du contenu)
+- `agreedToTerms` — requis, doit être `true`
+
+Utiliser `react-hook-form` avec `zodResolver` comme les autres formulaires du projet. Afficher les erreurs en rouge sous chaque champ. Les messages d'erreur doivent utiliser le système i18n (ajouter les clés FR/EN nécessaires).
+
+### FIX-02: landing.tsx — Validation téléphone
+
+**Fichier:** `client/src/pages/landing.tsx`
+
+Dans le formulaire de lead capture:
+- Ajouter validation regex pour téléphone canadien: `/^(\+1)?[\s.-]?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}$/`
+- Ajouter formatage automatique au blur: `(514) 427-8871`
+- Si le téléphone est fourni (optionnel), il DOIT être valide
+- Ajouter message d'erreur i18n: "Numéro de téléphone invalide" / "Invalid phone number"
+
+### FIX-03: autorisation-hq.tsx — Sécurité localStorage
+
+**Fichier:** `client/src/pages/autorisation-hq.tsx`
+
+- Remplacer TOUS les `localStorage.setItem` et `localStorage.getItem` par `sessionStorage`
+- Les données de compte HQ ne doivent PAS persister après fermeture du navigateur
+- Vérifier qu'aucune donnée sensible (numéro de compte, adresse) ne reste dans localStorage
+
+### FIX-04: Toasts error/success sur formulaires publics
+
+**Fichiers:** `client/src/pages/landing.tsx`, `client/src/pages/analyse-detaillee.tsx`, `client/src/pages/autorisation-hq.tsx`, `client/src/pages/sign-agreement.tsx`
+
+Pour chaque formulaire:
+- Ajouter `import { useToast } from "@/hooks/use-toast"` (déjà dans le projet)
+- Sur soumission réussie: toast success avec message i18n ("Formulaire soumis avec succès" / "Form submitted successfully")
+- Sur erreur API: toast error avec message i18n ("Une erreur est survenue. Veuillez réessayer." / "An error occurred. Please try again.")
+- Ajouter `disabled={isSubmitting}` sur le bouton submit pour éviter double-soumission
+- Ajouter un spinner/loading state pendant la soumission
+
+### FIX-05: analyse-detaillee.tsx — Validation compte HQ
+
+**Fichier:** `client/src/pages/analyse-detaillee.tsx`
+
+- Ajouter validation regex pour numéro de compte HQ (format attendu: chiffres, 10-12 caractères)
+- Si le champ est rempli, valider le format avant soumission
+- Message d'erreur i18n: "Format de compte Hydro-Québec invalide" / "Invalid Hydro-Québec account format"
+
+### FIX-06: Marquer les champs requis
+
+**Fichiers:** Tous les formulaires publics listés ci-dessus
+
+- Ajouter un astérisque rouge `*` à côté du label de chaque champ requis
+- Pattern: `<Label>Nom complet <span className="text-red-500">*</span></Label>`
+- S'assurer que les champs optionnels sont clairement identifiés (ajouter "(optionnel)" / "(optional)" via i18n)
+
+---
+
+## PHASE 2 — Header/Footer unifiés
+
+### FIX-07: Unifier le Header sur toutes les pages publiques
+
+**Fichier source:** `client/src/components/public-header.tsx`
+
+Le composant `PublicHeader` doit devenir le SEUL header pour toutes les pages publiques.
+
+1. S'assurer que `PublicHeader` contient ces liens (bilingues):
+   - Logo kWh (lien vers `/`)
+   - Ressources (`/ressources`)
+   - Nouvelles (`/blog?tab=nouvelles`)
+   - Portfolio (`/portfolio`)
+   - Stockage énergie (`/stockage-energie`)
+   - Téléphone: `514-427-8871` (lien `tel:`)
+   - Toggle langue (FR/EN)
+   - Connexion (`/login`)
+
+2. **Supprimer les headers inline de ces fichiers:**
+   - `client/src/pages/landing.tsx` — Supprimer le header custom, utiliser `<PublicHeader />`
+   - `client/src/pages/blog.tsx` — Supprimer le header custom, utiliser `<PublicHeader />`
+   - `client/src/pages/services.tsx` — Supprimer le header custom, utiliser `<PublicHeader />`
+   - Toute autre page publique avec un header inline
+
+3. **Vérifier** que ces pages utilisent déjà `PublicHeader` (ne pas toucher si OK):
+   - `ressources.tsx`
+   - `portfolio.tsx`
+   - `privacy.tsx`
+   - `terms.tsx`
+
+### FIX-08: Unifier le Footer sur toutes les pages publiques
+
+**Fichier source:** `client/src/components/public-header.tsx` (PublicFooter y est aussi)
+
+1. S'assurer que `PublicFooter` contient:
+   - Logo kWh + tagline
+   - Contact: `info@kwh.quebec`, `514-427-8871`
+   - Adresse (si applicable)
+   - Liens: Ressources, Portfolio, Blog/Nouvelles
+   - Liens légaux: Confidentialité (`/privacy`), Conditions (`/conditions`)
+   - Copyright: `© 2026 kWh Québec. Tous droits réservés.` / `© 2026 kWh Québec. All rights reserved.`
+   - Licence RBQ (si applicable)
+
+2. **Supprimer les footers inline et utiliser `<PublicFooter />`:**
+   - `client/src/pages/landing.tsx`
+   - `client/src/pages/blog.tsx`
+   - `client/src/pages/services.tsx`
+   - Toute autre page publique avec un footer inline
+
+---
+
+## PHASE 3 — SEO et Routes
+
+### FIX-09: Ajouter SEOHead aux pages manquantes
+
+**Fichiers à modifier:**
+
+```tsx
+// client/src/pages/privacy.tsx
+<SEOHead
+  title={t("seo.privacy.title")} // "Politique de confidentialité | kWh Québec" / "Privacy Policy | kWh Québec"
+  description={t("seo.privacy.description")}
+/>
+
+// client/src/pages/terms.tsx
+<SEOHead
+  title={t("seo.terms.title")} // "Conditions d'utilisation | kWh Québec" / "Terms of Service | kWh Québec"
+  description={t("seo.terms.description")}
+/>
+
+// client/src/pages/autorisation-hq.tsx
+<SEOHead
+  title={t("seo.autorisationHq.title")}
+  noIndex={true}  // Page interne, pas d'indexation
+/>
+
+// client/src/pages/analyse-detaillee.tsx
+<SEOHead
+  title={t("seo.analyseDetaillee.title")}
+  noIndex={true}  // Formulaire interne
+/>
+
+// client/src/pages/merci.tsx (thank-you.tsx)
+<SEOHead
+  title={t("seo.merci.title")}
+  noIndex={true}  // Page de confirmation
+/>
+```
+
+Ajouter les clés i18n correspondantes dans `client/src/lib/i18n.tsx`.
+
+### FIX-10: Valider et nettoyer les redirects
+
+**Fichier:** `client/src/App.tsx`
+
+Vérifier que ces redirects fonctionnent:
+- `/services` → `/`
+- `/comment-ca-marche` → `/`
+- `/apropos` → `/`
+- `/contact` → `/#analyse`
+- `/nouvelles` → `/blog?tab=nouvelles`
+
+S'assurer que `/stockage-energie` est bien une page standalone (pas un redirect).
+
+Supprimer toute route qui pointe vers une page inexistante.
+
+### FIX-11: Ajouter `/stockage-energie` et `/blog` au sitemap
+
+**Fichier:** `client/public/sitemap.xml`
+
+Ajouter:
+```xml
+<url>
+  <loc>https://kwh.quebec/stockage-energie</loc>
+  <changefreq>monthly</changefreq>
+  <priority>0.7</priority>
+</url>
+<url>
+  <loc>https://kwh.quebec/blog</loc>
+  <changefreq>weekly</changefreq>
+  <priority>0.8</priority>
+</url>
+<url>
+  <loc>https://kwh.quebec/ressources</loc>
+  <changefreq>monthly</changefreq>
+  <priority>0.7</priority>
+</url>
+```
+
+---
+
+## PHASE 4 — Bugs internes (app protégée)
+
+### FIX-12: Lien cassé /app/leads
+
+**Fichier:** `client/src/pages/dashboard.tsx` (~ligne 813)
+
+Chercher le lien vers `/app/leads` et le remplacer par `/app/pipeline` (ou `/app/pipeline?filter=yellow` si c'est spécifique aux yellow leads). La route `/app/leads` n'existe pas.
+
+### FIX-13: Route om-performance sans siteId
+
+**Fichier:** `client/src/components/app-sidebar.tsx` (~ligne 173)
+
+Le lien sidebar vers "Performance" pointe vers `/app/om-performance` mais la route attend `/app/om-performance/:siteId`. Options:
+- **Option A (recommandée):** Créer une page liste `/app/om-performance` qui affiche tous les sites avec O&M, avec lien vers `/app/om-performance/:siteId` pour chaque site
+- **Option B (rapide):** Retirer le lien du sidebar et rendre la page accessible uniquement depuis les pages site/O&M
+
+### FIX-14: conversion-dashboard.tsx — Imports manquants
+
+**Fichier:** `client/src/pages/conversion-dashboard.tsx`
+
+Ajouter les imports React et UI manquants pour que la page compile et s'affiche sans crash. Vérifier quels composants Card/UI sont utilisés et s'assurer qu'ils sont tous importés.
+
+---
+
+## VALIDATION FINALE
+
+Après TOUS les changements:
+
+1. `npm test` — Les 548 tests doivent passer (0 régression)
+2. `npm run build` — Build sans erreur
+3. Vérification manuelle rapide:
+   - Naviguer sur la landing page → header + footer cohérents
+   - Soumettre le formulaire lead avec téléphone invalide → erreur affichée
+   - Changer la langue FR→EN → tout le contenu change
+   - Naviguer vers `/privacy`, `/conditions` → header/footer présents
+   - Naviguer vers `/app` (logged in) → pas de crash
+   - Cliquer "Performance" dans sidebar → pas de 404
+
+---
+
+## RÉSUMÉ DES FICHIERS À MODIFIER
+
+| Fichier | Fix(s) |
+|---------|--------|
+| `client/src/pages/sign-agreement.tsx` | FIX-01 (Zod) + FIX-04 (toasts) + FIX-06 (requis) |
+| `client/src/pages/landing.tsx` | FIX-02 (tel) + FIX-04 (toasts) + FIX-06 (requis) + FIX-07 (header) + FIX-08 (footer) |
+| `client/src/pages/autorisation-hq.tsx` | FIX-03 (sessionStorage) + FIX-04 (toasts) + FIX-06 (requis) + FIX-09 (SEO) |
+| `client/src/pages/analyse-detaillee.tsx` | FIX-04 (toasts) + FIX-05 (HQ valid) + FIX-06 (requis) + FIX-09 (SEO) |
+| `client/src/components/public-header.tsx` | FIX-07 (header unifié) + FIX-08 (footer unifié) |
+| `client/src/pages/blog.tsx` | FIX-07 (header) + FIX-08 (footer) |
+| `client/src/pages/services.tsx` | FIX-07 (header) + FIX-08 (footer) |
+| `client/src/pages/privacy.tsx` | FIX-09 (SEOHead) |
+| `client/src/pages/terms.tsx` | FIX-09 (SEOHead) |
+| `client/src/pages/merci.tsx` | FIX-09 (SEOHead noIndex) |
+| `client/src/lib/i18n.tsx` | FIX-01,02,04,05,06,09 (nouvelles clés) |
+| `client/src/App.tsx` | FIX-10 (redirects) |
+| `client/public/sitemap.xml` | FIX-11 (URLs manquantes) |
+| `client/src/pages/dashboard.tsx` | FIX-12 (lien leads) |
+| `client/src/components/app-sidebar.tsx` | FIX-13 (om-performance) |
+| `client/src/pages/conversion-dashboard.tsx` | FIX-14 (imports) |
+
+**Total: 16 fichiers, 14 correctifs, ~4 jours de travail estimé.**

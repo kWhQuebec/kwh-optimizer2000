@@ -810,7 +810,7 @@ function QualificationSummaryCard({ language, isLoading }: { language: 'fr' | 'e
             {/* Yellow Leads Link */}
             {yellowLeadsCount > 0 && (
               <div className="pt-2 border-t">
-                <Link href="/app/leads?filter=yellow">
+                <Link href="/app/pipeline?filter=yellow">
                   <Button variant="outline" size="sm" className="w-full gap-2">
                     <span>{yellowLeadsLabel}</span>
                     <ArrowRight className="w-3.5 h-3.5" />

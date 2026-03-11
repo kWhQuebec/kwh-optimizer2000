@@ -11,6 +11,7 @@ import { SEOHead } from "@/components/seo-head";
 import logoFr from "@assets/kWh_Quebec_Logo-01_-_Rectangulaire_1764799021536.png";
 import logoEn from "@assets/kWh_Quebec_Logo-02_-_Rectangle_1764799021536.png";
 import scaleCleantech from "@assets/scale_cleantech_colorHR_1769011389486.png";
+import screenshotOptimization from "@assets/Screenshot_2025-12-11_at_2.44.53_PM_1765482299598.png";
 
 interface ProjectDetails {
   id: string;
@@ -298,6 +299,16 @@ export default function PortfolioProjectPage() {
             </div>
           )}
           
+          <section className="py-8 px-4 sm:px-6 lg:px-8 bg-muted/30 rounded-xl mb-8">
+            <div className="max-w-4xl mx-auto">
+              <h3 className="text-lg font-bold mb-4 text-center">{language === "fr" ? "Profondeur d'analyse kWh Québec" : "kWh Québec Analysis Depth"}</h3>
+              <div className="rounded-md overflow-hidden border shadow-sm">
+                <img src={screenshotOptimization} alt={language === "fr" ? "Analyse d'optimisation solaire kWh Québec" : "kWh Québec solar optimization analysis"} className="w-full h-auto" loading="lazy" data-testid="img-analysis-depth" />
+              </div>
+              <p className="text-xs text-muted-foreground text-center mt-2">{language === "fr" ? "Exemple d'analyse d'optimisation solaire" : "Sample solar optimization analysis"}</p>
+            </div>
+          </section>
+
           <Card>
             <CardHeader>
               <CardTitle>{t.projectDetails}</CardTitle>

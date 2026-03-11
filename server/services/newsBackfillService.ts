@@ -1,11 +1,11 @@
-import { analyzeArticleRelevance } from "./newsCurationService";
+import { analyzeArticleRelevance, AUTO_REJECT_THRESHOLD } from "./newsCurationService";
 import { createLogger } from "../lib/logger";
 import type { IStorage } from "../storage";
 import type { RawNewsItem } from "./newsRssService";
 
 const log = createLogger("NewsBackfill");
 
-export async function runNewsBackfillJob(storage: IStorage, autoRejectThreshold: number = 40): Promise<{
+export async function runNewsBackfillJob(storage: IStorage, autoRejectThreshold: number = AUTO_REJECT_THRESHOLD): Promise<{
   total: number;
   analyzed: number;
   autoRejected: number;

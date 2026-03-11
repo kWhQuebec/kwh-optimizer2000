@@ -30,6 +30,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { useI18n } from "@/lib/i18n";
+import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
 import type { Site, SimulationRun, DesignAgreement } from "@shared/schema";
 import { WorkflowStepper } from "@/components/WorkflowStepper";
@@ -85,6 +86,7 @@ function SiteWorkflowProgress({ site, language }: { site: SiteWithClient; langua
 
 export default function ClientPortalPage({ previewClientId }: { previewClientId?: string }) {
   const { t, language } = useI18n();
+  const { toast } = useToast();
   const { user } = useAuth();
 
   const portalUrl = previewClientId
@@ -138,30 +140,6 @@ export default function ClientPortalPage({ previewClientId }: { previewClientId?
           en: "HQ Bill Provided"
         },
         status: (site.hqBillPath || (site as any).hqConsumptionHistory) ? "complete" : "pending"
-      },
-      {
-        key: "roof",
-        label: {
-          fr: "État du toit confirmé",
-          en: "Roof Condition Confirmed"
-        },
-        status: (site as any).roofCondition && (site as any).roofCondition !== "unknown" ? "complete" : (site as any).roofCondition === "unknown" ? "pending" : "pending"
-      },
-      {
-        key: "decision",
-        label: {
-          fr: "Décideur identifié",
-          en: "Decision Maker Identified"
-        },
-        status: (site as any).decisionAuthority && (site as any).decisionAuthority !== "unknown" ? "complete" : "pending"
-      },
-      {
-        key: "budget",
-        label: {
-          fr: "Budget confirmé",
-          en: "Budget Confirmed"
-        },
-        status: (site as any).budgetReadiness && (site as any).budgetReadiness !== "unknown" ? "complete" : "pending"
       }
     ];
 
@@ -326,7 +304,7 @@ export default function ClientPortalPage({ previewClientId }: { previewClientId?
                 <div>
                   <p className="text-2xl font-bold" data-testid="kpi-total-sites">{totalSites}</p>
                   <p className="text-sm text-muted-foreground">
-                    {language === "fr" ? "Sites" : "Sites"}
+                    {t("portal.sites") || "Sites"}
                   </p>
                 </div>
               </div>
@@ -373,14 +351,22 @@ export default function ClientPortalPage({ previewClientId }: { previewClientId?
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
                 <div className="p-3 rounded-full bg-blue-100 dark:bg-blue-900/30">
-                  <FileCheck className="w-5 h-5 text-blue-600" />
+                  <Zap className="w-5 h-5 text-blue-600" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold" data-testid="kpi-designs-approved">
-                    {sitesWithDesign}/{totalSites}
+                  <p className="text-2xl font-bold" data-testid="kpi-total-capacity">
+                    {(() => {
+                      const totalKw = normalizedSites.reduce((sum, site) => {
+                        if (site.simulationRuns && site.simulationRuns.length > 0) {
+                          return sum + (site.simulationRuns[site.simulationRuns.length - 1]?.pvSizeKW || 0);
+                        }
+                        return sum;
+                      }, 0);
+                      return totalKw > 0 ? `${totalKw.toLocaleString("fr-CA")} kW` : "-";
+                    })()}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    {language === "fr" ? "Designs approuvés" : "Designs Approved"}
+                    {language === "fr" ? "Capacité totale" : "Total Capacity"}
                   </p>
                 </div>
               </div>
@@ -388,6 +374,26 @@ export default function ClientPortalPage({ previewClientId }: { previewClientId?
           </Card>
         </div>
       )}
+
+      {/* Environmental Impact Summary */}
+      {(() => {
+        const totalCO2 = normalizedSites.reduce((sum, site) => {
+          if (site.simulationRuns && site.simulationRuns.length > 0) {
+            return sum + (site.simulationRuns[site.simulationRuns.length - 1]?.co2AvoidedTonnesPerYear || 0);
+          }
+          return sum;
+        }, 0);
+        return totalCO2 > 0 ? (
+          <div className="flex items-center gap-3 rounded-lg border border-green-200 bg-green-50/50 dark:border-green-800 dark:bg-green-950/20 px-4 py-3" data-testid="environmental-impact">
+            <Leaf className="w-5 h-5 text-green-600 shrink-0" />
+            <p className="text-sm text-green-800 dark:text-green-200">
+              {language === "fr"
+                ? `Vos projets solaires éviteraient ${totalCO2.toFixed(0)} tonnes de CO₂ par année — l'équivalent de ${Math.round(totalCO2 * 0.22)} voitures retirées de la route.`
+                : `Your solar projects would avoid ${totalCO2.toFixed(0)} tonnes of CO₂ per year — equivalent to removing ${Math.round(totalCO2 * 0.22)} cars from the road.`}
+            </p>
+          </div>
+        ) : null;
+      })()}
 
       {/* Pending Actions Alert */}
       {pendingActions.length > 0 && (
@@ -439,12 +445,28 @@ export default function ClientPortalPage({ previewClientId }: { previewClientId?
             <div className="rounded-full bg-muted p-4 mb-4">
               <Building2 className="w-8 h-8 text-muted-foreground" />
             </div>
-            <h3 className="text-lg font-medium mb-2">
-              {t("portal.noSites") || "No sites available"}
+            <h3 className="text-lg font-medium mb-2" data-testid="text-no-sites-title">
+              {language === "fr" ? "Aucun site disponible" : "No sites available"}
             </h3>
-            <p className="text-muted-foreground max-w-sm">
-              {t("portal.noSitesDescription") || "Your solar analysis sites will appear here once they are set up by our team."}
+            <p className="text-muted-foreground max-w-sm" data-testid="text-no-sites-description">
+              {language === "fr"
+                ? "Vos sites d'analyse solaire apparaîtront ici une fois configurés par notre équipe. Contactez-nous pour démarrer votre projet."
+                : "Your solar analysis sites will appear here once they are set up by our team. Contact us to start your project."}
             </p>
+            <div className="mt-4 flex flex-wrap gap-3">
+              <Button asChild variant="default" data-testid="button-contact-email-empty">
+                <a href="mailto:info@kwh.quebec">
+                  <Mail className="w-4 h-4 mr-2" />
+                  info@kwh.quebec
+                </a>
+              </Button>
+              <Button asChild variant="outline" data-testid="button-contact-phone-empty">
+                <a href="tel:+15144278871">
+                  <Phone className="w-4 h-4 mr-2" />
+                  (514) 427-8871
+                </a>
+              </Button>
+            </div>
           </CardContent>
         </Card>
       ) : (
@@ -654,6 +676,13 @@ export default function ClientPortalPage({ previewClientId }: { previewClientId?
                               document.body.removeChild(a);
                             } catch (err) {
                               console.error("Download error:", err);
+                              toast({
+                                title: language === "fr" ? "Erreur de téléchargement" : "Download Error",
+                                description: language === "fr" 
+                                  ? "Le rapport PDF n'a pas pu être téléchargé. Veuillez réessayer." 
+                                  : "The PDF report could not be downloaded. Please try again.",
+                                variant: "destructive",
+                              });
                             }
                           }}
                           data-testid={`button-download-pdf-${site.id}`}
@@ -684,12 +713,12 @@ export default function ClientPortalPage({ previewClientId }: { previewClientId?
           </p>
           <div className="mt-4 flex flex-wrap items-center gap-4">
             <a 
-              href="mailto:info@kwhquebec.ca" 
+              href="mailto:info@kwh.quebec" 
               className="flex items-center gap-2 text-primary hover:underline"
               data-testid="link-contact-email"
             >
               <Mail className="w-4 h-4" />
-              info@kwhquebec.ca
+              info@kwh.quebec
             </a>
             <a
               href="tel:+15144278871"
@@ -697,7 +726,7 @@ export default function ClientPortalPage({ previewClientId }: { previewClientId?
               data-testid="link-contact-phone"
             >
               <Phone className="w-4 h-4" />
-              (514) 123-4567
+              (514) 427-8871
             </a>
           </div>
         </CardContent>

@@ -254,6 +254,73 @@ export const getHowToSchema = (lang: "fr" | "en"): StructuredData => ({
   ]
 });
 
+export const getLandingFAQSchema = (lang: "fr" | "en"): StructuredData => ({
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": lang === "fr"
+        ? "Combien coûte une installation solaire commerciale?"
+        : "How much does a commercial solar installation cost?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": lang === "fr"
+          ? "Le coût varie selon la taille du système et le bâtiment, mais en général de 1,800$ à 2,500$ par kW. Avec les incitatifs gouvernementaux couvrant jusqu'à 60% du projet, votre investissement net tombe à 700$ à 1,000$ par kW. Les systèmes plus grands bénéficient généralement de meilleurs prix unitaires."
+          : "Cost varies by system size and building, but typically ranges from $1,800 to $2,500 per kW. With government incentives covering up to 60% of the project, your net investment drops to $700 to $1,000 per kW. Larger systems generally benefit from better unit pricing."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": lang === "fr"
+        ? "Quels incitatifs sont disponibles au Québec?"
+        : "What incentives are available in Quebec?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": lang === "fr"
+          ? "Trois niveaux d'incitatifs: (1) Crédit Hydro-Québec jusqu'à 40% du projet, (2) Crédit d'impôt fédéral 30% pour technologies propres, (3) Traitement fiscal avantageux avec 100% déductible en première année. Ces incitatifs peuvent être combinés pour un soutien total de jusqu'à 60% du coût du projet."
+          : "Three levels of incentives: (1) Hydro-Québec credit up to 40% of the project, (2) Federal 30% investment tax credit for clean technology, (3) Favorable tax treatment with 100% deductible in year 1. These incentives can be combined for total support up to 60% of project cost."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": lang === "fr"
+        ? "Combien de temps prend l'installation?"
+        : "How long does installation take?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": lang === "fr"
+          ? "Le processus complet prend généralement 4-8 mois selon la complexité du projet: estimation gratuite (quelques minutes), étude personnalisée avec données Hydro-Québec réelles (7 jours), conception préliminaire et visite technique (2 semaines), plans et soumission forfaitaire (4-8 semaines), et permis et installation clé en main (10-18 semaines)."
+          : "The complete process typically takes 4-8 months depending on project complexity: free estimate (a few minutes), personalized study with real Hydro-Québec data (7 days), preliminary design and site visit (2 weeks), plans and fixed-price quote (4-8 weeks), and permits and turnkey installation (10-18 weeks)."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": lang === "fr"
+        ? "Quelle est la durée de vie des panneaux solaires?"
+        : "What is the lifespan of solar panels?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": lang === "fr"
+          ? "Les panneaux solaires modernes (TOPCon N-type) ont une durée de vie de 25-30 ans avec une garantie de performance. Avec une dégradation de seulement 0,35-0,5% par année après la première année, ils produisent encore environ 90% de leur capacité initiale après 25 ans."
+          : "Modern solar panels (TOPCon N-type) have a lifespan of 25-30 years with a performance warranty. With degradation of only 0.35-0.5% per year after Year 1, they still produce about 90% of initial capacity after 25 years."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": lang === "fr"
+        ? "Le solaire augmente-t-il la valeur de mon bâtiment?"
+        : "Does solar increase my building's property value?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": lang === "fr"
+          ? "Oui. Les études montrent que les bâtiments avec systèmes solaires se vendent entre 3-4% plus cher, soit environ 1 000$/kW installé en valeur ajoutée. Au-delà de la valeur immédiate, les acheteurs apprécient les factures énergétiques réduites et les faibles coûts d'exploitation."
+          : "Yes. Studies show that buildings with solar systems sell for 3-4% more, representing approximately $1,000/kW installed in added value. Beyond immediate value, buyers appreciate reduced energy bills and low operating costs."
+      }
+    }
+  ]
+});
+
 export const getFAQSchema = (lang: "fr" | "en"): StructuredData => ({
   "@context": "https://schema.org",
   "@type": "FAQPage",
@@ -266,8 +333,8 @@ export const getFAQSchema = (lang: "fr" | "en"): StructuredData => ({
       "acceptedAnswer": {
         "@type": "Answer",
         "text": lang === "fr"
-          ? "Au Québec, les principaux incitatifs incluent: le programme d'autoproduction d'Hydro-Québec (mesurage net), le crédit d'impôt fédéral de 30% pour les technologies propres (ITC, sous conditions d'éligibilité), et la déduction pour amortissement accéléré (CCA Catégorie 43.2, sous réserve des conditions d'éligibilité en vigueur — consultez votre comptable). L'éligibilité et les montants varient selon votre situation - notre analyse calcule les incitatifs applicables à votre projet."
-          : "In Quebec, main incentives include: Hydro-Québec's self-generation program (net metering), the 30% federal clean technology investment tax credit (ITC, subject to eligibility), and accelerated capital cost allowance (CCA Class 43.2, subject to current eligibility conditions — consult your accountant). Eligibility and amounts vary by situation - our analysis calculates incentives applicable to your project."
+          ? "Au Québec, les principaux incitatifs incluent: l'appui financier de 1 000 $/kW du programme Solutions efficaces d'Hydro-Québec (OSE 6.0, en vigueur depuis le 31 mars 2026, plafonné à 40% du CAPEX et 1 MW), le programme de mesurage net (crédits sur votre facture), le crédit d'impôt fédéral de 30% pour les technologies propres (ITC, sous conditions d'éligibilité), et la déduction pour amortissement accéléré (CCA Catégorie 43.2, sous réserve des conditions d'éligibilité en vigueur — consultez votre comptable)."
+          : "In Quebec, main incentives include: the $1,000/kW financial support from Hydro-Québec's Solutions efficaces program (OSE 6.0, effective March 31, 2026, capped at 40% of CAPEX and 1 MW), the net metering program (credits on your bill), the 30% federal clean technology investment tax credit (ITC, subject to eligibility), and accelerated capital cost allowance (CCA Class 43.2, subject to current eligibility conditions — consult your accountant)."
       }
     },
     {
@@ -314,20 +381,32 @@ export const getFAQSchema = (lang: "fr" | "en"): StructuredData => ({
       "acceptedAnswer": {
         "@type": "Answer",
         "text": lang === "fr"
-          ? "Le programme d'autoproduction permet d'injecter votre surplus solaire sur le réseau et de le récupérer sous forme de crédits sur votre facture (jusqu'à 24 mois). Le surplus non utilisé après cette période est compensé au tarif de référence. La capacité maximale est de 1 MW par site. C'est un programme de mesurage net, pas une subvention directe."
-          : "The self-generation program lets you inject solar surplus onto the grid and recover it as credits on your bill (up to 24 months). Unused surplus after this period is compensated at the reference rate. Maximum capacity is 1 MW per site. This is a net metering program, not a direct subsidy."
+          ? "Le programme d'autoproduction (mesurage net) permet d'injecter votre surplus solaire sur le réseau et de le récupérer sous forme de crédits sur votre facture (jusqu'à 24 mois). Le solde de la banque de surplus est rémunéré au coût moyen de fourniture d'électricité. Depuis 2025, le Tarif M est admissible et la capacité maximale est passée de 50 kW à 1 MW."
+          : "The self-generation program (net metering) lets you inject solar surplus onto the grid and recover it as credits on your bill (up to 24 months). The surplus bank balance is compensated at the average cost of electricity supply. Since 2025, Rate M is eligible and maximum capacity increased from 50 kW to 1 MW."
       }
     },
     {
       "@type": "Question",
       "name": lang === "fr"
-        ? "Qu'est-ce que le programme ÉcoPerformance de TEQ?"
-        : "What is TEQ's ÉcoPerformance program?",
+        ? "Qu'est-ce que le programme Solutions efficaces d'Hydro-Québec?"
+        : "What is Hydro-Québec's Solutions efficaces program?",
       "acceptedAnswer": {
         "@type": "Answer",
         "text": lang === "fr"
-          ? "Le programme ÉcoPerformance de Transition énergétique Québec (TEQ) peut couvrir jusqu'à 75% des coûts d'efficacité énergétique complémentaires au solaire, comme l'amélioration de l'enveloppe du bâtiment ou la mise à niveau des systèmes mécaniques. C'est un incitatif provincial distinct du crédit fédéral ITC et du programme d'autoproduction Hydro-Québec."
-          : "TEQ's (Transition énergétique Québec) ÉcoPerformance program can cover up to 75% of energy efficiency costs complementary to solar, such as building envelope improvements or mechanical system upgrades. It is a provincial incentive separate from the federal ITC credit and the Hydro-Québec self-generation program."
+          ? "Le programme Solutions efficaces d'Hydro-Québec (anciennement lié à ÉcoPerformance / TEQ) offre des appuis financiers pour l'efficacité énergétique et l'autoproduction solaire. Pour le solaire PV, l'appui est de 1 000 $/kW installé, plafonné à 40% des coûts admissibles et à 1 MW (OSE 6.0, en vigueur le 31 mars 2026)."
+          : "Hydro-Québec's Solutions efficaces program (formerly linked to ÉcoPerformance / TEQ) provides financial support for energy efficiency and solar self-generation. For solar PV, the incentive is $1,000/kW installed, capped at 40% of admissible costs and 1 MW (OSE 6.0, effective March 31, 2026)."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": lang === "fr"
+        ? "Quelles sont les exigences pour l'incitatif solaire OSE 6.0?"
+        : "What are the requirements for the OSE 6.0 solar incentive?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": lang === "fr"
+          ? "Panneaux certifiés CSA 22.2 No 61730 et CAN/CAS-IEC 61215. Installateur avec licence RBQ. Achat d'équipements après le 31 mars 2026. Acceptation conditionnelle d'Hydro-Québec recommandée avant achat. Tous les tarifs admissibles sauf tarif L et contrats particuliers."
+          : "Panels must be CSA 22.2 No 61730 and CAN/CAS-IEC 61215 certified. Installer must hold proper RBQ license. Equipment purchase after March 31, 2026. Hydro-Québec conditional acceptance recommended before purchase. All tariffs eligible except Rate L and special contracts."
       }
     },
     {
@@ -441,13 +520,13 @@ export const getFAQSchema = (lang: "fr" | "en"): StructuredData => ({
     {
       "@type": "Question",
       "name": lang === "fr"
-        ? "Qu'est-ce qu'un PPA et est-ce une bonne option?"
-        : "What is a PPA and is it a good option?",
+        ? "Pourquoi le PPA (contrat d'achat d'énergie) n'est-il pas offert au Québec?"
+        : "Why are Power Purchase Agreements (PPAs) not available in Quebec?",
       "acceptedAnswer": {
         "@type": "Answer",
         "text": lang === "fr"
-          ? "Un PPA (Power Purchase Agreement) est un contrat où un tiers installe et possède le système - vous achetez l'électricité à tarif fixe. Avantage: 0$ d'investissement. Inconvénient: le tiers garde les incitatifs et une grande partie des économies. Pour les entreprises qui peuvent investir ou financer, l'achat direct offre généralement un meilleur rendement."
-          : "A PPA (Power Purchase Agreement) is a contract where a third party installs and owns the system - you buy electricity at a fixed rate. Advantage: $0 investment. Disadvantage: the third party keeps the incentives and most of the savings. For businesses that can invest or finance, direct purchase generally offers better returns."
+          ? "Au Québec, la Loi sur Hydro-Québec (RLRQ, c. H-5) confère à Hydro-Québec le rôle exclusif de distributeur d'électricité. La Loi sur la Régie de l'énergie (RLRQ, c. R-6.01) encadre la vente d'électricité aux consommateurs finals — dans le cadre réglementaire actuel, la vente d'électricité par un tiers via un PPA n'est pas permise, contrairement à l'Ontario, l'Alberta ou les États-Unis. kWh Québec propose trois modes d'acquisition adaptés: l'achat comptant, le prêt et le crédit-bail. Vous êtes propriétaire du système et conservez 100% des incitatifs gouvernementaux."
+          : "In Quebec, the Hydro-Québec Act (CQLR, c. H-5) grants Hydro-Québec the exclusive role of electricity distributor. The Act Respecting the Régie de l'énergie (CQLR, c. R-6.01) regulates electricity sales to end consumers — under the current regulatory framework, electricity sales by a third party through a PPA are not permitted, unlike in Ontario, Alberta, or the United States. kWh Québec offers three acquisition modes adapted to Quebec's framework: cash purchase, loan, and capital lease. You own the system and retain 100% of government incentives."
       }
     },
     {

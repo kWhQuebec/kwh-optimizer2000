@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Sun, MapPin, Zap, Building2, ArrowRight, ChevronDown, DollarSign, BarChart3 } from "lucide-react";
+import { Sun, MapPin, Zap, Building2, ArrowRight, ChevronDown, DollarSign, BarChart3, BookOpen, BatteryCharging } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -8,6 +8,7 @@ import { useI18n } from "@/lib/i18n";
 import { Link } from "wouter";
 import { PublicHeader, PublicFooter } from "@/components/public-header";
 import { SEOHead } from "@/components/seo-head";
+import heroImage from "@assets/hero-optimized.jpg";
 
 interface PortfolioSite {
   id: string;
@@ -51,7 +52,7 @@ function LazyImage({ src, alt, className }: { src: string; alt: string; classNam
     <div ref={imgRef} className="w-full h-full relative">
       {!isLoaded && (
         <div className="absolute inset-0 bg-muted animate-pulse flex items-center justify-center">
-          <Building2 className="w-8 h-8 text-muted-foreground/50" />
+          <Building2 aria-hidden="true" className="w-8 h-8 text-muted-foreground/50" />
         </div>
       )}
       {isInView && (
@@ -90,14 +91,14 @@ function ProjectCard({ site }: { site: PortfolioSite }) {
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <Building2 className="w-12 h-12 text-muted-foreground" />
+            <Building2 aria-hidden="true" className="w-12 h-12 text-muted-foreground" />
           </div>
         )}
       </div>
       <CardContent className="p-4 space-y-3">
         <div className="space-y-1">
           <div className="flex items-center gap-2 text-muted-foreground">
-            <MapPin className="w-4 h-4 shrink-0" />
+            <MapPin aria-hidden="true" className="w-4 h-4 shrink-0" />
             <span className="font-medium text-foreground">{site.city}</span>
           </div>
           {site.address && (
@@ -111,7 +112,7 @@ function ProjectCard({ site }: { site: PortfolioSite }) {
           {hasSystemSize && (
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
-                <Zap className="w-4 h-4 text-primary" />
+                <Zap aria-hidden="true" className="w-4 h-4 text-primary" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">
@@ -127,7 +128,7 @@ function ProjectCard({ site }: { site: PortfolioSite }) {
           {site.annual_production_kwh && (
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
-                <BarChart3 className="w-4 h-4 text-primary" />
+                <BarChart3 aria-hidden="true" className="w-4 h-4 text-primary" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">
@@ -143,7 +144,7 @@ function ProjectCard({ site }: { site: PortfolioSite }) {
           {site.estimated_annual_savings && (
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
-                <DollarSign className="w-4 h-4 text-primary" />
+                <DollarSign aria-hidden="true" className="w-4 h-4 text-primary" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">
@@ -159,7 +160,7 @@ function ProjectCard({ site }: { site: PortfolioSite }) {
           {site.roof_area_sqm && (
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
-                <Sun className="w-4 h-4 text-primary" />
+                <Sun aria-hidden="true" className="w-4 h-4 text-primary" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">
@@ -176,7 +177,7 @@ function ProjectCard({ site }: { site: PortfolioSite }) {
         <Link href={`/portfolio/${site.id}`}>
           <Button variant="outline" size="sm" className="w-full mt-2" data-testid={`button-view-project-${site.id}`}>
             {language === "fr" ? "Voir les détails" : "View details"}
-            <ArrowRight className="w-4 h-4 ml-2" />
+            <ArrowRight aria-hidden="true" className="w-4 h-4 ml-2" />
           </Button>
         </Link>
       </CardContent>
@@ -196,7 +197,7 @@ function PortfolioGrid({ sites, visibleCount, onLoadMore }: {
   if (sites.length === 0) {
     return (
       <div className="text-center py-16">
-        <Building2 className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+        <Building2 aria-hidden="true" className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
         <p className="text-muted-foreground">
           {language === "fr" ? "Aucun projet disponible" : "No projects available"}
         </p>
@@ -221,7 +222,7 @@ function PortfolioGrid({ sites, visibleCount, onLoadMore }: {
             className="gap-2"
             data-testid="button-load-more"
           >
-            <ChevronDown className="w-4 h-4" />
+            <ChevronDown aria-hidden="true" className="w-4 h-4" />
             {language === "fr" 
               ? `Voir plus (${sites.length - visibleCount} restants)` 
               : `Load more (${sites.length - visibleCount} remaining)`}
@@ -268,25 +269,32 @@ export default function Portfolio() {
   const projectCount = sites?.length || 0;
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="public-page min-h-screen flex flex-col bg-background">
       <SEOHead 
         title={language === "fr" ? "Portfolio de projets solaires | kWh Québec" : "Solar Projects Portfolio | kWh Québec"}
         description={language === "fr"
           ? "Découvrez notre portfolio de projets solaires commerciaux et industriels en développement au Québec."
           : "Explore our portfolio of commercial and industrial solar projects in development across Québec."}
+        ogImage={heroImage}
       />
       <PublicHeader />
       
       <main className="flex-1 pt-16">
-        <section className="py-12 md:py-16 bg-gradient-to-b from-primary/5 to-background">
-          <div className="container mx-auto px-4">
+        <section className="relative py-16 md:py-24 overflow-hidden">
+          <img
+            src={heroImage}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/60 to-black/80" />
+          <div className="relative container mx-auto px-4">
             <div className="text-center max-w-3xl mx-auto space-y-4">
-              <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight">
+              <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight text-white">
                 {language === "fr" 
-                  ? "Portfolio de projets solaires" 
-                  : "Solar Projects Portfolio"}
+                  ? "Portfolio de projets" 
+                  : "Projects Portfolio"}
               </h1>
-              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              <p className="text-lg text-white/70 max-w-2xl mx-auto">
                 {language === "fr"
                   ? "Découvrez notre portfolio de projets solaires commerciaux et industriels en développement au Québec."
                   : "Explore our portfolio of commercial and industrial solar projects in development across Québec."}
@@ -296,23 +304,23 @@ export default function Portfolio() {
             {!isLoading && sites && (
               <div className="flex flex-wrap justify-center gap-8 mt-8">
                 <div className="text-center">
-                  <p className="text-3xl md:text-4xl font-bold text-primary">{projectCount}</p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-3xl md:text-4xl font-bold text-white">{projectCount}</p>
+                  <p className="text-sm text-white/70">
                     {language === "fr" ? "Sites" : "Sites"}
                   </p>
                 </div>
                 <div className="text-center">
-                  <p className="text-3xl md:text-4xl font-bold text-primary">
+                  <p className="text-3xl md:text-4xl font-bold text-white">
                     {totalCapacity.toLocaleString(language === "fr" ? "fr-CA" : "en-CA", { maximumFractionDigits: 0 })}
                   </p>
-                  <p className="text-sm text-muted-foreground">kW DC</p>
+                  <p className="text-sm text-white/70">kW DC</p>
                 </div>
                 {totalProductionMwh > 0 && (
                   <div className="text-center">
-                    <p className="text-3xl md:text-4xl font-bold text-primary" data-testid="text-total-production">
+                    <p className="text-3xl md:text-4xl font-bold text-white" data-testid="text-total-production">
                       {Math.round(totalProductionMwh / 1000).toLocaleString(language === "fr" ? "fr-CA" : "en-CA")}
                     </p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-white/70">
                       {language === "fr" ? "MWh/an estimés" : "Est. MWh/year"}
                     </p>
                   </div>
@@ -341,6 +349,39 @@ export default function Portfolio() {
                 onLoadMore={handleLoadMore}
               />
             )}
+          </div>
+        </section>
+
+        <section className="py-12 border-t">
+          <div className="container mx-auto px-4">
+            <div className="max-w-2xl mx-auto text-center space-y-4">
+              <h2 className="text-xl font-semibold" data-testid="text-portfolio-crosslink-title">
+                {language === "fr"
+                  ? "Comment ça fonctionne?"
+                  : "How does it work?"}
+              </h2>
+              <p className="text-muted-foreground text-sm">
+                {language === "fr"
+                  ? "Consultez nos guides et ressources pour comprendre le processus d'un projet solaire commercial."
+                  : "Browse our guides and resources to understand the commercial solar project process."}
+              </p>
+              <div className="flex flex-wrap justify-center gap-4">
+                <Link href="/ressources?tab=guides">
+                  <Button variant="outline" className="gap-2" data-testid="link-portfolio-guides">
+                    <BookOpen aria-hidden="true" className="w-4 h-4" />
+                    {language === "fr" ? "Guides & ressources" : "Guides & resources"}
+                    <ArrowRight aria-hidden="true" className="w-4 h-4" />
+                  </Button>
+                </Link>
+                <Link href="/stockage-energie">
+                  <Button variant="outline" className="gap-2" data-testid="link-portfolio-stockage">
+                    <BatteryCharging aria-hidden="true" className="w-4 h-4" />
+                    {language === "fr" ? "Stockage par batterie" : "Battery storage"}
+                    <ArrowRight aria-hidden="true" className="w-4 h-4" />
+                  </Button>
+                </Link>
+              </div>
+            </div>
           </div>
         </section>
       </main>

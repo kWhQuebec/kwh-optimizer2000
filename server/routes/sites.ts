@@ -130,7 +130,7 @@ async function triggerRoofEstimation(siteId: string): Promise<void> {
       roofEstimatePendingAt: null
     });
 
-    log.info(`Roof estimation success for site ${siteId}: ${result.roofAreaSqM.toFixed(1)} m²`);
+    log.info(`Roof estimation success for site ${siteId}: ${result.roofAreaSqM.toFixed(1)} mÂ²`);
 
     try {
       const colorResult = await googleSolar.analyzeRoofColor({
@@ -748,19 +748,45 @@ router.post("/:siteId/quick-potential", authMiddleware, requireStaff, asyncHandl
   let totalRoofAreaSqM = polygonAreaSqM > 0
     ? polygonAreaSqM
     : (site.roofAreaSqM || site.roofAreaAutoSqM || 0);
+  let roofAreaSource: "polygons" | "site" | "sibling-copy" | "consumption-estimate" = polygonAreaSqM > 0 ? "polygons" : "site";
 
   if (totalRoofAreaSqM <= 0 && site.buildingSqFt && site.buildingSqFt > 0) {
     totalRoofAreaSqM = site.buildingSqFt * 0.0929;
+    roofAreaSource = "site";
   }
 
   if (totalRoofAreaSqM <= 0) {
-    throw new BadRequestError("No roof area available. Please draw roof areas in Step 1 (Roof Drawing Tool) or set a building area for this site.");
+    const copyResult = await autocopySiblingRoofPolygons(siteId, site.address);
+    if (copyResult.copied && copyResult.areaSqM && copyResult.areaSqM > 0) {
+      totalRoofAreaSqM = copyResult.areaSqM;
+      roofAreaSource = "sibling-copy";
+    }
+  }
+
+  if (totalRoofAreaSqM <= 0) {
+    let estKwh = site.annualConsumptionKwh || (site as any).annualConsumptionKWh || 0;
+    if (estKwh <= 0) {
+      try {
+        const meterReadings = await storage.getMeterReadings(siteId);
+        if (meterReadings?.length > 0) {
+          estKwh = meterReadings.reduce((sum: number, r: any) => sum + (r.kWh || 0), 0);
+        }
+      } catch {}
+    }
+    if (estKwh > 0) {
+      const estPvKw = estKwh / 1150;
+      totalRoofAreaSqM = (estPvKw / 0.660) * 3.71 / 0.85;
+      roofAreaSource = "consumption-estimate";
+      log.warn(`No roof area for site ${siteId} â estimated ${Math.round(totalRoofAreaSqM)}mÂ² from consumption (${Math.round(estKwh)} kWh/yr â ${estPvKw.toFixed(1)} kWp)`);
+    } else {
+      throw new BadRequestError("No roof area available. Please draw roof areas in Step 1 (Roof Drawing Tool) or set a building area for this site.");
+    }
   }
 
   // Import pricing and yield functions
   const { getTieredSolarCostPerW, getSolarPricingTierLabel, resolveYieldStrategy, getBifacialConfigFromRoofColor } = await import("../analysis/potentialAnalysis");
 
-  // Panel specifications (standard 400W panels, ~2 m² per panel)
+  // Panel specifications (standard 400W panels, ~2 mÂ² per panel)
   const panelPowerW = 400;
   const panelAreaSqM = 2.0;
 
@@ -806,9 +832,9 @@ router.post("/:siteId/quick-potential", authMiddleware, requireStaff, asyncHandl
     site.roofColorType as any
   );
 
-  // Quick Analysis simplified system derate — matches runHourlySimulation() loss factors:
+  // Quick Analysis simplified system derate â matches runHourlySimulation() loss factors:
   // wire 3%, LID 1%, mismatch 2%, mismatch strings 0.15%, module quality gain +0.75%
-  // Net derate = 0.97 × 0.99 × 0.98 × 0.9985 × 1.0075 ≈ 0.9466
+  // Net derate = 0.97 Ã 0.99 Ã 0.98 Ã 0.9985 Ã 1.0075 â 0.9466
   // Temperature correction is only for 'default' yieldSource (~4% average annual loss)
   const systemDerate = 0.97 * 0.99 * 0.98 * 0.9985 * 1.0075; // ~0.9466
   const tempDerate = yieldStrategyResult.skipTempCorrection ? 1.0 : 0.96; // ~4% annual avg for Quebec
@@ -874,6 +900,7 @@ router.post("/:siteId/quick-potential", authMiddleware, requireStaff, asyncHandl
       utilizationRatio: effectiveUtilizationRatio,
       constraintFactor,
       polygonCount: solarPolygons.length > 0 ? solarPolygons.length : 1,
+      roofAreaSource,
     },
     systemSizing: {
       maxCapacityKW: Math.round(maxCapacityKW * 10) / 10,
@@ -1014,6 +1041,17 @@ router.post("/:siteId/run-potential-analysis", authMiddleware, requireStaff, asy
     log.info(`Auto-detected tariff ${tariffCode} from meter data (peak=${peakKW.toFixed(1)}kW, annual=${annualKWh.toFixed(0)}kWh, hasPower=${hasRealPowerData}): energy=${rates.energy}$/kWh, power=${rates.power}$/kW`);
   }
 
+    // HQ OSE 6.0: Auto-detect GDP (Gestion de la Demande de Puissance) from tariff detail
+    // GDP tariffs are NOT eligible for net metering — surplus energy has zero credit value
+    const tariffDetail = (site.hqTariffDetail || '').toUpperCase();
+    const isGDP = tariffDetail.includes('GDP') ||
+                  tariffDetail.includes('DEMANDE DE PUISSANCE');
+    if (isGDP && assumptions?.netMeteringEnabled === undefined) {
+      // Auto-disable net metering for GDP tariffs (user can override explicitly)
+      analysisAssumptions.netMeteringEnabled = false;
+      log.info(`GDP tariff detected (hqTariffDetail="${site.hqTariffDetail}") — net metering auto-disabled for site ${siteId}`);
+    }
+
   // CRITICAL: Use manually traced roof polygons as source of truth (not site.roofAreaSqM)
   // Per methodology: "Manual roof tracing: Source of truth for roof surfaces (Google not reliable for C&I)"
   const polygons = await storage.getRoofPolygons(siteId);
@@ -1031,20 +1069,41 @@ router.post("/:siteId/run-potential-analysis", authMiddleware, requireStaff, asy
   let effectiveRoofAreaSqM = tracedSolarAreaSqM > 0
     ? tracedSolarAreaSqM
     : (site.roofAreaSqM || site.roofAreaAutoSqM || 0);
+  let detailedRoofAreaSource: "polygons" | "site" | "sibling-copy" | "consumption-estimate" = tracedSolarAreaSqM > 0 ? "polygons" : "site";
 
   if (effectiveRoofAreaSqM <= 0 && site.buildingSqFt && site.buildingSqFt > 0) {
     effectiveRoofAreaSqM = site.buildingSqFt * 0.0929;
+    detailedRoofAreaSource = "site";
   }
 
-  // Guard: require roof area to prevent NaN in calculations
+  // Guard: require roof area â auto-copy from sibling site if available
   if (effectiveRoofAreaSqM <= 0) {
-    throw new BadRequestError("No roof area available. Please draw roof areas in Step 1 (Roof Drawing Tool) or set a building area for this site.");
+    const copyResult = await autocopySiblingRoofPolygons(siteId, site.address);
+    if (copyResult.copied && copyResult.areaSqM && copyResult.areaSqM > 0) {
+      effectiveRoofAreaSqM = copyResult.areaSqM;
+      detailedRoofAreaSource = "sibling-copy";
+    }
+  }
+
+  if (effectiveRoofAreaSqM <= 0) {
+    let estKwh = site.annualConsumptionKwh || (site as any).annualConsumptionKWh || 0;
+    if (estKwh <= 0 && dedupResult?.readings?.length > 0) {
+      estKwh = dedupResult.readings.reduce((sum: number, r: any) => sum + (r.kWh || 0), 0);
+    }
+    if (estKwh > 0) {
+      const estPvKw = estKwh / 1150;
+      effectiveRoofAreaSqM = (estPvKw / 0.660) * 3.71 / 0.85;
+      detailedRoofAreaSource = "consumption-estimate";
+      log.warn(`No roof area for site ${siteId} â estimated ${Math.round(effectiveRoofAreaSqM)}mÂ² from consumption (${Math.round(estKwh)} kWh/yr â ${estPvKw.toFixed(1)} kWp)`);
+    } else {
+      throw new BadRequestError("No roof area available. Please draw roof areas in Step 1 (Roof Drawing Tool) or set a building area for this site.");
+    }
   }
 
   analysisAssumptions.roofAreaSqFt = effectiveRoofAreaSqM * 10.764;
 
   // Calculate max PV capacity using KB Racking formula:
-  // maxPV = (usable_area / 3.71 m²) × 0.660 kW per panel
+  // maxPV = (usable_area / 3.71 mÂ²) Ã 0.660 kW per panel
   const roofUtilizationRatio = baseAssumptions.roofUtilizationRatio ?? 0.85;
   const usableAreaSqM = effectiveRoofAreaSqM * roofUtilizationRatio;
   const formulaMaxPvKw = (usableAreaSqM / 3.71) * 0.660;
@@ -1052,7 +1111,7 @@ router.post("/:siteId/run-potential-analysis", authMiddleware, requireStaff, asy
   (analysisAssumptions as any).maxPVFromRoofKw = kbMaxPvKw;
 
   log.info(`Roof area source: ${tracedSolarAreaSqM > 0 ? 'polygons' : 'site'}, ` +
-    `tracedArea=${tracedSolarAreaSqM.toFixed(0)}m², effectiveArea=${effectiveRoofAreaSqM.toFixed(0)}m², ` +
+    `tracedArea=${tracedSolarAreaSqM.toFixed(0)}mÂ², effectiveArea=${effectiveRoofAreaSqM.toFixed(0)}mÂ², ` +
     `maxPV=${kbMaxPvKw.toFixed(1)}kW (${site.kbKwDc && site.kbKwDc > 0 ? 'RoofVisualization' : 'KB Racking formula'})`);
 
   const result = runPotentialAnalysis(
@@ -1060,7 +1119,8 @@ router.post("/:siteId/run-potential-analysis", authMiddleware, requireStaff, asy
     analysisAssumptions,
     {
       forcedSizing,
-      preCalculatedDataSpanDays: dedupResult.dataSpanDays
+      preCalculatedDataSpanDays: dedupResult.dataSpanDays,
+      buildingType: site.buildingType
     }
   );
 
@@ -1114,7 +1174,8 @@ router.post("/:siteId/run-potential-analysis", authMiddleware, requireStaff, asy
   res.json({
     simulationId: simulation.id,
     ...result,
-    yieldStrategy
+    yieldStrategy,
+    roofAreaSource: detailedRoofAreaSource,
   });
 }));
 
@@ -1411,7 +1472,7 @@ router.post("/:siteId/generate-design-agreement", authMiddleware, requireStaff, 
     quotedCosts,
     totalCad: total,
     currency: "CAD",
-    paymentTerms: "100% payable à la signature — créditable intégralement sur votre contrat EPC",
+    paymentTerms: "100% payable Ã  la signature â crÃ©ditable intÃ©gralement sur votre contrat EPC",
     validUntil,
     quotedBy: req.userId,
     quotedAt: new Date(),
@@ -1673,7 +1734,7 @@ router.post("/:siteId/generate-synthetic-profile", authMiddleware, requireStaff,
   // Create the meter file entry
   const meterFile = await storage.createMeterFile({
     siteId,
-    fileName: `Profil synthétique - ${label}`,
+    fileName: `Profil synthÃ©tique - ${label}`,
     granularity: "HOUR",
     periodStart: result.readings[0].timestamp,
     periodEnd: result.readings[result.readings.length - 1].timestamp,
@@ -1787,12 +1848,68 @@ router.post("/:siteId/send-hq-procuration", authMiddleware, requireStaff, asyncH
 
   if (!emailResult.success) {
     throw new BadRequestError(
-      language === 'fr' ? "L'envoi du courriel a échoué." : "Email delivery failed."
+      language === 'fr' ? "L'envoi du courriel a Ã©chouÃ©." : "Email delivery failed."
     );
   }
 
   res.json({ success: true });
 }));
+
+async function autocopySiblingRoofPolygons(siteId: string, address: string | null): Promise<{ copied: boolean; sourceId?: string; polygonCount?: number; areaSqM?: number }> {
+  if (!address) return { copied: false };
+
+  const existingPolygons = await storage.getRoofPolygons(siteId);
+  if (existingPolygons.length > 0) return { copied: false };
+
+  const siblingPolygons = await db.select({
+    polygonId: roofPolygonsTable.id,
+    siteId: roofPolygonsTable.siteId,
+    label: roofPolygonsTable.label,
+    coordinates: roofPolygonsTable.coordinates,
+    areaSqM: roofPolygonsTable.areaSqM,
+    color: roofPolygonsTable.color,
+    orientation: roofPolygonsTable.orientation,
+    tiltDegrees: roofPolygonsTable.tiltDegrees,
+  })
+    .from(roofPolygonsTable)
+    .innerJoin(sitesTable, eq(roofPolygonsTable.siteId, sitesTable.id))
+    .where(
+      and(
+        eq(sitesTable.address, address),
+        ne(sitesTable.id, siteId)
+      )
+    )
+    .orderBy(desc(sitesTable.updatedAt));
+
+  if (siblingPolygons.length === 0) return { copied: false };
+
+  const sourceSiteId = siblingPolygons[0].siteId;
+  const sourcePolygons = siblingPolygons.filter(p => p.siteId === sourceSiteId);
+
+  for (const polygon of sourcePolygons) {
+    await storage.createRoofPolygon({
+      siteId,
+      label: polygon.label,
+      coordinates: polygon.coordinates,
+      areaSqM: polygon.areaSqM,
+      color: polygon.color || undefined,
+      orientation: polygon.orientation || undefined,
+      tiltDegrees: polygon.tiltDegrees || undefined,
+    });
+  }
+
+  const totalAreaSqM = sourcePolygons.reduce((sum, p) => sum + (p.areaSqM || 0), 0);
+  if (totalAreaSqM > 0) {
+    await storage.updateSite(siteId, {
+      roofAreaSqM: totalAreaSqM,
+      buildingSqFt: Math.round(totalAreaSqM * 10.764),
+    });
+  }
+
+  log.info(`Auto-copied ${sourcePolygons.length} roof polygons (${Math.round(totalAreaSqM)}mÂ²) from sibling site ${sourceSiteId} to ${siteId} (address: "${address}")`);
+
+  return { copied: true, sourceId: sourceSiteId, polygonCount: sourcePolygons.length, areaSqM: totalAreaSqM };
+}
 
 router.get("/:id/copy-roof-from-address", authMiddleware, asyncHandler(async (req: AuthRequest, res) => {
   const currentSite = await storage.getSite(req.params.id);
@@ -1870,7 +1987,7 @@ router.get("/:id/copy-roof-from-address", authMiddleware, asyncHandler(async (re
     });
   }
 
-  // kbKwDc and kbPanelCount are NOT copied — RoofVisualization recalculates them
+  // kbKwDc and kbPanelCount are NOT copied â RoofVisualization recalculates them
   // automatically via onGeometryCalculated when the user opens the page.
 
   log.info(`Copied ${sourcePolygons.length} roof polygons from site ${sourceSiteId} to site ${req.params.id} (same address: "${currentSite.address}")`);
@@ -1883,7 +2000,7 @@ router.get("/:id/copy-roof-from-address", authMiddleware, asyncHandler(async (re
 }));
 
 // ========================================
-// PHASE 1 — Close the Loop: Budget, Baseline, Reconciliation
+// PHASE 1 â Close the Loop: Budget, Baseline, Reconciliation
 // ========================================
 
 // --- BUDGET CRUD ---
@@ -2167,7 +2284,7 @@ router.get("/:siteId/reconciliation", authMiddleware, asyncHandler(async (req: A
     const savings = historical - actualConsumption;
     const achievementPercent = predicted > 0 ? Math.round((savings / predicted) * 100) : 0;
 
-    const monthNames = ["Jan", "Fév", "Mar", "Avr", "Mai", "Jun", "Jul", "Aoû", "Sep", "Oct", "Nov", "Déc"];
+    const monthNames = ["Jan", "FÃ©v", "Mar", "Avr", "Mai", "Jun", "Jul", "AoÃ»", "Sep", "Oct", "Nov", "DÃ©c"];
 
     months.push({
       year,

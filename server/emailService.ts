@@ -402,7 +402,8 @@ kWh Québec | 514.427.8871 | info@kwh.quebec`;
 export async function sendQuickAnalysisEmail(
   email: string,
   data: QuickAnalysisData,
-  baseUrl: string
+  baseUrl: string,
+  explicitLanguage?: 'fr' | 'en'
 ): Promise<{ success: boolean; error?: string }> {
   try {
     log.info(`[QuickAnalysis] Starting email generation for ${email}`);

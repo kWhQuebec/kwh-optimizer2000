@@ -4,6 +4,18 @@
 // ============================================
 
 export const BRAND_CONTENT = {
+  // === BRAND DNA ===
+  tagline: {
+    fr: "Solutions solaires et de stockage clé en main pour les secteurs commercial et industriel du Québec.",
+    en: "Turnkey solar and storage solutions for Quebec's commercial and industrial sectors.",
+  },
+  businessOverview: {
+    fr: "kWh Québec offre des solutions clé en main d'énergie solaire et de stockage par batterie adaptées aux secteurs commercial et industriel du Québec. Fondée par des experts de l'industrie, l'entreprise gère l'ensemble du cycle de projet — de l'analyse gratuite du potentiel énergétique et de l'ingénierie à l'installation professionnelle et l'obtention des incitatifs gouvernementaux.",
+    en: "kWh Québec provides turnkey solar energy and battery storage solutions tailored for the commercial and industrial sectors across Quebec. Founded by industry experts, the company manages the entire project lifecycle—from free energy potential analysis and engineering to professional installation and the acquisition of government incentives.",
+  },
+  brandAesthetic: ["industrial scale", "sustainable technology", "corporate trust", "engineering precision", "modern cleanliness"],
+  brandToneOfVoice: ["Professional", "Authoritative", "Technical", "Reassuring"],
+
   // === STATS DE CRÉDIBILITÉ ===
   stats: {
     yearsExperience: { value: "15+", labelFr: "Années d'expérience", labelEn: "Years of experience" },
@@ -15,7 +27,7 @@ export const BRAND_CONTENT = {
   values: [
     { id: "simplicite", labelFr: "Simplicité", labelEn: "Simplicity", descFr: "Un interlocuteur unique, du premier appel à la mise en service.", descEn: "A single point of contact, from first call to commissioning." },
     { id: "fiabilite", labelFr: "Fiabilité", labelEn: "Reliability", descFr: "Licence RBQ, équipe certifiée CCQ & CNESST, ingénierie scellée.", descEn: "RBQ licensed, CCQ & CNESST certified team, sealed engineering." },
-    { id: "longevite", labelFr: "Longévité", labelEn: "Longevity", descFr: "Garantie 25 ans sur les panneaux, suivi de performance continu.", descEn: "25-year panel warranty, continuous performance monitoring." },
+    { id: "perennite", labelFr: "Pérennité", labelEn: "Sustainability", descFr: "Garantie 25 ans sur les panneaux, suivi de performance continu.", descEn: "25-year panel warranty, continuous performance monitoring." },
     { id: "fierte", labelFr: "Fierté", labelEn: "Pride", descFr: "Entreprise québécoise engagée dans la transition énergétique.", descEn: "Quebec company committed to the energy transition." },
   ],
 

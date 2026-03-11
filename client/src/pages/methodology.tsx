@@ -1404,14 +1404,16 @@ const fr = {
     incentives: {
       title: "Incitatifs et Subventions",
       hq: {
-        title: "Incitatifs Hydro-Québec",
-        description: "Programme Autoproduction d'Hydro-Québec pour installations commerciales.",
+        title: "Incitatifs Hydro-Québec (Programme Solutions efficaces — OSE 6.0)",
+        description: "Mesure panneaux photovoltaïques du programme Solutions efficaces d'Hydro-Québec, en vigueur le 31 mars 2026.",
         details: [
-          "Solaire: 1 000 $/kWc installé",
+          "Solaire: 1 000 $/kWc installé (panneaux certifiés CSA 22.2 No 61730 et CAN/CAS-IEC 61215)",
           "Stockage: crédit uniquement si jumelé au solaire (utilise le reste du plafond)",
-          "Plafond: 40% du CAPEX brut",
+          "Plafond: 40% des coûts admissibles (solaire seulement, exclut stockage, raccordement et financement)",
+          "Limite: 1 MW par abonnement — tous tarifs admissibles sauf tarif L et contrats particuliers",
+          "Installateur: licence RBQ requise — achat d'équipements après le 31 mars 2026",
         ],
-        formula: "Incitatif_HQ = min(PV_kWc × 1000, CAPEX × 0.40) + crédit résiduel pour stockage",
+        formula: "Incitatif_HQ = min(PV_kWc × 1000, CAPEX_admissible × 0.40) + crédit résiduel pour stockage",
       },
       itc: {
         title: "Crédit d'Impôt Fédéral (CII)",
@@ -1977,14 +1979,16 @@ const en = {
     incentives: {
       title: "Incentives and Subsidies",
       hq: {
-        title: "Hydro-Québec Incentives",
-        description: "Hydro-Québec Self-Generation program for commercial installations.",
+        title: "Hydro-Québec Incentives (Solutions efficaces Program — OSE 6.0)",
+        description: "Solar PV measure under Hydro-Québec's Solutions efficaces program, effective March 31, 2026.",
         details: [
-          "Solar: $1,000/kWp installed",
+          "Solar: $1,000/kWp installed (panels must be CSA 22.2 No 61730 and CAN/CAS-IEC 61215 certified)",
           "Storage: credit only when paired with solar (uses remaining cap room)",
-          "Cap: 40% of gross CAPEX",
+          "Cap: 40% of admissible costs (solar only, excludes storage, interconnection and financing)",
+          "Limit: 1 MW per subscription — all tariffs eligible except Rate L and special contracts",
+          "Installer: RBQ license required — equipment purchase after March 31, 2026",
         ],
-        formula: "HQ_incentive = min(PV_kWp × 1000, CAPEX × 0.40) + residual credit for storage",
+        formula: "HQ_incentive = min(PV_kWp × 1000, admissible_CAPEX × 0.40) + residual credit for storage",
       },
       itc: {
         title: "Federal Investment Tax Credit (ITC)",

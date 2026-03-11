@@ -6,6 +6,14 @@
  * 2. Right to Install - Property ownership/authorization
  * 3. Roof Condition - Age, repairs needed
  * 4. Decision Capacity - Authority, timeline, budget
+ *
+ * Six risk flag categories (aligned with kWh Sales Process Blueprint):
+ * 1. Lease complexity
+ * 2. Roof risk / warranty
+ * 3. Electrical upgrade potential
+ * 4. HQ interconnect uncertainty
+ * 5. Load change risk
+ * 6. Structural building capacity
  */
 
 // Gate 1: Economic Potential
@@ -32,7 +40,7 @@ export type QualificationStatus =
   | 'disqualified'  // Not a fit (insufficient potential or no path forward)
   | 'pending';      // Not yet qualified
 
-// Blocker types
+// Blocker types — includes Oleg blueprint risk flag categories
 export type BlockerType =
   | 'insufficient_bill'
   | 'property_authorization'
@@ -41,7 +49,20 @@ export type BlockerType =
   | 'no_decision_authority'
   | 'no_budget'
   | 'long_timeline'
+  | 'electrical_upgrade'       // Panneau électrique < 200A ou upgrade nécessaire
+  | 'hq_interconnect'          // Incertitude sur l'approbation HQ pour l'interconnexion
+  | 'load_change'              // Changements prévus de consommation (expansion, électrification, EV)
+  | 'structural_capacity'      // Capacité structurale du bâtiment insuffisante ou inconnue
   | 'other';
+
+// Risk flag category (for display grouping — maps to Oleg blueprint)
+export type RiskFlagCategory =
+  | 'lease'           // Lease complexity
+  | 'roof'            // Roof risk / warranty
+  | 'electrical'      // Electrical upgrade potential
+  | 'interconnect'    // HQ interconnect uncertainty
+  | 'load'            // Load change risk
+  | 'structural';     // Structural building capacity
 
 // Solution types
 export type SolutionType =
@@ -52,6 +73,10 @@ export type SolutionType =
   | 'executive_intro'        // Help connect with decision maker
   | 'education_content'      // Send educational content
   | 'follow_up_later'        // Schedule future follow-up
+  | 'electrical_assessment'  // Professional electrical assessment
+  | 'hq_preapproval'         // HQ pre-approval application assistance
+  | 'structural_assessment'  // Professional structural assessment
+  | 'load_study'             // Load profile study
   | 'other';
 
 export interface Blocker {
@@ -59,6 +84,8 @@ export interface Blocker {
   description: string;
   severity: 'critical' | 'major' | 'minor';
   suggestedSolutions: SolutionType[];
+  /** Risk flag category for grouping in UI (maps to Oleg blueprint) */
+  category?: RiskFlagCategory;
 }
 
 export interface QualificationData {
@@ -101,9 +128,20 @@ export interface QualificationResult {
     decision: number;         // 0-25
   };
   blockers: Blocker[];
+  /** Risk flags grouped by category for display */
+  riskFlags?: RiskFlag[];
   suggestedNextSteps: string[];
   qualifiedAt?: Date;
   qualifiedBy?: string;
+}
+
+/** Structured risk flag for UI display (maps to Oleg blueprint 6 categories) */
+export interface RiskFlag {
+  category: RiskFlagCategory;
+  label: string;
+  severity: 'critical' | 'major' | 'minor' | 'info';
+  description: string;
+  mitigation?: string;
 }
 
 // Pre-qualification form data structure
@@ -133,4 +171,40 @@ export interface PreQualificationFormData {
   budgetReadiness: BudgetReadiness;
   timelineUrgency: TimelineUrgency;
   targetDecisionQuarter?: string;
+}
+
+/**
+ * Extended business context for lead color classification.
+ * Includes Oleg blueprint risk flag inputs.
+ */
+export interface LeadBusinessContext {
+  // Existing fields
+  propertyRelationship?: string | null;
+  billPayer?: string | null;
+  roofCondition?: string | null;
+  roofAgeYears?: number | null;
+  roofSlope?: string | null;
+  roofRemainingLifeYears?: number | null;
+  plannedRoofWork?: string | null;
+
+  // Electrical (Oleg blueprint: "Electrical upgrade potential")
+  electricalServiceAmps?: number | null;         // Current service amperage (e.g. 200, 400, 600)
+  electricalUpgradeNeeded?: boolean | null;       // Known upgrade requirement
+  electricalPanelAge?: number | null;             // Panel age in years
+
+  // HQ Interconnect (Oleg blueprint: "HQ interconnect uncertainty")
+  hqInterconnectStatus?: 'approved' | 'pending' | 'unknown' | 'denied' | null;
+  hqDistributionType?: 'underground' | 'overhead' | 'unknown' | null;
+  systemSizeKw?: number | null;                  // Proposed system size (affects HQ approval complexity)
+
+  // Load changes (Oleg blueprint: "Load change risk")
+  plannedLoadChanges?: boolean | null;            // Expansion, electrification, EV chargers planned
+  loadChangeDescription?: string | null;          // What's changing
+  loadChangeTimeline?: string | null;             // When
+
+  // Structural (Oleg blueprint: "Structural building capacity")
+  structuralAssessment?: 'adequate' | 'marginal' | 'insufficient' | 'unknown' | null;
+  buildingType?: 'steel' | 'concrete' | 'wood' | 'mixed' | 'unknown' | null;
+  buildingAge?: number | null;                    // Building age in years
+  roofLoadCapacity?: number | null;               // PSF if known
 }

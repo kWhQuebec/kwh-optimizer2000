@@ -11,15 +11,17 @@ import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LanguageToggle } from "@/components/language-toggle";
+import { PublicHeader, PublicFooter } from "@/components/public-header";
 import { useI18n } from "@/lib/i18n";
 import { SEOHead } from "@/components/seo-head";
 import { BRAND_CONTENT } from "@shared/brandContent";
-import logoFr from "@assets/kWh_Quebec_Logo-01_-_Rectangulaire_1764799021536.png";
-import logoEn from "@assets/kWh_Quebec_Logo-02_-_Rectangle_1764799021536.png";
+
+import bessHero from "@assets/generated_images/bess_industrial_hero.png";
+import peakShavingImage from "@assets/generated_images/peak_shaving_concept.png";
+import screenshotAnalysis from "@assets/Screenshot_2025-12-11_at_9.14.51_PM_1765505832704.png";
 
 export default function StockageEnergiePage() {
   const { language } = useI18n();
-  const currentLogo = language === "fr" ? logoFr : logoEn;
 
   const seoTitle = language === "fr"
     ? "Stockage d'énergie par batterie pour entreprises | kWh Québec"
@@ -152,58 +154,34 @@ export default function StockageEnergiePage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="public-page min-h-screen bg-background">
       <SEOHead
         title={seoTitle}
         description={seoDescription}
         keywords={seoKeywords}
+        ogImage={bessHero}
         structuredData={structuredData}
         locale={language}
         canonical={`https://www.kwh.quebec/stockage-energie`}
       />
 
-      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <Link href="/">
-              <img
-                src={currentLogo}
-                alt={language === "fr" ? "Logo kWh Québec" : "kWh Québec Logo"}
-                className="h-10 w-auto cursor-pointer"
-                data-testid="logo-header"
-              />
-            </Link>
+      <PublicHeader />
+      <main>
 
-            <nav className="hidden md:flex items-center gap-6">
-              <Link href="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                {language === "fr" ? "Accueil" : "Home"}
-              </Link>
-              <Link href="/stockage-energie" className="text-sm font-medium text-foreground">
-                {language === "fr" ? "Stockage" : "Storage"}
-              </Link>
-              <Link href="/ressources" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                {language === "fr" ? "Ressources" : "Resources"}
-              </Link>
-              <Link href="/portfolio" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                Portfolio
-              </Link>
-            </nav>
-
-            <div className="flex items-center gap-2">
-              <LanguageToggle />
-              <ThemeToggle />
-              <Link href="/login">
-                <Button variant="outline" size="sm" data-testid="button-login">
-                  {language === "fr" ? "Connexion" : "Login"}
-                </Button>
-              </Link>
-            </div>
-          </div>
+      <section
+        className="relative py-24 sm:py-32 px-4 sm:px-6 lg:px-8 overflow-hidden"
+        data-testid="section-hero"
+      >
+        <div className="absolute inset-0">
+          <img
+            src={bessHero}
+            alt={language === "fr" ? "Système de stockage par batterie industriel" : "Industrial battery energy storage system"}
+            className="w-full h-full object-cover"
+            loading="eager"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/60 to-black/80" />
         </div>
-      </header>
-
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-primary/5 via-background to-background">
-        <div className="max-w-6xl mx-auto text-center">
+        <div className="relative max-w-6xl mx-auto text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -212,31 +190,33 @@ export default function StockageEnergiePage() {
             <Badge className="mb-4" data-testid="badge-storage">
               {language === "fr" ? "Stockage d'énergie" : "Energy Storage"}
             </Badge>
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4" data-testid="text-hero-title">
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4 text-white" data-testid="text-hero-title">
               {language === "fr"
                 ? "Stockage par batterie pour entreprises"
                 : "Battery Storage for Businesses"}
             </h1>
-            <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-4" data-testid="text-hero-subtitle">
-              {language === "fr"
-                ? "Réduisez vos frais de puissance, sécurisez vos opérations et maximisez la valeur de votre solaire avec le stockage par batterie."
-                : "Reduce your demand charges, secure your operations and maximize your solar value with battery storage."}
+            <p className="text-xl text-white/90 max-w-3xl mx-auto mb-4" data-testid="text-hero-subtitle">
+              {language === "fr" ? (
+                <><span className="text-yellow-400 font-semibold">Réduisez vos frais de puissance</span>, sécurisez vos opérations et maximisez la valeur de votre solaire avec le stockage par batterie.</>
+              ) : (
+                <><span className="text-yellow-400 font-semibold">Reduce your demand charges</span>, secure your operations and maximize your solar value with battery storage.</>
+              )}
             </p>
-            <p className="text-base text-muted-foreground max-w-2xl mx-auto mb-8">
+            <p className="text-base text-white/90 max-w-2xl mx-auto mb-8">
               {language === "fr"
                 ? "Solutions BESS clé en main pour les bâtiments commerciaux et industriels au Québec."
                 : "Turnkey BESS solutions for commercial and industrial buildings in Quebec."}
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/#paths">
+              <Link href="/#analyse">
                 <Button size="lg" className="gap-2" data-testid="button-get-analysis">
                   {language === "fr" ? "Voir mon potentiel — Gratuit" : "See my potential — Free"}
-                  <ArrowRight className="w-4 h-4" />
+                  <ArrowRight aria-hidden="true" className="w-4 h-4" />
                 </Button>
               </Link>
               <a href={`tel:${BRAND_CONTENT.contact.phone.replace(/\./g, "-")}`}>
-                <Button size="lg" variant="outline" className="gap-2" data-testid="button-call">
-                  <Phone className="w-4 h-4" />
+                <Button size="lg" variant="outline" className="gap-2 bg-white/10 backdrop-blur-sm border-white/30 text-white" data-testid="button-call">
+                  <Phone aria-hidden="true" className="w-4 h-4" />
                   {BRAND_CONTENT.contact.phone}
                 </Button>
               </a>
@@ -245,7 +225,7 @@ export default function StockageEnergiePage() {
         </div>
       </section>
 
-      <section className="py-16 px-4 sm:px-6 lg:px-8" id="applications">
+      <section className="py-20 md:py-24 px-4 sm:px-6 lg:px-8" id="applications">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-2xl sm:text-3xl font-bold mb-4" data-testid="text-use-cases-title">
@@ -258,45 +238,68 @@ export default function StockageEnergiePage() {
             </p>
           </div>
 
-          <div className="space-y-8">
-            {useCases.map((useCase, index) => (
-              <motion.div
-                key={useCase.title}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-              >
-                <Card data-testid={`card-use-case-${index}`}>
-                  <CardContent className="p-6 sm:p-8">
-                    <div className="flex flex-col md:flex-row gap-6">
-                      <div className="shrink-0">
-                        <div className="p-3 rounded-xl bg-primary/10 w-fit">
-                          <useCase.icon className="w-8 h-8 text-primary" />
+          <div className="grid lg:grid-cols-5 gap-8 items-start">
+            <div className="lg:col-span-3 space-y-8">
+              {useCases.map((useCase, index) => (
+                <motion.div
+                  key={useCase.title}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.1 }}
+                >
+                  <Card data-testid={`card-use-case-${index}`}>
+                    <CardContent className="p-6 sm:p-8">
+                      <div className="flex flex-col md:flex-row gap-6">
+                        <div className="shrink-0">
+                          <div className="p-3 rounded-xl bg-primary/10 w-fit">
+                            <useCase.icon aria-hidden="true" className="w-8 h-8 text-primary" />
+                          </div>
+                        </div>
+                        <div className="space-y-4 flex-1">
+                          <h3 className="text-xl font-bold" data-testid={`text-use-case-title-${index}`}>{useCase.title}</h3>
+                          <p className="text-muted-foreground">{useCase.description}</p>
+                          <ul className="grid sm:grid-cols-2 gap-2">
+                            {useCase.benefits.map((benefit) => (
+                              <li key={benefit} className="flex items-center gap-2 text-sm">
+                                <CheckCircle2 aria-hidden="true" className="w-4 h-4 text-green-500 shrink-0" />
+                                {benefit}
+                              </li>
+                            ))}
+                          </ul>
                         </div>
                       </div>
-                      <div className="space-y-4 flex-1">
-                        <h3 className="text-xl font-bold" data-testid={`text-use-case-title-${index}`}>{useCase.title}</h3>
-                        <p className="text-muted-foreground">{useCase.description}</p>
-                        <ul className="grid sm:grid-cols-2 gap-2">
-                          {useCase.benefits.map((benefit) => (
-                            <li key={benefit} className="flex items-center gap-2 text-sm">
-                              <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
-                              {benefit}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))}
+            </div>
+            <motion.div
+              className="lg:col-span-2"
+              initial={{ opacity: 0, scale: 0.95 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.2 }}
+            >
+              <div className="rounded-md overflow-hidden border">
+                <img
+                  src={peakShavingImage}
+                  alt={language === "fr" ? "Concept d'écrêtage de pointe avec batterie" : "Peak shaving concept with battery storage"}
+                  className="w-full h-auto"
+                  loading="lazy"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground text-center mt-2">
+                {language === "fr"
+                  ? "Écrêtage de pointe : la batterie lisse les pics de demande pour réduire les frais de puissance."
+                  : "Peak shaving: the battery smooths demand peaks to reduce power charges."}
+              </p>
+            </motion.div>
           </div>
         </div>
       </section>
 
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-muted/30">
+      <section className="py-20 md:py-24 px-4 sm:px-6 lg:px-8 bg-muted/30">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-2xl sm:text-3xl font-bold mb-4" data-testid="text-roi-title">
@@ -321,7 +324,7 @@ export default function StockageEnergiePage() {
                 <Card className="h-full" data-testid={`card-roi-factor-${index}`}>
                   <CardContent className="p-6">
                     <div className="p-3 rounded-xl bg-primary/10 w-fit mb-4">
-                      <factor.icon className="w-6 h-6 text-primary" />
+                      <factor.icon aria-hidden="true" className="w-6 h-6 text-primary" />
                     </div>
                     <h3 className="text-lg font-bold mb-2">{factor.title}</h3>
                     <p className="text-sm text-muted-foreground">{factor.description}</p>
@@ -335,7 +338,7 @@ export default function StockageEnergiePage() {
             <CardContent className="p-6 sm:p-8">
               <div className="flex flex-col md:flex-row items-start gap-6">
                 <div className="p-3 rounded-xl bg-primary/10 shrink-0">
-                  <BatteryCharging className="w-8 h-8 text-primary" />
+                  <BatteryCharging aria-hidden="true" className="w-8 h-8 text-primary" />
                 </div>
                 <div className="space-y-3">
                   <h3 className="text-xl font-bold" data-testid="text-tarif-m-title">
@@ -373,7 +376,7 @@ export default function StockageEnergiePage() {
         </div>
       </section>
 
-      <section className="py-16 px-4 sm:px-6 lg:px-8">
+      <section className="py-20 md:py-24 px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-2xl sm:text-3xl font-bold mb-4" data-testid="text-how-it-works-title">
@@ -426,7 +429,7 @@ export default function StockageEnergiePage() {
               >
                 <div className="relative mb-4">
                   <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
-                    <item.icon className="w-7 h-7 text-primary" />
+                    <item.icon aria-hidden="true" className="w-7 h-7 text-primary" />
                   </div>
                   <Badge className="absolute -top-1 -right-1 left-auto mx-auto" style={{ position: "absolute", left: "calc(50% + 14px)" }}>
                     {item.step}
@@ -437,10 +440,18 @@ export default function StockageEnergiePage() {
               </motion.div>
             ))}
           </div>
+          <div className="mt-8 max-w-2xl mx-auto rounded-md overflow-hidden border shadow-sm">
+            <img
+              src={screenshotAnalysis}
+              alt={language === "fr" ? "Capture d'écran de l'analyse de stockage sur la plateforme kWh Québec" : "Screenshot of storage analysis on the kWh Québec platform"}
+              className="w-full h-auto"
+              loading="lazy"
+            />
+          </div>
         </div>
       </section>
 
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-muted/30">
+      <section className="py-20 md:py-24 px-4 sm:px-6 lg:px-8 bg-muted/30">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-2xl sm:text-3xl font-bold mb-4" data-testid="text-sectors-title">
@@ -452,7 +463,7 @@ export default function StockageEnergiePage() {
             <Card className="text-center" data-testid="card-sector-commercial">
               <CardContent className="p-6">
                 <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                  <Building2 className="w-8 h-8 text-primary" />
+                  <Building2 aria-hidden="true" className="w-8 h-8 text-primary" />
                 </div>
                 <h3 className="text-lg font-bold mb-2">{language === "fr" ? "Commercial" : "Commercial"}</h3>
                 <p className="text-sm text-muted-foreground">
@@ -465,7 +476,7 @@ export default function StockageEnergiePage() {
             <Card className="text-center" data-testid="card-sector-industrial">
               <CardContent className="p-6">
                 <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                  <Factory className="w-8 h-8 text-primary" />
+                  <Factory aria-hidden="true" className="w-8 h-8 text-primary" />
                 </div>
                 <h3 className="text-lg font-bold mb-2">{language === "fr" ? "Industriel" : "Industrial"}</h3>
                 <p className="text-sm text-muted-foreground">
@@ -479,7 +490,7 @@ export default function StockageEnergiePage() {
         </div>
       </section>
 
-      <section className="py-16 px-4 sm:px-6 lg:px-8">
+      <section className="py-20 md:py-24 px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-2xl sm:text-3xl font-bold mb-4" data-testid="text-faq-title">
@@ -502,59 +513,108 @@ export default function StockageEnergiePage() {
         </div>
       </section>
 
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-primary text-primary-foreground">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-2xl sm:text-3xl font-bold mb-4" data-testid="text-cta-title">
-            {language === "fr" ? "Découvrez le potentiel de stockage pour votre bâtiment" : "Discover the storage potential for your building"}
-          </h2>
-          <p className="text-lg opacity-90 mb-8">
-            {language === "fr"
-              ? "Notre analyse gratuite inclut une évaluation du potentiel solaire et stockage, avec projections financières détaillées."
-              : "Our free analysis includes a solar and storage potential assessment, with detailed financial projections."}
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/#paths">
-              <Button size="lg" variant="secondary" className="gap-2" data-testid="button-cta-analysis">
-                {language === "fr" ? "Commencer mon analyse — Gratuit" : "Start my analysis — Free"}
-                <ArrowRight className="w-4 h-4" />
-              </Button>
+      <section className="py-20 md:py-24 px-4 sm:px-6 lg:px-8 bg-muted/30">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-8">
+            <h2 className="text-2xl font-bold mb-2">
+              {language === "fr" ? "Explorez nos solutions" : "Explore Our Solutions"}
+            </h2>
+          </div>
+          <div className="grid md:grid-cols-2 gap-6">
+            <Link href="/solaire-commercial">
+              <Card className="hover-elevate h-full" data-testid="card-link-solar">
+                <div className="relative h-32 overflow-hidden rounded-t-md bg-primary/5 flex items-center justify-center">
+                  <div className="p-4 rounded-full bg-primary/10">
+                    <Sun aria-hidden="true" className="w-10 h-10 text-primary" />
+                  </div>
+                </div>
+                <CardContent className="p-4">
+                  <h3 className="font-bold mb-1">{language === "fr" ? "Solaire commercial" : "Commercial Solar"}</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {language === "fr"
+                      ? "Installation solaire clé en main pour bâtiments commerciaux et industriels au Québec."
+                      : "Turnkey solar installation for commercial and industrial buildings in Quebec."}
+                  </p>
+                  <span className="text-sm text-primary flex items-center gap-1 mt-2">
+                    {language === "fr" ? "En savoir plus" : "Learn more"} <ArrowRight aria-hidden="true" className="w-3 h-3" />
+                  </span>
+                </CardContent>
+              </Card>
             </Link>
-            <a href={`mailto:${BRAND_CONTENT.contact.email}`}>
-              <Button size="lg" variant="outline" className="gap-2 border-primary-foreground/30 text-primary-foreground">
-                <Mail className="w-4 h-4" />
-                {language === "fr" ? "Nous contacter" : "Contact us"}
-              </Button>
-            </a>
+            <Link href="/portfolio">
+              <Card className="hover-elevate h-full" data-testid="card-link-portfolio">
+                <div className="relative h-32 overflow-hidden rounded-t-md bg-primary/5 flex items-center justify-center">
+                  <div className="p-4 rounded-full bg-primary/10">
+                    <Building2 aria-hidden="true" className="w-10 h-10 text-primary" />
+                  </div>
+                </div>
+                <CardContent className="p-4">
+                  <h3 className="font-bold mb-1">{language === "fr" ? "Portfolio de projets" : "Project Portfolio"}</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {language === "fr"
+                      ? "Découvrez nos projets solaires et stockage réalisés à travers le Québec."
+                      : "Discover our completed solar and storage projects across Quebec."}
+                  </p>
+                  <span className="text-sm text-primary flex items-center gap-1 mt-2">
+                    {language === "fr" ? "Voir les projets" : "View projects"} <ArrowRight aria-hidden="true" className="w-3 h-3" />
+                  </span>
+                </CardContent>
+              </Card>
+            </Link>
           </div>
         </div>
       </section>
 
-      <footer className="py-8 px-4 sm:px-6 lg:px-8 border-t bg-muted/30">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-4 flex-wrap">
-              <img src={currentLogo} alt={language === "fr" ? "Logo kWh Québec" : "kWh Québec Logo"} className="h-10 w-auto" />
-              <span className="text-sm text-muted-foreground">
-                © {new Date().getFullYear()} kWh Québec. {language === "fr" ? "Tous droits réservés." : "All rights reserved."}
-              </span>
-            </div>
-            <div className="flex items-center gap-6 text-sm text-muted-foreground flex-wrap">
-              <Link href="/" className="hover:text-foreground transition-colors">
-                {language === "fr" ? "Accueil" : "Home"}
-              </Link>
-              <Link href="/stockage-energie" className="hover:text-foreground transition-colors">
-                {language === "fr" ? "Stockage" : "Storage"}
-              </Link>
-              <Link href="/ressources" className="hover:text-foreground transition-colors">
-                {language === "fr" ? "Ressources" : "Resources"}
-              </Link>
-              <Link href="/portfolio" className="hover:text-foreground transition-colors">
-                Portfolio
-              </Link>
-            </div>
-          </div>
+      <section className="relative py-20 px-4 sm:px-6 lg:px-8 overflow-hidden">
+        <div className="absolute inset-0">
+          <img
+            src={bessHero}
+            alt=""
+            className="w-full h-full object-cover"
+            loading="lazy"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/80 to-black/70" />
         </div>
-      </footer>
+        <div className="relative max-w-4xl mx-auto text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            <h2 className="text-2xl sm:text-3xl font-bold mb-4 text-white" data-testid="text-cta-title">
+              {language === "fr" ? "Découvrez le potentiel de stockage pour votre bâtiment" : "Discover the storage potential for your building"}
+            </h2>
+            <p className="text-lg text-white/80 max-w-2xl mx-auto mb-8">
+              {language === "fr"
+                ? "Notre analyse gratuite inclut une évaluation du potentiel solaire et stockage, avec projections financières détaillées."
+                : "Our free analysis includes a solar and storage potential assessment, with detailed financial projections."}
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link href="/#analyse">
+                <Button size="lg" className="gap-2" data-testid="button-cta-analysis">
+                  {language === "fr" ? "Commencer mon analyse — Gratuit" : "Start my analysis — Free"}
+                  <ArrowRight aria-hidden="true" className="w-4 h-4" />
+                </Button>
+              </Link>
+              <a href={`tel:${BRAND_CONTENT.contact.phone.replace(/\./g, "-")}`}>
+                <Button size="lg" variant="outline" className="gap-2 bg-white/10 backdrop-blur-sm border-white/30 text-white" data-testid="button-cta-call">
+                  <Phone aria-hidden="true" className="w-4 h-4" />
+                  {BRAND_CONTENT.contact.phone}
+                </Button>
+              </a>
+              <a href={`mailto:${BRAND_CONTENT.contact.email}`}>
+                <Button size="lg" variant="outline" className="gap-2 bg-white/10 backdrop-blur-sm border-white/30 text-white" data-testid="button-cta-email">
+                  <Mail aria-hidden="true" className="w-4 h-4" />
+                  {language === "fr" ? "Nous contacter" : "Contact us"}
+                </Button>
+              </a>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      </main>
+      <PublicFooter />
     </div>
   );
 }

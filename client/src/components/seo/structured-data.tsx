@@ -108,7 +108,7 @@ export const faqPageSchema = (): StructuredData => ({
       "name": "Quels sont les incitatifs disponibles pour le solaire au Québec?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Au Québec, les principaux incitatifs incluent: le programme d'autoproduction d'Hydro-Québec (mesurage net), le crédit d'impôt fédéral de 30% pour les technologies propres (ITC, sous conditions d'éligibilité), et la déduction pour amortissement accéléré (CCA Catégorie 43.2, sous réserve des conditions d'éligibilité en vigueur — consultez votre comptable). L'éligibilité et les montants varient selon votre situation - notre analyse calcule les incitatifs applicables à votre projet."
+        "text": "Au Québec, les principaux incitatifs incluent: l'appui financier de 1 000 $/kW du programme Solutions efficaces d'Hydro-Québec (OSE 6.0, en vigueur depuis le 31 mars 2026, plafonné à 40% du CAPEX et 1 MW), le programme de mesurage net (crédits sur votre facture), le crédit d'impôt fédéral de 30% pour les technologies propres (ITC, sous conditions d'éligibilité), et la déduction pour amortissement accéléré (CCA Catégorie 43.2)."
       }
     },
     {
@@ -140,15 +140,23 @@ export const faqPageSchema = (): StructuredData => ({
       "name": "Qu'est-ce que le programme d'autoproduction d'Hydro-Québec?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Le programme d'autoproduction permet d'injecter votre surplus solaire sur le réseau et de le récupérer sous forme de crédits sur votre facture (jusqu'à 24 mois). Le surplus non utilisé après cette période est compensé au tarif de référence. La capacité maximale est de 1 MW par site. C'est un programme de mesurage net, pas une subvention directe."
+        "text": "Le programme d'autoproduction (mesurage net) permet d'injecter votre surplus solaire sur le réseau et de le récupérer sous forme de crédits sur votre facture (jusqu'à 24 mois). Le solde de la banque de surplus est rémunéré au coût moyen de fourniture d'électricité. Depuis 2025, le Tarif M est admissible et la capacité maximale est passée de 50 kW à 1 MW."
       }
     },
     {
       "@type": "Question",
-      "name": "Qu'est-ce que le programme ÉcoPerformance de TEQ?",
+      "name": "Qu'est-ce que le programme Solutions efficaces d'Hydro-Québec?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Le programme ÉcoPerformance de Transition énergétique Québec (TEQ) peut couvrir jusqu'à 75% des coûts d'efficacité énergétique complémentaires au solaire, comme l'amélioration de l'enveloppe du bâtiment ou la mise à niveau des systèmes mécaniques. C'est un incitatif provincial distinct du crédit fédéral ITC et du programme d'autoproduction Hydro-Québec."
+        "text": "Le programme Solutions efficaces d'Hydro-Québec (anciennement lié à ÉcoPerformance / TEQ) offre des appuis financiers pour l'efficacité énergétique et l'autoproduction solaire. Pour le solaire PV, l'appui est de 1 000 $/kW installé, plafonné à 40% des coûts admissibles et à 1 MW (OSE 6.0, en vigueur le 31 mars 2026)."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Quelles sont les exigences pour l'incitatif solaire OSE 6.0?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Panneaux certifiés CSA 22.2 No 61730 et CAN/CAS-IEC 61215. Installateur avec licence RBQ. Achat d'équipements après le 31 mars 2026. Acceptation conditionnelle d'Hydro-Québec recommandée avant achat. Tous les tarifs admissibles sauf tarif L et contrats particuliers."
       }
     },
     {

@@ -9,7 +9,7 @@ const envSchema = z.object({
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),
   GOOGLE_SOLAR_API_KEY: z.string().optional(),
   VITE_GOOGLE_MAPS_API_KEY: z.string().optional(),
-  CALENDLY_URL: z.string().default("https://calendly.com/kwh-quebec/decouverte"),
+  CALENDLY_URL: z.string().default("mailto:ventes@kwh.quebec?subject=Demande%20appel%20d%C3%A9couverte"),
   REPLIT_DEV_DOMAIN: z.string().optional(),
   REPLIT_DOMAINS: z.string().optional(),
   REPLIT_CONNECTORS_HOSTNAME: z.string().optional(),

@@ -1,23 +1,215 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { 
-  BookOpen, FileText, HelpCircle, TrendingUp, Zap, DollarSign,
-  ArrowRight, ChevronDown, ChevronUp, Search, Tag, CheckCircle, XCircle, AlertCircle, Book
+  BookOpen, FileText, HelpCircle, TrendingUp, Zap, DollarSign, Building2,
+  ArrowRight, ChevronDown, ChevronUp, Search, Tag, CheckCircle, XCircle, AlertCircle, Book,
+  Newspaper, Calendar, ExternalLink
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useI18n } from "@/lib/i18n";
+import roofOverlay from "@assets/rona_lasalle_roof_visualization.png";
 import { SEOHead, seoContent, getFAQSchema } from "@/components/seo-head";
 import { PublicHeader, PublicFooter } from "@/components/public-header";
+import type { BlogArticle, NewsArticle } from "@shared/schema";
+
+const NEWS_CATEGORY_LABELS: Record<string, { fr: string; en: string }> = {
+  politique: { fr: "Politique", en: "Policy" },
+  technologie: { fr: "Technologie", en: "Technology" },
+  financement: { fr: "Financement", en: "Financing" },
+  "marché": { fr: "Marché", en: "Market" },
+  "réglementation": { fr: "Réglementation", en: "Regulation" },
+};
+
+const NEWS_CATEGORY_FILTERS = [
+  { value: "", fr: "Tout", en: "All" },
+  { value: "politique", fr: "Politique", en: "Policy" },
+  { value: "technologie", fr: "Technologie", en: "Technology" },
+  { value: "financement", fr: "Financement", en: "Financing" },
+  { value: "marché", fr: "Marché", en: "Market" },
+  { value: "réglementation", fr: "Réglementation", en: "Regulation" },
+];
+
+const categoryIcons: Record<string, typeof BookOpen> = {
+  guide: BookOpen,
+  news: Newspaper,
+  "case-study": FileText,
+};
+
+function BlogArticleCard({ article }: { article: BlogArticle }) {
+  const { t, language } = useI18n();
+  const title = language === "fr" ? article.titleFr : article.titleEn;
+  const excerpt = language === "fr" ? article.excerptFr : article.excerptEn;
+  const CategoryIcon = categoryIcons[article.category || "guide"] || BookOpen;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+    >
+      <Link href={`/blog/${article.slug}`}>
+        <Card className="h-full hover-elevate cursor-pointer group" data-testid={`card-article-${article.slug}`}>
+          {article.featuredImage && (
+            <div className="aspect-video overflow-hidden rounded-t-lg">
+              <img 
+                src={article.featuredImage} 
+                alt={title}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              />
+            </div>
+          )}
+          <CardContent className="p-6">
+            <div className="flex items-center gap-2 mb-3 flex-wrap">
+              {article.category && (
+                <Badge variant="secondary" className="gap-1">
+                  <CategoryIcon aria-hidden="true" className="w-3 h-3" />
+                  {t(`blog.category.${article.category}`)}
+                </Badge>
+              )}
+              {article.publishedAt && (
+                <span className="text-sm text-muted-foreground flex items-center gap-1">
+                  <Calendar aria-hidden="true" className="w-3 h-3" />
+                  {new Date(article.publishedAt).toLocaleDateString(language === "fr" ? "fr-CA" : "en-CA")}
+                </span>
+              )}
+            </div>
+            <h3 className="text-xl font-semibold mb-2 group-hover:text-primary transition-colors" data-testid={`text-article-title-${article.slug}`}>
+              {title}
+            </h3>
+            {excerpt && (
+              <p className="text-muted-foreground line-clamp-3 mb-4" data-testid={`text-article-excerpt-${article.slug}`}>
+                {excerpt}
+              </p>
+            )}
+            <div className="flex items-center text-primary font-medium">
+              {t("blog.readMore")}
+              <ArrowRight aria-hidden="true" className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
+            </div>
+          </CardContent>
+        </Card>
+      </Link>
+    </motion.div>
+  );
+}
+
+function NewsArticleCard({ article }: { article: NewsArticle }) {
+  const { language } = useI18n();
+  const comment = article.editedCommentFr || article.aiCommentFr;
+  const catLabel = article.category ? NEWS_CATEGORY_LABELS[article.category] : null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+    >
+      <Card className="h-full hover-elevate" data-testid={`card-news-${article.id}`}>
+        {article.imageUrl && (
+          <div className="aspect-video overflow-hidden rounded-t-lg">
+            <img
+              src={article.imageUrl}
+              alt={(article.aiTitleFr || article.originalTitle)}
+              className="w-full h-full object-cover"
+              onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+            />
+          </div>
+        )}
+        <CardContent className="p-6">
+          <div className="flex items-center gap-2 mb-3 flex-wrap">
+            <Badge variant="secondary" className="text-xs" data-testid={`badge-source-${article.id}`}>
+              {article.sourceName}
+            </Badge>
+            {catLabel && (
+              <Badge variant="outline" className="text-xs" data-testid={`badge-category-${article.id}`}>
+                {language === "fr" ? catLabel.fr : catLabel.en}
+              </Badge>
+            )}
+            {article.publishedAt && (
+              <span className="text-sm text-muted-foreground flex items-center gap-1">
+                <Calendar aria-hidden="true" className="w-3 h-3" />
+                {new Date(article.publishedAt).toLocaleDateString(
+                  language === "fr" ? "fr-CA" : "en-CA",
+                  { year: "numeric", month: "short", day: "numeric" }
+                )}
+              </span>
+            )}
+          </div>
+          <div className="flex items-start gap-2 mb-2">
+            <Link href={`/nouvelles/${article.slug}`} className="group flex-1" data-testid={`link-news-${article.id}`}>
+              <h3 className="text-lg font-semibold group-hover:underline" data-testid={`text-news-title-${article.id}`}>
+                {(article.aiTitleFr || article.originalTitle)}
+              </h3>
+            </Link>
+            <Button size="icon" variant="ghost" asChild data-testid={`link-external-${article.id}`}>
+              <a href={article.sourceUrl} target="_blank" rel="noopener noreferrer">
+                <ExternalLink aria-hidden="true" className="w-4 h-4" />
+              </a>
+            </Button>
+          </div>
+          {comment && (
+            <p className="text-muted-foreground text-sm mb-3 line-clamp-4" data-testid={`text-news-comment-${article.id}`}>
+              {comment}
+            </p>
+          )}
+          {article.aiTags && article.aiTags.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {article.aiTags.slice(0, 4).map((tag, i) => (
+                <Badge key={i} variant="outline" className="text-xs">
+                  {tag}
+                </Badge>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+}
 
 export default function RessourcesPage() {
-  const { language } = useI18n();
+  const { language, t } = useI18n();
+  const [location, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [newsCategory, setNewsCategory] = useState("");
+
+  const searchParams = new URLSearchParams(location.split("?")[1] || "");
+  const tabParam = searchParams.get("tab");
+  const initialTab = tabParam === "nouvelles" ? "nouvelles" : tabParam === "faq" ? "faq" : tabParam === "glossaire" ? "glossaire" : "guides";
+  const [activeTab, setActiveTab] = useState(initialTab);
+
+  useEffect(() => {
+    const sp = new URLSearchParams(location.split("?")[1] || "");
+    const t = sp.get("tab");
+    if (t === "nouvelles" || t === "faq" || t === "glossaire" || t === "guides") {
+      setActiveTab(t);
+    }
+  }, [location]);
+
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    setLocation(tab === "guides" ? "/ressources" : `/ressources?tab=${tab}`, { replace: true });
+  };
+
+  const { data: blogArticles, isLoading: blogLoading } = useQuery<BlogArticle[]>({
+    queryKey: ["/api/blog"],
+  });
+
+  const { data: newsArticles, isLoading: newsLoading } = useQuery<NewsArticle[]>({
+    queryKey: ["/api/public/news"],
+  });
+
+  const filteredNews = newsCategory
+    ? newsArticles?.filter((a) => a.category === newsCategory)
+    : newsArticles;
 
   const categories = [
     { id: "incentives", label: language === "fr" ? "Incitatifs" : "Incentives", icon: DollarSign },
@@ -34,8 +226,8 @@ export default function RessourcesPage() {
         ? "Quels sont les incitatifs disponibles pour le solaire au Québec?"
         : "What incentives are available for solar in Quebec?",
       answer: language === "fr"
-        ? "Au Québec, les principaux incitatifs incluent: le programme d'autoproduction d'Hydro-Québec (mesurage net), le crédit d'impôt fédéral de 30% pour les technologies propres (ITC, sous conditions d'éligibilité), et la déduction pour amortissement accéléré (CCA Catégorie 43.2, sous réserve des conditions d'éligibilité en vigueur — consultez votre comptable). L'éligibilité et les montants varient selon votre situation - notre analyse calcule les incitatifs applicables à votre projet."
-        : "In Quebec, main incentives include: Hydro-Québec's self-generation program (net metering), the 30% federal clean technology investment tax credit (ITC, subject to eligibility), and accelerated capital cost allowance (CCA Class 43.2, subject to current eligibility conditions — consult your accountant). Eligibility and amounts vary by situation - our analysis calculates incentives applicable to your project."
+        ? "Au Québec, les principaux incitatifs incluent: l'appui financier de 1 000 $/kW du programme Solutions efficaces d'Hydro-Québec (OSE 6.0, en vigueur depuis le 31 mars 2026, plafonné à 40% du CAPEX et 1 MW), le programme de mesurage net (crédits sur votre facture), le crédit d'impôt fédéral de 30% pour les technologies propres (ITC, sous conditions d'éligibilité), et la déduction pour amortissement accéléré (CCA Catégorie 43.2, sous réserve des conditions d'éligibilité en vigueur — consultez votre comptable). L'éligibilité et les montants varient selon votre situation - notre analyse calcule les incitatifs applicables à votre projet."
+        : "In Quebec, main incentives include: the $1,000/kW financial support from Hydro-Québec's Solutions efficaces program (OSE 6.0, effective March 31, 2026, capped at 40% of CAPEX and 1 MW), the net metering program (credits on your bill), the 30% federal clean technology investment tax credit (ITC, subject to eligibility), and accelerated capital cost allowance (CCA Class 43.2, subject to current eligibility conditions — consult your accountant). Eligibility and amounts vary by situation - our analysis calculates incentives applicable to your project."
     },
     {
       category: "incentives",
@@ -70,18 +262,27 @@ export default function RessourcesPage() {
         ? "Qu'est-ce que le programme d'autoproduction d'Hydro-Québec?"
         : "What is Hydro-Québec's self-generation program?",
       answer: language === "fr"
-        ? "Le programme d'autoproduction permet d'injecter votre surplus solaire sur le réseau et de le récupérer sous forme de crédits sur votre facture (jusqu'à 24 mois). Le surplus non utilisé après cette période est compensé au tarif de référence. La capacité maximale est de 1 MW par site. C'est un programme de mesurage net, pas une subvention directe."
-        : "The self-generation program lets you inject solar surplus onto the grid and recover it as credits on your bill (up to 24 months). Unused surplus after this period is compensated at the reference rate. Maximum capacity is 1 MW per site. This is a net metering program, not a direct subsidy."
+        ? "Le programme d'autoproduction (mesurage net) permet d'injecter votre surplus solaire sur le réseau et de le récupérer sous forme de crédits sur votre facture (jusqu'à 24 mois). Le solde de la banque de surplus est rémunéré au coût moyen de fourniture d'électricité le 31 mars de l'année paire suivante. Depuis 2025, le Tarif M est admissible et la capacité maximale est passée de 50 kW à 1 MW (sans dépasser la puissance maximale appelée de l'abonnement). L'adhésion au mesurage net n'est pas obligatoire pour recevoir l'appui financier de 1 000 $/kW du programme Solutions efficaces."
+        : "The self-generation program (net metering) lets you inject solar surplus onto the grid and recover it as credits on your bill (up to 24 months). The surplus bank balance is compensated at the average cost of electricity supply on March 31 of the following even year. Since 2025, Rate M is eligible and maximum capacity increased from 50 kW to 1 MW (not exceeding the subscription's peak demand). Net metering enrollment is not required to receive the $1,000/kW financial support from the Solutions efficaces program."
     },
 
     {
       category: "incentives",
       question: language === "fr"
-        ? "Qu'est-ce que le programme ÉcoPerformance de TEQ?"
-        : "What is TEQ's ÉcoPerformance program?",
+        ? "Qu'est-ce que le programme Solutions efficaces d'Hydro-Québec?"
+        : "What is Hydro-Québec's Solutions efficaces program?",
       answer: language === "fr"
-        ? "Le programme ÉcoPerformance de Transition énergétique Québec (TEQ) peut couvrir jusqu'à 75% des coûts d'efficacité énergétique complémentaires au solaire, comme l'amélioration de l'enveloppe du bâtiment ou la mise à niveau des systèmes mécaniques. C'est un incitatif provincial distinct du crédit fédéral ITC et du programme d'autoproduction Hydro-Québec. L'éligibilité et les montants dépendent du type de projet et des économies d'énergie démontrées — notre équipe peut vous accompagner dans le processus de demande."
-        : "TEQ's (Transition énergétique Québec) ÉcoPerformance program can cover up to 75% of energy efficiency costs complementary to solar, such as building envelope improvements or mechanical system upgrades. It is a provincial incentive separate from the federal ITC credit and the Hydro-Québec self-generation program. Eligibility and amounts depend on project type and demonstrated energy savings — our team can assist you through the application process."
+        ? "Le programme Solutions efficaces d'Hydro-Québec (anciennement lié à ÉcoPerformance / TEQ) offre des appuis financiers pour l'efficacité énergétique et l'autoproduction solaire. Pour le solaire photovoltaïque, l'appui est de 1 000 $/kW installé, plafonné à 40% des coûts admissibles et à 1 MW par abonnement (OSE 6.0, en vigueur le 31 mars 2026). Le programme couvre aussi d'autres mesures d'efficacité énergétique (enveloppe thermique, récupération de chaleur, automatisation) pouvant atteindre 75-100% des coûts admissibles selon la mesure. Notre équipe peut vous accompagner dans le processus de demande."
+        : "Hydro-Québec's Solutions efficaces program (formerly linked to ÉcoPerformance / TEQ) provides financial support for energy efficiency and solar self-generation. For solar PV, the incentive is $1,000/kW installed, capped at 40% of admissible costs and 1 MW per subscription (OSE 6.0, effective March 31, 2026). The program also covers other energy efficiency measures (building envelope, heat recovery, automation) that can cover 75-100% of admissible costs depending on the measure. Our team can assist you through the application process."
+    },
+    {
+      category: "incentives",
+      question: language === "fr"
+        ? "Quelles sont les exigences pour l'incitatif solaire OSE 6.0?"
+        : "What are the requirements for the OSE 6.0 solar incentive?",
+      answer: language === "fr"
+        ? "Pour bénéficier de l'appui financier de 1 000 $/kW (plafonné à 40% des coûts admissibles), les panneaux doivent être certifiés CSA 22.2 No 61730 et CAN/CAS-IEC 61215. L'installateur doit détenir une licence adéquate de la RBQ (Régie du bâtiment du Québec). L'achat d'équipements doit être effectué après le 31 mars 2026 (date de lancement). Il est fortement recommandé d'attendre l'acceptation conditionnelle d'Hydro-Québec avant tout achat. Tous les tarifs sont admissibles sauf le tarif L et les contrats particuliers. L'autorisation officielle de raccordement au réseau est requise."
+        : "To receive the $1,000/kW financial support (capped at 40% of admissible costs), panels must be CSA 22.2 No 61730 and CAN/CAS-IEC 61215 certified. The installer must hold a proper RBQ (Régie du bâtiment du Québec) license. Equipment purchase must be made after March 31, 2026 (launch date). It is strongly recommended to wait for Hydro-Québec's conditional acceptance before purchasing. All tariffs are eligible except Rate L and special contracts. Official grid connection authorization is required."
     },
 
     // TECHNICAL (5 questions)
@@ -171,11 +372,11 @@ export default function RessourcesPage() {
     {
       category: "financial",
       question: language === "fr"
-        ? "Qu'est-ce qu'un PPA et est-ce une bonne option?"
-        : "What is a PPA and is it a good option?",
+        ? "Pourquoi le PPA (contrat d'achat d'énergie) n'est-il pas offert au Québec?"
+        : "Why are Power Purchase Agreements (PPAs) not available in Quebec?",
       answer: language === "fr"
-        ? "Un PPA (Power Purchase Agreement) est un contrat où un tiers installe et possède le système - vous achetez l'électricité à tarif fixe. Avantage: 0$ d'investissement. Inconvénient: le tiers garde les incitatifs et une grande partie des économies. Pour les entreprises qui peuvent investir ou financer, l'achat direct offre généralement un meilleur rendement."
-        : "A PPA (Power Purchase Agreement) is a contract where a third party installs and owns the system - you buy electricity at a fixed rate. Advantage: $0 investment. Disadvantage: the third party keeps the incentives and most of the savings. For businesses that can invest or finance, direct purchase generally offers better returns."
+        ? "Au Québec, la Loi sur Hydro-Québec (RLRQ, c. H-5) confère à Hydro-Québec le rôle exclusif de distributeur d'électricité. La Loi sur la Régie de l'énergie (RLRQ, c. R-6.01) encadre la vente d'électricité aux consommateurs finals — dans le cadre réglementaire actuel, la vente d'électricité par un tiers investisseur via un PPA n'est pas permise. Le programme d'autoproduction permet le mesurage net (vous consommez votre propre production), mais un modèle PPA comme on le retrouve en Ontario, en Alberta ou aux États-Unis n'est pas disponible au Québec à ce jour. C'est pourquoi kWh Québec propose trois modes d'acquisition adaptés au cadre québécois: l'achat comptant, le prêt et le crédit-bail. Avec ces options, vous êtes propriétaire du système et conservez 100% des incitatifs gouvernementaux (Hydro-Québec OSE 6.0, crédit d'impôt fédéral de 30%, CCA 43.2)."
+        : "In Quebec, the Hydro-Québec Act (CQLR, c. H-5) grants Hydro-Québec the exclusive role of electricity distributor. The Act Respecting the Régie de l'énergie (CQLR, c. R-6.01) regulates electricity sales to end consumers — under the current regulatory framework, electricity sales by a third-party investor through a PPA are not permitted. The self-generation program allows net metering (you consume your own production), but a PPA model like those available in Ontario, Alberta, or the United States is not available in Quebec at this time. That is why kWh Québec offers three acquisition modes adapted to Quebec's regulatory framework: cash purchase, loan, and capital lease. With these options, you own the system and retain 100% of government incentives (Hydro-Québec OSE 6.0, 30% federal tax credit, CCA Class 43.2)."
     },
 
     // PROCESS (5 questions)
@@ -344,25 +545,25 @@ export default function RessourcesPage() {
   // Checklist d'éligibilité
   const eligibilityCriteria = [
     {
-      criterion: language === "fr" ? "Propriétaire du bâtiment ou bail long terme (10+ ans)" : "Building owner or long-term lease (10+ years)",
+      criterion: language === "fr" ? "Propriétaire du bâtiment ou locataire avec droit d'utilisation du toit" : "Building owner or tenant with roof usage rights",
       required: true,
       info: language === "fr" 
-        ? "Nécessaire pour justifier l'investissement et bénéficier des incitatifs."
-        : "Necessary to justify investment and benefit from incentives."
+        ? "L'autorisation d'installer sur le toit est essentielle. Locataires : un bail long terme (10+ ans) avec accès au toit est requis."
+        : "Authorization to install on the roof is essential. Tenants: a long-term lease (10+ years) with roof access is required."
     },
     {
-      criterion: language === "fr" ? "Toiture en bon état (10+ ans de vie restante)" : "Roof in good condition (10+ years remaining life)",
+      criterion: language === "fr" ? "Toiture récente ou à remplacer prochainement" : "Recent roof or upcoming roof replacement",
       required: true,
       info: language === "fr"
-        ? "Les panneaux durent 25 ans - la toiture doit supporter cette durée."
-        : "Panels last 25 years - roof must support this duration."
+        ? "Toiture refaite il y a 5 ans ou moins? Idéal. À remplacer d'ici 5 ans? C'est l'occasion de coordonner les deux projets."
+        : "Roof replaced within the last 5 years? Ideal. Due for replacement within 5 years? It's the perfect time to coordinate both projects."
     },
     {
-      criterion: language === "fr" ? "Facture Hydro-Québec disponible (12 mois)" : "Hydro-Québec bill available (12 months)",
+      criterion: language === "fr" ? "Facture Hydro-Québec (12 mois) + profil de consommation CSV (un atout)" : "Hydro-Québec bill (12 months) + CSV consumption profile (an asset)",
       required: true,
       info: language === "fr"
-        ? "Nécessaire pour l'analyse de votre profil de consommation et le dimensionnement optimal."
-        : "Necessary for consumption profile analysis and optimal sizing."
+        ? "La facture est nécessaire pour l'analyse initiale. Le fichier CSV de consommation (disponible sur votre compte Hydro-Québec) permet une analyse plus précise et un dimensionnement optimal. Un volume de consommation minimum est requis pour un projet C&I rentable."
+        : "The bill is required for the initial analysis. The CSV consumption file (available from your Hydro-Québec account) enables a more precise analysis and optimal sizing. A minimum consumption level is needed for a viable C&I project."
     },
     {
       criterion: language === "fr" ? "Espace de toit dégagé (peu d'obstacles)" : "Clear roof space (few obstacles)",
@@ -398,7 +599,7 @@ export default function RessourcesPage() {
   const seo = language === "fr" ? seoContent.resources.fr : seoContent.resources.en;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="public-page min-h-screen bg-background">
       <SEOHead 
         title={seo.title} 
         description={seo.description} 
@@ -407,10 +608,14 @@ export default function RessourcesPage() {
         locale={language}
       />
       <PublicHeader />
+      <main>
 
       {/* Hero */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-primary/5 via-background to-background">
-        <div className="max-w-6xl mx-auto text-center">
+      <section className="relative py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-primary/5 via-background to-background overflow-hidden">
+        <div className="absolute right-0 top-0 w-1/3 h-full opacity-[0.07] pointer-events-none hidden lg:block">
+          <img src={roofOverlay} alt="" className="w-full h-full object-cover" />
+        </div>
+        <div className="relative max-w-6xl mx-auto text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -421,162 +626,254 @@ export default function RessourcesPage() {
             </h1>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
               {language === "fr" 
-                ? "Guides, FAQ et informations pour vous aider à comprendre le solaire commercial au Québec."
-                : "Guides, FAQ and information to help you understand commercial solar in Quebec."}
+                ? "Guides, FAQ, actualités et informations pour vous aider à comprendre le solaire commercial au Québec."
+                : "Guides, FAQ, news and information to help you understand commercial solar in Quebec."}
             </p>
           </motion.div>
         </div>
       </section>
 
-      {/* Guides Section */}
-      <section className="py-12 px-4 sm:px-6 lg:px-8">
+      {/* Tabbed Content */}
+      <section className="py-8 px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-2xl font-bold mb-6">
-            {language === "fr" ? "Guides et articles" : "Guides & Articles"}
-          </h2>
-          
-          <div className="grid md:grid-cols-3 gap-6">
-            {guides.map((guide, index) => (
-              <motion.div
-                key={guide.title}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-              >
-                <Link href={`/blog/${guide.slug}`}>
-                  <Card className="h-full hover-elevate cursor-pointer">
-                    <CardHeader>
-                      <div className="flex items-center gap-2 mb-2">
-                        <Badge variant="outline" className="text-xs">
-                          {categories.find(c => c.id === guide.category)?.label}
-                        </Badge>
-                        <span className="text-xs text-muted-foreground">{guide.readTime}</span>
-                      </div>
-                      <CardTitle className="text-lg">{guide.title}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-sm text-muted-foreground">{guide.description}</p>
-                      <Button variant="ghost" className="mt-4 p-0 h-auto text-primary">
-                        {language === "fr" ? "Lire la suite" : "Read more"} <ArrowRight className="w-4 h-4 ml-1" />
-                      </Button>
-                    </CardContent>
-                  </Card>
-                </Link>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
+          <Tabs value={activeTab} onValueChange={handleTabChange}>
+            <TabsList className="grid w-full max-w-2xl mx-auto grid-cols-4 mb-8" data-testid="tabs-resources">
+              <TabsTrigger value="guides" data-testid="tab-guides">
+                <BookOpen aria-hidden="true" className="w-4 h-4 mr-2 hidden sm:inline" />
+                {language === "fr" ? "Guides" : "Guides"}
+              </TabsTrigger>
+              <TabsTrigger value="faq" data-testid="tab-faq">
+                <HelpCircle aria-hidden="true" className="w-4 h-4 mr-2 hidden sm:inline" />
+                FAQ
+              </TabsTrigger>
+              <TabsTrigger value="nouvelles" data-testid="tab-nouvelles">
+                <Newspaper aria-hidden="true" className="w-4 h-4 mr-2 hidden sm:inline" />
+                {language === "fr" ? "Nouvelles" : "News"}
+              </TabsTrigger>
+              <TabsTrigger value="glossaire" data-testid="tab-glossaire">
+                <Book aria-hidden="true" className="w-4 h-4 mr-2 hidden sm:inline" />
+                {language === "fr" ? "Glossaire" : "Glossary"}
+              </TabsTrigger>
+            </TabsList>
 
-      {/* FAQ Section */}
-      <section className="py-12 px-4 sm:px-6 lg:px-8 bg-muted/30">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold mb-4">
-              {language === "fr" ? "Questions fréquentes" : "Frequently Asked Questions"}
-            </h2>
-            
-            {/* Search and filters */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mt-6">
-              <div className="relative w-full sm:w-80">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input 
-                  placeholder={language === "fr" ? "Filtrer..." : "Filter..."}
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                  data-testid="input-faq-search"
-                />
-              </div>
-              
-              <div className="flex gap-2 flex-wrap justify-center">
-                <Button 
-                  variant={selectedCategory === null ? "default" : "outline"} 
-                  size="sm"
-                  onClick={() => setSelectedCategory(null)}
-                >
-                  {language === "fr" ? "Tous" : "All"}
-                </Button>
-                {categories.map((cat) => (
-                  <Button
-                    key={cat.id}
-                    variant={selectedCategory === cat.id ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setSelectedCategory(cat.id)}
-                    className="gap-1"
+            {/* Guides Tab */}
+            <TabsContent value="guides">
+              <div className="grid md:grid-cols-3 gap-6 mb-8">
+                {guides.map((guide, index) => (
+                  <motion.div
+                    key={guide.title}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: index * 0.1 }}
                   >
-                    <cat.icon className="w-3 h-3" />
-                    {cat.label}
+                    <Link href={`/blog/${guide.slug}`}>
+                      <Card className="h-full hover-elevate cursor-pointer">
+                        <CardHeader>
+                          <div className="flex items-center gap-2 mb-2">
+                            <Badge variant="outline" className="text-xs">
+                              {categories.find(c => c.id === guide.category)?.label}
+                            </Badge>
+                            <span className="text-xs text-muted-foreground">{guide.readTime}</span>
+                          </div>
+                          <CardTitle className="text-lg">{guide.title}</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-sm text-muted-foreground">{guide.description}</p>
+                          <Button variant="ghost" className="mt-4 p-0 h-auto text-primary">
+                            {language === "fr" ? "Lire la suite" : "Read more"} <ArrowRight aria-hidden="true" className="w-4 h-4 ml-1" />
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    </Link>
+                  </motion.div>
+                ))}
+              </div>
+
+              {blogLoading ? (
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {[1, 2, 3].map((i) => (
+                    <Card key={i} className="h-full">
+                      <Skeleton className="aspect-video rounded-t-lg" />
+                      <CardContent className="p-6 space-y-4">
+                        <Skeleton className="h-6 w-24" />
+                        <Skeleton className="h-8 w-full" />
+                        <Skeleton className="h-20 w-full" />
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : blogArticles && blogArticles.length > 0 ? (
+                <>
+                  <h3 className="text-xl font-semibold mb-4 mt-8">
+                    {language === "fr" ? "Articles" : "Articles"}
+                  </h3>
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {blogArticles.map((article) => (
+                      <BlogArticleCard key={article.id} article={article} />
+                    ))}
+                  </div>
+                </>
+              ) : null}
+            </TabsContent>
+
+            {/* FAQ Tab */}
+            <TabsContent value="faq">
+              <div className="max-w-4xl mx-auto">
+                <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
+                  <div className="relative w-full sm:w-80">
+                    <Search aria-hidden="true" className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input 
+                      placeholder={language === "fr" ? "Filtrer..." : "Filter..."}
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10"
+                      data-testid="input-faq-search"
+                    />
+                  </div>
+                  <div className="flex gap-2 flex-wrap justify-center">
+                    <Button 
+                      variant={selectedCategory === null ? "default" : "outline"} 
+                      size="sm"
+                      onClick={() => setSelectedCategory(null)}
+                    >
+                      {language === "fr" ? "Tous" : "All"}
+                    </Button>
+                    {categories.map((cat) => (
+                      <Button
+                        key={cat.id}
+                        variant={selectedCategory === cat.id ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setSelectedCategory(cat.id)}
+                        className="gap-1"
+                      >
+                        <cat.icon aria-hidden="true" className="w-3 h-3" />
+                        {cat.label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+                
+                <Accordion type="single" collapsible className="space-y-2">
+                  {filteredFAQ.map((item, index) => (
+                    <AccordionItem key={index} value={`item-${index}`} className="bg-background rounded-lg border px-4">
+                      <AccordionTrigger className="text-left hover:no-underline">
+                        <div className="flex items-start gap-3">
+                          <Badge variant="outline" className="shrink-0 mt-0.5 text-xs">
+                            {categories.find(c => c.id === item.category)?.label}
+                          </Badge>
+                          <span>{item.question}</span>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="text-muted-foreground pl-12">
+                        {item.answer}
+                      </AccordionContent>
+                    </AccordionItem>
+                  ))}
+                </Accordion>
+                
+                {filteredFAQ.length === 0 && (
+                  <div className="text-center py-8 text-muted-foreground">
+                    {language === "fr" 
+                      ? "Aucune question ne correspond à votre recherche."
+                      : "No questions match your search."}
+                  </div>
+                )}
+
+                <div className="mt-8 p-4 rounded-lg bg-primary/5 border border-primary/20 text-center" data-testid="link-faq-portfolio">
+                  <p className="text-sm mb-3">
+                    {language === "fr"
+                      ? "Vous voulez voir des exemples concrets de projets solaires au Québec?"
+                      : "Want to see real examples of solar projects in Quebec?"}
+                  </p>
+                  <Link href="/portfolio">
+                    <Button variant="outline" className="gap-2">
+                      <Building2 aria-hidden="true" className="w-4 h-4" />
+                      {language === "fr" ? "Voir des exemples — Portfolio" : "See examples — Portfolio"}
+                      <ArrowRight aria-hidden="true" className="w-4 h-4" />
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </TabsContent>
+
+            {/* Nouvelles Tab */}
+            <TabsContent value="nouvelles">
+              <div className="flex flex-wrap gap-2 mb-8 justify-center">
+                {NEWS_CATEGORY_FILTERS.map((cat) => (
+                  <Button
+                    key={cat.value}
+                    variant="outline"
+                    className={newsCategory === cat.value ? "toggle-elevate toggle-elevated" : "toggle-elevate"}
+                    onClick={() => setNewsCategory(cat.value)}
+                    data-testid={`filter-news-category-${cat.value || "all"}`}
+                  >
+                    {language === "fr" ? cat.fr : cat.en}
                   </Button>
                 ))}
               </div>
-            </div>
-          </div>
-          
-          <Accordion type="single" collapsible className="space-y-2">
-            {filteredFAQ.map((item, index) => (
-              <AccordionItem key={index} value={`item-${index}`} className="bg-background rounded-lg border px-4">
-                <AccordionTrigger className="text-left hover:no-underline">
-                  <div className="flex items-start gap-3">
-                    <Badge variant="outline" className="shrink-0 mt-0.5 text-xs">
-                      {categories.find(c => c.id === item.category)?.label}
-                    </Badge>
-                    <span>{item.question}</span>
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent className="text-muted-foreground pl-12">
-                  {item.answer}
-                </AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
-          
-          {filteredFAQ.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">
-              {language === "fr" 
-                ? "Aucune question ne correspond à votre recherche."
-                : "No questions match your search."}
-            </div>
-          )}
-        </div>
-      </section>
 
-      {/* Glossary Section */}
-      <section className="py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-8">
-            <div className="flex items-center justify-center gap-2 mb-4">
-              <Book className="w-6 h-6 text-primary" />
-              <h2 className="text-2xl font-bold">
-                {language === "fr" ? "Glossaire solaire" : "Solar Glossary"}
-              </h2>
-            </div>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              {language === "fr" 
-                ? "Les termes clés pour comprendre les projets solaires commerciaux."
-                : "Key terms to understand commercial solar projects."}
-            </p>
-          </div>
-          
-          <div className="grid md:grid-cols-2 gap-4">
-            {glossaryTerms.map((item, index) => (
-              <motion.div
-                key={item.term}
-                initial={{ opacity: 0, y: 10 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.05 }}
-              >
-                <Card className="h-full">
-                  <CardContent className="pt-4">
-                    <h3 className="font-semibold text-primary mb-1">{item.term}</h3>
-                    <p className="text-sm text-muted-foreground">{item.definition}</p>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
+              {newsLoading ? (
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {[1, 2, 3].map((i) => (
+                    <Card key={i} className="h-full">
+                      <Skeleton className="aspect-video rounded-t-lg" />
+                      <CardContent className="p-6 space-y-4">
+                        <Skeleton className="h-6 w-24" />
+                        <Skeleton className="h-8 w-full" />
+                        <Skeleton className="h-20 w-full" />
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : filteredNews && filteredNews.length > 0 ? (
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredNews.map((article) => (
+                    <NewsArticleCard key={article.id} article={article} />
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-16">
+                  <Newspaper aria-hidden="true" className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+                  <p className="text-xl text-muted-foreground" data-testid="text-no-news">
+                    {language === "fr"
+                      ? "Aucune nouvelle pour le moment. Revenez bientôt!"
+                      : "No news at the moment. Check back soon!"}
+                  </p>
+                </div>
+              )}
+            </TabsContent>
+
+            {/* Glossaire Tab */}
+            <TabsContent value="glossaire">
+              <div className="max-w-4xl mx-auto">
+                <p className="text-muted-foreground text-center max-w-2xl mx-auto mb-8">
+                  {language === "fr" 
+                    ? "Les termes clés pour comprendre les projets solaires commerciaux."
+                    : "Key terms to understand commercial solar projects."}
+                </p>
+                
+                <div className="grid md:grid-cols-2 gap-4">
+                  {glossaryTerms.map((item, index) => (
+                    <motion.div
+                      key={item.term}
+                      initial={{ opacity: 0, y: 10 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: index * 0.05 }}
+                    >
+                      <Card className="h-full">
+                        <CardContent className="pt-4">
+                          <h3 className="font-semibold text-primary mb-1">{item.term}</h3>
+                          <p className="text-sm text-muted-foreground">{item.definition}</p>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
         </div>
       </section>
 
@@ -608,9 +905,9 @@ export default function RessourcesPage() {
                   >
                     <div className={`mt-0.5 ${item.required ? "text-primary" : "text-muted-foreground"}`}>
                       {item.required ? (
-                        <CheckCircle className="w-5 h-5" />
+                        <CheckCircle aria-hidden="true" className="w-5 h-5" />
                       ) : (
-                        <AlertCircle className="w-5 h-5" />
+                        <AlertCircle aria-hidden="true" className="w-5 h-5" />
                       )}
                     </div>
                     <div className="flex-1">
@@ -634,7 +931,7 @@ export default function RessourcesPage() {
                   {language === "fr" 
                     ? "Vous cochez les critères requis? "
                     : "You meet the required criteria? "}
-                  <Link href="/#paths" className="text-primary font-medium hover:underline">
+                  <Link href="/#analyse" className="text-primary font-medium hover:underline">
                     {language === "fr" ? "Obtenez votre analyse gratuite →" : "Get your free analysis →"}
                   </Link>
                 </p>
@@ -645,7 +942,7 @@ export default function RessourcesPage() {
       </section>
 
       {/* CTA */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8">
+      <section className="py-20 md:py-24 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-2xl sm:text-3xl font-bold mb-4">
             {language === "fr" ? "Vous avez d'autres questions?" : "Have more questions?"}
@@ -656,10 +953,10 @@ export default function RessourcesPage() {
               : "Our team is available to answer all your questions."}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/#paths">
+            <Link href="/#analyse">
               <Button size="lg" className="gap-2" data-testid="button-get-analysis">
                 {language === "fr" ? "Voir mon potentiel solaire — Gratuit" : "See my solar potential — Free"}
-                <ArrowRight className="w-4 h-4" />
+                <ArrowRight aria-hidden="true" className="w-4 h-4" />
               </Button>
             </Link>
             <a href="mailto:info@kwh.quebec">
@@ -671,6 +968,7 @@ export default function RessourcesPage() {
         </div>
       </section>
 
+      </main>
       <PublicFooter />
     </div>
   );

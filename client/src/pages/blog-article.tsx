@@ -5,18 +5,14 @@ import { Calendar, ArrowLeft, ArrowRight, BookOpen, Share2, Loader2 } from "luci
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ThemeToggle } from "@/components/theme-toggle";
-import { LanguageToggle } from "@/components/language-toggle";
 import { useI18n } from "@/lib/i18n";
 import { SEOHead } from "@/components/seo-head";
+import { PublicHeader, PublicFooter } from "@/components/public-header";
 import type { BlogArticle } from "@shared/schema";
-import logoFr from "@assets/kWh_Quebec_Logo-01_-_Rectangulaire_1764799021536.png";
-import logoEn from "@assets/kWh_Quebec_Logo-02_-_Rectangle_1764799021536.png";
 
 export default function BlogArticlePage() {
   const { t, language } = useI18n();
   const { slug } = useParams<{ slug: string }>();
-  const currentLogo = language === "fr" ? logoFr : logoEn;
 
   const { data: article, isLoading, error } = useQuery<BlogArticle>({
     queryKey: ["/api/blog", slug],
@@ -33,23 +29,13 @@ export default function BlogArticlePage() {
   if (error || !article) {
     return (
       <div className="min-h-screen bg-background">
-        <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b">
-          <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-            <Link href="/">
-              <img src={currentLogo} alt={language === "fr" ? "Logo kWh Québec – Énergie solaire commerciale" : "kWh Québec Logo – Commercial Solar Energy"} className="h-[50px] cursor-pointer" />
-            </Link>
-            <div className="flex items-center gap-2">
-              <LanguageToggle />
-              <ThemeToggle />
-            </div>
-          </div>
-        </header>
+        <PublicHeader />
         <main className="container mx-auto px-4 py-16 text-center">
           <BookOpen className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
           <h1 className="text-2xl font-bold mb-4">
             {language === "fr" ? "Article introuvable" : "Article not found"}
           </h1>
-          <Link href="/blog">
+          <Link href="/ressources?tab=guides">
             <Button variant="outline">
               <ArrowLeft className="w-4 h-4 mr-2" />
               {t("blog.backToList")}
@@ -79,16 +65,22 @@ export default function BlogArticlePage() {
     "@type": "Article",
     headline: title,
     description: metaDescription || title,
+    articleBody: content ? content.replace(/<[^>]*>/g, '').slice(0, 5000) : undefined,
     author: {
       "@type": "Organization",
       name: article.authorName || "kWh Québec"
     },
     publisher: {
       "@type": "Organization",
-      name: "kWh Québec"
+      name: "kWh Québec",
+      logo: {
+        "@type": "ImageObject",
+        url: "https://www.kwh.quebec/assets/logo-fr.png"
+      }
     },
     datePublished: article.publishedAt,
     dateModified: article.updatedAt || article.publishedAt,
+    ...(article.featuredImage ? { image: article.featuredImage } : {}),
     mainEntityOfPage: {
       "@type": "WebPage",
       "@id": `${window.location.origin}/blog/${slug}`
@@ -119,26 +111,10 @@ export default function BlogArticlePage() {
       />
       
       <div className="min-h-screen bg-background">
-        <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b">
-          <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-            <Link href="/">
-              <img src={currentLogo} alt={language === "fr" ? "Logo kWh Québec – Énergie solaire commerciale" : "kWh Québec Logo – Commercial Solar Energy"} className="h-[50px] cursor-pointer" data-testid="img-logo" />
-            </Link>
-            <nav className="flex items-center gap-4">
-              <Link href="/">
-                <Button variant="ghost" data-testid="link-home">{t("nav.home")}</Button>
-              </Link>
-              <Link href="/blog">
-                <Button variant="ghost" data-testid="link-blog">{language === "fr" ? "Ressources" : "Resources"}</Button>
-              </Link>
-              <LanguageToggle />
-              <ThemeToggle />
-            </nav>
-          </div>
-        </header>
+        <PublicHeader />
 
         <main className="container mx-auto px-4 py-12 max-w-4xl">
-          <Link href="/blog">
+          <Link href="/ressources?tab=guides">
             <Button variant="ghost" className="mb-6" data-testid="button-back">
               <ArrowLeft className="w-4 h-4 mr-2" />
               {t("blog.backToList")}
@@ -206,7 +182,7 @@ export default function BlogArticlePage() {
             <p className="text-muted-foreground mb-6 max-w-xl mx-auto" data-testid="text-cta-description">
               {t("blog.ctaDescription")}
             </p>
-            <Link href="/#contact">
+            <Link href="/#analyse">
               <Button size="lg" data-testid="button-cta">
                 {t("blog.ctaButton")}
                 <ArrowRight className="w-4 h-4 ml-2" />
@@ -215,11 +191,7 @@ export default function BlogArticlePage() {
           </motion.div>
         </main>
 
-        <footer className="border-t py-8 mt-12">
-          <div className="container mx-auto px-4 text-center text-muted-foreground">
-            <p>© 2026 kWh Québec inc. | Licence RBQ: 5656-6136-01</p>
-          </div>
-        </footer>
+        <PublicFooter />
       </div>
     </>
   );

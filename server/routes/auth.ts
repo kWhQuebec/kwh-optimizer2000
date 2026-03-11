@@ -80,9 +80,11 @@ router.post("/api/auth/login", loginLimiter, asyncHandler(async (req, res) => {
   await storage.updateUser(user.id, { lastLoginAt: new Date() });
 
   const token = signToken(user.id);
+  const refreshToken = signRefreshToken(user.id);
 
   res.json({
     token,
+    refreshToken,
     user: {
       id: user.id,
       email: user.email,
@@ -181,17 +183,16 @@ router.post("/api/auth/forgot-password", forgotPasswordLimiter, asyncHandler(asy
     return;
   }
   
-  // Generate secure temporary password (no modulo bias)
   const tempPassword = generateSecurePassword(14);
   
   const passwordHash = await bcrypt.hash(tempPassword, 10);
+  
+  await sendPasswordResetEmail(user.email, tempPassword, language);
   
   await storage.updateUser(user.id, { 
     passwordHash,
     forcePasswordChange: true
   });
-  
-  await sendPasswordResetEmail(user.email, tempPassword, language);
   
   log.info(`Password reset email sent to: ${normalizedEmail}`);
   
@@ -207,6 +208,13 @@ router.post("/api/auth/refresh", asyncHandler(async (req, res) => {
   }
   try {
     const { userId } = verifyRefreshToken(refreshToken);
+    const user = await storage.getUser(userId);
+    if (!user) {
+      return res.status(401).json({ error: "User not found" });
+    }
+    if (user.status === "inactive") {
+      return res.status(403).json({ error: "Account is deactivated" });
+    }
     const newToken = signToken(userId);
     res.json({ token: newToken });
   } catch (e) {

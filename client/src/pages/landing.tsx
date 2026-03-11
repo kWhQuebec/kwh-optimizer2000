@@ -1,43 +1,29 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { useMutation } from "@tanstack/react-query";
-import { Link, useLocation } from "wouter";
-import { motion, AnimatePresence } from "framer-motion";
-import { useDropzone } from "react-dropzone";
+import { useState, useEffect } from "react";
+import { Link } from "wouter";
+import { motion } from "framer-motion";
 import {
-  Building2, Factory, HelpCircle,
-  CheckCircle2, ArrowRight, BarChart3, Zap, Clock, DollarSign,
-  TrendingUp, Shield, Award, Target, Wrench, HardHat,
-  BatteryCharging, MapPin,
-  Sun, Battery, FileText, Hammer, Loader2, FileCheck, ClipboardCheck, ChevronUp,
-  Phone, Mail, Building, User, Info, Upload, Sparkles, FileSignature,
-  Snowflake, XCircle, Star, ChevronDown, Calendar
+  Building2,
+  CheckCircle2, ArrowRight, BarChart3, Zap, Clock,
+  TrendingUp, Shield, Award, Wrench, HardHat,
+  BatteryCharging,
+  Sun, Battery, FileText, FileCheck, ClipboardCheck, ChevronUp,
+  Phone, Mail, Building,
+  Snowflake, XCircle, Star, ChevronDown
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { ThemeToggle } from "@/components/theme-toggle";
-import { LanguageToggle } from "@/components/language-toggle";
+import { PublicHeader, PublicFooter } from "@/components/public-header";
 import { useI18n } from "@/lib/i18n";
-import { apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
-import { FunnelEvents, getStoredUTMParams } from "@/lib/analytics";
-import { SEOHead, seoContent, getLocalBusinessSchema, getServiceSchema, getFAQSchema, organizationSchema } from "@/components/seo-head";
+import AnalysisFlowCard from "@/components/AnalysisFlowCard";
+import { FunnelEvents } from "@/lib/analytics";
+import { SEOHead, seoContent, getLocalBusinessSchema, getServiceSchema, getLandingFAQSchema, organizationSchema } from "@/components/seo-head";
 import { TIMELINE_GRADIENT, BRAND } from "@shared/colors";
 import { getWhySolarNow, getTimeline, BRAND_CONTENT } from "@shared/brandContent";
-import logoFr from "@assets/kWh_Quebec_Logo-01_-_Rectangulaire_1764799021536.png";
-import logoEn from "@assets/kWh_Quebec_Logo-02_-_Rectangle_1764799021536.png";
 import installationPhoto from "@assets/hero-optimized.jpg";
-import roofMeasurement from "@assets/generated_images/commercial_roof_solar_potential_overlay.png";
+import roofMeasurement from "@assets/rona_lasalle_roof_visualization.png";
 import consumptionAnalysis from "@assets/generated_images/consumption_analysis_hq_branded.png";
 import heroRoofAnalysis from "@assets/generated_images/industrial_roof_solar_potential_overlay.png";
 import roofZoneOverlay from "@assets/generated_images/commercial_roof_solar_zone_overlay.png";
@@ -63,183 +49,14 @@ import labSpaceLogo from "@assets/Logo_full_1769527493871.png";
 import scaleCleantechLogo from "@assets/scale-cleantech-color_small-VSYW5GJE_1769527536419.webp";
 import hqLogo from "@assets/Screenshot_2026-01-27_at_5.26.14_PM_1769552778826.png";
 
-// Simplified form: only Company, Email, Address required; Phone optional; other fields collected later
-const leadFormSchema = z.object({
-  companyName: z.string().min(1, "Ce champ est requis"),
-  contactName: z.string().optional(),
-  email: z.string().email("Courriel invalide"),
-  phone: z.string().optional(),
-  streetAddress: z.string().min(1, "Ce champ est requis"),
-  city: z.string().optional(),
-  province: z.string().optional(),
-  postalCode: z.string().optional(),
-  estimatedMonthlyBill: z.coerce.number().optional(),
-  buildingType: z.string().optional(),
-  notes: z.string().optional(),
-});
-
-type LeadFormValues = z.infer<typeof leadFormSchema>;
-
-interface HQBillData {
-  accountNumber: string | null;
-  clientName: string | null;
-  serviceAddress: string | null;
-  annualConsumptionKwh: number | null;
-  peakDemandKw: number | null;
-  tariffCode: string | null;
-  billingPeriod: string | null;
-  estimatedMonthlyBill: number | null;
-  confidence: number;
-}
-
-type FlowStep = 'upload' | 'parsing' | 'extracted' | 'quickResult' | 'qualifying' | 'qualifiedResult' | 'manualEntry' | 'submitted';
-
-// Client-side self-qualification types and logic
-type LeadColor = 'green' | 'yellow' | 'red';
-
-interface SelfQualData {
-  ownershipType: 'owner' | 'tenant_authorized' | 'tenant_pending' | 'tenant_no_auth' | '';
-  paysHydroDirectly: 'yes' | 'no' | 'unknown' | '';
-  roofAgeRange: 'new' | 'recent' | 'mature' | 'old' | '';
-  roofUsageRight: 'yes' | 'no' | 'unknown' | '';
-}
-
-interface QualBlocker {
-  key: string;
-  messageFr: string;
-  messageEn: string;
-  actionFr: string;
-  actionEn: string;
-}
-
-interface QualOutcome {
-  color: LeadColor;
-  blockers: QualBlocker[];
-  nextStepFr: string;
-  nextStepEn: string;
-}
-
-function classifyLead(data: SelfQualData, monthlyBill?: number): QualOutcome {
-  const redBlockers: QualBlocker[] = [];
-  const yellowBlockers: QualBlocker[] = [];
-
-  // RED: Tenant without auth AND no roof right
-  if (data.ownershipType === 'tenant_no_auth' && data.roofUsageRight === 'no') {
-    redBlockers.push({ key: 'no_roof_auth', messageFr: "Pas d'autorisation du propriétaire pour la toiture", messageEn: "No landlord authorization for roof usage", actionFr: "Obtenir une lettre d'autorisation de votre propriétaire pour l'utilisation de la toiture", actionEn: "Obtain written authorization from your landlord for roof usage" });
-  }
-  // RED: Electricity included in lease
-  if (data.paysHydroDirectly === 'no') {
-    redBlockers.push({ key: 'hydro_in_lease', messageFr: "L'électricité est incluse dans le bail", messageEn: "Electricity is included in the lease", actionFr: "Négocier un bail séparant les frais d'électricité, ou impliquer votre propriétaire dans le projet", actionEn: "Negotiate separate electricity costs in lease, or involve your landlord" });
-  }
-  // RED: Roof 25+ years
-  if (data.roofAgeRange === 'old') {
-    redBlockers.push({ key: 'roof_old', messageFr: "Toiture de plus de 25 ans", messageEn: "Roof over 25 years old", actionFr: "Planifier le remplacement de la toiture. Le solaire peut être installé immédiatement après", actionEn: "Plan roof replacement. Solar can be installed immediately after" });
-  }
-  // RED: Bill too low
-  if (monthlyBill !== undefined && monthlyBill > 0 && monthlyBill < 1500) {
-    redBlockers.push({ key: 'bill_low', messageFr: "Facture mensuelle trop basse pour un projet C&I viable", messageEn: "Monthly bill too low for viable C&I project", actionFr: "Le solaire commercial est optimal pour des factures de 2 500$/mois et plus", actionEn: "Commercial solar is optimal for bills of $2,500/month and above" });
-  }
-  if (redBlockers.length > 0) {
-    return { color: 'red', blockers: redBlockers, nextStepFr: "Le solaire n'est peut-être pas la meilleure option pour vous en ce moment. Voici ce qui pourrait changer la donne:", nextStepEn: "Solar may not be the best option for you right now. Here's what could change that:" };
-  }
-
-  // YELLOW: Authorization pending
-  if (data.ownershipType === 'tenant_pending') {
-    yellowBlockers.push({ key: 'auth_pending', messageFr: "Autorisation du propriétaire en cours", messageEn: "Landlord authorization in progress", actionFr: "Accélérer le processus d'approbation auprès de votre propriétaire", actionEn: "Accelerate the approval process with your landlord" });
-  }
-  // YELLOW: Roof 15-25 years
-  if (data.roofAgeRange === 'mature') {
-    yellowBlockers.push({ key: 'roof_mature', messageFr: "Toiture de 15-25 ans — inspection recommandée", messageEn: "Roof 15-25 years old — inspection recommended", actionFr: "Faire inspecter la toiture par un professionnel avant l'installation", actionEn: "Have roof professionally inspected before installation" });
-  }
-  // YELLOW: Hydro payment unknown
-  if (data.paysHydroDirectly === 'unknown') {
-    yellowBlockers.push({ key: 'hydro_unknown', messageFr: "À confirmer: paiement direct à Hydro-Québec", messageEn: "To confirm: direct payment to Hydro-Québec", actionFr: "Vérifier votre dernier compte ou contacter Hydro-Québec", actionEn: "Check your latest bill or contact Hydro-Québec directly" });
-  }
-  // YELLOW: Roof usage unknown (tenant)
-  if (data.ownershipType.startsWith('tenant') && data.roofUsageRight === 'unknown') {
-    yellowBlockers.push({ key: 'roof_right_unknown', messageFr: "Droit d'utilisation de la toiture à confirmer", messageEn: "Roof usage rights to be confirmed", actionFr: "Clarifier avec votre propriétaire si vous avez le droit d'utiliser la toiture", actionEn: "Clarify with your landlord whether you have roof usage rights" });
-  }
-  if (yellowBlockers.length > 0) {
-    return { color: 'yellow', blockers: yellowBlockers, nextStepFr: "Quelques points à clarifier avant l'appel. Votre projet reste prometteur!", nextStepEn: "A few points to clarify before the call. Your project remains promising!" };
-  }
-
-  return { color: 'green', blockers: [], nextStepFr: "Votre projet a un excellent potentiel! Réservez votre appel découverte.", nextStepEn: "Your project has excellent potential! Book your discovery call." };
-}
 
 export default function LandingPage() {
   const { t, language } = useI18n();
-  const { toast } = useToast();
-  const [, navigate] = useLocation();
-  const [submitted, setSubmitted] = useState(false);
   const [activeSlide, setActiveSlide] = useState(0);
-
-  // Upload-first flow state
-  const [flowStep, setFlowStep] = useState<FlowStep>('upload');
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [parsedBillData, setParsedBillData] = useState<HQBillData | null>(null);
-  const [parseError, setParseError] = useState<string | null>(null);
-  const [quickEmail, setQuickEmail] = useState('');
-  const [quickCompany, setQuickCompany] = useState('');
-  const [quickPhone, setQuickPhone] = useState('');
-  const [quickAddress, setQuickAddress] = useState('');
-  const [manualKwh, setManualKwh] = useState('');
-  const [quickAnalysisResult, setQuickAnalysisResult] = useState<any>(null);
-  // Qualification fields
-  const [roofAgeYears, setRoofAgeYears] = useState<string>('');
-  const [ownershipType, setOwnershipType] = useState<'owner' | 'tenant' | ''>('');
-
-  // Self-qualification state (post quick-result)
-  const [selfQualData, setSelfQualData] = useState<SelfQualData>({
-    ownershipType: '', paysHydroDirectly: '', roofAgeRange: '', roofUsageRight: '',
-  });
-  const [qualOutcome, setQualOutcome] = useState<QualOutcome | null>(null);
 
   // FAQ accordion state
   const [expandedFaqItems, setExpandedFaqItems] = useState<string[]>(['item1']);
 
-  // Client-side preview calculation — aligned with Quick Analysis methodology (leads.ts)
-  const clientPreview = useMemo(() => {
-    if (!parsedBillData?.annualConsumptionKwh) return null;
-    const annualKwh = parsedBillData.annualConsumptionKwh;
-    const monthlyBill = parsedBillData.estimatedMonthlyBill || (annualKwh * 0.07 / 12);
-    const annualBill = monthlyBill * 12;
-
-    // === UNIFIED METHODOLOGY (matches potentialAnalysis.ts & leads.ts) ===
-    const BASELINE_YIELD = 1150;
-    const TEMP_COEFF = -0.004;
-    const AVG_CELL_TEMP = 35;
-    const STC_TEMP = 25;
-    const WIRE_LOSS = 0.02;
-    const INVERTER_EFF = 0.96;
-    const tempLoss = 1 + TEMP_COEFF * (AVG_CELL_TEMP - STC_TEMP);
-    const EFFECTIVE_YIELD = BASELINE_YIELD * tempLoss * (1 - WIRE_LOSS) * INVERTER_EFF; // ~1035 kWh/kWp
-
-    // System size: 70% offset target, capped at 1 MW (HQ Net Metering limit for incentives)
-    const HQ_MW_LIMIT = 1000;
-    const rawSystemSize = Math.round((annualKwh * 0.7) / EFFECTIVE_YIELD);
-    const systemSizeKw = Math.min(rawSystemSize, HQ_MW_LIMIT);
-    const isCapped = rawSystemSize > HQ_MW_LIMIT;
-
-    // Energy rate: derive from bill data or default M tariff rate
-    const energyRate = annualKwh > 0 ? (annualBill * 0.60) / annualKwh : 0.06061;
-    const clampedRate = Math.max(0.03, Math.min(energyRate, 0.15));
-
-    // Annual savings = solar production × energy rate (same formula as leads.ts line 162)
-    const annualProductionKwh = systemSizeKw * EFFECTIVE_YIELD;
-    const estimatedSavings = Math.round(annualProductionKwh * clampedRate);
-
-    // Cost of inaction: 5-year projection at 3.5%/yr tariff escalation
-    let costOfInaction5yr = 0;
-    for (let y = 0; y < 5; y++) {
-      costOfInaction5yr += annualBill * Math.pow(1.035, y);
-    }
-    const extraCost5yr = Math.round(costOfInaction5yr - (annualBill * 5));
-
-    return { systemSizeKw, isCapped, estimatedSavings, annualBill, extraCost5yr, costOfInaction5yr: Math.round(costOfInaction5yr) };
-  }, [parsedBillData]);
-
-  const currentLogo = language === "fr" ? logoFr : logoEn;
-  
   const analysisSlides = language === "fr" 
     ? [
         { id: "impact", image: carouselSlide1Fr, label: "Impact sur votre facture" },
@@ -286,229 +103,6 @@ export default function LandingPage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const form = useForm<LeadFormValues>({
-    resolver: zodResolver(leadFormSchema),
-    defaultValues: {
-      companyName: "",
-      contactName: "",
-      email: "",
-      phone: "",
-      streetAddress: "",
-      city: "",
-      province: "Québec",
-      postalCode: "",
-      estimatedMonthlyBill: undefined,
-      buildingType: "",
-      notes: "",
-    },
-  });
-
-  const mutation = useMutation({
-    mutationFn: async (data: LeadFormValues) => {
-      return apiRequest("POST", "/api/leads", data);
-    },
-    onSuccess: () => {
-      const name = form.getValues('contactName') || form.getValues('email');
-      navigate(`/merci?type=lead&name=${encodeURIComponent(name)}`);
-    },
-  });
-
-  const onSubmit = (data: LeadFormValues) => {
-    mutation.mutate(data);
-  };
-
-  const buildingTypes = [
-    { value: "industrial", label: t("form.buildingType.industrial"), icon: Factory },
-    { value: "commercial", label: t("form.buildingType.commercial"), icon: Building2 },
-    { value: "other", label: t("form.buildingType.other"), icon: HelpCircle },
-  ];
-
-  // Dropzone for bill upload
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    if (acceptedFiles.length === 0) return;
-
-    FunnelEvents.formStarted('bill_upload');
-
-    const file = acceptedFiles[0];
-    const isValidType = file.type === 'application/pdf' || file.type.startsWith('image/');
-    const isValidSize = file.size <= 10 * 1024 * 1024;
-
-    if (!isValidType) {
-      setParseError(language === "fr"
-        ? "Format invalide. Utilisez PDF ou image (JPG, PNG)."
-        : "Invalid format. Use PDF or image (JPG, PNG).");
-      return;
-    }
-    if (!isValidSize) {
-      setParseError(language === "fr"
-        ? "Fichier trop volumineux. Maximum 10 Mo."
-        : "File too large. Maximum 10 MB.");
-      return;
-    }
-
-    // Track bill upload event
-    FunnelEvents.billUploaded(file.type);
-
-    setUploadedFile(file);
-    setParseError(null);
-    setFlowStep('parsing');
-
-    // Parse the bill with AI
-    const formData = new FormData();
-    formData.append('file', file);
-
-    fetch('/api/parse-hq-bill', {
-      method: 'POST',
-      body: formData,
-    })
-      .then(response => {
-        if (!response.ok) throw new Error('Failed to parse bill');
-        return response.json();
-      })
-      .then(result => {
-        if (!result.success || !result.data) {
-          throw new Error('Failed to parse bill data');
-        }
-        setParsedBillData(result.data as HQBillData);
-        if (result.data.clientName) setQuickCompany(result.data.clientName);
-        if (result.data.serviceAddress) setQuickAddress(result.data.serviceAddress);
-        setFlowStep('extracted');
-        FunnelEvents.billParsed(result.data.annualConsumptionKwh || 0, result.data.confidence || 0);
-      })
-      .catch(() => {
-        FunnelEvents.formError('bill_upload', 'parse_failed');
-        setFlowStep('upload');
-        setParseError(language === "fr"
-          ? "Impossible d'analyser la facture. Réessayez ou entrez votre consommation manuellement."
-          : "Unable to analyze the bill. Try again or enter your consumption manually.");
-      });
-  }, [language]);
-
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
-    accept: {
-      'application/pdf': ['.pdf'],
-      'image/*': ['.jpg', '.jpeg', '.png', '.gif', '.webp']
-    },
-    maxFiles: 1
-  });
-
-  // Quick analysis mutation
-  const quickAnalysisMutation = useMutation({
-    mutationFn: async (data: {
-      email: string;
-      annualKwh: number;
-      clientName?: string;
-      address?: string;
-      phone?: string;
-      roofAgeYears?: number;
-      ownershipType?: string;
-    }) => {
-      const response = await fetch('/api/quick-estimate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          annualConsumptionKwh: data.annualKwh,
-          email: data.email,
-          clientName: data.clientName || '',
-          address: data.address || '',
-          phone: data.phone || '',
-          roofAgeYears: data.roofAgeYears,
-          ownershipType: data.ownershipType,
-          ...getStoredUTMParams(),
-        }),
-      });
-      if (!response.ok) throw new Error('Failed to get quick analysis');
-      return response.json();
-    },
-    onSuccess: (data) => {
-      setQuickAnalysisResult(data);
-      setFlowStep('quickResult');
-    },
-    onError: () => {
-      FunnelEvents.formError('quick_analysis', 'api_error');
-      toast({
-        title: language === "fr" ? "Erreur" : "Error",
-        description: language === "fr"
-          ? "Impossible de générer l'analyse. Veuillez réessayer."
-          : "Unable to generate analysis. Please try again.",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const handleQuickAnalysis = () => {
-    if (!quickEmail || !quickEmail.includes('@')) {
-      toast({
-        title: language === "fr" ? "Courriel requis" : "Email required",
-        description: language === "fr"
-          ? "Veuillez entrer une adresse courriel valide."
-          : "Please enter a valid email address.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const annualKwh = parsedBillData?.annualConsumptionKwh || parseInt(manualKwh) || 0;
-    if (annualKwh < 1000) {
-      toast({
-        title: language === "fr" ? "Consommation invalide" : "Invalid consumption",
-        description: language === "fr"
-          ? "La consommation annuelle doit être d'au moins 1,000 kWh."
-          : "Annual consumption must be at least 1,000 kWh.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Track email capture event
-    FunnelEvents.emailCaptured('quick_estimate');
-
-    // Track form submission method
-    FunnelEvents.formSubmitted('quick_analysis', parsedBillData ? 'bill_upload' : 'manual_entry');
-
-    quickAnalysisMutation.mutate({
-      email: quickEmail,
-      annualKwh,
-      clientName: quickCompany || parsedBillData?.clientName || undefined,
-      address: quickAddress || parsedBillData?.serviceAddress || undefined,
-      phone: quickPhone || undefined,
-      roofAgeYears: roofAgeYears ? parseInt(roofAgeYears) : undefined,
-      ownershipType: ownershipType || undefined,
-    });
-  };
-
-  const handleDetailedPath = () => {
-    // Track procuration start event
-    FunnelEvents.procurationStarted();
-
-    // Store parsed data in localStorage for analyse-detaillee to pick up
-    if (parsedBillData) {
-      localStorage.setItem('kwhquebec_bill_data', JSON.stringify({
-        ...parsedBillData,
-        email: quickEmail,
-        companyName: quickCompany,
-        phone: quickPhone,
-        address: quickAddress || parsedBillData.serviceAddress,
-      }));
-    }
-    navigate('/analyse-detaillee');
-  };
-
-  const resetFlow = () => {
-    setFlowStep('upload');
-    setUploadedFile(null);
-    setParsedBillData(null);
-    setParseError(null);
-    setQuickEmail('');
-    setQuickCompany('');
-    setQuickPhone('');
-    setQuickAddress('');
-    setManualKwh('');
-    setQuickAnalysisResult(null);
-    setRoofAgeYears('');
-    setOwnershipType('');
-  };
 
   const seo = language === "fr" ? seoContent.home.fr : seoContent.home.en;
 
@@ -517,60 +111,23 @@ export default function LandingPage() {
     organizationSchema,
     getLocalBusinessSchema(language),
     getServiceSchema(language),
-    getFAQSchema(language),
+    getLandingFAQSchema(language),
   ];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="public-page min-h-screen bg-background">
       <SEOHead
         title={seo.title}
         description={seo.description}
         keywords={seo.keywords}
+        ogImage={heroRoofAnalysis}
         structuredData={schemas}
         locale={language}
         canonical="https://www.kwh.quebec"
         includeHreflang={true}
       />
-      {/* Fixed Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-white dark:bg-background backdrop-blur-md border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16 gap-4">
-            <Link href="/">
-              <img 
-                src={currentLogo} 
-                alt={language === "fr" ? "Logo kWh Québec – Énergie solaire commerciale" : "kWh Québec Logo – Commercial Solar Energy"} 
-                className="h-[50px] sm:h-[3.75rem] w-auto"
-                loading="eager"
-                fetchPriority="high"
-                decoding="async"
-                data-testid="logo-header"
-              />
-            </Link>
-            
-            <nav className="hidden md:flex items-center gap-6" aria-label={language === "fr" ? "Navigation principale" : "Main navigation"}>
-              <Link href="/" className="text-sm font-medium text-foreground" data-testid="link-home">
-                {language === "fr" ? "Accueil" : "Home"}
-              </Link>
-              <Link href="/ressources" className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-resources">
-                {language === "fr" ? "Ressources" : "Resources"}
-              </Link>
-              <Link href="/portfolio" className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-portfolio">
-                Portfolio
-              </Link>
-            </nav>
-
-            <div className="flex items-center gap-2">
-              <LanguageToggle />
-              <ThemeToggle />
-              <Link href="/login">
-                <Button variant="outline" size="sm" data-testid="button-login">
-                  {t("nav.login")}
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </header>
+      <PublicHeader />
+      <main>
       {/* ========== NEW HERO SECTION ========== */}
       <section className="relative pt-16 min-h-[85vh] flex items-center overflow-hidden" data-testid="section-hero">
         <div 
@@ -590,14 +147,14 @@ export default function LandingPage() {
           >
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-white mb-4" data-testid="hero-headline">
               {language === "fr" 
-                ? "Jusqu'à 15% de rendement" 
-                : "Up to 15% ROI"}
+                ? "Jusqu'à 20% de rendement" 
+                : "Up to 20% ROI"}
             </h1>
             
             <p className="text-2xl sm:text-3xl text-white/90 font-medium mb-2" data-testid="hero-subtitle">
               {language === "fr" 
-                ? "Solaire et stockage commercial & industriel — Partout au Québec" 
-                : "Commercial & Industrial Solar + Storage — Across Quebec"}
+                ? "Solutions solaires et stockage clé en main pour le secteur commercial et industriel québécois." 
+                : "Turnkey solar and storage solutions for Quebec's commercial and industrial sectors."}
             </p>
             
             <p className="text-xl text-yellow-400 font-semibold mt-4 mb-8" data-testid="hero-value-prop">
@@ -623,9 +180,9 @@ export default function LandingPage() {
                   }}
                   data-testid="button-hero-cta"
                 >
-                  <Sun className="w-5 h-5" />
-                  {language === "fr" ? "Voir mon potentiel solaire — Gratuit, 2 min" : "See my solar potential — Free, 2 min"}
-                  <ArrowRight className="w-5 h-5" />
+                  <Sun aria-hidden="true" className="w-5 h-5" />
+                  {language === "fr" ? "Voir mon potentiel solaire" : "See my solar potential"}
+                  <ArrowRight aria-hidden="true" className="w-5 h-5" />
                 </Button>
               </div>
             </motion.div>
@@ -675,7 +232,7 @@ export default function LandingPage() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex flex-wrap items-center justify-center gap-8 sm:gap-12 md:gap-16">
             <div className="flex flex-col items-center text-center" data-testid="stat-years-experience">
-              <Award className="w-6 h-6 text-primary mb-1" />
+              <Award aria-hidden="true" className="w-6 h-6 text-primary mb-1" />
               <span className="text-2xl sm:text-3xl font-bold text-foreground">{BRAND_CONTENT.stats.yearsExperience.value}</span>
               <span className="text-sm text-muted-foreground">
                 {language === "fr" ? BRAND_CONTENT.stats.yearsExperience.labelFr : BRAND_CONTENT.stats.yearsExperience.labelEn}
@@ -683,7 +240,7 @@ export default function LandingPage() {
             </div>
             <div className="hidden sm:block w-px h-12 bg-border" aria-hidden="true" />
             <div className="flex flex-col items-center text-center" data-testid="stat-mw-installed">
-              <Zap className="w-6 h-6 text-primary mb-1" />
+              <Zap aria-hidden="true" className="w-6 h-6 text-primary mb-1" />
               <span className="text-2xl sm:text-3xl font-bold text-foreground">{BRAND_CONTENT.stats.mwInstalled.value}+</span>
               <span className="text-sm text-muted-foreground">
                 {language === "fr" ? BRAND_CONTENT.stats.mwInstalled.labelFr : BRAND_CONTENT.stats.mwInstalled.labelEn}
@@ -691,7 +248,7 @@ export default function LandingPage() {
             </div>
             <div className="hidden sm:block w-px h-12 bg-border" aria-hidden="true" />
             <div className="flex flex-col items-center text-center" data-testid="stat-ci-projects">
-              <Building2 className="w-6 h-6 text-primary mb-1" />
+              <Building2 aria-hidden="true" className="w-6 h-6 text-primary mb-1" />
               <span className="text-2xl sm:text-3xl font-bold text-foreground">{BRAND_CONTENT.stats.projectsCI.value}</span>
               <span className="text-sm text-muted-foreground">
                 {language === "fr" ? BRAND_CONTENT.stats.projectsCI.labelFr : BRAND_CONTENT.stats.projectsCI.labelEn}
@@ -701,7 +258,7 @@ export default function LandingPage() {
         </div>
       </section>
       {/* ========== UPLOAD/ANALYSIS SECTION ========== */}
-      <section id="analyse" className="relative py-16 overflow-hidden" data-testid="section-analyse">
+      <section id="analyse" className="relative py-20 md:py-24 overflow-hidden" data-testid="section-analyse">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-background" />
         <div className="absolute top-20 right-0 w-[600px] h-[600px] bg-primary/10 rounded-full blur-3xl opacity-50" />
         
@@ -727,699 +284,13 @@ export default function LandingPage() {
               </p>
             </div>
 
-            {/* Main Flow Card */}
-            <Card className="max-w-2xl mx-auto border-2 border-primary/20 shadow-xl">
-              <CardContent className="p-6 sm:p-8" aria-live="polite">
-                <AnimatePresence mode="wait">
-                  {/* Step 1: Upload */}
-                  {flowStep === 'upload' && (
-                    <motion.div
-                      key="upload"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="space-y-4"
-                    >
-                      <div className="space-y-2 text-center">
-                        <h2 className="text-xl sm:text-2xl font-semibold">
-                          {language === "fr" 
-                            ? <>Téléversez une facture récente <span style={{ fontSize: '18px' }}>(moins de 3 mois)</span></> 
-                            : <>Upload a recent bill <span style={{ fontSize: '18px' }}>(less than 3 months old)</span></>}
-                        </h2>
-                        <p className="text-sm text-muted-foreground">
-                          {language === "fr" 
-                            ? <><span className="underline">Si vous avez plusieurs compteurs</span>, ajoutez une facture par compte et notre outil d'analyse fera le tri pour vous.</> 
-                            : <><span className="underline">If you have multiple meters</span>, add one bill per account and our analysis tool will sort them for you.</>}
-                        </p>
-                      </div>
-                      
-                      {/* Dropzone */}
-                      <div
-                        {...getRootProps()}
-                        data-testid="dropzone-bill"
-                        className={`border-2 border-dashed rounded-xl p-8 cursor-pointer transition-all ${
-                          isDragActive 
-                            ? "border-primary bg-primary/5" 
-                            : "border-muted-foreground/30 hover:border-primary/50 hover:bg-muted/30"
-                        }`}
-                      >
-                        <input {...getInputProps()} />
-                        <div className="flex flex-col items-center gap-3 text-center">
-                          <div className="p-4 rounded-full bg-primary/10">
-                            <Upload className="w-8 h-8 text-primary" />
-                          </div>
-                          <div>
-                            <p className="font-medium">
-                              {isDragActive 
-                                ? (language === "fr" ? "Déposez ici..." : "Drop here...")
-                                : (language === "fr" ? "Glissez votre (vos) facture(s) ici ou prenez une photo" : "Drag your bill(s) here or take a photo")}
-                            </p>
-                            <p className="text-sm text-muted-foreground mt-1">
-                              {language === "fr" ? "ou cliquez pour sélectionner" : "or click to select"}
-                            </p>
-                          </div>
-                          <p className="text-xs text-muted-foreground">PDF, JPG, PNG</p>
-                        </div>
-                      </div>
-                      
-                      {parseError && (
-                        <p className="text-sm text-destructive text-center">{parseError}</p>
-                      )}
-                      
-                      {/* Manual entry fallback */}
-                      <div className="text-center pt-2">
-                        <button
-                          onClick={() => {
-                            FunnelEvents.formStarted('manual_entry');
-                            setFlowStep('manualEntry');
-                          }}
-                          className="text-sm text-muted-foreground hover:text-primary underline"
-                          data-testid="link-manual-entry"
-                        >
-                          {language === "fr" 
-                            ? "Pas de facture? Cliquez ici." 
-                            : "No bill? Click here."}
-                        </button>
-                      </div>
-                    </motion.div>
-                  )}
-
-                  {/* Step 1b: Parsing */}
-                  {flowStep === 'parsing' && (
-                    <motion.div
-                      key="parsing"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="py-12 text-center space-y-4"
-                    >
-                      <Loader2 className="w-12 h-12 text-primary animate-spin mx-auto" />
-                      <div>
-                        <p className="font-medium">
-                          {language === "fr" ? "Analyse en cours..." : "Analyzing..."}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {language === "fr" 
-                            ? "Notre IA lit votre facture" 
-                            : "Our AI is reading your bill"}
-                        </p>
-                      </div>
-                    </motion.div>
-                  )}
-
-                  {/* Step 2: Extracted - Show data + partial preview + email gate */}
-                  {flowStep === 'extracted' && parsedBillData && (
-                    <motion.div
-                      key="extracted"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="space-y-6"
-                    >
-                      {/* Success header */}
-                      <div className="text-center space-y-2">
-                        <div className="inline-flex items-center gap-2 text-green-600">
-                          <CheckCircle2 className="w-5 h-5" />
-                          <span className="font-medium">
-                            {language === "fr" ? "Facture analysée!" : "Bill analyzed!"}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Extracted data preview */}
-                      <div className="bg-muted/50 rounded-lg p-4 space-y-2">
-                        {parsedBillData.clientName && (
-                          <div className="flex justify-between text-sm">
-                            <span className="text-muted-foreground">{language === "fr" ? "Client" : "Client"}</span>
-                            <span className="font-medium">{parsedBillData.clientName}</span>
-                          </div>
-                        )}
-                        {parsedBillData.serviceAddress && (
-                          <div className="flex justify-between text-sm">
-                            <span className="text-muted-foreground">{language === "fr" ? "Adresse" : "Address"}</span>
-                            <span className="font-medium truncate max-w-[200px]">{parsedBillData.serviceAddress}</span>
-                          </div>
-                        )}
-                        {parsedBillData.annualConsumptionKwh && (
-                          <div className="flex justify-between text-sm">
-                            <span className="text-muted-foreground">{language === "fr" ? "Consommation" : "Consumption"}</span>
-                            <span className="font-medium text-primary">{parsedBillData.annualConsumptionKwh.toLocaleString()} kWh/an</span>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Partial preview results (3 cards) */}
-                      {clientPreview && (
-                        <div className="space-y-3">
-                          <p className="text-sm font-medium text-center text-primary">
-                            {language === "fr" ? "Potentiel estimé de votre bâtiment" : "Your building's estimated potential"}
-                          </p>
-                          <div className="grid grid-cols-3 gap-2">
-                            <div className="bg-primary/5 rounded-lg p-3 text-center">
-                              <p className="text-2xl font-bold text-primary" data-testid="text-system-size-kw">{clientPreview.systemSizeKw}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {language === "fr" ? "kWc recommandés" : "kWp recommended"}
-                              </p>
-                              {clientPreview.isCapped && (
-                                <p className="text-[10px] text-amber-600 mt-0.5">
-                                  {language === "fr" ? "plafonné à 1 MW (incitatifs)" : "capped at 1 MW (incentives)"}
-                                </p>
-                              )}
-                            </div>
-                            <div className="bg-green-50 dark:bg-green-950/30 rounded-lg p-3 text-center">
-                              <p className="text-2xl font-bold text-green-600" data-testid="text-estimated-savings">${clientPreview.estimatedSavings.toLocaleString()}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {language === "fr" ? "économies estimées/an" : "est. savings/yr"}
-                              </p>
-                              <p className="text-[10px] text-muted-foreground/70 mt-0.5">
-                                {language === "fr" ? "sur votre facture" : "on your bill"}
-                              </p>
-                            </div>
-                            <div className="bg-red-50 dark:bg-red-950/30 rounded-lg p-3 text-center">
-                              <p className="text-2xl font-bold text-red-500" data-testid="text-inaction-cost">+${clientPreview.extraCost5yr.toLocaleString()}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {language === "fr" ? "hausse prévue sur 5 ans" : "projected increase over 5 yrs"}
-                              </p>
-                              <p className="text-[10px] text-muted-foreground/70 mt-0.5">
-                                {language === "fr" ? "sans solaire" : "without solar"}
-                              </p>
-                            </div>
-                          </div>
-                          <p className="text-xs text-center text-red-500/80">
-                            {language === "fr"
-                              ? `Ne rien faire vous coûtera ${clientPreview.costOfInaction5yr.toLocaleString()}$ sur 5 ans avec la hausse des tarifs Hydro-Québec.`
-                              : `Doing nothing will cost you $${clientPreview.costOfInaction5yr.toLocaleString()} over 5 years with Hydro-Québec rate increases.`}
-                          </p>
-                        </div>
-                      )}
-
-                      {/* Contact fields gate */}
-                      <div className="space-y-3 pt-2 border-t">
-                        <p className="text-sm font-medium text-center">
-                          {language === "fr"
-                            ? "Recevez votre rapport complet avec les options de financement"
-                            : "Get your full report with financing options"}
-                        </p>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          <Input
-                            type="text"
-                            placeholder={language === "fr" ? "Nom de l'entreprise *" : "Company name *"}
-                            value={quickCompany}
-                            onChange={(e) => setQuickCompany(e.target.value)}
-                            data-testid="input-quick-company"
-                          />
-                          <Input
-                            type="email"
-                            placeholder={language === "fr" ? "Courriel *" : "Email *"}
-                            value={quickEmail}
-                            onChange={(e) => setQuickEmail(e.target.value)}
-                            data-testid="input-quick-email"
-                          />
-                          <Input
-                            type="tel"
-                            placeholder={language === "fr" ? "Téléphone (optionnel)" : "Phone (optional)"}
-                            value={quickPhone}
-                            onChange={(e) => setQuickPhone(e.target.value)}
-                            data-testid="input-quick-phone"
-                          />
-                          <Input
-                            type="text"
-                            placeholder={language === "fr" ? "Adresse du bâtiment *" : "Building address *"}
-                            value={quickAddress}
-                            onChange={(e) => setQuickAddress(e.target.value)}
-                            data-testid="input-quick-address"
-                          />
-                        </div>
-                        <Button
-                          onClick={handleQuickAnalysis}
-                          disabled={quickAnalysisMutation.isPending || !quickEmail || !quickCompany}
-                          className="w-full gap-2 h-11"
-                          data-testid="button-submit-quick"
-                        >
-                          {quickAnalysisMutation.isPending ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <ArrowRight className="w-4 h-4" />
-                          )}
-                          {language === "fr" ? "Recevoir mon rapport gratuit" : "Get my free report"}
-                        </Button>
-                        <p className="text-[11px] text-center text-muted-foreground">
-                          {language === "fr" ? "Gratuit et sans engagement" : "Free, no commitment"}
-                        </p>
-                      </div>
-
-                      {/* Reset link */}
-                      <div className="text-center">
-                        <button onClick={resetFlow} className="text-xs text-muted-foreground hover:underline">
-                          {language === "fr" ? "← Recommencer" : "← Start over"}
-                        </button>
-                      </div>
-                    </motion.div>
-                  )}
-
-                  {/* Step 3: Quick results — single CTA to qualification */}
-                  {flowStep === 'quickResult' && quickAnalysisResult && (
-                    <motion.div
-                      key="quickResult"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="space-y-4"
-                    >
-                      <div className="text-center space-y-2">
-                        <CheckCircle2 className="w-10 h-10 text-green-500 mx-auto" />
-                        <h3 className="text-lg font-semibold">
-                          {language === "fr" ? "Rapport envoyé!" : "Report sent!"}
-                        </h3>
-                        <p className="text-sm text-muted-foreground">
-                          {language === "fr"
-                            ? "Vérifiez votre boîte de réception."
-                            : "Check your inbox."}
-                        </p>
-                      </div>
-
-                      <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 space-y-3">
-                        <p className="text-sm font-medium text-center">
-                          {language === "fr"
-                            ? "Voyons si votre bâtiment est un bon candidat pour le solaire"
-                            : "Let's see if your building is a good solar candidate"}
-                        </p>
-                        <p className="text-xs text-muted-foreground text-center">
-                          {language === "fr"
-                            ? "4 questions rapides (30 secondes) pour une recommandation personnalisée"
-                            : "4 quick questions (30 seconds) for a personalized recommendation"}
-                        </p>
-                        <Button
-                          onClick={() => setFlowStep('qualifying')}
-                          className="w-full gap-2"
-                          data-testid="button-start-qualification"
-                        >
-                          <ArrowRight className="w-4 h-4" />
-                          {language === "fr" ? "Continuer →" : "Continue →"}
-                        </Button>
-                      </div>
-
-                      <button onClick={resetFlow} className="w-full text-sm text-muted-foreground hover:underline">
-                        {language === "fr" ? "Nouvelle analyse" : "New analysis"}
-                      </button>
-                    </motion.div>
-                  )}
-
-                  {/* Step 4: Self-Qualification Questions */}
-                  {flowStep === 'qualifying' && (
-                    <motion.div
-                      key="qualifying"
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0 }}
-                      className="space-y-6"
-                    >
-                      <div className="text-center space-y-1">
-                        <h3 className="text-lg font-semibold">
-                          {language === "fr" ? "Parlons de votre bâtiment" : "Tell us about your building"}
-                        </h3>
-                        <p className="text-xs text-muted-foreground">
-                          {language === "fr" ? "4 questions, 30 secondes" : "4 questions, 30 seconds"}
-                        </p>
-                      </div>
-
-                      {/* Q1: Ownership */}
-                      <div className="space-y-2">
-                        <label className="block text-sm font-semibold">
-                          {language === "fr" ? "Êtes-vous propriétaire de l'immeuble?" : "Do you own the building?"}
-                        </label>
-                        <div className="grid grid-cols-1 gap-2">
-                          {([
-                            { value: 'owner', fr: 'Propriétaire', en: 'Owner' },
-                            { value: 'tenant_authorized', fr: 'Locataire avec autorisation', en: 'Tenant with authorization' },
-                            { value: 'tenant_pending', fr: 'Locataire (en attente)', en: 'Tenant (pending auth)' },
-                            { value: 'tenant_no_auth', fr: 'Locataire (sans autorisation)', en: 'Tenant (no authorization)' },
-                          ] as const).map((opt) => (
-                            <div
-                              key={opt.value}
-                              onClick={() => setSelfQualData({ ...selfQualData, ownershipType: opt.value })}
-                              className={`p-3 rounded-lg border-2 cursor-pointer transition-all text-sm font-medium ${
-                                selfQualData.ownershipType === opt.value
-                                  ? 'bg-primary text-primary-foreground border-primary'
-                                  : 'border-input hover:border-primary'
-                              }`}
-                            >
-                              {language === "fr" ? opt.fr : opt.en}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Q2: Hydro payment */}
-                      <div className="space-y-2">
-                        <label className="block text-sm font-semibold">
-                          {language === "fr" ? "Payez-vous Hydro-Québec directement?" : "Do you pay Hydro-Québec directly?"}
-                        </label>
-                        <div className="grid grid-cols-3 gap-2">
-                          {([
-                            { value: 'yes', fr: 'Oui', en: 'Yes' },
-                            { value: 'no', fr: 'Non (bail)', en: 'No (lease)' },
-                            { value: 'unknown', fr: 'Je ne sais pas', en: 'Not sure' },
-                          ] as const).map((opt) => (
-                            <div
-                              key={opt.value}
-                              onClick={() => setSelfQualData({ ...selfQualData, paysHydroDirectly: opt.value })}
-                              className={`p-3 rounded-lg border-2 cursor-pointer transition-all text-sm font-medium text-center ${
-                                selfQualData.paysHydroDirectly === opt.value
-                                  ? 'bg-primary text-primary-foreground border-primary'
-                                  : 'border-input hover:border-primary'
-                              }`}
-                            >
-                              {language === "fr" ? opt.fr : opt.en}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Q3: Roof age */}
-                      <div className="space-y-2">
-                        <label className="block text-sm font-semibold">
-                          {language === "fr" ? "Âge approximatif de la toiture?" : "Approximate roof age?"}
-                        </label>
-                        <div className="grid grid-cols-2 gap-2">
-                          {([
-                            { value: 'new', fr: '0-5 ans', en: '0-5 years' },
-                            { value: 'recent', fr: '5-15 ans', en: '5-15 years' },
-                            { value: 'mature', fr: '15-25 ans', en: '15-25 years' },
-                            { value: 'old', fr: '25+ ans', en: '25+ years' },
-                          ] as const).map((opt) => (
-                            <div
-                              key={opt.value}
-                              onClick={() => setSelfQualData({ ...selfQualData, roofAgeRange: opt.value })}
-                              className={`p-3 rounded-lg border-2 cursor-pointer transition-all text-sm font-medium text-center ${
-                                selfQualData.roofAgeRange === opt.value
-                                  ? 'bg-primary text-primary-foreground border-primary'
-                                  : 'border-input hover:border-primary'
-                              }`}
-                            >
-                              {language === "fr" ? opt.fr : opt.en}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Q4: Roof usage right (only if tenant) */}
-                      {selfQualData.ownershipType.startsWith('tenant') && (
-                        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-2">
-                          <label className="block text-sm font-semibold">
-                            {language === "fr" ? "Avez-vous le droit d'utiliser la toiture?" : "Do you have roof usage rights?"}
-                          </label>
-                          <div className="grid grid-cols-3 gap-2">
-                            {([
-                              { value: 'yes', fr: 'Oui', en: 'Yes' },
-                              { value: 'no', fr: 'Non', en: 'No' },
-                              { value: 'unknown', fr: 'Je ne sais pas', en: 'Not sure' },
-                            ] as const).map((opt) => (
-                              <div
-                                key={opt.value}
-                                onClick={() => setSelfQualData({ ...selfQualData, roofUsageRight: opt.value })}
-                                className={`p-3 rounded-lg border-2 cursor-pointer transition-all text-sm font-medium text-center ${
-                                  selfQualData.roofUsageRight === opt.value
-                                    ? 'bg-primary text-primary-foreground border-primary'
-                                    : 'border-input hover:border-primary'
-                                }`}
-                              >
-                                {language === "fr" ? opt.fr : opt.en}
-                              </div>
-                            ))}
-                          </div>
-                        </motion.div>
-                      )}
-
-                      {/* Submit */}
-                      <Button
-                        onClick={async () => {
-                          const outcome = classifyLead(selfQualData, quickAnalysisResult?.estimatedMonthlyBill);
-                          setQualOutcome(outcome);
-                          setFlowStep('qualifiedResult');
-                          if (quickAnalysisResult?.leadId) {
-                            try {
-                              await fetch(`/api/leads/${quickAnalysisResult.leadId}/self-qualification`, {
-                                method: 'PATCH',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ ...selfQualData, leadColor: outcome.color }),
-                              });
-                            } catch (e) { console.error('Failed to save qualification:', e); }
-                          }
-                        }}
-                        disabled={
-                          !selfQualData.ownershipType ||
-                          !selfQualData.paysHydroDirectly ||
-                          !selfQualData.roofAgeRange ||
-                          (selfQualData.ownershipType.startsWith('tenant') && !selfQualData.roofUsageRight)
-                        }
-                        className="w-full gap-2"
-                        data-testid="button-submit-qualification"
-                      >
-                        <ArrowRight className="w-4 h-4" />
-                        {language === "fr" ? "Voir mes résultats →" : "See my results →"}
-                      </Button>
-                    </motion.div>
-                  )}
-
-                  {/* Step 5: Qualified Result — Conditional CTA (Green/Yellow/Red) */}
-                  {flowStep === 'qualifiedResult' && qualOutcome && (
-                    <motion.div
-                      key="qualifiedResult"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="space-y-4"
-                    >
-                      {/* GREEN */}
-                      {qualOutcome.color === 'green' && (
-                        <div className="text-center space-y-4">
-                          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
-                            <CheckCircle2 className="w-8 h-8 text-green-600" />
-                          </div>
-                          <h3 className="text-xl font-bold text-green-700">
-                            {language === "fr" ? "Excellent potentiel solaire!" : "Excellent solar potential!"}
-                          </h3>
-                          <p className="text-sm text-muted-foreground">
-                            {language === "fr"
-                              ? "Votre bâtiment a toutes les conditions réunies pour un projet solaire rentable."
-                              : "Your building meets all conditions for a profitable solar project."}
-                          </p>
-                          <a
-                            href={import.meta.env.VITE_CALENDLY_URL || 'https://calendly.com/kwh-quebec/decouverte'}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-2 px-6 py-3 rounded-lg text-white font-semibold transition-opacity hover:opacity-90 bg-green-600"
-                          >
-                            <Calendar className="w-4 h-4" />
-                            {language === "fr" ? "Réserver mon appel découverte (10 min) →" : "Book my discovery call (10 min) →"}
-                          </a>
-                          <button onClick={handleDetailedPath} className="block w-full text-sm text-primary hover:underline">
-                            {language === "fr" ? "Ou voir mon analyse complète" : "Or view my complete analysis"}
-                          </button>
-                        </div>
-                      )}
-
-                      {/* YELLOW */}
-                      {qualOutcome.color === 'yellow' && (
-                        <div className="text-center space-y-4">
-                          <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto">
-                            <Info className="w-8 h-8 text-amber-600" />
-                          </div>
-                          <h3 className="text-xl font-bold text-amber-700">
-                            {language === "fr" ? "Bon potentiel — quelques points à clarifier" : "Good potential — a few points to clarify"}
-                          </h3>
-                          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-left space-y-1">
-                            {qualOutcome.blockers.map((b, i) => (
-                              <p key={i} className="text-sm text-amber-900">• {language === "fr" ? b.messageFr : b.messageEn}</p>
-                            ))}
-                          </div>
-                          <a
-                            href={import.meta.env.VITE_CALENDLY_URL || 'https://calendly.com/kwh-quebec/decouverte'}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-2 px-6 py-3 rounded-lg text-white font-semibold transition-opacity hover:opacity-90"
-                            style={{ backgroundColor: '#003DA6' }}
-                          >
-                            <Calendar className="w-4 h-4" />
-                            {language === "fr" ? "Réserver mon appel découverte (10 min) →" : "Book my discovery call (10 min) →"}
-                          </a>
-                          <p className="text-xs text-muted-foreground">
-                            {language === "fr"
-                              ? "Nos experts vous aideront à résoudre ces points"
-                              : "Our experts will help resolve these points"}
-                          </p>
-                          <button onClick={handleDetailedPath} className="block w-full text-sm text-primary hover:underline">
-                            {language === "fr" ? "Ou voir mon analyse complète" : "Or view my complete analysis"}
-                          </button>
-                        </div>
-                      )}
-
-                      {/* RED */}
-                      {qualOutcome.color === 'red' && (
-                        <div className="text-center space-y-4">
-                          <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto">
-                            <Info className="w-8 h-8 text-slate-500" />
-                          </div>
-                          <h3 className="text-lg font-bold">
-                            {language === "fr"
-                              ? "Le solaire n'est pas optimal pour vous en ce moment"
-                              : "Solar isn't optimal for you right now"}
-                          </h3>
-                          <p className="text-sm text-muted-foreground">
-                            {language === "fr"
-                              ? "Mais voici ce qui pourrait changer la donne:"
-                              : "But here's what could change that:"}
-                          </p>
-                          <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-left space-y-3">
-                            {qualOutcome.blockers.map((b, i) => (
-                              <div key={i} className="text-sm">
-                                <p className="font-semibold text-slate-800">• {language === "fr" ? b.messageFr : b.messageEn}</p>
-                                <p className="text-slate-600 ml-4 text-xs italic">
-                                  {language === "fr" ? "→ " : "→ "}{language === "fr" ? b.actionFr : b.actionEn}
-                                </p>
-                              </div>
-                            ))}
-                          </div>
-                          <p className="text-sm text-muted-foreground">
-                            {language === "fr"
-                              ? "Quand ces points seront réglés, n'hésitez pas à nous recontacter."
-                              : "When these points are resolved, don't hesitate to reach out again."}
-                          </p>
-                          <Button
-                            variant="outline"
-                            onClick={() => {
-                              toast({
-                                title: language === "fr" ? "Merci!" : "Thank you!",
-                                description: language === "fr"
-                                  ? "Vous recevrez nos conseils et mises à jour par courriel."
-                                  : "You'll receive our tips and updates by email.",
-                              });
-                            }}
-                            className="gap-2"
-                          >
-                            <Mail className="w-4 h-4" />
-                            {language === "fr" ? "Restez informé — recevez nos conseils" : "Stay informed — get our tips"}
-                          </Button>
-                          <button onClick={resetFlow} className="w-full text-sm text-muted-foreground hover:underline">
-                            {language === "fr" ? "Nouvelle analyse" : "New analysis"}
-                          </button>
-                        </div>
-                      )}
-                    </motion.div>
-                  )}
-
-                  {/* Manual entry */}
-                  {flowStep === 'manualEntry' && (
-                    <motion.div
-                      key="manualEntry"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="space-y-4"
-                    >
-                      <div className="text-center space-y-1">
-                        <h3 className="text-lg font-semibold">
-                          {language === "fr" ? "Entrez vos informations" : "Enter your information"}
-                        </h3>
-                        <p className="text-sm text-muted-foreground">
-                          {language === "fr" 
-                            ? "Trouvez votre consommation sur votre facture Hydro-Québec" 
-                            : "Find your consumption on your Hydro-Québec bill"}
-                        </p>
-                      </div>
-                      
-                      <div className="space-y-3">
-                        <div>
-                          <label className="text-sm text-muted-foreground">
-                            {language === "fr" ? "Consommation annuelle (kWh)" : "Annual consumption (kWh)"}
-                          </label>
-                          <Input
-                            type="number"
-                            placeholder="ex: 150000"
-                            value={manualKwh}
-                            onChange={(e) => setManualKwh(e.target.value)}
-                            className="text-center text-lg"
-                            data-testid="input-manual-kwh"
-                          />
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          <Input
-                            type="text"
-                            placeholder={language === "fr" ? "Nom de l'entreprise *" : "Company name *"}
-                            value={quickCompany}
-                            onChange={(e) => setQuickCompany(e.target.value)}
-                            data-testid="input-manual-company"
-                          />
-                          <Input
-                            type="email"
-                            placeholder={language === "fr" ? "Courriel *" : "Email *"}
-                            value={quickEmail}
-                            onChange={(e) => setQuickEmail(e.target.value)}
-                            data-testid="input-manual-email"
-                          />
-                          <Input
-                            type="tel"
-                            placeholder={language === "fr" ? "Téléphone (optionnel)" : "Phone (optional)"}
-                            value={quickPhone}
-                            onChange={(e) => setQuickPhone(e.target.value)}
-                            data-testid="input-manual-phone"
-                          />
-                          <Input
-                            type="text"
-                            placeholder={language === "fr" ? "Adresse du bâtiment *" : "Building address *"}
-                            value={quickAddress}
-                            onChange={(e) => setQuickAddress(e.target.value)}
-                            data-testid="input-manual-address"
-                          />
-                        </div>
-                        <Button 
-                          onClick={handleQuickAnalysis}
-                          disabled={quickAnalysisMutation.isPending || !manualKwh || !quickEmail || !quickCompany}
-                          className="w-full gap-2"
-                          data-testid="button-submit-manual"
-                        >
-                          {quickAnalysisMutation.isPending ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <ArrowRight className="w-4 h-4" />
-                          )}
-                          {language === "fr" ? "Voir mon potentiel solaire" : "See my solar potential"}
-                        </Button>
-                      </div>
-                      
-                      <div className="text-center">
-                        <button onClick={() => setFlowStep('upload')} className="text-sm text-muted-foreground hover:underline">
-                          ← {language === "fr" ? "Téléverser une facture" : "Upload a bill"}
-                        </button>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </CardContent>
-            </Card>
-            
-            {/* Trust badges below card */}
-            <div className="flex flex-wrap justify-center gap-4 text-sm text-muted-foreground">
-              <div className="flex items-center gap-1.5">
-                <Shield className="w-4 h-4 text-primary" />
-                <span>{language === "fr" ? "Données sécurisées" : "Secure data"}</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Award className="w-4 h-4 text-primary" />
-                <span>{language === "fr" ? "20+ ans d'expérience" : "20+ years experience"}</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <CheckCircle2 className="w-4 h-4 text-primary" />
-                <span>{language === "fr" ? "100% gratuit" : "100% free"}</span>
-              </div>
-            </div>
+            <AnalysisFlowCard />
           </motion.div>
         </div>
       </section>
 
       {/* ========== FULL PROCESS SECTION ========== */}
-      <section id="process" className="py-16 px-4 sm:px-6 lg:px-8">
+      <section id="process" className="py-20 md:py-24 px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto">
           <motion.div
             className="text-center mb-16"
@@ -1543,7 +414,7 @@ export default function LandingPage() {
                               <h3 className="font-semibold text-sm text-foreground">{stepDisplay}</h3>
                               {tl.duration && (
                                 <Badge variant="secondary" className="text-xs mt-1.5">
-                                  <Clock className="w-3 h-3 mr-1" />
+                                  <Clock aria-hidden="true" className="w-3 h-3 mr-1" />
                                   {tl.duration}
                                 </Badge>
                               )}
@@ -1683,7 +554,7 @@ export default function LandingPage() {
               <a href="#analyse">
                 <Button size="lg" className="gap-2" data-testid="button-start-journey">
                   {language === "fr" ? "Voir mon potentiel solaire — Gratuit" : "See my solar potential — Free"}
-                  <ArrowRight className="w-4 h-4" />
+                  <ArrowRight aria-hidden="true" className="w-4 h-4" />
                 </Button>
               </a>
             </div>
@@ -1694,7 +565,7 @@ export default function LandingPage() {
       {(() => {
         const whySolarContent = getWhySolarNow(language as "fr" | "en");
         return (
-          <section id="why-now" className="py-16 px-4 sm:px-6 lg:px-8" data-testid="section-why-now">
+          <section id="why-now" className="py-20 md:py-24 px-4 sm:px-6 lg:px-8" data-testid="section-why-now">
             <div className="max-w-6xl mx-auto">
               <motion.div
                 className="text-center mb-12"
@@ -1703,7 +574,7 @@ export default function LandingPage() {
                 viewport={{ once: true }}
               >
                 <div className="flex items-center justify-center gap-3 mb-4">
-                  <Sun className="w-8 h-8" style={{ color: BRAND.accentGold }} />
+                  <Sun aria-hidden="true" className="w-8 h-8" style={{ color: BRAND.accentGold }} />
                   <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold" data-testid="text-why-now-title">
                     {whySolarContent.sectionTitle}
                   </h2>
@@ -1724,7 +595,7 @@ export default function LandingPage() {
                       <ul className="space-y-3">
                         {whySolarContent.beforeReasons.map((reason, idx) => (
                           <li key={idx} className="flex items-start gap-3" data-testid={`text-before-reason-${idx}`}>
-                            <XCircle className="w-5 h-5 text-red-600 mt-0.5 shrink-0" />
+                            <XCircle aria-hidden="true" className="w-5 h-5 text-red-600 mt-0.5 shrink-0" />
                             <span className="text-sm text-muted-foreground">{reason}</span>
                           </li>
                         ))}
@@ -1747,7 +618,7 @@ export default function LandingPage() {
                       <ul className="space-y-3">
                         {whySolarContent.nowReasons.map((reason, idx) => (
                           <li key={idx} className="flex items-start gap-3" data-testid={`text-now-reason-${idx}`}>
-                            <CheckCircle2 className="w-5 h-5 text-[#16A34A] mt-0.5 shrink-0" />
+                            <CheckCircle2 aria-hidden="true" className="w-5 h-5 text-[#16A34A] mt-0.5 shrink-0" />
                             <span className="text-sm">{reason}</span>
                           </li>
                         ))}
@@ -1764,7 +635,7 @@ export default function LandingPage() {
                 viewport={{ once: true }}
               >
                 <div className="flex items-center justify-center gap-3 mb-2">
-                  <Snowflake className="w-6 h-6 text-blue-500" />
+                  <Snowflake aria-hidden="true" className="w-6 h-6 text-blue-500" />
                   <h3 className="text-xl sm:text-2xl font-bold" data-testid="text-winter-title">
                     {whySolarContent.winterTitle}
                   </h3>
@@ -1810,8 +681,59 @@ export default function LandingPage() {
           </section>
         );
       })()}
+      {/* ========== EXPLORE SECTION ========== */}
+      <section className="py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto">
+          <div className="grid sm:grid-cols-2 gap-6">
+            <Link href="/stockage-energie">
+              <Card className="h-full hover-elevate cursor-pointer" data-testid="link-landing-stockage">
+                <CardContent className="p-6 flex items-start gap-4">
+                  <div className="p-3 rounded-xl bg-primary/10 shrink-0">
+                    <BatteryCharging aria-hidden="true" className="w-6 h-6 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold mb-1">
+                      {language === "fr" ? "Stockage par batterie" : "Battery Storage"}
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      {language === "fr"
+                        ? "Écrêtage de pointe, alimentation de secours et intégration solaire+batterie."
+                        : "Peak shaving, backup power, and solar+battery integration."}
+                    </p>
+                    <span className="inline-flex items-center gap-1 mt-2 text-sm font-medium text-primary">
+                      {language === "fr" ? "En savoir plus" : "Learn more"} <ArrowRight aria-hidden="true" className="w-3.5 h-3.5" />
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+            <Link href="/portfolio">
+              <Card className="h-full hover-elevate cursor-pointer" data-testid="link-landing-portfolio">
+                <CardContent className="p-6 flex items-start gap-4">
+                  <div className="p-3 rounded-xl bg-primary/10 shrink-0">
+                    <Building2 aria-hidden="true" className="w-6 h-6 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold mb-1">
+                      {language === "fr" ? "Nos projets" : "Our Projects"}
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      {language === "fr"
+                        ? "Découvrez notre portfolio de projets solaires commerciaux et industriels au Québec."
+                        : "Explore our portfolio of commercial and industrial solar projects in Quebec."}
+                    </p>
+                    <span className="inline-flex items-center gap-1 mt-2 text-sm font-medium text-primary">
+                      {language === "fr" ? "Voir le portfolio" : "View portfolio"} <ArrowRight aria-hidden="true" className="w-3.5 h-3.5" />
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+          </div>
+        </div>
+      </section>
       {/* ========== FAQ SECTION ========== */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-muted/30">
+      <section className="py-20 md:py-24 px-4 sm:px-6 lg:px-8 bg-muted/30">
         <div className="max-w-3xl mx-auto">
           <motion.div
             className="text-center mb-12"
@@ -1842,11 +764,8 @@ export default function LandingPage() {
                 { id: 1, slug: "calculer-rentabilite-projet-solaire" },
                 { id: 2, slug: "incitatifs-solaires-quebec-2026" },
                 { id: 3, slug: "programme-autoproduction-hydro-quebec-2026" },
-                { id: 4, slug: "comprendre-facture-hydro-quebec" },
-                { id: 5, slug: "telecharger-donnees-espace-client-hydro-quebec" },
                 { id: 6, slug: "solaire-commercial-vs-residentiel" },
                 { id: 7, slug: "solaire-valeur-immobiliere-commercial" },
-                { id: 8, slug: "etude-de-cas-projet-solaire-industriel" },
               ]).map(({ id: i, slug }) => (
                 <AccordionItem
                   key={`item${i}`}
@@ -1862,18 +781,27 @@ export default function LandingPage() {
                     <p>{t(`faq.item${i}.answer`)}</p>
                     <Link href={`/blog/${slug}`}>
                       <span className="inline-flex items-center gap-1 mt-3 text-sm font-medium hover:underline" style={{ color: BRAND.primaryBlue }} data-testid={`link-faq-blog-${i}`}>
-                        {language === "fr" ? "En savoir plus" : "Learn more"} <ArrowRight className="w-3.5 h-3.5" />
+                        {language === "fr" ? "En savoir plus" : "Learn more"} <ArrowRight aria-hidden="true" className="w-3.5 h-3.5" />
                       </span>
                     </Link>
                   </AccordionContent>
                 </AccordionItem>
               ))}
             </Accordion>
+
+            <div className="text-center mt-8">
+              <Link href="/ressources?tab=faq">
+                <Button variant="outline" className="gap-2" data-testid="link-faq-see-all">
+                  {language === "fr" ? "Voir toutes les FAQ" : "See all FAQs"}
+                  <ArrowRight aria-hidden="true" className="w-4 h-4" />
+                </Button>
+              </Link>
+            </div>
           </motion.div>
         </div>
       </section>
       {/* ========== CREDIBILITY SECTION (Values + Team) ========== */}
-      <section id="credibility" className="py-16 px-4 sm:px-6 lg:px-8 bg-muted/30" data-testid="section-credibility">
+      <section id="credibility" className="py-20 md:py-24 px-4 sm:px-6 lg:px-8 bg-muted/30" data-testid="section-credibility">
         <div className="max-w-6xl mx-auto">
           <motion.div
             className="text-center mb-10"
@@ -1901,49 +829,49 @@ export default function LandingPage() {
           >
             <div className="text-center p-4 rounded-xl bg-background border" data-testid="value-simplicity">
               <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-primary/10 flex items-center justify-center">
-                <Zap className="w-5 h-5 text-primary" />
+                <Zap aria-hidden="true" className="w-5 h-5 text-primary" />
               </div>
               <h4 className="font-semibold text-sm mb-1">
                 {language === "fr" ? "Simplicité" : "Simplicity"}
               </h4>
               <p className="text-xs text-muted-foreground">
-                {language === "fr" ? "Un seul interlocuteur de A à Z. Zéro complexité pour vous." : "One point of contact from A to Z. Zero complexity for you."}
+                {language === "fr" ? "Solution clé en main — on s'occupe de tout !" : "Turnkey solution — we handle everything!"}
               </p>
             </div>
 
             <div className="text-center p-4 rounded-xl bg-background border" data-testid="value-reliability">
               <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-primary/10 flex items-center justify-center">
-                <Shield className="w-5 h-5 text-primary" />
+                <Shield aria-hidden="true" className="w-5 h-5 text-primary" />
               </div>
               <h4 className="font-semibold text-sm mb-1">
                 {language === "fr" ? "Fiabilité" : "Reliability"}
               </h4>
               <p className="text-xs text-muted-foreground">
-                {language === "fr" ? "Équipements certifiés, entrepreneur licencié RBQ." : "Certified equipment, RBQ licensed contractor."}
+                {language === "fr" ? "Performance garantie. On respecte nos engagements, toujours !" : "Guaranteed performance. We keep our commitments, always!"}
               </p>
             </div>
 
-            <div className="text-center p-4 rounded-xl bg-background border" data-testid="value-longevity">
+            <div className="text-center p-4 rounded-xl bg-background border" data-testid="value-sustainability">
               <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-primary/10 flex items-center justify-center">
-                <TrendingUp className="w-5 h-5 text-primary" />
+                <TrendingUp aria-hidden="true" className="w-5 h-5 text-primary" />
               </div>
               <h4 className="font-semibold text-sm mb-1">
-                {language === "fr" ? "Longévité" : "Longevity"}
+                {language === "fr" ? "Pérennité" : "Sustainability"}
               </h4>
               <p className="text-xs text-muted-foreground">
-                {language === "fr" ? "Systèmes conçus pour 25+ ans de performance garantie." : "Systems designed for 25+ years of guaranteed performance."}
+                {language === "fr" ? "On bâtit des relations et des solutions pour le long terme." : "We build relationships and solutions for the long term."}
               </p>
             </div>
 
             <div className="text-center p-4 rounded-xl bg-background border" data-testid="value-pride">
               <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-primary/10 flex items-center justify-center">
-                <Award className="w-5 h-5 text-primary" />
+                <Award aria-hidden="true" className="w-5 h-5 text-primary" />
               </div>
               <h4 className="font-semibold text-sm mb-1">
                 {language === "fr" ? "Fierté" : "Pride"}
               </h4>
               <p className="text-xs text-muted-foreground">
-                {language === "fr" ? "Entreprise québécoise. Contribution à la transition énergétique locale." : "Quebec company. Contributing to the local energy transition."}
+                {language === "fr" ? "On est fier des projets que nous réalisons et de l'impact qu'ils ont sur nos clients et sur l'environnement." : "We're proud of the projects we deliver and the impact they have on our clients and the environment."}
               </p>
             </div>
           </motion.div>
@@ -1961,7 +889,7 @@ export default function LandingPage() {
                 {language === "fr" ? "ans" : "years"}
               </p>
               <p className="text-xs sm:text-sm text-muted-foreground">
-                {language === "fr" ? "d'expérience" : "experience"}
+                {language === "fr" ? "d'expérience cumulée en énergie" : "combined energy experience"}
               </p>
             </div>
 
@@ -2037,28 +965,28 @@ export default function LandingPage() {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex items-center gap-2 p-2 rounded-lg bg-background border text-sm">
-                    <HardHat className="w-4 h-4 text-primary shrink-0" />
+                    <HardHat aria-hidden="true" className="w-4 h-4 text-primary shrink-0" />
                     <div>
                       <p className="font-medium text-xs">{language === "fr" ? "Installation" : "Installation"}</p>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2 p-2 rounded-lg bg-background border text-sm">
-                    <FileCheck className="w-4 h-4 text-primary shrink-0" />
+                    <FileCheck aria-hidden="true" className="w-4 h-4 text-primary shrink-0" />
                     <div>
                       <p className="font-medium text-xs">{language === "fr" ? "Ingénierie" : "Engineering"}</p>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2 p-2 rounded-lg bg-background border text-sm">
-                    <ClipboardCheck className="w-4 h-4 text-primary shrink-0" />
+                    <ClipboardCheck aria-hidden="true" className="w-4 h-4 text-primary shrink-0" />
                     <div>
                       <p className="font-medium text-xs">{language === "fr" ? "Gestion" : "Management"}</p>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2 p-2 rounded-lg bg-background border text-sm">
-                    <Wrench className="w-4 h-4 text-primary shrink-0" />
+                    <Wrench aria-hidden="true" className="w-4 h-4 text-primary shrink-0" />
                     <div>
                       <p className="font-medium text-xs">{language === "fr" ? "Maintenance" : "Maintenance"}</p>
                     </div>
@@ -2067,12 +995,12 @@ export default function LandingPage() {
 
                 <div className="flex flex-wrap gap-2 pt-2">
                   <Badge className="bg-primary/10 text-primary border-primary/20 text-xs">
-                    <Shield className="w-3 h-3 mr-1" />
+                    <Shield aria-hidden="true" className="w-3 h-3 mr-1" />
                     {language === "fr" ? "Licence RBQ" : "RBQ Licensed"}
                   </Badge>
                   <Badge className="bg-primary/10 text-primary border-primary/20 text-xs">
-                    <Award className="w-3 h-3 mr-1" />
-                    {language === "fr" ? "15+ ans" : "15+ yrs"}
+                    <Award aria-hidden="true" className="w-3 h-3 mr-1" />
+                    {language === "fr" ? "15+ ans cumulés en énergie" : "15+ yrs combined energy exp."}
                   </Badge>
                 </div>
               </motion.div>
@@ -2087,22 +1015,22 @@ export default function LandingPage() {
             className="flex flex-wrap justify-center gap-x-6 gap-y-2 mb-12 py-6 border-y"
           >
             <div className="flex items-center gap-2" data-testid="strength-rbq">
-              <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
+              <CheckCircle2 aria-hidden="true" className="w-5 h-5 text-green-500 shrink-0" />
               <span className="text-sm"><span className="font-medium">{language === "fr" ? "RBQ" : "RBQ"}</span></span>
             </div>
 
             <div className="flex items-center gap-2" data-testid="strength-financing">
-              <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
+              <CheckCircle2 aria-hidden="true" className="w-5 h-5 text-green-500 shrink-0" />
               <span className="text-sm"><span className="font-medium">{language === "fr" ? "Financement flexible" : "Flexible financing"}</span></span>
             </div>
 
             <div className="flex items-center gap-2" data-testid="strength-coverage">
-              <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
+              <CheckCircle2 aria-hidden="true" className="w-5 h-5 text-green-500 shrink-0" />
               <span className="text-sm font-medium">{language === "fr" ? "Partout au Québec" : "All Quebec"}</span>
             </div>
 
             <div className="flex items-center gap-2" data-testid="strength-warranty">
-              <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
+              <CheckCircle2 aria-hidden="true" className="w-5 h-5 text-green-500 shrink-0" />
               <span className="text-sm"><span className="font-medium">{language === "fr" ? "Garantie 25 ans" : "25-yr warranty"}</span></span>
             </div>
           </motion.div>
@@ -2110,7 +1038,7 @@ export default function LandingPage() {
         </div>
       </section>
       {/* ========== CONTACT SECTION (Merged: Expert + Final Contact) ========== */}
-      <section id="contact" className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-primary/5 to-primary/10" data-testid="section-contact">
+      <section id="contact" className="py-20 md:py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-primary/5 to-primary/10" data-testid="section-contact">
         <div className="max-w-4xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -2121,7 +1049,7 @@ export default function LandingPage() {
             {/* Header */}
             <div className="text-center space-y-3">
               <div className="flex items-center justify-center gap-3 mb-4">
-                <Phone className="w-8 h-8 text-primary" />
+                <Phone aria-hidden="true" className="w-8 h-8 text-primary" />
                 <h2 className="text-3xl sm:text-4xl font-bold" data-testid="contact-title">
                   {language === "fr" ? "Contactez-nous" : "Contact us"}
                 </h2>
@@ -2148,7 +1076,7 @@ export default function LandingPage() {
               </div>
             ) : (
               <Card className="p-8 text-center space-y-4">
-                <Phone className="w-12 h-12 text-primary mx-auto opacity-50" />
+                <Phone aria-hidden="true" className="w-12 h-12 text-primary mx-auto opacity-50" />
                 <p className="text-muted-foreground">{t("expert.calendlyPlaceholder")}</p>
                 <Badge variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 text-xs mb-2">
                   {language === "fr" ? "SANS FRAIS · Sans engagement" : "NO COST · No commitment"}
@@ -2167,13 +1095,13 @@ export default function LandingPage() {
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <a href="mailto:info@kwh.quebec">
                   <Button variant="outline" size="lg" className="gap-2" data-testid="button-email-contact">
-                    <Mail className="w-4 h-4" />
+                    <Mail aria-hidden="true" className="w-4 h-4" />
                     info@kwh.quebec
                   </Button>
                 </a>
                 <a href="tel:+15144278871">
                   <Button variant="outline" size="lg" className="gap-2" data-testid="button-phone-contact">
-                    <Phone className="w-4 h-4" />
+                    <Phone aria-hidden="true" className="w-4 h-4" />
                     514.427.8871
                   </Button>
                 </a>
@@ -2187,7 +1115,7 @@ export default function LandingPage() {
               <div className="flex justify-center mt-3">
                 <a href="#analyse">
                   <Button variant="ghost" className="gap-1 text-primary" data-testid="button-back-to-paths">
-                    <ChevronUp className="w-4 h-4" />
+                    <ChevronUp aria-hidden="true" className="w-4 h-4" />
                     {language === "fr" ? "Retour aux options d'analyse" : "Back to analysis options"}
                   </Button>
                 </a>
@@ -2196,40 +1124,8 @@ export default function LandingPage() {
           </motion.div>
         </div>
       </section>
-      {/* ========== FOOTER ========== */}
-      <footer className="py-8 px-4 sm:px-6 lg:px-8 border-t bg-muted/30" role="contentinfo">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <img
-                src={currentLogo}
-                alt={language === "fr" ? "Logo kWh Québec – Énergie solaire commerciale" : "kWh Québec Logo – Commercial Solar Energy"}
-                className="h-8 w-auto"
-                loading="lazy"
-                decoding="async"
-              />
-              <span className="text-sm text-muted-foreground">
-                © {new Date().getFullYear()} kWh Québec. {language === "fr" ? "Tous droits réservés." : "All rights reserved."}
-              </span>
-            </div>
-            
-            <div className="flex items-center gap-6 text-sm text-muted-foreground flex-wrap">
-              <a href="#analyse" className="hover:text-foreground transition-colors">
-                {language === "fr" ? "Analyser" : "Analyze"}
-              </a>
-              <Link href="/ressources" className="hover:text-foreground transition-colors">
-                {language === "fr" ? "Ressources" : "Resources"}
-              </Link>
-              <Link href="/privacy" className="hover:text-foreground transition-colors" data-testid="link-privacy">
-                {language === "fr" ? "Confidentialité" : "Privacy"}
-              </Link>
-              <a href="mailto:info@kwh.quebec" className="hover:text-foreground transition-colors">
-                {t("footer.contact")}
-              </a>
-            </div>
-          </div>
-        </div>
-      </footer>
+      </main>
+      <PublicFooter />
     </div>
   );
 }

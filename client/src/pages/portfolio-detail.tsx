@@ -4,7 +4,7 @@ import { useParams, Link } from "wouter";
 import { 
   ArrowLeft, Building2, Plus, Trash2, Calculator, FileText,
   Zap, Battery, DollarSign, TrendingUp, Leaf, Download, Loader2,
-  ChevronDown, ChevronUp, Pencil, Check, X,
+  Pencil, Check, X,
   FileSignature, Send, Mail
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -18,11 +18,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { 
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow 
 } from "@/components/ui/table";
-import { 
-  Collapsible, CollapsibleContent, CollapsibleTrigger 
-} from "@/components/ui/collapsible";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { useI18n } from "@/lib/i18n";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -393,7 +389,6 @@ export default function PortfolioDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { language } = useI18n();
   const { toast } = useToast();
-  const [pricingOpen, setPricingOpen] = useState(true);
   const [exportingSheets, setExportingSheets] = useState(false);
 
   // Single optimized query that fetches portfolio, sites, and pre-calculated KPIs
@@ -539,7 +534,7 @@ export default function PortfolioDetailPage() {
   }
 
   const existingSiteIds = portfolioSites.map(ps => ps.siteId);
-  const quotedCosts = portfolio.quotedCosts as any || {};
+
   
   // Use pre-calculated KPIs from server (fresh) with fallback to stored values
   const numBuildings = kpis?.numBuildings || portfolio.numBuildings || 0;
@@ -661,78 +656,6 @@ export default function PortfolioDetailPage() {
           value={String(numBuildings)}
         />
       </div>
-
-      <Collapsible open={pricingOpen} onOpenChange={setPricingOpen}>
-        <Card>
-          <CollapsibleTrigger asChild>
-            <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-lg">
-                    {language === "fr" ? "Tarification services d'évaluation" : "Assessment Services Pricing"}
-                  </CardTitle>
-                  <CardDescription>
-                    {language === "fr" 
-                      ? "Visite de site, évaluation et schémas unifilaires" 
-                      : "Site visit, evaluation and single-line diagrams"}
-                  </CardDescription>
-                </div>
-                <div className="flex items-center gap-4">
-                  <span className="text-xl font-bold text-primary">
-                    {formatCurrency(quotedCosts.total || portfolio.totalCad)}
-                  </span>
-                  {pricingOpen ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-                </div>
-              </div>
-            </CardHeader>
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <CardContent className="pt-0">
-              <div className="space-y-3 text-sm">
-                <div className="flex justify-between py-2 border-b">
-                  <span>{language === "fr" ? "Frais de déplacement" : "Travel costs"} ({portfolio.estimatedTravelDays} {language === "fr" ? "jours" : "days"})</span>
-                  <span>{formatCurrency(quotedCosts.travel)}</span>
-                </div>
-                <div className="flex justify-between py-2 border-b">
-                  <span>{language === "fr" ? "Visites de site" : "Site visits"} ({numBuildings} × 600$)</span>
-                  <span>{formatCurrency(quotedCosts.visit)}</span>
-                </div>
-                <div className="flex justify-between py-2 border-b">
-                  <span>{language === "fr" ? "Évaluation technique" : "Technical evaluation"} ({numBuildings} × 1 000$)</span>
-                  <span>{formatCurrency(quotedCosts.evaluation)}</span>
-                </div>
-                <div className="flex justify-between py-2 border-b">
-                  <span>{language === "fr" ? "Schémas unifilaires" : "Single-line diagrams"} ({numBuildings} × 1 900$)</span>
-                  <span>{formatCurrency(quotedCosts.diagrams)}</span>
-                </div>
-                {volumeDiscount > 0 && (
-                  <div className="flex justify-between py-2 border-b text-green-600 dark:text-green-400">
-                    <span>{language === "fr" ? "Rabais volume" : "Volume discount"} (-{formatPercent(volumeDiscount)})</span>
-                    <span>-{formatCurrency(quotedCosts.discount)}</span>
-                  </div>
-                )}
-                <div className="flex justify-between py-2 border-b font-medium">
-                  <span>{language === "fr" ? "Sous-total" : "Subtotal"}</span>
-                  <span>{formatCurrency(quotedCosts.subtotal)}</span>
-                </div>
-                <div className="flex justify-between py-1 text-muted-foreground">
-                  <span>TPS (5%)</span>
-                  <span>{formatCurrency(quotedCosts.taxes?.gst)}</span>
-                </div>
-                <div className="flex justify-between py-1 text-muted-foreground">
-                  <span>TVQ (9.975%)</span>
-                  <span>{formatCurrency(quotedCosts.taxes?.qst)}</span>
-                </div>
-                <Separator />
-                <div className="flex justify-between py-2 text-lg font-bold">
-                  <span>Total</span>
-                  <span className="text-primary">{formatCurrency(quotedCosts.total)}</span>
-                </div>
-              </div>
-            </CardContent>
-          </CollapsibleContent>
-        </Card>
-      </Collapsible>
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between gap-4">

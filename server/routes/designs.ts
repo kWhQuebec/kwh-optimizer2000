@@ -49,7 +49,9 @@ router.get("/api/simulation-runs/:id/full", authMiddleware, asyncHandler(async (
   if (!run) {
     throw new NotFoundError("Simulation run");
   }
-  res.json(run);
+  const meterFiles = await storage.getMeterFiles(run.siteId);
+  const isSynthetic = meterFiles.length === 0 || meterFiles.every(f => f.isSynthetic === true);
+  res.json({ ...run, isSynthetic });
 }));
 
 router.get("/api/simulation-runs/:id/report-pdf", authMiddleware, asyncHandler(async (req: AuthRequest, res) => {

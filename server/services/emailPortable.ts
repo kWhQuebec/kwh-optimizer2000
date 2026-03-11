@@ -11,6 +11,8 @@
  * Fallback chain: Resend → SMTP (if configured) → log warning
  */
 
+import { emailBaseLayout } from '../emailTemplates';
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export interface EmailOptions {
@@ -192,29 +194,27 @@ export async function sendEmail(opts: EmailOptions): Promise<EmailResult> {
 
 // ─── Convenience Functions ──────────────────────────────────────────────────
 
-/** Send a proposal email with PDF attachment */
+/** Send a proposal email with PDF attachment — uses unified branded template */
 export async function sendProposalEmail(
   clientEmail: string,
   clientName: string,
   projectName: string,
   pdfBuffer: Buffer
 ): Promise<EmailResult> {
+  const bodyContent = `
+    <h2>Bonjour${clientName ? ' ' + clientName : ''},</h2>
+    <p>Veuillez trouver ci-joint votre proposition solaire pour <strong>${projectName}</strong>.</p>
+    <div class="highlight">
+      <p>Ce document présente une analyse complète incluant le dimensionnement du système, les économies projetées et le retour sur investissement estimé.</p>
+    </div>
+    <p>N'hésitez pas à nous contacter pour toute question ou pour planifier une rencontre.</p>
+    <p style="margin-top:24px;">L'équipe kWh Québec</p>
+  `;
+
   return sendEmail({
     to: clientEmail,
     subject: `Votre proposition solaire — ${projectName} | kWh Québec`,
-    htmlBody: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px;">
-        <h2>Bonjour ${clientName},</h2>
-        <p>Veuillez trouver ci-joint votre proposition solaire pour <strong>${projectName}</strong>.</p>
-        <p>N'hésitez pas à nous contacter pour toute question.</p>
-        <br/>
-        <p>L'équipe kWh Québec</p>
-        <hr style="border: none; border-top: 1px solid #eee;" />
-        <p style="font-size: 12px; color: #999;">
-          kWh Québec — Solutions solaires commerciales
-        </p>
-      </div>
-    `,
+    htmlBody: emailBaseLayout(bodyContent, 'fr'),
     replyTo: 'info@kwh.quebec',
     attachments: [{
       filename: `Proposition-${projectName.replace(/\s+/g, '-')}.pdf`,
@@ -228,33 +228,34 @@ export async function sendProposalEmail(
   });
 }
 
-/** Send a Design Agreement payment confirmation */
+/** Send a Design Agreement payment confirmation — uses unified branded template */
 export async function sendDesignAgreementConfirmation(
   clientEmail: string,
   clientName: string,
   leadId: number
 ): Promise<EmailResult> {
+  const bodyContent = `
+    <h2>Merci${clientName ? ' ' + clientName : ''}!</h2>
+    <p>Nous confirmons la réception de votre paiement de <strong>2 500 $ CAD</strong> pour le Design Agreement.</p>
+    <div class="highlight">
+      <p>Ce montant sera <strong>crédité intégralement</strong> sur votre contrat EPC final.</p>
+    </div>
+    <h3>Prochaines étapes :</h3>
+    <ol style="padding-left:20px;line-height:1.8;">
+      <li>Visite de site (dans les 5 jours ouvrables)</li>
+      <li>Analyse structurale et électrique</li>
+      <li>Design solaire détaillé</li>
+      <li>Demande d'interconnexion Hydro-Québec</li>
+      <li>Offre ferme</li>
+    </ol>
+    <p>Référence : <strong>Lead #${leadId}</strong></p>
+    <p style="margin-top:24px;">L'équipe kWh Québec</p>
+  `;
+
   return sendEmail({
     to: clientEmail,
     subject: 'Confirmation Design Agreement — kWh Québec',
-    htmlBody: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px;">
-        <h2>Merci ${clientName}!</h2>
-        <p>Nous confirmons la réception de votre paiement de <strong>2 500 $ CAD</strong> pour le Design Agreement.</p>
-        <p>Ce montant sera <strong>crédité intégralement</strong> sur votre contrat EPC final.</p>
-        <h3>Prochaines étapes:</h3>
-        <ol>
-          <li>Visite de site (dans les 5 jours ouvrables)</li>
-          <li>Analyse structurale et électrique</li>
-          <li>Design solaire détaillé</li>
-          <li>Demande d'interconnexion Hydro-Québec</li>
-          <li>Offre ferme</li>
-        </ol>
-        <p>Référence: <strong>Lead #${leadId}</strong></p>
-        <br/>
-        <p>L'équipe kWh Québec</p>
-      </div>
-    `,
+    htmlBody: emailBaseLayout(bodyContent, 'fr'),
     replyTo: 'info@kwh.quebec',
     tags: [
       { name: 'type', value: 'design-agreement-confirmation' },

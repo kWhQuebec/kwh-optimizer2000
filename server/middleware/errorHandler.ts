@@ -2,6 +2,7 @@ import { Request, Response, NextFunction, RequestHandler } from "express";
 import { ZodError } from "zod";
 import { AuthRequest } from "./auth";
 import { createLogger } from "../lib/logger";
+import { trackError } from "../lib/errorMetrics";
 
 const log = createLogger("ErrorHandler");
 
@@ -83,6 +84,8 @@ export function errorHandler(
   _next: NextFunction
 ) {
   const authReq = req as AuthRequest;
+  
+  trackError(err instanceof AppError ? err.statusCode : 500, req.path, err.message);
   
   const logContext = {
     timestamp: new Date().toISOString(),

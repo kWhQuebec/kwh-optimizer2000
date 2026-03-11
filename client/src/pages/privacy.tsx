@@ -5,17 +5,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useI18n } from "@/lib/i18n";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LanguageToggle } from "@/components/language-toggle";
-import logoFr from "@assets/kWh_Quebec_Logo-01_-_Rectangulaire_1764799021536.png";
-import logoEn from "@assets/kWh_Quebec_Logo-02_-_Rectangle_1764799021536.png";
+import { PublicHeader, PublicFooter } from "@/components/public-header";
+import { SEOHead } from "@/components/seo-head";
 
 export default function PrivacyPage() {
   const { language } = useI18n();
-  const currentLogo = language === "fr" ? logoFr : logoEn;
 
   const content = {
     fr: {
       title: "Politique de confidentialité",
-      lastUpdated: "Dernière mise à jour: Janvier 2026",
+      lastUpdated: "Dernière mise à jour: Mars 2026",
       intro: "kWh Québec s'engage à protéger vos renseignements personnels conformément à la Loi 25 sur la protection des renseignements personnels dans le secteur privé du Québec.",
       sections: [
         {
@@ -78,7 +77,7 @@ export default function PrivacyPage() {
     },
     en: {
       title: "Privacy Policy",
-      lastUpdated: "Last updated: January 2026",
+      lastUpdated: "Last updated: March 2026",
       intro: "kWh Québec is committed to protecting your personal information in accordance with Quebec's Law 25 on the protection of personal information in the private sector.",
       sections: [
         {
@@ -145,17 +144,13 @@ export default function PrivacyPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur border-b">
-        <div className="container mx-auto px-4 py-3 flex items-center justify-between gap-4">
-          <Link href="/">
-            <img src={currentLogo} alt={language === "fr" ? "Logo kWh Québec – Énergie solaire commerciale" : "kWh Québec Logo – Commercial Solar Energy"} className="h-10 w-auto cursor-pointer" />
-          </Link>
-          <div className="flex items-center gap-2">
-            <LanguageToggle />
-            <ThemeToggle />
-          </div>
-        </div>
-      </header>
+      <SEOHead
+        title={language === "fr" ? "Politique de confidentialité | kWh Québec" : "Privacy Policy | kWh Québec"}
+        description={language === "fr" ? "Politique de confidentialité de kWh Québec. Protection de vos renseignements personnels conformément à la Loi 25 du Québec." : "kWh Québec privacy policy. Protection of your personal information in accordance with Quebec's Law 25."}
+        locale={language}
+        canonical="https://www.kwh.quebec/privacy"
+      />
+      <PublicHeader />
 
       <main className="container mx-auto px-4 py-8 max-w-4xl">
         <Link href="/">
@@ -233,11 +228,7 @@ export default function PrivacyPage() {
         </div>
       </main>
 
-      <footer className="border-t py-6 mt-12">
-        <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          <p>© {new Date().getFullYear()} kWh Québec. {language === "fr" ? "Tous droits réservés." : "All rights reserved."}</p>
-        </div>
-      </footer>
+      <PublicFooter />
     </div>
   );
 }

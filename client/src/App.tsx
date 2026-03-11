@@ -45,6 +45,7 @@ const AnalysesPage = lazy(() => import("@/pages/analyses"));
 const DesignPage = lazy(() => import("@/pages/design"));
 const DesignsPage = lazy(() => import("@/pages/designs"));
 const CatalogPage = lazy(() => import("@/pages/catalog"));
+const PricingCatalogPage = lazy(() => import("@/pages/pricing-catalog"));
 const MethodologyPage = lazy(() => import("@/pages/methodology"));
 const ClientPortalPage = lazy(() => import("@/pages/client-portal"));
 const UsersPage = lazy(() => import("@/pages/users"));
@@ -527,17 +528,21 @@ function AppRoutes() {
         </ProtectedRoute>
       </Route>
 
-      <Route path="/app/catalog">
+      {/* Unified Pricing & Catalog page (Q1 fusion) */}
+      <Route path="/app/pricing-catalog">
         <ProtectedRoute>
           <StaffRoute>
             <AppLayout>
               <Suspense fallback={<PageLoader />}>
-                <CatalogPage />
+                <PricingCatalogPage />
               </Suspense>
             </AppLayout>
           </StaffRoute>
         </ProtectedRoute>
       </Route>
+
+      {/* Legacy redirects → unified pricing-catalog */}
+      <Route path="/app/catalog">{() => <Redirect to="/app/pricing-catalog" />}</Route>
 
       <Route path="/app/methodology">
         <ProtectedRoute>
@@ -601,44 +606,10 @@ function AppRoutes() {
         </ProtectedRoute>
       </Route>
 
-      {/* Admin Market Intelligence */}
-      <Route path="/app/market-intelligence">
-        <ProtectedRoute>
-          <StaffRoute>
-            <AppLayout>
-              <Suspense fallback={<PageLoader />}>
-                <MarketIntelligencePage />
-              </Suspense>
-            </AppLayout>
-          </StaffRoute>
-        </ProtectedRoute>
-      </Route>
-
-      {/* Market Intelligence - Pricing */}
-      <Route path="/app/market-intelligence/pricing">
-        <ProtectedRoute>
-          <StaffRoute>
-            <AppLayout>
-              <Suspense fallback={<PageLoader />}>
-                <MarketIntelligencePricingPage />
-              </Suspense>
-            </AppLayout>
-          </StaffRoute>
-        </ProtectedRoute>
-      </Route>
-
-      {/* Admin Pricing Components */}
-      <Route path="/app/admin/pricing">
-        <ProtectedRoute>
-          <StaffRoute>
-            <AppLayout>
-              <Suspense fallback={<PageLoader />}>
-                <AdminPricingPage />
-              </Suspense>
-            </AppLayout>
-          </StaffRoute>
-        </ProtectedRoute>
-      </Route>
+      {/* Legacy redirects → unified pricing-catalog */}
+      <Route path="/app/market-intelligence">{() => <Redirect to="/app/pricing-catalog?tab=competitive" />}</Route>
+      <Route path="/app/market-intelligence/pricing">{() => <Redirect to="/app/pricing-catalog?tab=suppliers" />}</Route>
+      <Route path="/app/admin/pricing">{() => <Redirect to="/app/pricing-catalog?tab=pricing" />}</Route>
 
       {/* Admin Settings */}
       <Route path="/app/admin/settings">
@@ -666,18 +637,7 @@ function AppRoutes() {
         </ProtectedRoute>
       </Route>
 
-      {/* Admin News Curation */}
-      <Route path="/app/admin/news">
-        <ProtectedRoute>
-          <StaffRoute>
-            <AppLayout>
-              <Suspense fallback={<PageLoader />}>
-                <AdminNewsPage />
-              </Suspense>
-            </AppLayout>
-          </StaffRoute>
-        </ProtectedRoute>
-      </Route>
+      {/* Q5: Removed skeleton route — Admin News (rebuild when needed) */}
 
       {/* Admin Content Manager */}
       <Route path="/app/content-manager">
@@ -743,31 +703,7 @@ function AppRoutes() {
         </ProtectedRoute>
       </Route>
 
-      {/* Partnerships */}
-      <Route path="/app/partnerships">
-        <ProtectedRoute>
-          <StaffRoute>
-            <AppLayout>
-              <Suspense fallback={<PageLoader />}>
-                <PartnershipsPage />
-              </Suspense>
-            </AppLayout>
-          </StaffRoute>
-        </ProtectedRoute>
-      </Route>
-
-      {/* Batch Import */}
-      <Route path="/app/import">
-        <ProtectedRoute>
-          <StaffRoute>
-            <AppLayout>
-              <Suspense fallback={<PageLoader />}>
-                <BatchImportPage />
-              </Suspense>
-            </AppLayout>
-          </StaffRoute>
-        </ProtectedRoute>
-      </Route>
+      {/* Q5: Removed skeleton routes — Partnerships, Batch Import (rebuild when needed) */}
 
       {/* Call Script Wizard - Staff only */}
       <Route path="/app/leads/:id/call-script">
