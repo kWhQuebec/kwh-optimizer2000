@@ -299,10 +299,12 @@ function AppRoutes() {
       <Route path="/comment-ca-marche">{() => <Redirect to="/" />}</Route>
       <Route path="/apropos">{() => <Redirect to="/a-propos" />}</Route>
           <Route path="/a-propos" component={AProposPage} />
-          <Route path="/about">{() => <Redirect to="/a-propos" />}</Route>
+          <Route path="/about" component={AProposPage} />
       <Route path="/contact">{() => <Redirect to="/#analyse" />}</Route>
       <Route path="/ressources" component={RessourcesPage} />
+            <Route path="/resources" component={RessourcesPage} />
       <Route path="/ressources/calculateur-roi-solaire" component={CalculateurROIPage} />
+            <Route path="/resources/solar-roi-calculator" component={CalculateurROIPage} />
       <Route path="/blog" component={BlogPage} />
       <Route path="/blog/:slug" component={BlogArticlePage} />
       <Route path="/nouvelles/:slug">
@@ -311,15 +313,22 @@ function AppRoutes() {
         </Suspense>
       </Route>
       <Route path="/nouvelles" component={NouvellesPage} />
+            <Route path="/news" component={NouvellesPage} />
       <Route path="/analyse-detaillee" component={AnalyseDetailleePage} />
+            <Route path="/detailed-analysis" component={AnalyseDetailleePage} />
       <Route path="/autorisation-hq" component={AutorisationHQPage} />
+            <Route path="/hq-authorization" component={AutorisationHQPage} />
       <Route path="/merci" component={ThankYouPage} />
+            <Route path="/thank-you" component={ThankYouPage} />
       <Route path="/mandat-de-conception-preliminaire" component={MandatConceptionPage} />
+            <Route path="/design-mandate" component={MandatConceptionPage} />
       <Route path="/stockage-energie" component={StockageEnergiePage} />
+            <Route path="/energy-storage" component={StockageEnergiePage} />
       <Route path="/portfolio" component={PortfolioPage} />
       <Route path="/portfolio/:id" component={PortfolioProjectPage} />
       <Route path="/privacy" component={PrivacyPage} />
       <Route path="/conditions" component={TermsPage} />
+            <Route path="/terms" component={TermsPage} />
       <Route path="/login" component={LoginPage} />
       <Route path="/forgot-password" component={ForgotPasswordPage} />
       <Route path="/change-password" component={ChangePasswordPage} />
