@@ -651,12 +651,30 @@ router.post("/:siteId/upload-meters", authMiddleware, requireStaff, upload.array
     throw new NotFoundError("Site");
   }
 
-  const results = [];
-  for (const file of files) {
-    // Sanitize the uploaded filename to prevent path traversal in database storage
-    const sanitizedFilename = sanitizeFilename(file.originalname);
+  const BILL_EXTENSIONS = [".pdf", ".jpg", ".jpeg", ".png", ".webp"];
+  const CSV_EXTENSIONS = [".csv"];
 
-    // Validate that the temporary file path is within /tmp/meter-uploads/
+  const csvFiles: Express.Multer.File[] = [];
+  const billFiles: Express.Multer.File[] = [];
+
+  for (const file of files) {
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (BILL_EXTENSIONS.includes(ext)) {
+      billFiles.push(file);
+    } else if (CSV_EXTENSIONS.includes(ext)) {
+      csvFiles.push(file);
+    } else {
+      log.warn(`Unsupported file extension: ${ext} for file ${file.originalname}`);
+      for (const f of files) {
+        try { fs.unlinkSync(f.path); } catch (e) { /* ignore */ }
+      }
+      throw new BadRequestError(`Unsupported file type: ${ext}. Accepted: CSV, PDF, JPG, PNG, WEBP`);
+    }
+  }
+
+  const csvResults = [];
+  for (const file of csvFiles) {
+    const sanitizedFilename = sanitizeFilename(file.originalname);
     const tmpBaseDir = path.resolve("/tmp/meter-uploads/");
     try {
       validatePathWithinBase(file.path, tmpBaseDir);
@@ -692,7 +710,7 @@ router.post("/:siteId/upload-meters", authMiddleware, requireStaff, upload.array
     }
 
     const updatedFile = await storage.getMeterFile(meterFile.id);
-    results.push(updatedFile);
+    csvResults.push(updatedFile);
 
     try {
       fs.unlinkSync(file.path);
@@ -701,10 +719,281 @@ router.post("/:siteId/upload-meters", authMiddleware, requireStaff, upload.array
     }
   }
 
+  interface BillFieldUpdate {
+    field: string;
+    label: string;
+    oldValue: string | null;
+    newValue: string | null;
+  }
+
+  const billResults: Array<{
+    fileName: string;
+    confidence: number;
+    fieldsExtracted: number;
+    error?: string;
+  }> = [];
+  const appliedUpdates: BillFieldUpdate[] = [];
+  const pendingUpdates: BillFieldUpdate[] = [];
+  let mergedConsumptionHistory: Array<{ period: string; kWh: number | null; kW: number | null; amount: number | null; days: number | null }> =
+    Array.isArray(site.hqConsumptionHistory) ? [...(site.hqConsumptionHistory as any[])] : [];
+
+  const alreadySetFields = new Set<string>();
+  const alreadyPendingFields = new Set<string>();
+
+  if (billFiles.length > 0) {
+    const { parseHQBillFromBuffer } = await import("../hqBillParser");
+
+    for (const file of billFiles) {
+      const sanitizedFilename = sanitizeFilename(file.originalname);
+      const tmpBaseDir = path.resolve("/tmp/meter-uploads/");
+      try {
+        validatePathWithinBase(file.path, tmpBaseDir);
+      } catch (err) {
+        log.error(`Path traversal attempt in uploaded file: ${file.path}`);
+        throw new BadRequestError("Invalid file path");
+      }
+
+      try {
+        const buffer = fs.readFileSync(file.path);
+        const ext = path.extname(file.originalname).toLowerCase();
+        let mimeType = "image/jpeg";
+        if (ext === ".pdf") mimeType = "application/pdf";
+        else if (ext === ".png") mimeType = "image/png";
+        else if (ext === ".webp") mimeType = "image/webp";
+
+        const billData = await parseHQBillFromBuffer(buffer, mimeType);
+
+        billResults.push({
+          fileName: sanitizedFilename,
+          confidence: billData.confidence,
+          fieldsExtracted: [
+            billData.accountNumber,
+            billData.hqAccountNumber,
+            billData.contractNumber,
+            billData.clientName,
+            billData.serviceAddress,
+            billData.tariffCode,
+            billData.tariffDetail,
+          ].filter(Boolean).length,
+        });
+
+        if (billData.confidence >= 0.3) {
+          const fieldMap: Array<{ billField: keyof typeof billData; siteField: keyof Site; label: string }> = [
+            { billField: "accountNumber", siteField: "hqClientNumber", label: "# Client HQ" },
+            { billField: "hqAccountNumber", siteField: "hqAccountNumber", label: "# Compte HQ" },
+            { billField: "contractNumber", siteField: "hqContractNumber", label: "# Contrat" },
+            { billField: "clientName", siteField: "hqLegalClientName", label: "Nom légal" },
+            { billField: "serviceAddress", siteField: "serviceAddress", label: "Adresse de service" },
+          ];
+
+          const siteUpdate: Partial<Site> = {};
+
+          const processField = (siteField: string, label: string, newVal: string) => {
+            if (!newVal || !newVal.trim()) return;
+            if (alreadySetFields.has(siteField) || alreadyPendingFields.has(siteField)) return;
+            const originalVal = (site as any)[siteField] as string | null;
+            if (!originalVal || originalVal.trim() === "") {
+              (siteUpdate as any)[siteField] = newVal.trim();
+              alreadySetFields.add(siteField);
+              appliedUpdates.push({
+                field: siteField,
+                label,
+                oldValue: originalVal || null,
+                newValue: newVal.trim(),
+              });
+            } else {
+              alreadyPendingFields.add(siteField);
+              pendingUpdates.push({
+                field: siteField,
+                label,
+                oldValue: originalVal,
+                newValue: newVal.trim(),
+              });
+            }
+          };
+
+          const processNumericField = (siteField: string, label: string, newVal: number, unit: string) => {
+            if (alreadySetFields.has(siteField) || alreadyPendingFields.has(siteField)) return;
+            const originalVal = (site as any)[siteField] as number | null;
+            const displayNew = `${newVal.toLocaleString("fr-CA")} ${unit}`;
+            if (originalVal === null || originalVal === undefined || originalVal === 0) {
+              (siteUpdate as any)[siteField] = newVal;
+              alreadySetFields.add(siteField);
+              appliedUpdates.push({
+                field: siteField,
+                label,
+                oldValue: null,
+                newValue: displayNew,
+              });
+            } else {
+              alreadyPendingFields.add(siteField);
+              pendingUpdates.push({
+                field: siteField,
+                label,
+                oldValue: `${originalVal.toLocaleString("fr-CA")} ${unit}`,
+                newValue: displayNew,
+              });
+            }
+          };
+
+          const tariffValue = billData.tariffDetail || billData.tariffCode;
+          if (tariffValue && typeof tariffValue === "string") {
+            processField("hqTariffDetail", "Tarif", tariffValue);
+          }
+
+          for (const mapping of fieldMap) {
+            const newVal = billData[mapping.billField];
+            if (newVal && typeof newVal === "string") {
+              processField(mapping.siteField, mapping.label, newVal);
+            }
+          }
+
+          if (billData.serviceAddress && typeof billData.serviceAddress === "string") {
+            processField("address", "Adresse du site", billData.serviceAddress);
+          }
+
+          if (billData.billNumber && typeof billData.billNumber === "string") {
+            processField("hqBillNumber", "# Facture", billData.billNumber);
+          }
+
+          if (typeof billData.estimatedMonthlyBill === "number" && billData.estimatedMonthlyBill > 0) {
+            processNumericField("estimatedMonthlyBill", "Facture mensuelle", billData.estimatedMonthlyBill, "$");
+          }
+
+          if (typeof billData.annualConsumptionKwh === "number" && billData.annualConsumptionKwh > 0) {
+            processNumericField("estimatedAnnualConsumptionKwh", "Consommation annuelle", billData.annualConsumptionKwh, "kWh");
+          }
+
+          if (typeof billData.peakDemandKw === "number" && billData.peakDemandKw > 0) {
+            processNumericField("maxDemandKw", "Puissance appelée", billData.peakDemandKw, "kW");
+          }
+
+          if (billData.consumptionHistory && billData.consumptionHistory.length > 0) {
+            const existingPeriods = new Set(mergedConsumptionHistory.map(e => e.period));
+            let newEntries = 0;
+            for (const entry of billData.consumptionHistory) {
+              if (!existingPeriods.has(entry.period)) {
+                mergedConsumptionHistory.push(entry);
+                existingPeriods.add(entry.period);
+                newEntries++;
+              }
+            }
+            if (newEntries > 0) {
+              siteUpdate.hqConsumptionHistory = mergedConsumptionHistory;
+              appliedUpdates.push({
+                field: "hqConsumptionHistory",
+                label: "Historique consommation",
+                oldValue: site.hqConsumptionHistory ? `${(site.hqConsumptionHistory as any[]).length} périodes` : null,
+                newValue: `${mergedConsumptionHistory.length} périodes (+${newEntries})`,
+              });
+            }
+          }
+
+          if (Object.keys(siteUpdate).length > 0) {
+            await storage.updateSite(siteId, siteUpdate);
+          }
+        }
+      } catch (err) {
+        log.error(`Error parsing bill ${file.originalname}:`, err);
+        billResults.push({
+          fileName: sanitizedFilename,
+          confidence: 0,
+          fieldsExtracted: 0,
+          error: err instanceof Error ? err.message : "Unknown error",
+        });
+      } finally {
+        try {
+          fs.unlinkSync(file.path);
+        } catch (e) {
+          log.error("Could not delete temp file:", file.path);
+        }
+      }
+    }
+  }
+
   autoAdvanceStage(siteId).catch(err => log.error(`Auto-advance failed for site ${siteId}:`, err));
   propagateTariffToSite(siteId).catch(err => log.error(`Tariff propagation failed for site ${siteId}:`, err));
 
-  res.json({ files: results });
+  res.json({
+    files: csvResults,
+    billResults: billResults.length > 0 ? billResults : undefined,
+    appliedUpdates: appliedUpdates.length > 0 ? appliedUpdates : undefined,
+    pendingUpdates: pendingUpdates.length > 0 ? pendingUpdates : undefined,
+    summary: {
+      csvCount: csvFiles.length,
+      billCount: billFiles.length,
+      csvProcessed: csvResults.filter((f: any) => f?.status === "PARSED").length,
+      billsProcessed: billResults.filter(b => b.confidence >= 0.3).length,
+      fieldsApplied: appliedUpdates.length,
+      fieldsPending: pendingUpdates.length,
+    },
+  });
+}));
+
+router.post("/:siteId/apply-bill-updates", authMiddleware, requireStaff, asyncHandler(async (req: AuthRequest, res) => {
+  const { siteId } = req.params;
+  const { updates } = req.body;
+
+  if (!Array.isArray(updates) || updates.length === 0) {
+    throw new BadRequestError("updates must be a non-empty array");
+  }
+
+  const site = await storage.getSite(siteId);
+  if (!site) {
+    throw new NotFoundError("Site");
+  }
+
+  const ALLOWED_STRING_FIELDS = new Set([
+    "hqClientNumber", "hqAccountNumber", "hqContractNumber",
+    "hqLegalClientName", "serviceAddress", "hqTariffDetail", "hqBillNumber",
+    "address",
+  ]);
+  const ALLOWED_NUMERIC_FIELDS = new Set([
+    "estimatedMonthlyBill", "estimatedAnnualConsumptionKwh", "maxDemandKw",
+  ]);
+  const ALLOWED_FIELDS = new Set([...ALLOWED_STRING_FIELDS, ...ALLOWED_NUMERIC_FIELDS]);
+
+  const siteUpdate: Partial<Site> = {};
+  const appliedFields: string[] = [];
+  const skippedFields: string[] = [];
+
+  for (const update of updates) {
+    if (!update.field || update.newValue === undefined || update.newValue === null || typeof update.field !== "string") {
+      continue;
+    }
+    if (!ALLOWED_FIELDS.has(update.field)) {
+      continue;
+    }
+
+    if (ALLOWED_NUMERIC_FIELDS.has(update.field)) {
+      const numStr = typeof update.newValue === "string"
+        ? update.newValue.replace(/[^\d.,\-]/g, "").replace(",", ".")
+        : String(update.newValue);
+      const numVal = parseFloat(numStr);
+      if (isNaN(numVal)) continue;
+      (siteUpdate as any)[update.field] = numVal;
+    } else {
+      if (typeof update.newValue !== "string") continue;
+      const currentValue = (site as any)[update.field] as string | null;
+      if (update.oldValue && currentValue !== update.oldValue) {
+        skippedFields.push(update.field);
+        log.warn(`Stale update for ${update.field}: expected "${update.oldValue}" but found "${currentValue}"`);
+        continue;
+      }
+      (siteUpdate as any)[update.field] = update.newValue.trim();
+    }
+    appliedFields.push(update.field);
+  }
+
+  if (Object.keys(siteUpdate).length > 0) {
+    await storage.updateSite(siteId, siteUpdate);
+  }
+
+  res.json({
+    success: true,
+    fieldsApplied: appliedFields,
+    fieldsSkipped: skippedFields.length > 0 ? skippedFields : undefined,
+  });
 }));
 
 router.patch("/:siteId/meter-files/:fileId/synthetic", authMiddleware, requireStaff, asyncHandler(async (req: AuthRequest, res) => {

@@ -262,9 +262,9 @@ const translations: Translations = {
   // Site Detail
   "site.details": { fr: "Détails du site", en: "Site Details" },
   "site.consumption": { fr: "Données de consommation", en: "Consumption Data" },
-  "site.uploadFiles": { fr: "Importer des fichiers CSV", en: "Import CSV files" },
-  "site.dropzone": { fr: "Glissez-déposez vos fichiers CSV ici, ou cliquez pour sélectionner", en: "Drag and drop your CSV files here, or click to select" },
-  "site.fileType": { fr: "Fichiers CSV Hydro-Québec (horaires et 15 minutes)", en: "Hydro-Québec CSV files (hourly and 15-minute)" },
+  "site.uploadFiles": { fr: "Importer des fichiers", en: "Import files" },
+  "site.dropzone": { fr: "Glissez-déposez vos fichiers ici, ou cliquez pour sélectionner", en: "Drag and drop your files here, or click to select" },
+  "site.fileType": { fr: "CSV Hydro-Québec + factures (PDF, JPG, PNG)", en: "Hydro-Québec CSV + bills (PDF, JPG, PNG)" },
   "site.files": { fr: "Fichiers importés", en: "Imported Files" },
   "site.fileName": { fr: "Nom du fichier", en: "File Name" },
   "site.granularity": { fr: "Granularité", en: "Granularity" },
