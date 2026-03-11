@@ -40,35 +40,60 @@ export function getDefaultAnalysisAssumptions(): AnalysisAssumptions {
 }
 
 export function deduplicateMeterReadingsByHour(
-  rawReadings: Array<{ 
-    kWh: number | null; 
-    kW: number | null; 
+  rawReadings: Array<{
+    kWh: number | null;
+    kW: number | null;
     timestamp: Date;
     granularity?: string;
   }>
-): { 
+): {
   readings: Array<{ kWh: number | null; kW: number | null; timestamp: Date }>;
   dataSpanDays: number;
 } {
   if (rawReadings.length === 0) {
     return { readings: [], dataSpanDays: 365 };
   }
-  
-  let minTs = new Date(rawReadings[0].timestamp).getTime();
+
+  // ── Filter out monthly summary readings when sub-hourly data exists ──
+  // HQ "période" files have gran=HOUR, kWh=36-65k (monthly totals), kW=null.
+  // When mixed with 15-min interval data, these corrupt hourly profiles by
+  // putting all consumption at midnight → selfConsumption = 0.
+  const hasSubHourlyData = rawReadings.some(r => r.granularity && r.granularity !== 'HOUR' && r.granularity !== 'MONTH' && r.granularity !== 'DAY');
+  let filteredReadings = rawReadings;
+  if (hasSubHourlyData) {
+    const before = rawReadings.length;
+    filteredReadings = rawReadings.filter(r => {
+      // A monthly summary reading: gran=HOUR but kWh is huge (>500 kWh in one "hour" = obviously monthly)
+      // and kW is null (no demand data). These are HQ période file entries.
+      if (r.granularity === 'HOUR' && r.kWh !== null && r.kWh > 500 && r.kW === null) {
+        return false; // exclude monthly summary
+      }
+      // Also exclude explicit MONTH/DAY granularity when we have better data
+      if (r.granularity === 'MONTH' || r.granularity === 'DAY') {
+        return false;
+      }
+      return true;
+    });
+    if (filteredReadings.length < before) {
+      console.log(`[dedup] Excluded ${before - filteredReadings.length} monthly summary readings (have ${filteredReadings.length} sub-hourly readings)`);
+    }
+  }
+
+  let minTs = new Date(filteredReadings[0]?.timestamp || rawReadings[0].timestamp).getTime();
   let maxTs = minTs;
-  for (const r of rawReadings) {
+  for (const r of filteredReadings.length > 0 ? filteredReadings : rawReadings) {
     const ts = new Date(r.timestamp).getTime();
     if (ts < minTs) minTs = ts;
     if (ts > maxTs) maxTs = ts;
   }
   const dataSpanDays = Math.max(1, (maxTs - minTs) / (1000 * 60 * 60 * 24));
-  
+
   const hourBuckets = new Map<string, Array<typeof rawReadings[0]>>();
   
-  for (const reading of rawReadings) {
+  for (const reading of filteredReadings) {
     const ts = new Date(reading.timestamp);
     const bucketKey = `${ts.getFullYear()}-${String(ts.getMonth() + 1).padStart(2, '0')}-${String(ts.getDate()).padStart(2, '0')}-${String(ts.getHours()).padStart(2, '0')}`;
-    
+
     const bucket = hourBuckets.get(bucketKey) || [];
     bucket.push(reading);
     hourBuckets.set(bucketKey, bucket);
@@ -316,6 +341,15 @@ interface AnalysisResult {
   irr30: number;
   lcoe30: number;
   co2AvoidedTonnesPerYear: number;
+  // Properties needed by createSimulationRun (mapped names)
+  totalExportedKWh: number;
+  annualSurplusRevenue: number;
+  annualEnergyCostSavings: number;
+  annualDemandCostSavings: number;
+  totalAnnualSavings: number;
+  systemCost: number;
+  npv: number;
+  irr: number;
   assumptions: AnalysisAssumptions;
   cashflows: CashflowEntry[];
   breakdown: FinancialBreakdown;
@@ -744,6 +778,15 @@ export function runPotentialAnalysis(
     irr30,
     lcoe30,
     co2AvoidedTonnesPerYear,
+    // Mapped names for createSimulationRun compatibility
+    totalExportedKWh,
+    annualSurplusRevenue,
+    annualEnergyCostSavings: selfConsumptionKWh * h.tariffEnergy,
+    annualDemandCostSavings: demandSavings,
+    totalAnnualSavings: annualSavings,
+    systemCost: capexNet,
+    npv: npv25,
+    irr: irr25,
     assumptions: h,
     cashflows,
     breakdown,
@@ -809,6 +852,57 @@ export async function runAutoAnalysisForSite(siteId: string): Promise<void> {
     yieldSource: yieldStrategy.yieldSource,
     _yieldStrategy: yieldStrategy
   };
+
+  // ── Auto-detect HQ tariff (same logic as sites.ts run-potential-analysis) ──
+  if (!analysisAssumptions.tariffEnergy || analysisAssumptions.tariffEnergy === 0) {
+    const annualKWh = dedupResult.readings.reduce((sum, r) => sum + (r.kWh || 0), 0);
+    const dataSpanFactor = 365 / Math.max(dedupResult.dataSpanDays, 1);
+    const annualizedKWh = annualKWh * dataSpanFactor;
+    const hasRealPowerData = dedupResult.readings.some(r => r.kW !== null && r.kW !== undefined && r.kW > 0);
+    let peakKW: number;
+    if (hasRealPowerData) {
+      peakKW = dedupResult.readings.reduce((max, r) => Math.max(max, r.kW || 0), 0);
+    } else {
+      const meterFiles = await storage.getMeterFiles(siteId);
+      const syntheticFile = meterFiles.find((f: any) => f.isSynthetic);
+      const syntheticParams = syntheticFile ? (syntheticFile as any).syntheticParams : null;
+      const schedule = syntheticParams?.operatingSchedule || "standard";
+      const loadFactor = schedule === "24/7" ? 0.55 : schedule === "extended" ? 0.45 : 0.35;
+      peakKW = annualizedKWh / (8760 * loadFactor);
+    }
+
+    try {
+      const { detectTariff: _dt } = await import("../hqTariffs");
+      const detected = _dt(peakKW, annualizedKWh, hasRealPowerData);
+      let tariffCode = detected.detectedTariff;
+      if (tariffCode === "D" || tariffCode === "Flex D") {
+        tariffCode = peakKW >= 65 ? "M" : "G";
+      }
+      const rateMap: Record<string, { energy: number; power: number }> = {
+        "G": { energy: 0.11933, power: 21.261 },
+        "M": { energy: 0.06061, power: 17.573 },
+        "L": { energy: 0.03681, power: 14.476 },
+      };
+      const rates = rateMap[tariffCode] || rateMap["M"];
+      analysisAssumptions.tariffEnergy = rates.energy;
+      analysisAssumptions.tariffPower = rates.power;
+      (analysisAssumptions as any).tariffCode = tariffCode;
+      log.info(`Auto-detected tariff ${tariffCode} (peak=${peakKW.toFixed(1)}kW, annual=${annualizedKWh.toFixed(0)}kWh): energy=${rates.energy}$/kWh, power=${rates.power}$/kW`);
+    } catch (e) {
+      // Fallback to M tariff if hqTariffs module fails
+      analysisAssumptions.tariffEnergy = 0.06061;
+      analysisAssumptions.tariffPower = 17.573;
+      log.warn(`Tariff detection failed, using M tariff fallback: ${e}`);
+    }
+  }
+
+  // ── Auto-detect GDP (no net metering) ──
+  const tariffDetail = ((site as any).hqTariffDetail || '').toUpperCase();
+  const isGDP = tariffDetail.includes('GDP') || tariffDetail.includes('DEMANDE DE PUISSANCE');
+  if (isGDP) {
+    analysisAssumptions.netMeteringEnabled = false;
+    log.info(`GDP tariff detected — net metering auto-disabled for site ${siteId}`);
+  }
 
   const polygons = await storage.getRoofPolygons(siteId);
   const solarPolygons = polygons.filter(p => {
