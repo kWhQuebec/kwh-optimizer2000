@@ -1119,7 +1119,8 @@ function buildHourlyData(readings: Array<{ kWh: number | null; kW: number | null
     const key = `${month}-${hour}`;
     
     const existing = hourlyByHourMonth.get(key) || { totalKWh: 0, maxKW: 0, count: 0 };
-    existing.totalKWh += r.kWh || 0;
+    const effectiveKWh = r.kWh != null ? r.kWh : (r.kW != null && r.kW > 0 ? r.kW : 0);
+    existing.totalKWh += effectiveKWh;
     existing.maxKW = Math.max(existing.maxKW, r.kW || 0);
     existing.count++;
     hourlyByHourMonth.set(key, existing);

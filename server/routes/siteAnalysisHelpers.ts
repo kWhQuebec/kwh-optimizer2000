@@ -99,9 +99,12 @@ export function deduplicateMeterReadingsByHour(
         }
       }
       
+      const resolvedKWh = bestHourly.kWh != null
+        ? bestHourly.kWh
+        : (bestHourly.kW != null && bestHourly.kW > 0 ? bestHourly.kW : null);
       deduplicatedReadings.push({
         timestamp: hourTimestamp,
-        kWh: bestHourly.kWh,
+        kWh: resolvedKWh,
         kW: maxKW > 0 ? maxKW : bestHourly.kW,
       });
     } else {
@@ -119,9 +122,10 @@ export function deduplicateMeterReadingsByHour(
         }
       }
       
+      const resolvedKWh = hasKWh ? totalKWh : (maxKW > 0 ? maxKW : null);
       deduplicatedReadings.push({
         timestamp: hourTimestamp,
-        kWh: hasKWh ? totalKWh : null,
+        kWh: resolvedKWh,
         kW: maxKW > 0 ? maxKW : null,
       });
     }
@@ -340,7 +344,8 @@ export function buildHourlyData(readings: Array<{ kWh: number | null; kW: number
     const key = `${month}-${hour}`;
     
     const existing = hourlyByHourMonth.get(key) || { totalKWh: 0, maxKW: 0, count: 0 };
-    existing.totalKWh += r.kWh || 0;
+    const effectiveKWh = r.kWh != null ? r.kWh : (r.kW != null && r.kW > 0 ? r.kW : 0);
+    existing.totalKWh += effectiveKWh;
     existing.maxKW = Math.max(existing.maxKW, r.kW || 0);
     existing.count++;
     hourlyByHourMonth.set(key, existing);
