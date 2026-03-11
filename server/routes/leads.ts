@@ -7,8 +7,8 @@ import { asyncHandler, BadRequestError, NotFoundError } from "../middleware/erro
 import { estimateLimiter, leadSubmissionLimiter } from "../middleware/rateLimiter";
 import { storage } from "../storage";
 import { insertLeadSchema } from "@shared/schema";
-import { sendQuickAnalysisEmail, sendProcurationCompletedNotification, sendNewLeadNotification, sendTemplateEmail } from "../emailService";
-import { sendEmail } from "../gmail";
+import { sendQuickAnalysisEmail, sendProcurationCompletedNotification, sendNewLeadNotification, sendTemplateEmail, sendEmail } from "../emailService";
+// gmail.ts import removed — emailService.sendEmail uses Resend (primary) → Gmail → Outlook fallback chain
 import * as googleSolar from "../googleSolarService";
 import { generateProcurationPDF, createProcurationData } from "../procurationPdfGenerator";
 import { parseHQBill, type HQBillData } from "../hqBillParser";
@@ -370,15 +370,15 @@ router.post("/api/quick-estimate", estimateLimiter, asyncHandler(async (req, res
   // Calculate before/after HQ bill comparison (based on conservative scenario)
   const annualBillBefore = estimatedMonthlyBill * 12;
 
-  // Cost of inaction: Cumulative electricity cost increase over 5 years
-  // Assuming 3.5% annual electricity escalation (Quebec historical average)
-  const ELECTRICITY_ESCALATION_RATE = 0.035;
+  // Opportunity cost: cumulative solar savings lost by waiting 5 years
+  // Stepped inflation: 4.8%/yr for years 1-3 (HQ announced), then 3.5%/yr after
   const costOfInactionYears = 5;
-  let costOfInaction = 0;
-  for (let year = 1; year <= costOfInactionYears; year++) {
-    costOfInaction += annualBillBefore * Math.pow(1 + ELECTRICITY_ESCALATION_RATE, year - 1);
+  let opportunityCost = 0;
+  for (let year = 0; year < costOfInactionYears; year++) {
+    const escalationRate = year < 3 ? 0.048 : 0.035;
+    opportunityCost += primaryScenario.annualSavings * Math.pow(1 + escalationRate, year);
   }
-  costOfInaction = Math.round(costOfInaction);
+  const costOfInaction = Math.round(opportunityCost);
   const annualBillAfter = Math.max(0, annualBillBefore - primaryScenario.annualSavings);
   const monthlyBillAfter = Math.round(annualBillAfter / 12);
   const monthlySavings = estimatedMonthlyBill - monthlyBillAfter;
@@ -390,6 +390,7 @@ router.post("/api/quick-estimate", estimateLimiter, asyncHandler(async (req, res
     const host = req.get("host") || "localhost:5000";
     const baseUrl = `${protocol}://${host}`;
 
+    log.info(`[QuickEstimate] Preparing quick analysis email for ${email}, scenarios: ${calculatedScenarios.length}, monthlyBill: ${estimatedMonthlyBill}, tariff: ${tariff}`);
     sendQuickAnalysisEmail(email, {
       address: address || "",
       annualConsumptionKWh: annualKWh,
@@ -415,8 +416,14 @@ router.post("/api/quick-estimate", estimateLimiter, asyncHandler(async (req, res
       monthlyBillBefore: estimatedMonthlyBill,
       hasRoofData: false,
       roofAreaM2: undefined,
-    }, baseUrl).catch(err => {
-      log.error("Email sending failed:", err);
+    }, baseUrl).then(result => {
+      if (result.success) {
+        log.info(`[QuickEstimate] Quick analysis email SENT to ${email}`);
+      } else {
+        log.error(`[QuickEstimate] Quick analysis email FAILED for ${email}: ${result.error}`);
+      }
+    }).catch(err => {
+      log.error(`[QuickEstimate] Quick analysis email EXCEPTION for ${email}:`, err?.message || err);
     });
     emailSent = true;
   }
@@ -577,12 +584,18 @@ router.post("/api/quick-estimate", estimateLimiter, asyncHandler(async (req, res
 
     // Send notification to Account Manager about new lead (only if email was provided - real lead)
     if (email && typeof email === "string" && email.includes("@")) {
+      const notificationRecipient = process.env.LEAD_NOTIFICATION_EMAIL || 'info@kwh.quebec';
+      const notifProtocol = process.env.NODE_ENV === "production" ? "https" : "http";
+      const notifHost = req.get("host") || "localhost:5000";
+      const notifBaseUrl = `${notifProtocol}://${notifHost}`;
+
       sendNewLeadNotification(
-        'info@kwh.quebec',
+        notificationRecipient,
         {
           companyName,
           contactName,
           email,
+          phone: phone || undefined,
           address: address || undefined,
           annualConsumptionKWh: annualKWh,
           estimatedMonthlyBill: estimatedMonthlyBill || undefined,
@@ -590,8 +603,10 @@ router.post("/api/quick-estimate", estimateLimiter, asyncHandler(async (req, res
           formType: 'quick_estimate',
           roofAgeYears: roofAgeYears || undefined,
           ownershipType: ownershipType || undefined,
+          siteId: siteId || undefined,
         },
-        'fr'
+        'fr',
+        notifBaseUrl
       ).catch(err => {
         log.error("Failed to send manager notification:", err);
       });

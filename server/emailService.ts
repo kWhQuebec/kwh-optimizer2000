@@ -1,9 +1,10 @@
 import { sendEmail as sendEmailViaGmail } from "./gmail";
 import { sendEmailViaOutlook } from "./outlook";
-import { sendEmailViaResend } from "./resend";
+import { sendEmailViaResend } from "./resend-portable";
 import { renderEmailTemplate } from "./emailTemplates";
 import { createLogger } from "./lib/logger";
 import { getBuildingTypeLabel } from "@shared/buildingTypes";
+import { emailWrapper, ctaButton, sectionTitle, infoRow, brand } from "./emailStyles";
 
 const log = createLogger("EmailService");
 
@@ -125,8 +126,6 @@ function getScenarioLabel(key: string, offsetPercent: number, lang: 'fr' | 'en')
 }
 
 function generateQuickAnalysisEmailHtml(data: QuickAnalysisData, lang: 'fr' | 'en', baseUrl: string): string {
-  const logoUrl = getLogoDataUri(lang);
-  
   const t = {
     fr: {
       subject: '[kWh Québec] Votre analyse rapide solaire',
@@ -231,95 +230,42 @@ function generateQuickAnalysisEmailHtml(data: QuickAnalysisData, lang: 'fr' | 'e
     `;
   }).join('');
   
-  return `
-<!DOCTYPE html>
-<html lang="${lang}">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    body { font-family: 'Montserrat', 'Segoe UI', Tahoma, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f5f5f5; }
-    .container { max-width: 600px; margin: 0 auto; background: white; }
-    .header { background: linear-gradient(135deg, #003DA6 0%, #002B75 100%); color: white; padding: 30px; text-align: center; }
-    .header img { max-width: 180px; height: auto; }
-    .header h1 { margin: 15px 0 0; font-size: 22px; font-weight: 600; }
-    .content { padding: 30px; }
-    .intro { font-size: 15px; color: #555; margin-bottom: 25px; }
-    .section { margin-bottom: 25px; }
-    .section-title { font-size: 18px; font-weight: 600; color: #003DA6; margin-bottom: 15px; padding-bottom: 8px; border-bottom: 2px solid #FFB005; }
-    .info-grid { display: table; width: 100%; margin-bottom: 20px; }
-    .info-row { display: table-row; }
-    .info-label { display: table-cell; padding: 8px 10px 8px 0; color: #666; font-size: 14px; width: 50%; }
-    .info-value { display: table-cell; padding: 8px 0; font-weight: 600; color: #333; font-size: 14px; text-align: right; }
-    .scenarios-intro { font-size: 14px; color: #555; margin-bottom: 20px; }
-    .cta-section { background: #003DA6; color: white; padding: 25px; text-align: center; margin-top: 20px; }
-    .cta-section h3 { margin: 0 0 10px; font-size: 18px; }
-    .cta-section p { margin: 0 0 20px; font-size: 14px; opacity: 0.9; }
-    .cta-button { display: inline-block; background: #FFB005; color: #003DA6; padding: 14px 30px; text-decoration: none; border-radius: 6px; font-weight: 700; font-size: 15px; }
-    .disclaimer { font-size: 12px; color: #888; padding: 20px 30px; background: #fafafa; border-top: 1px solid #eee; }
-    .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; background: #f0f0f0; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="header">
-      <img src="${logoUrl}" alt="kWh Québec" style="max-width: 180px; height: auto;" />
-      <h1>${txt.analysisTitle}</h1>
+  // Build body content
+  const infoTableHtml = `
+    <div style="margin-bottom:20px;">
+      ${infoRow(txt.addressLabel, data.address || '-')}
+      ${infoRow(txt.consumptionLabel, `${formatNumber(data.annualConsumptionKWh)} kWh`)}
+      ${infoRow(txt.buildingTypeLabel, getBuildingTypeLabel(data.buildingType, lang))}
+      ${infoRow(txt.tariffLabel, data.tariffCode)}
+      ${infoRow(txt.currentBillLabel, formatCurrency(data.monthlyBillBefore), true)}
+    </div>`;
+
+  const ctaSectionHtml = `
+    <div style="background:linear-gradient(135deg, ${brand.primaryBlue} 0%, ${brand.darkBlue} 100%);color:white;padding:25px;text-align:center;margin:20px -30px -30px;border-radius:0 0 0 0;">
+      <h3 style="margin:0 0 10px;font-size:18px;font-weight:600;">${txt.ctaTitle}</h3>
+      <p style="margin:0 0 20px;font-size:14px;opacity:0.9;">${txt.ctaText}</p>
+      <a href="${process.env.CALENDLY_URL || 'https://calendly.com/kwh-quebec/decouverte'}" style="display:inline-block;background:${brand.accentYellow};color:${brand.darkBlue};padding:14px 30px;text-decoration:none;border-radius:6px;font-weight:700;font-size:15px;">${txt.ctaButton}</a>
+    </div>`;
+
+  const bodyContent = `
+    <p style="font-size:15px;color:#555;margin-bottom:25px;">${txt.greeting}<br><br>${txt.intro}</p>
+    ${infoTableHtml}
+    <div style="margin-bottom:25px;">
+      ${sectionTitle(txt.scenariosTitle)}
+      <p style="font-size:14px;color:#555;margin-bottom:20px;">${txt.scenariosIntro}</p>
+      ${scenariosHtml}
     </div>
-    
-    <div class="content">
-      <p class="intro">${txt.greeting}<br><br>${txt.intro}</p>
-      
-      <div class="section">
-        <div class="info-grid">
-          <div class="info-row">
-            <div class="info-label">${txt.addressLabel}</div>
-            <div class="info-value">${data.address || '-'}</div>
-          </div>
-          <div class="info-row">
-            <div class="info-label">${txt.consumptionLabel}</div>
-            <div class="info-value">${formatNumber(data.annualConsumptionKWh)} kWh</div>
-          </div>
-          <div class="info-row">
-            <div class="info-label">${txt.buildingTypeLabel}</div>
-            <div class="info-value">${getBuildingTypeLabel(data.buildingType, lang)}</div>
-          </div>
-          <div class="info-row">
-            <div class="info-label">${txt.tariffLabel}</div>
-            <div class="info-value">${data.tariffCode}</div>
-          </div>
-          <div class="info-row">
-            <div class="info-label">${txt.currentBillLabel}</div>
-            <div class="info-value">${formatCurrency(data.monthlyBillBefore)}</div>
-          </div>
-        </div>
-      </div>
-      
-      <div class="section">
-        <div class="section-title">${txt.scenariosTitle}</div>
-        <p class="scenarios-intro">${txt.scenariosIntro}</p>
-        ${scenariosHtml}
-      </div>
-    </div>
-    
-    <div class="cta-section">
-      <h3>${txt.ctaTitle}</h3>
-      <p>${txt.ctaText}</p>
-      <a href="${process.env.CALENDLY_URL || 'https://calendly.com/kwh-quebec/decouverte'}" class="cta-button">${txt.ctaButton}</a>
-    </div>
-    
-    <div class="disclaimer">
-      ${txt.disclaimer}
-    </div>
-    
-    <div class="footer">
-      <p><strong>${txt.footer}</strong></p>
-      <p>${txt.footerContact}</p>
-      <p style="font-size: 11px; color: #999;">${txt.footerNote}</p>
-    </div>
-  </div>
-</body>
-</html>`;
+    ${ctaSectionHtml}`;
+
+  return emailWrapper({
+    lang,
+    body: bodyContent,
+    showLogo: true,
+    logoSize: 'large',
+    headerTitle: txt.analysisTitle,
+    disclaimer: txt.disclaimer,
+    footerNote: txt.footerNote,
+  });
 }
 
 // Notification to Account Manager when a new lead submits a form (Quick Estimate or Detailed Analysis)
@@ -337,159 +283,119 @@ export async function sendNewLeadNotification(
     formType: 'quick_estimate' | 'detailed_analysis';
     roofAgeYears?: number;
     ownershipType?: string;
+    siteId?: string;
   },
-  language: 'fr' | 'en' = 'fr'
+  language: 'fr' | 'en' = 'fr',
+  baseUrl?: string
 ): Promise<{ success: boolean; error?: string }> {
-  const formLabel = language === 'fr' 
+  const formLabel = language === 'fr'
     ? (leadData.formType === 'quick_estimate' ? 'Estimation Rapide' : 'Analyse Détaillée')
     : (leadData.formType === 'quick_estimate' ? 'Quick Estimate' : 'Detailed Analysis');
-  
+
   const subject = language === 'fr'
-    ? `Nouveau lead - ${leadData.companyName} (${formLabel})`
-    : `New Lead - ${leadData.companyName} (${formLabel})`;
-  
-  const ownerLabel = leadData.ownershipType === 'owner' 
+    ? `🔔 Nouveau lead — ${leadData.companyName} (${formLabel})`
+    : `🔔 New Lead — ${leadData.companyName} (${formLabel})`;
+
+  const ownerLabel = leadData.ownershipType === 'owner'
     ? (language === 'fr' ? 'Propriétaire' : 'Owner')
-    : leadData.ownershipType === 'tenant' 
+    : leadData.ownershipType === 'tenant'
       ? (language === 'fr' ? 'Locataire' : 'Tenant')
       : (language === 'fr' ? 'Non spécifié' : 'Not specified');
-  
-  const roofAgeLabel = leadData.roofAgeYears 
+
+  const roofAgeLabel = leadData.roofAgeYears
     ? (leadData.roofAgeYears <= 5 ? (language === 'fr' ? '< 5 ans' : '< 5 years')
       : leadData.roofAgeYears <= 10 ? '5-10 ' + (language === 'fr' ? 'ans' : 'years')
       : leadData.roofAgeYears <= 15 ? '10-15 ' + (language === 'fr' ? 'ans' : 'years')
       : leadData.roofAgeYears <= 20 ? '15-20 ' + (language === 'fr' ? 'ans' : 'years')
       : '> 20 ' + (language === 'fr' ? 'ans' : 'years'))
     : (language === 'fr' ? 'Non spécifié' : 'Not specified');
-  
-  const htmlBody = `
-<!DOCTYPE html>
-<html lang="${language}">
-<head>
-  <meta charset="UTF-8">
-  <style>
-    body { font-family: 'Montserrat', 'Segoe UI', Tahoma, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 20px; background-color: #f5f5f5; }
-    .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-    .header { background: linear-gradient(135deg, #003DA6 0%, #002B75 100%); color: white; padding: 20px 25px; }
-    .header h1 { margin: 0; font-size: 20px; font-weight: 600; }
-    .header .badge { display: inline-block; background: rgba(255,255,255,0.2); color: white; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 500; margin-top: 8px; }
-    .content { padding: 25px; }
-    .section { margin-bottom: 15px; }
-    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .info-item { background: #f8f9fa; padding: 10px 12px; border-radius: 6px; border-left: 3px solid #003DA6; }
-    .info-item.full-width { grid-column: span 2; }
-    .label { font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
-    .value { font-size: 14px; color: #1a1a1a; font-weight: 500; }
-    .highlight { border-left-color: #16A34A; background: #f0fdf4; }
-    .warning { border-left-color: #f59e0b; background: #fffbeb; }
-    .footer { background: #f8f9fa; padding: 12px 25px; text-align: center; font-size: 11px; color: #666; border-top: 1px solid #e5e7eb; }
-    .logo { font-weight: 700; color: #003DA6; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="header">
-      <h1>${language === 'fr' ? 'Nouveau Lead' : 'New Lead'}</h1>
-      <span class="badge">${formLabel}</span>
+
+  const buildingLabel = leadData.buildingType
+    ? getBuildingTypeLabel(leadData.buildingType, language)
+    : (language === 'fr' ? 'Non spécifié' : 'Not specified');
+
+  // Build optimized lead card body
+  const bodyContent = `
+    <div style="margin-bottom:20px;">
+      ${infoRow(language === 'fr' ? 'Entreprise / Contact' : 'Company / Contact', leadData.companyName, true)}
+      ${leadData.email ? infoRow(language === 'fr' ? 'Courriel' : 'Email', `<a href="mailto:${leadData.email}" style="color:${brand.primaryBlue};text-decoration:none;">${leadData.email}</a>`) : ''}
+      ${leadData.phone ? infoRow(language === 'fr' ? 'Téléphone' : 'Phone', `<a href="tel:${leadData.phone}" style="color:${brand.primaryBlue};text-decoration:none;">${leadData.phone}</a>`) : ''}
+      ${leadData.address ? infoRow(language === 'fr' ? 'Adresse' : 'Address', leadData.address) : ''}
     </div>
-    
-    <div class="content">
-      <div class="section">
-        <div class="info-grid">
-          <div class="info-item full-width highlight">
-            <div class="label">${language === 'fr' ? 'Entreprise / Contact' : 'Company / Contact'}</div>
-            <div class="value">${leadData.companyName}</div>
-          </div>
-          ${leadData.email ? `
-          <div class="info-item">
-            <div class="label">${language === 'fr' ? 'Courriel' : 'Email'}</div>
-            <div class="value">${leadData.email}</div>
-          </div>
-          ` : ''}
-          ${leadData.phone ? `
-          <div class="info-item">
-            <div class="label">${language === 'fr' ? 'Téléphone' : 'Phone'}</div>
-            <div class="value">${leadData.phone}</div>
-          </div>
-          ` : ''}
-          ${leadData.address ? `
-          <div class="info-item full-width">
-            <div class="label">${language === 'fr' ? 'Adresse' : 'Address'}</div>
-            <div class="value">${leadData.address}</div>
-          </div>
-          ` : ''}
-          ${leadData.annualConsumptionKWh ? `
-          <div class="info-item">
-            <div class="label">${language === 'fr' ? 'Consommation annuelle' : 'Annual Consumption'}</div>
-            <div class="value">${Math.round(leadData.annualConsumptionKWh).toLocaleString()} kWh</div>
-          </div>
-          ` : ''}
-          ${leadData.estimatedMonthlyBill ? `
-          <div class="info-item">
-            <div class="label">${language === 'fr' ? 'Facture mensuelle' : 'Monthly Bill'}</div>
-            <div class="value">$${leadData.estimatedMonthlyBill.toFixed(2)}</div>
-          </div>
-          ` : ''}
-          <div class="info-item ${leadData.ownershipType === 'owner' ? 'highlight' : leadData.ownershipType === 'tenant' ? 'warning' : ''}">
-            <div class="label">${language === 'fr' ? 'Propriétaire?' : 'Owner?'}</div>
-            <div class="value">${ownerLabel}</div>
-          </div>
-          <div class="info-item">
-            <div class="label">${language === 'fr' ? 'Âge toiture' : 'Roof Age'}</div>
-            <div class="value">${roofAgeLabel}</div>
-          </div>
-        </div>
-      </div>
+    ${sectionTitle(language === 'fr' ? 'Profil énergétique' : 'Energy Profile')}
+    <div style="margin-bottom:20px;">
+      ${leadData.annualConsumptionKWh ? infoRow(language === 'fr' ? 'Consommation annuelle' : 'Annual Consumption', `${Math.round(leadData.annualConsumptionKWh).toLocaleString()} kWh`) : ''}
+      ${leadData.estimatedMonthlyBill ? infoRow(language === 'fr' ? 'Facture mensuelle est.' : 'Est. Monthly Bill', `$${leadData.estimatedMonthlyBill.toFixed(0)}/mois`) : ''}
+      ${infoRow(language === 'fr' ? 'Type de bâtiment' : 'Building Type', buildingLabel)}
+      ${infoRow(language === 'fr' ? 'Propriétaire?' : 'Owner?', ownerLabel, leadData.ownershipType === 'owner')}
+      ${infoRow(language === 'fr' ? 'Âge toiture' : 'Roof Age', roofAgeLabel)}
     </div>
-    
-    <div class="footer">
-      <span class="logo">kWh Québec</span> | 514.427.8871 | info@kwh.quebec
-    </div>
-  </div>
-</body>
-</html>`;
+    ${leadData.siteId && baseUrl ? ctaButton(
+      language === 'fr' ? 'Voir le lead dans l\'Optimizer →' : 'View Lead in Optimizer →',
+      `${baseUrl}/app/sites/${leadData.siteId}`,
+      'primary'
+    ) : ''}`;
+
+  const htmlBody = emailWrapper({
+    lang: language,
+    body: bodyContent,
+    showLogo: true,
+    logoSize: 'small',
+    headerTitle: language === 'fr' ? 'Nouveau Lead' : 'New Lead',
+    headerBadge: formLabel,
+    headerBadgeColor: brand.accentGreen,
+    footerNote: language === 'fr'
+      ? 'Notification automatique — kWh Optimizer 2000'
+      : 'Automatic notification — kWh Optimizer 2000',
+  });
 
   const textBody = language === 'fr'
-    ? `NOUVEAU LEAD - ${formLabel}
+    ? `🔔 NOUVEAU LEAD — ${formLabel}
 
 Entreprise: ${leadData.companyName}
 ${leadData.email ? `Courriel: ${leadData.email}` : ''}
 ${leadData.phone ? `Téléphone: ${leadData.phone}` : ''}
 ${leadData.address ? `Adresse: ${leadData.address}` : ''}
 ${leadData.annualConsumptionKWh ? `Consommation: ${Math.round(leadData.annualConsumptionKWh).toLocaleString()} kWh/an` : ''}
+${leadData.estimatedMonthlyBill ? `Facture mensuelle: $${leadData.estimatedMonthlyBill.toFixed(0)}/mois` : ''}
+Type: ${buildingLabel}
 Propriétaire: ${ownerLabel}
 Âge toiture: ${roofAgeLabel}
+${leadData.siteId && baseUrl ? `\nVoir le lead: ${baseUrl}/app/sites/${leadData.siteId}` : ''}
 
 ---
 kWh Québec | 514.427.8871 | info@kwh.quebec`
-    : `NEW LEAD - ${formLabel}
+    : `🔔 NEW LEAD — ${formLabel}
 
 Company: ${leadData.companyName}
 ${leadData.email ? `Email: ${leadData.email}` : ''}
 ${leadData.phone ? `Phone: ${leadData.phone}` : ''}
 ${leadData.address ? `Address: ${leadData.address}` : ''}
 ${leadData.annualConsumptionKWh ? `Consumption: ${Math.round(leadData.annualConsumptionKWh).toLocaleString()} kWh/year` : ''}
+${leadData.estimatedMonthlyBill ? `Monthly bill: $${leadData.estimatedMonthlyBill.toFixed(0)}/mo` : ''}
+Type: ${buildingLabel}
 Owner: ${ownerLabel}
 Roof Age: ${roofAgeLabel}
+${leadData.siteId && baseUrl ? `\nView lead: ${baseUrl}/app/sites/${leadData.siteId}` : ''}
 
 ---
 kWh Québec | 514.427.8871 | info@kwh.quebec`;
 
   log.info(`Sending new lead notification to ${accountManagerEmail} for ${leadData.companyName}`);
-  
+
   const result = await sendEmail({
     to: accountManagerEmail,
     subject,
     htmlBody,
     textBody,
   });
-  
+
   if (result.success) {
     log.info(`New lead notification sent to ${accountManagerEmail}`);
   } else {
     log.error(`Failed to send new lead notification: ${result.error}`);
   }
-  
+
   return result;
 }
 
@@ -498,29 +404,48 @@ export async function sendQuickAnalysisEmail(
   data: QuickAnalysisData,
   baseUrl: string
 ): Promise<{ success: boolean; error?: string }> {
-  const lang = detectLanguage(data.tariffCode, data.address);
-  
-  const subject = lang === 'fr' 
-    ? '[kWh Québec] Votre analyse rapide solaire' 
-    : '[kWh Québec] Your Quick Solar Analysis';
-  
-  const htmlBody = generateQuickAnalysisEmailHtml(data, lang, baseUrl);
-  
-  log.info(`Sending quick analysis email to ${email} (lang: ${lang})`);
-  
-  const result = await sendEmail({
-    to: email,
-    subject,
-    htmlBody,
-  });
-  
-  if (result.success) {
-    log.info(`Quick analysis email sent successfully to ${email}`);
-  } else {
-    log.error(`Failed to send quick analysis email: ${result.error}`);
+  try {
+    log.info(`[QuickAnalysis] Starting email generation for ${email}`);
+    log.info(`[QuickAnalysis] Data: address="${data.address}", tariff="${data.tariffCode}", buildingType="${data.buildingType}", scenarios=${data.scenarios?.length || 0}, monthlyBillBefore=${data.monthlyBillBefore}`);
+
+    const lang = detectLanguage(data.tariffCode, data.address);
+    log.info(`[QuickAnalysis] Detected language: ${lang}`);
+
+    const subject = lang === 'fr'
+      ? '[kWh Québec] Votre analyse rapide solaire'
+      : '[kWh Québec] Your Quick Solar Analysis';
+
+    log.info(`[QuickAnalysis] Generating HTML body...`);
+    let htmlBody: string;
+    try {
+      htmlBody = generateQuickAnalysisEmailHtml(data, lang, baseUrl);
+      log.info(`[QuickAnalysis] HTML generated successfully (${htmlBody.length} chars)`);
+    } catch (htmlErr: any) {
+      log.error(`[QuickAnalysis] HTML generation FAILED: ${htmlErr.message}`);
+      log.error(`[QuickAnalysis] Stack: ${htmlErr.stack}`);
+      return { success: false, error: `HTML generation failed: ${htmlErr.message}` };
+    }
+
+    log.info(`[QuickAnalysis] Sending email to ${email} (lang: ${lang}, subject: ${subject})`);
+
+    const result = await sendEmail({
+      to: email,
+      subject,
+      htmlBody,
+    });
+
+    if (result.success) {
+      log.info(`[QuickAnalysis] Email sent successfully to ${email} (messageId: ${result.messageId})`);
+    } else {
+      log.error(`[QuickAnalysis] sendEmail failed: ${result.error}`);
+    }
+
+    return result;
+  } catch (err: any) {
+    log.error(`[QuickAnalysis] UNEXPECTED ERROR: ${err.message}`);
+    log.error(`[QuickAnalysis] Stack: ${err.stack}`);
+    return { success: false, error: `Unexpected: ${err.message}` };
   }
-  
-  return result;
 }
 
 interface WelcomeEmailData {
@@ -539,12 +464,10 @@ export async function sendPasswordResetEmail(
   const protocol = host.includes('localhost') ? 'http' : 'https';
   const baseUrl = `${protocol}://${host}`;
   const loginUrl = `${baseUrl}/login`;
-  const logoUrl = getLogoDataUri(language);
-  
+
   const rendered = renderEmailTemplate('passwordReset', language, {
     tempPassword,
     loginUrl,
-    logoUrl,
   });
   
   log.info(`Sending password reset email to ${email} (lang: ${language})`);
@@ -579,15 +502,13 @@ export async function sendWelcomeEmail(
   language: 'fr' | 'en' = 'fr'
 ): Promise<{ success: boolean; error?: string }> {
   const loginUrl = `${baseUrl}/login`;
-  const logoUrl = getLogoDataUri(language);
-  
+
   const rendered = renderEmailTemplate('userWelcome', language, {
     userName: data.userName || data.userEmail.split('@')[0],
     userEmail: data.userEmail,
     userRole: getRoleLabel(data.userRole, language),
     tempPassword: data.tempPassword || '',
     loginUrl,
-    logoUrl,
   });
   
   log.info(`Sending welcome email to ${data.userEmail} (lang: ${language})`);
@@ -611,8 +532,6 @@ function generateHqProcurationEmailHtml(clientName: string, lang: 'fr' | 'en', b
   const procurationUrl = clientId 
     ? `${baseUrl}/autorisation-hq?clientId=${clientId}&lang=${lang}`
     : `${baseUrl}/autorisation-hq?lang=${lang}`;
-  const logoUrl = getLogoDataUri(lang);
-  
   const t = {
     fr: {
       greeting: `Bonjour ${clientName},`,
@@ -650,72 +569,33 @@ function generateHqProcurationEmailHtml(clientName: string, lang: 'fr' | 'en', b
   
   const txt = t[lang];
   
-  return `
-<!DOCTYPE html>
-<html lang="${lang}">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    body { font-family: 'Montserrat', 'Segoe UI', Tahoma, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f5f5f5; }
-    .container { max-width: 600px; margin: 0 auto; background: white; }
-    .header { background: white; padding: 15px 20px 5px; text-align: center; }
-    .header img { max-width: 180px; height: auto; }
-    .header h1 { display: none; }
-    .content { padding: 10px 30px 20px; }
-    .greeting { font-size: 14px; color: #555; margin-bottom: 12px; }
-    .intro { font-size: 14px; color: #555; margin-bottom: 15px; line-height: 1.5; }
-    .section { margin-bottom: 15px; }
-    .section-title { font-size: 15px; font-weight: 600; color: #003DA6; margin-bottom: 8px; }
-    .section-text { font-size: 14px; color: #555; margin-bottom: 6px; }
-    .benefit-list { margin: 0; padding-left: 20px; font-size: 14px; }
-    .benefit-list li { margin-bottom: 2px; color: #555; line-height: 1.4; }
-    .cta-section { text-align: center; margin: 20px 0; }
-    .cta-button { display: inline-block; background: #FFB005; color: #003DA6; padding: 16px 40px; text-decoration: none; border-radius: 6px; font-weight: 700; font-size: 16px; }
-    .questions { font-size: 14px; color: #666; text-align: center; margin-top: 15px; }
-    .footer { text-align: center; padding: 15px; color: #666; font-size: 13px; background: #f0f0f0; border-top: 1px solid #ddd; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="header">
-      <img src="${logoUrl}" alt="kWh Québec" style="max-width: 180px; height: auto;" />
-      <h1>${lang === 'fr' ? 'Autorisation d\'accès aux données Hydro-Québec' : 'Hydro-Québec Data Access Authorization'}</h1>
+  const bodyContent = `
+    <p style="font-size:15px;color:#555;margin-bottom:8px;">${txt.greeting}</p>
+    <p style="font-size:14px;color:#555;line-height:1.6;margin-bottom:20px;">${txt.intro}</p>
+
+    ${sectionTitle(txt.whyTitle)}
+    <p style="font-size:14px;color:#555;margin-bottom:8px;">${txt.whyText}</p>
+    <div style="font-size:14px;color:#555;line-height:1.8;margin:0 0 20px 20px;">
+      &bull; ${txt.benefit1}<br>
+      &bull; ${txt.benefit2}<br>
+      &bull; ${txt.benefit3}<br>
+      &bull; ${txt.benefit4}
     </div>
-    
-    <div class="content">
-      <p class="greeting">${txt.greeting}</p>
-      <p class="intro">${txt.intro}</p>
-      
-      <div class="section">
-        <div class="section-title">${txt.whyTitle}</div>
-        <p class="section-text">${txt.whyText}</p>
-        <ul class="benefit-list">
-          <li>${txt.benefit1}</li>
-          <li>${txt.benefit2}</li>
-          <li>${txt.benefit3}</li>
-          <li>${txt.benefit4}</li>
-        </ul>
-      </div>
-      
-      <div class="section">
-        <div class="section-title">${txt.actionTitle}</div>
-        <p class="section-text">${txt.actionText}</p>
-      </div>
-      
-      <div class="cta-section">
-        <a href="${procurationUrl}" class="cta-button">${txt.ctaButton}</a>
-      </div>
-      
-      <p class="questions">${txt.questions}</p>
-    </div>
-    
-    <div class="footer">
-      <strong>${txt.footer}</strong>
-    </div>
-  </div>
-</body>
-</html>`;
+
+    ${sectionTitle(txt.actionTitle)}
+    <p style="font-size:14px;color:#555;line-height:1.6;margin-bottom:8px;">${txt.actionText}</p>
+
+    ${ctaButton(txt.ctaButton, procurationUrl)}
+
+    <p style="font-size:13px;color:#888;text-align:center;line-height:1.5;margin-top:0;">${txt.securityNote}</p>
+    <p style="font-size:14px;color:#666;text-align:center;margin-top:16px;">${txt.questions}</p>`;
+
+  return emailWrapper({
+    lang,
+    body: bodyContent,
+    showLogo: true,
+    logoSize: 'large',
+  });
 }
 
 function generateHqProcurationTextEmail(clientName: string, lang: 'fr' | 'en', baseUrl: string, clientId?: string): string {
@@ -837,106 +717,44 @@ export async function sendProcurationCompletedNotification(
     ? `Procuration signée - ${clientData.companyName} - Prête pour Hydro-Québec`
     : `Signed Authorization - ${clientData.companyName} - Ready for Hydro-Québec`;
   
-  const htmlBody = `
-<!DOCTYPE html>
-<html lang="${language}">
-<head>
-  <meta charset="UTF-8">
-  <style>
-    body { font-family: 'Montserrat', 'Segoe UI', Tahoma, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 20px; background-color: #f5f5f5; }
-    .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-    .header { background: linear-gradient(135deg, #003DA6 0%, #002B75 100%); color: white; padding: 25px; text-align: center; }
-    .header h1 { margin: 0; font-size: 22px; font-weight: 600; }
-    .header .badge { display: inline-block; background: #16A34A; color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; margin-top: 10px; text-transform: uppercase; }
-    .content { padding: 25px; }
-    .section { margin-bottom: 20px; }
-    .section-title { font-size: 14px; font-weight: 600; color: #003DA6; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; border-bottom: 2px solid #e5e7eb; padding-bottom: 5px; }
-    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .info-item { background: #f8f9fa; padding: 12px; border-radius: 6px; border-left: 3px solid #003DA6; }
-    .info-item.full-width { grid-column: span 2; }
-    .label { font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
-    .value { font-size: 15px; color: #1a1a1a; font-weight: 500; }
-    .highlight { background: #fffbeb; border-left-color: #f59e0b; }
-    .action-box { background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); padding: 20px; border-radius: 8px; border: 1px solid #0284c7; margin-top: 20px; }
-    .action-title { font-weight: 600; color: #0369a1; margin-bottom: 8px; }
-    .action-steps { margin: 0; padding-left: 20px; color: #0c4a6e; }
-    .action-steps li { margin-bottom: 6px; }
-    .footer { background: #f8f9fa; padding: 15px 25px; text-align: center; font-size: 12px; color: #666; border-top: 1px solid #e5e7eb; }
-    .logo { font-weight: 700; color: #003DA6; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="header">
-      <h1>${language === 'fr' ? 'Procuration Hydro-Qu&eacute;bec Sign&eacute;e' : 'Hydro-Qu&eacute;bec Authorization Signed'}</h1>
-      <span class="badge">${language === 'fr' ? 'Action requise' : 'Action Required'}</span>
+  const fullAddress = [clientData.streetAddress, clientData.city, clientData.province, clientData.postalCode].filter(Boolean).join(', ') || (language === 'fr' ? 'Non fournie' : 'Not provided');
+
+  const bodyContent = `
+    ${sectionTitle(language === 'fr' ? 'Informations du client' : 'Client Information')}
+    ${infoRow(language === 'fr' ? 'Entreprise' : 'Company', clientData.companyName, true)}
+    ${infoRow(language === 'fr' ? 'Signataire' : 'Signatory', `${clientData.contactName}${clientData.signerTitle ? ` - ${clientData.signerTitle}` : ''}`)}
+    ${infoRow(language === 'fr' ? 'Courriel' : 'Email', clientData.email)}
+    ${clientData.phone ? infoRow(language === 'fr' ? 'Téléphone' : 'Phone', clientData.phone) : ''}
+    ${infoRow(language === 'fr' ? 'No Hydro-Québec' : 'HQ Account #', clientData.hqAccountNumber || (language === 'fr' ? 'Non fourni' : 'Not provided'))}
+
+    <div style="margin-top:20px;">
+    ${sectionTitle(language === 'fr' ? 'Adresse' : 'Address')}
+    ${infoRow(language === 'fr' ? 'Adresse complète' : 'Full Address', fullAddress)}
     </div>
-    
-    <div class="content">
-      <div class="section">
-        <div class="section-title">${language === 'fr' ? 'Informations du client' : 'Client Information'}</div>
-        <div class="info-grid">
-          <div class="info-item full-width">
-            <div class="label">${language === 'fr' ? 'Entreprise' : 'Company'}</div>
-            <div class="value">${clientData.companyName}</div>
-          </div>
-          <div class="info-item">
-            <div class="label">${language === 'fr' ? 'Signataire' : 'Signatory'}</div>
-            <div class="value">${clientData.contactName}${clientData.signerTitle ? ` - ${clientData.signerTitle}` : ''}</div>
-          </div>
-          <div class="info-item">
-            <div class="label">${language === 'fr' ? 'Courriel' : 'Email'}</div>
-            <div class="value">${clientData.email}</div>
-          </div>
-          ${clientData.phone ? `
-          <div class="info-item">
-            <div class="label">${language === 'fr' ? 'Téléphone' : 'Phone'}</div>
-            <div class="value">${clientData.phone}</div>
-          </div>
-          ` : ''}
-          <div class="info-item highlight">
-            <div class="label">${language === 'fr' ? 'No de client Hydro-Qu&eacute;bec' : 'Hydro-Qu&eacute;bec Account Number'}</div>
-            <div class="value">${clientData.hqAccountNumber || (language === 'fr' ? 'Non fourni' : 'Not provided')}</div>
-          </div>
-        </div>
-      </div>
-      
-      <div class="section">
-        <div class="section-title">${language === 'fr' ? 'Adresse' : 'Address'}</div>
-        <div class="info-grid">
-          <div class="info-item full-width">
-            <div class="label">${language === 'fr' ? 'Adresse complète' : 'Full Address'}</div>
-            <div class="value">${[clientData.streetAddress, clientData.city, clientData.province, clientData.postalCode].filter(Boolean).join(', ') || (language === 'fr' ? 'Non fournie' : 'Not provided')}</div>
-          </div>
-        </div>
-      </div>
-      
-      <div class="section">
-        <div class="section-title">${language === 'fr' ? 'Signature' : 'Signature'}</div>
-        <div class="info-grid">
-          <div class="info-item full-width">
-            <div class="label">${language === 'fr' ? 'Date et heure de signature' : 'Signature Date & Time'}</div>
-            <div class="value">${signedDate}</div>
-          </div>
-        </div>
-      </div>
-      
-      <div class="action-box">
-        <div class="action-title">${language === 'fr' ? 'Prochaines étapes' : 'Next Steps'}</div>
-        <ol class="action-steps">
-          <li>${language === 'fr' ? 'Vérifier les informations ci-dessus' : 'Review the information above'}</li>
-          <li>${language === 'fr' ? 'Télécharger la procuration PDF ci-jointe' : 'Download the attached PDF authorization'}</li>
-          <li>${language === 'fr' ? 'Soumettre à Hydro-Québec pour obtenir les données de consommation' : 'Submit to Hydro-Québec to obtain consumption data'}</li>
-        </ol>
-      </div>
+
+    <div style="margin-top:20px;">
+    ${sectionTitle(language === 'fr' ? 'Signature' : 'Signature')}
+    ${infoRow(language === 'fr' ? 'Date et heure' : 'Date & Time', signedDate)}
     </div>
-    
-    <div class="footer">
-      <span class="logo">kWh Québec</span> | 514.427.8871 | info@kwh.quebec
-    </div>
-  </div>
-</body>
-</html>`;
+
+    <div style="background:linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);padding:20px;border-radius:8px;border:1px solid #0284c7;margin-top:24px;">
+      <div style="font-weight:600;color:#0369a1;margin-bottom:10px;font-size:15px;">${language === 'fr' ? 'Prochaines étapes' : 'Next Steps'}</div>
+      <div style="color:#0c4a6e;font-size:14px;line-height:1.8;">
+        1. ${language === 'fr' ? 'Vérifier les informations ci-dessus' : 'Review the information above'}<br>
+        2. ${language === 'fr' ? 'Télécharger la procuration PDF ci-jointe' : 'Download the attached PDF authorization'}<br>
+        3. ${language === 'fr' ? 'Soumettre à Hydro-Québec pour obtenir les données de consommation' : 'Submit to Hydro-Québec to obtain consumption data'}
+      </div>
+    </div>`;
+
+  const htmlBody = emailWrapper({
+    lang: language,
+    body: bodyContent,
+    showLogo: true,
+    logoSize: 'small',
+    headerTitle: language === 'fr' ? 'Procuration Hydro-Québec Signée' : 'Hydro-Québec Authorization Signed',
+    headerBadge: language === 'fr' ? 'Action requise' : 'Action Required',
+    headerBadgeColor: brand.accentGreen,
+  });
 
   const textBody = language === 'fr'
     ? `PROCURATION HYDRO-QUÉBEC SIGNÉE - ACTION REQUISE
@@ -1004,41 +822,23 @@ export async function sendProcurationNotificationToAccountManager(
     ? `Procuration Hydro-Québec envoyée - ${clientName}`
     : `Hydro-Québec Procuration Sent - ${clientName}`;
   
-  const htmlBody = `
-<!DOCTYPE html>
-<html lang="${language}">
-<head>
-  <meta charset="UTF-8">
-  <style>
-    body { font-family: 'Montserrat', 'Segoe UI', Tahoma, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 20px; background-color: #f5f5f5; }
-    .container { max-width: 500px; margin: 0 auto; background: white; padding: 25px; border-radius: 8px; }
-    .header { color: #003DA6; font-size: 18px; font-weight: 600; margin-bottom: 15px; }
-    .info { margin: 10px 0; padding: 12px; background: #f8f9fa; border-radius: 4px; }
-    .label { font-size: 12px; color: #666; text-transform: uppercase; }
-    .value { font-size: 15px; color: #333; font-weight: 500; }
-    .footer { margin-top: 20px; font-size: 13px; color: #666; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="header">${language === 'fr' ? 'Notification: Procuration Hydro-Qu&eacute;bec envoy&eacute;e' : 'Notification: Hydro-Qu&eacute;bec Procuration Sent'}</div>
-    <p>${language === 'fr' 
-      ? 'Un courriel de demande de procuration Hydro-Québec a été envoyé au client suivant:'
-      : 'A Hydro-Qu&eacute;bec procuration request email has been sent to the following client:'}</p>
-    <div class="info">
-      <div class="label">${language === 'fr' ? 'Client' : 'Client'}</div>
-      <div class="value">${clientName}</div>
-    </div>
-    <div class="info">
-      <div class="label">${language === 'fr' ? 'Courriel' : 'Email'}</div>
-      <div class="value">${clientEmail}</div>
-    </div>
-    <p class="footer">${language === 'fr' 
+  const bodyContent = `
+    <p style="font-size:14px;color:#555;line-height:1.6;margin-bottom:16px;">${language === 'fr'
+      ? 'Un courriel de demande de procuration Hydro-Québec a été envoyé au client suivant :'
+      : 'A Hydro-Québec procuration request email has been sent to the following client:'}</p>
+    ${infoRow('Client', clientName, true)}
+    ${infoRow(language === 'fr' ? 'Courriel' : 'Email', clientEmail)}
+    <p style="font-size:13px;color:#888;margin-top:20px;line-height:1.5;">${language === 'fr'
       ? 'Vous recevrez une notification lorsque le client aura signé la procuration.'
-      : 'You will receive a notification when the client signs the procuration.'}</p>
-  </div>
-</body>
-</html>`;
+      : 'You will receive a notification when the client signs the procuration.'}</p>`;
+
+  const htmlBody = emailWrapper({
+    lang: language,
+    body: bodyContent,
+    showLogo: true,
+    logoSize: 'small',
+    headerTitle: language === 'fr' ? 'Procuration envoyée' : 'Procuration Sent',
+  });
 
   const textBody = language === 'fr'
     ? `Notification: Procuration Hydro-Québec envoyée\n\nUn courriel de demande de procuration Hydro-Québec a été envoyé au client suivant:\n\nClient: ${clientName}\nCourriel: ${clientEmail}\n\nVous recevrez une notification lorsque le client aura signé la procuration.`
