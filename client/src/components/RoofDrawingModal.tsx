@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Trash2, Edit2, Check, X, Pentagon, Loader2, MapPin, AlertTriangle, Sun, Maximize2, Minimize2, Wand2, Sparkles, ExternalLink } from 'lucide-react';
+import { Trash2, Edit2, Check, X, Pentagon, Loader2, MapPin, AlertTriangle, Sun, Maximize2, Minimize2, Wand2, Sparkles, ExternalLink, Compass } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
@@ -29,10 +29,28 @@ interface DrawnPolygon {
   color: string;
   googlePolygon: google.maps.Polygon | null;
   tiltDegrees?: number;
+  azimuthDegrees?: number;
 }
 
 const SOLAR_COLOR = '#003DA6';      // Blue for solar areas
 const CONSTRAINT_COLOR = '#FFB005'; // Orange for constraint areas
+
+const CARDINAL_DIRECTIONS = [
+  { label: 'S', degrees: 180 },
+  { label: 'SW', degrees: 225 },
+  { label: 'W', degrees: 270 },
+  { label: 'NW', degrees: 315 },
+  { label: 'N', degrees: 0 },
+  { label: 'NE', degrees: 45 },
+  { label: 'E', degrees: 90 },
+  { label: 'SE', degrees: 135 },
+] as const;
+
+function isNorthFacing(azimuth: number | undefined): boolean {
+  if (azimuth === undefined) return false;
+  return azimuth >= 315 || azimuth <= 45;
+}
+
 const GOOGLE_MAPS_SCRIPT_ID = 'google-maps-script';
 
 type PolygonType = 'solar' | 'constraint';
@@ -494,6 +512,7 @@ export function RoofDrawingModal({
             color: ep.color || SOLAR_COLOR,
             googlePolygon,
             tiltDegrees: ep.tiltDegrees ?? undefined,
+            azimuthDegrees: ep.orientation ?? undefined,
           };
 
           setupPolygonListeners(googlePolygon, drawnPolygon.id);
@@ -816,14 +835,18 @@ export function RoofDrawingModal({
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const polygonsToSave: InsertRoofPolygon[] = polygons.map((p) => ({
-        siteId,
-        label: p.label || null,
-        coordinates: p.coordinates,
-        areaSqM: p.areaSqM,
-        color: p.color,
-        tiltDegrees: p.tiltDegrees ?? null,
-      }));
+      const polygonsToSave: InsertRoofPolygon[] = polygons.map((p) => {
+        const isFlushMount = (p.tiltDegrees ?? 0) > 0;
+        return {
+          siteId,
+          label: p.label || null,
+          coordinates: p.coordinates,
+          areaSqM: p.areaSqM,
+          color: p.color,
+          tiltDegrees: p.tiltDegrees ?? null,
+          orientation: isFlushMount ? (p.azimuthDegrees ?? null) : null,
+        };
+      });
 
       await onSave(polygonsToSave);
       onClose();
@@ -1285,6 +1308,87 @@ export function RoofDrawingModal({
                               <Badge variant="secondary" className="text-[9px] h-4 px-1">
                                 {language === 'fr' ? 'Incliné' : 'Tilted'}
                               </Badge>
+                            )}
+                          </div>
+                        )}
+                        {!isConstraintPolygon && (polygon.tiltDegrees ?? 0) > 0 && (
+                          <div className="mt-1.5">
+                            <div className="flex items-center gap-1.5">
+                              <label className="text-[10px] text-muted-foreground whitespace-nowrap flex items-center gap-0.5">
+                                <Compass className="w-3 h-3" />
+                                {language === 'fr' ? 'Azimut versant:' : 'Slope azimuth:'}
+                              </label>
+                            </div>
+                            <div className="flex items-center gap-1.5 mt-1">
+                              <Input
+                                type="number"
+                                min={0}
+                                max={360}
+                                step={1}
+                                value={polygon.azimuthDegrees ?? ''}
+                                placeholder="180"
+                                onChange={(e) => {
+                                  const val = e.target.value ? Math.min(360, Math.max(0, parseInt(e.target.value))) : undefined;
+                                  setPolygons((prev) =>
+                                    prev.map((p) =>
+                                      p.id === polygon.id ? { ...p, azimuthDegrees: isNaN(val as number) ? undefined : val } : p
+                                    )
+                                  );
+                                }}
+                                className="h-6 w-14 text-xs px-1.5"
+                                data-testid={`input-azimuth-${index}`}
+                              />
+                              <span className="text-[10px] text-muted-foreground">°</span>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-1 mt-1" data-testid={`azimuth-selector-${index}`}>
+                              {CARDINAL_DIRECTIONS.map((dir) => {
+                                const isSelected = polygon.azimuthDegrees === dir.degrees;
+                                const isNorth = dir.label === 'N' || dir.label === 'NE' || dir.label === 'NW';
+                                return (
+                                  <button
+                                    key={dir.label}
+                                    type="button"
+                                    onClick={() => {
+                                      setPolygons((prev) =>
+                                        prev.map((p) =>
+                                          p.id === polygon.id ? { ...p, azimuthDegrees: isSelected ? undefined : dir.degrees } : p
+                                        )
+                                      );
+                                    }}
+                                    className={`
+                                      text-[9px] font-medium px-1.5 py-0.5 rounded-md border transition-colors
+                                      ${isSelected
+                                        ? isNorth
+                                          ? 'bg-orange-500 text-white border-orange-600'
+                                          : 'bg-primary text-primary-foreground border-primary'
+                                        : isNorth
+                                          ? 'border-orange-300 text-orange-600 dark:border-orange-700 dark:text-orange-400'
+                                          : 'border-muted-foreground/30 text-muted-foreground'
+                                      }
+                                    `}
+                                    data-testid={`btn-azimuth-${dir.label}-${index}`}
+                                  >
+                                    {dir.label}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                            {isNorthFacing(polygon.azimuthDegrees) && (
+                              <div className="mt-1.5 p-1.5 bg-orange-50 dark:bg-orange-950/30 border border-orange-300 dark:border-orange-800 rounded-md" data-testid={`warning-north-${index}`}>
+                                <div className="flex items-start gap-1">
+                                  <AlertTriangle className="w-3 h-3 text-orange-500 mt-0.5 shrink-0" />
+                                  <div className="text-[9px] text-orange-700 dark:text-orange-400">
+                                    <span className="font-semibold">
+                                      {language === 'fr' ? 'Versant nord détecté' : 'North-facing slope detected'}
+                                    </span>
+                                    <span className="block mt-0.5">
+                                      {language === 'fr'
+                                        ? `Perte estimée : ~35-40%. Utilisez le versant sud si possible.`
+                                        : `Estimated loss: ~35-40%. Use the south-facing slope if possible.`}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
                             )}
                           </div>
                         )}

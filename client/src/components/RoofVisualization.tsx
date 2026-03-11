@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Slider } from "@/components/ui/slider";
-import { Home, Sun, Zap, Maximize2, Layers, AlertTriangle, RefreshCw, PencilRuler, ChevronDown, Play, Loader2 } from "lucide-react";
+import { Home, Sun, Zap, Maximize2, Layers, AlertTriangle, RefreshCw, PencilRuler, ChevronDown, Play, Loader2, Compass } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
 import type { RoofPolygon } from "@shared/schema";
@@ -571,11 +571,38 @@ function calculateOrientationYieldFactor(panelRowAngleRad: number): { factor: nu
   return { factor, deviationDeg };
 }
 
+function getAzimuthYieldFactor(azimuthDegrees: number): number {
+  const normalized = ((azimuthDegrees % 360) + 360) % 360;
+  const deviationFromSouth = Math.min(
+    Math.abs(normalized - 180),
+    360 - Math.abs(normalized - 180)
+  );
+  if (deviationFromSouth <= 15) return 1.0;
+  if (deviationFromSouth <= 45) return 0.97;
+  if (deviationFromSouth <= 75) return 0.85;
+  if (deviationFromSouth <= 105) return 0.80;
+  if (deviationFromSouth <= 135) return 0.65;
+  return 0.60;
+}
+
+function isNorthFacingAzimuth(azimuth: number | undefined | null): boolean {
+  if (azimuth === undefined || azimuth === null) return false;
+  const normalized = ((azimuth % 360) + 360) % 360;
+  return normalized >= 315 || normalized <= 45;
+}
+
 // Calculate estimated annual yield in kWh/kWp
 // tiltDeg: effective panel tilt (10° for ballast, or actual roof pitch for flush-mount)
-function calculateEstimatedYield(panelRowAngleRad: number, tiltDeg: number): number {
+// azimuthYieldOverride: optional pre-computed weighted yield factor from flush-mount azimuth data
+function calculateEstimatedYield(panelRowAngleRad: number, tiltDeg: number, azimuthYieldOverride?: number): number {
   const baseYield = QUEBEC_BASE_YIELD_KWH_KWP;
-  const { factor: orientationFactor } = calculateOrientationYieldFactor(panelRowAngleRad);
+  
+  let orientationFactor: number;
+  if (azimuthYieldOverride !== undefined) {
+    orientationFactor = azimuthYieldOverride;
+  } else {
+    orientationFactor = calculateOrientationYieldFactor(panelRowAngleRad).factor;
+  }
   
   // Tilt factor: optimal for Quebec is ~35-45°
   // 10° ballast: ~6% loss (YIELD_LOSS_10DEG_TILT)
@@ -1121,6 +1148,9 @@ export function RoofVisualization({
   const [panelOrientationAngle, setPanelOrientationAngle] = useState(0); // Radians
   const [orientationSource, setOrientationSource] = useState<string>("default");
   const [effectiveTiltDeg, setEffectiveTiltDeg] = useState(PANEL_TILT_DEG); // Actual tilt: 10° for ballast, or roof pitch for flush-mount
+  const [flushMountAzimuth, setFlushMountAzimuth] = useState<number | undefined>(undefined);
+  const [flushMountYieldFactor, setFlushMountYieldFactor] = useState<number | undefined>(undefined);
+  const [hasNorthFacingPolygons, setHasNorthFacingPolygons] = useState(false);
   const [arraysExpanded, setArraysExpanded] = useState(false);
   
   // Dual orientation comparison state
@@ -1617,19 +1647,22 @@ export function RoofVisualization({
         }
 
         // Create Google polygon objects for all solar polygons
-        const solarPolygonDataForUnified: { polygon: google.maps.Polygon; id: string; coords: [number, number][]; tiltDegrees?: number }[] = [];
+        const solarPolygonDataForUnified: { polygon: google.maps.Polygon; id: string; coords: [number, number][]; tiltDegrees?: number; azimuthDegrees?: number }[] = [];
         
         for (const polygon of solarPolygons) {
           const coords = polygon.coordinates as [number, number][];
           const path = coords.map(([lng, lat]) => ({ lat, lng }));
           
+          const isFlush = (polygon.tiltDegrees ?? 0) > 0;
+          const hasNorthAzimuth = isFlush && isNorthFacingAzimuth(polygon.orientation);
+          
           const solarGooglePolygon = new google.maps.Polygon({
             paths: path,
-            strokeColor: "#16A34A",
+            strokeColor: hasNorthAzimuth ? "#F97316" : "#16A34A",
             strokeOpacity: 0.9,
-            strokeWeight: 2,
-            fillColor: "#16A34A",
-            fillOpacity: 0.15,
+            strokeWeight: hasNorthAzimuth ? 3 : 2,
+            fillColor: hasNorthAzimuth ? "#F97316" : "#16A34A",
+            fillOpacity: hasNorthAzimuth ? 0.25 : 0.15,
             map,
           });
           
@@ -1639,7 +1672,21 @@ export function RoofVisualization({
             id: polygon.id,
             coords,
             tiltDegrees: polygon.tiltDegrees ?? undefined,
+            azimuthDegrees: isFlush ? (polygon.orientation ?? undefined) : undefined,
           });
+          
+          if (hasNorthAzimuth) {
+            const centroid = computeCentroid(coords);
+            const northLabel = language === 'fr' ? 'Versant Nord (~35-40% perte)' : 'North slope (~35-40% loss)';
+            const infoWindow = new google.maps.InfoWindow({
+              content: `<div style="padding:4px 8px;background:#FFF7ED;border:1px solid #FB923C;border-radius:6px;font-size:11px;color:#C2410C;font-weight:600;display:flex;align-items:center;gap:4px;">
+                <span style="font-size:14px;">&#9888;</span> ${northLabel}
+              </div>`,
+              position: { lat: centroid.lat, lng: centroid.lng },
+              disableAutoPan: true,
+            });
+            infoWindow.open(map);
+          }
         }
 
         const polyBounds = new google.maps.LatLngBounds();
@@ -1690,6 +1737,44 @@ export function RoofVisualization({
         // Determine effective tilt from polygon data (use max tilt if any polygon is tilted)
         const maxPolygonTilt = solarPolygons.reduce((max, p) => Math.max(max, p.tiltDegrees ?? 0), 0);
         setEffectiveTiltDeg(maxPolygonTilt > 0 ? maxPolygonTilt : PANEL_TILT_DEG);
+        
+        const flushPolygonsWithAzimuth = solarPolygons.filter(p => (p.tiltDegrees ?? 0) > 0 && p.orientation != null);
+        const nonFlushPolygons = solarPolygons.filter(p => (p.tiltDegrees ?? 0) === 0 || p.orientation == null);
+        
+        if (flushPolygonsWithAzimuth.length > 0) {
+          if (nonFlushPolygons.length === 0) {
+            const totalArea = flushPolygonsWithAzimuth.reduce((sum, p) => sum + (p.areaSqM || 1), 0);
+            let weightedYieldFactor = 0;
+            for (const p of flushPolygonsWithAzimuth) {
+              const area = p.areaSqM || 1;
+              weightedYieldFactor += (area / totalArea) * getAzimuthYieldFactor(p.orientation!);
+            }
+            setFlushMountYieldFactor(weightedYieldFactor);
+          } else {
+            setFlushMountYieldFactor(undefined);
+          }
+          
+          if (flushPolygonsWithAzimuth.length === 1) {
+            setFlushMountAzimuth(flushPolygonsWithAzimuth[0].orientation!);
+          } else {
+            const flushArea = flushPolygonsWithAzimuth.reduce((sum, p) => sum + (p.areaSqM || 1), 0);
+            let sinSum = 0, cosSum = 0;
+            for (const p of flushPolygonsWithAzimuth) {
+              const w = (p.areaSqM || 1) / flushArea;
+              const rad = (p.orientation! * Math.PI) / 180;
+              sinSum += w * Math.sin(rad);
+              cosSum += w * Math.cos(rad);
+            }
+            const avgRad = Math.atan2(sinSum, cosSum);
+            setFlushMountAzimuth(Math.round(((avgRad * 180 / Math.PI) + 360) % 360));
+          }
+        } else {
+          setFlushMountAzimuth(undefined);
+          setFlushMountYieldFactor(undefined);
+        }
+        
+        const anyNorthFacing = solarPolygons.some(p => (p.tiltDegrees ?? 0) > 0 && isNorthFacingAzimuth(p.orientation));
+        setHasNorthFacingPolygons(anyNorthFacing);
         
         // Initial panel positions: start with building-aligned; the dynamic orientation useEffect will switch
         // to the optimal orientation for the current slider position
@@ -2450,7 +2535,7 @@ export function RoofVisualization({
               {/* Estimated Yield */}
               <Badge variant="secondary" className="text-xs font-normal gap-1" data-testid="badge-yield">
                 <Zap className="w-3 h-3" />
-                {language === "fr" ? "Rendement" : "Yield"}: {calculateEstimatedYield(panelOrientationAngle, effectiveTiltDeg)} kWh/kWp
+                {language === "fr" ? "Rendement" : "Yield"}: {calculateEstimatedYield(panelOrientationAngle, effectiveTiltDeg, flushMountYieldFactor)} kWh/kWp
               </Badge>
               
               {/* Orientation info */}
@@ -2470,6 +2555,20 @@ export function RoofVisualization({
                   </Badge>
                 );
               })()}
+              
+              {hasNorthFacingPolygons && (
+                <Badge variant="destructive" className="text-xs font-normal gap-1" data-testid="badge-north-warning">
+                  <AlertTriangle className="w-3 h-3" />
+                  {language === "fr" ? "Versant nord (-35-40%)" : "North slope (-35-40%)"}
+                </Badge>
+              )}
+              
+              {flushMountAzimuth !== undefined && !hasNorthFacingPolygons && (
+                <Badge variant="outline" className="text-xs font-normal gap-1" data-testid="badge-azimuth">
+                  <Compass className="w-3 h-3" />
+                  {language === "fr" ? "Azimut versant" : "Slope azimuth"}: {flushMountAzimuth}°
+                </Badge>
+              )}
               
               {/* Structural Load */}
               {panelsToShow > 0 && netUsableArea > 0 && (
@@ -2549,8 +2648,8 @@ export function RoofVisualization({
                   const southPanelCount = Math.min(panelsToShow, trueSouthPanels.length);
                   const buildingCapacityKW = Math.round(buildingPanelCount * PANEL_KW);
                   const southCapacityKW = Math.round(southPanelCount * PANEL_KW);
-                  const buildingYield = calculateEstimatedYield(buildingAlignedAngle, effectiveTiltDeg);
-                  const southYield = calculateEstimatedYield(0, effectiveTiltDeg);
+                  const buildingYield = calculateEstimatedYield(buildingAlignedAngle, effectiveTiltDeg, flushMountYieldFactor);
+                  const southYield = calculateEstimatedYield(0, effectiveTiltDeg, flushMountYieldFactor);
                   const buildingProduction = buildingPanelCount * PANEL_KW * buildingYield;
                   const southProduction = southPanelCount * PANEL_KW * southYield;
                   const difference = southProduction - buildingProduction;
