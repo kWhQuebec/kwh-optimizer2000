@@ -152,7 +152,7 @@ export const nurtureCTA1 = {
       <p>Vous avez reçu une analyse solaire personnalisée pour votre bâtiment.</p>
       
       <div class="highlight">
-        <p>Avec un système estimé à {{estimatedSystemSize}} et des économies potentielles de {{estimatedSavings}}/an, une conversation de 10 minutes pourrait faire toute la différence.</p>
+        <p>{{highlightTextFr}}</p>
       </div>
 
       <ul style="padding-left: 20px;">
@@ -171,7 +171,7 @@ export const nurtureCTA1 = {
       <p>You've received a personalized solar analysis for your building.</p>
       
       <div class="highlight">
-        <p>With an estimated {{estimatedSystemSize}} system and potential savings of {{estimatedSavings}}/year, a 10-minute conversation could make all the difference.</p>
+        <p>{{highlightTextEn}}</p>
       </div>
 
       <ul style="padding-left: 20px;">
