@@ -139,20 +139,28 @@ export function deduplicateMeterReadingsByHour(
     } else {
       let totalKWh = 0;
       let maxKW = 0;
+      let sumKW = 0;
+      let countKW = 0;
       let hasKWh = false;
-      
+
       for (const r of readings) {
         if (r.kWh !== null) {
           totalKWh += r.kWh;
           hasKWh = true;
         }
-        if (r.kW !== null && r.kW > maxKW) {
-          maxKW = r.kW;
+        if (r.kW !== null) {
+          if (r.kW > maxKW) maxKW = r.kW;
+          sumKW += r.kW;
+          countKW++;
         }
       }
-      
+
       const kWhEffectivelyMissing = !hasKWh || (totalKWh === 0 && maxKW > 0);
-      const resolvedKWh = kWhEffectivelyMissing ? (maxKW > 0 ? maxKW : null) : totalKWh;
+      // When kWh is missing, use average kW as hourly energy estimate:
+      // avg(kW) over the hour = total energy in kWh (since interval sums to 1 hour)
+      // This is more accurate than maxKW which overestimates by ~15%
+      const avgKW = countKW > 0 ? sumKW / countKW : 0;
+      const resolvedKWh = kWhEffectivelyMissing ? (avgKW > 0 ? avgKW : (maxKW > 0 ? maxKW : null)) : totalKWh;
       deduplicatedReadings.push({
         timestamp: hourTimestamp,
         kWh: resolvedKWh,
