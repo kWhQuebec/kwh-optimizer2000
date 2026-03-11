@@ -44,6 +44,19 @@ function formatDollarSigned(value: number, lang: string = 'fr'): string {
 
 type HqHistoryEntry = { period?: string; kWh?: number; kW?: number; amount?: number; days?: number };
 
+function countDistinctMonths(entries: HqHistoryEntry[]): number {
+  const months = new Set<string>();
+  for (const e of entries) {
+    if (e.period) {
+      const match = e.period.match(/(\d{4})-(\d{2})/);
+      if (match) {
+        months.add(`${match[1]}-${match[2]}`);
+      }
+    }
+  }
+  return months.size;
+}
+
 function computeAnnualBillFromHQ(
   hqHistory: HqHistoryEntry[] | null | undefined,
   _meterFiles: Array<{ isSynthetic?: boolean | null }> | null | undefined,
@@ -57,10 +70,11 @@ function computeAnnualBillFromHQ(
       if (allHaveDays) {
         const totalDays = entriesWithAmount.reduce((sum, e) => sum + (e.days!), 0);
         const annualized = (totalAmount / totalDays) * 365;
-        const hasSufficientCoverage = totalDays >= 300;
+        const hasSufficientCoverage = totalDays >= 270;
         return { amount: annualized, isReal: hasSufficientCoverage };
       }
-      if (entriesWithAmount.length >= 10) {
+      const distinctMonths = countDistinctMonths(entriesWithAmount);
+      if (entriesWithAmount.length >= 6 || distinctMonths >= 10) {
         return { amount: totalAmount, isReal: true };
       }
       return { amount: totalAmount, isReal: false };
