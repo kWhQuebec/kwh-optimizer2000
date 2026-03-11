@@ -100,9 +100,11 @@ export function deduplicateMeterReadingsByHour(
       }
       
       const fallbackKW = (bestHourly.kW != null && bestHourly.kW > 0) ? bestHourly.kW : (maxKW > 0 ? maxKW : null);
-      const kWhMissing = bestHourly.kWh == null || (bestHourly.kWh === 0 && fallbackKW != null && fallbackKW > 0);
+      const refKW = fallbackKW || maxKW || 0;
+      const kWhLooksLikeDailyTotal = bestHourly.kWh != null && bestHourly.kWh > 0 && refKW > 0 && bestHourly.kWh > refKW * 10;
+      const kWhMissing = bestHourly.kWh == null || (bestHourly.kWh === 0 && fallbackKW != null && fallbackKW > 0) || kWhLooksLikeDailyTotal;
       const resolvedKWh = kWhMissing
-        ? (fallbackKW != null && fallbackKW > 0 ? fallbackKW : bestHourly.kWh)
+        ? (fallbackKW != null && fallbackKW > 0 ? fallbackKW : (kWhLooksLikeDailyTotal ? null : bestHourly.kWh))
         : bestHourly.kWh;
       deduplicatedReadings.push({
         timestamp: hourTimestamp,
