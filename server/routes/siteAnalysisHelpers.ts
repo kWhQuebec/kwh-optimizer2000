@@ -99,9 +99,10 @@ export function deduplicateMeterReadingsByHour(
         }
       }
       
-      const kWhMissing = bestHourly.kWh == null || (bestHourly.kWh === 0 && bestHourly.kW != null && bestHourly.kW > 0);
+      const fallbackKW = (bestHourly.kW != null && bestHourly.kW > 0) ? bestHourly.kW : (maxKW > 0 ? maxKW : null);
+      const kWhMissing = bestHourly.kWh == null || (bestHourly.kWh === 0 && fallbackKW != null && fallbackKW > 0);
       const resolvedKWh = kWhMissing
-        ? (bestHourly.kW != null && bestHourly.kW > 0 ? bestHourly.kW : bestHourly.kWh)
+        ? (fallbackKW != null && fallbackKW > 0 ? fallbackKW : bestHourly.kWh)
         : bestHourly.kWh;
       deduplicatedReadings.push({
         timestamp: hourTimestamp,
