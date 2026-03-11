@@ -99,9 +99,10 @@ export function deduplicateMeterReadingsByHour(
         }
       }
       
-      const resolvedKWh = bestHourly.kWh != null
-        ? bestHourly.kWh
-        : (bestHourly.kW != null && bestHourly.kW > 0 ? bestHourly.kW : null);
+      const kWhMissing = bestHourly.kWh == null || (bestHourly.kWh === 0 && bestHourly.kW != null && bestHourly.kW > 0);
+      const resolvedKWh = kWhMissing
+        ? (bestHourly.kW != null && bestHourly.kW > 0 ? bestHourly.kW : bestHourly.kWh)
+        : bestHourly.kWh;
       deduplicatedReadings.push({
         timestamp: hourTimestamp,
         kWh: resolvedKWh,
@@ -122,7 +123,8 @@ export function deduplicateMeterReadingsByHour(
         }
       }
       
-      const resolvedKWh = hasKWh ? totalKWh : (maxKW > 0 ? maxKW : null);
+      const kWhEffectivelyMissing = !hasKWh || (totalKWh === 0 && maxKW > 0);
+      const resolvedKWh = kWhEffectivelyMissing ? (maxKW > 0 ? maxKW : null) : totalKWh;
       deduplicatedReadings.push({
         timestamp: hourTimestamp,
         kWh: resolvedKWh,
@@ -344,7 +346,8 @@ export function buildHourlyData(readings: Array<{ kWh: number | null; kW: number
     const key = `${month}-${hour}`;
     
     const existing = hourlyByHourMonth.get(key) || { totalKWh: 0, maxKW: 0, count: 0 };
-    const effectiveKWh = r.kWh != null ? r.kWh : (r.kW != null && r.kW > 0 ? r.kW : 0);
+    const kWhMissing = r.kWh == null || (r.kWh === 0 && r.kW != null && r.kW > 0);
+    const effectiveKWh = kWhMissing ? (r.kW != null && r.kW > 0 ? r.kW : 0) : r.kWh;
     existing.totalKWh += effectiveKWh;
     existing.maxKW = Math.max(existing.maxKW, r.kW || 0);
     existing.count++;
