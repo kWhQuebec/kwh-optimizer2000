@@ -23,6 +23,8 @@ import {
   calculateIRR,
   type CashflowInputs,
 } from './cashflowCalculations';
+import { computeAcquisitionCashflows } from '../services/acquisitionCashflows';
+import { applyOptimalScenario } from '../documentDataProvider';
 
 // ─── Test Assumptions (matching defaultAnalysisAssumptions) ─────────────────
 
@@ -434,5 +436,268 @@ describe('calculateCashflowMetrics (master function)', () => {
     expect(b.taxShield).toBeGreaterThan(0);
     expect(b.capexNet).toBeGreaterThan(0);
     expect(b.equityInitial).toBeGreaterThan(0);
+  });
+});
+
+describe('No-battery scenario investment checks', () => {
+  const h = {
+    ...defaultAssumptions,
+    batteryReplacementYear: 10,
+    batteryReplacementCostFactor: 0.60,
+    batteryPriceDeclineRate: 0.05,
+  } as any;
+
+  it('should have zero investment at years 10, 20, 30 when battEnergyKWh=0', () => {
+    const cf = generateCashflowArray(50000, 0, 94000, 0, 200, 470000, 300000, 20000, 80000, 0, h);
+    for (const y of [10, 20, 30]) {
+      expect(cf[y].investment).toBe(0);
+    }
+  });
+
+  it('should have negative investment at replacement years when battEnergyKWh > 0', () => {
+    const cf = generateCashflowArray(50000, 0, 94000, 100, 200, 470000, 300000, 20000, 80000, 0, h);
+    expect(cf[10].investment).toBeLessThan(0);
+    expect(cf[20].investment).toBeLessThan(0);
+  });
+});
+
+describe('computeAcquisitionCashflows', () => {
+  it('should use existing cashflows for all three curves when available', () => {
+    const cashflows = [];
+    let cumulative = -200000;
+    cashflows.push({ year: 0, netCashflow: -200000, cumulative });
+    for (let y = 1; y <= 25; y++) {
+      const net = 20000;
+      cumulative += net;
+      cashflows.push({ year: y, netCashflow: net, cumulative });
+    }
+
+    const result = computeAcquisitionCashflows({
+      capexGross: 300000,
+      capexNet: 200000,
+      annualSavings: 18000,
+      incentivesHQSolar: 50000,
+      incentivesHQBattery: 0,
+      incentivesFederal: 50000,
+      taxShield: 10000,
+      cashflows,
+    });
+
+    expect(result.series[1].cash).toBe(cashflows[1].cumulative);
+
+    const resultNoCf = computeAcquisitionCashflows({
+      capexGross: 300000,
+      capexNet: 200000,
+      annualSavings: 18000,
+      incentivesHQSolar: 50000,
+      incentivesHQBattery: 0,
+      incentivesFederal: 50000,
+      taxShield: 10000,
+    });
+
+    expect(result.series[15].loan).not.toBe(resultNoCf.series[15].loan);
+  });
+
+  it('loan and lease curves should differ from cash curve', () => {
+    const cashflows = [];
+    let cumulative = -200000;
+    cashflows.push({ year: 0, netCashflow: -200000, cumulative });
+    for (let y = 1; y <= 25; y++) {
+      const net = 20000;
+      cumulative += net;
+      cashflows.push({ year: y, netCashflow: net, cumulative });
+    }
+
+    const result = computeAcquisitionCashflows({
+      capexGross: 300000,
+      capexNet: 200000,
+      annualSavings: 18000,
+      incentivesHQSolar: 50000,
+      incentivesHQBattery: 0,
+      incentivesFederal: 50000,
+      taxShield: 10000,
+      cashflows,
+    });
+
+    expect(result.series[0].loan).not.toBe(result.series[0].cash);
+    expect(result.series[5].loan).not.toBe(result.series[5].cash);
+    expect(result.series[5].lease).not.toBe(result.series[5].cash);
+  });
+});
+
+describe('applyOptimalScenario', () => {
+  const makeSimulation = (overrides: any = {}) => ({
+    id: 1,
+    siteId: 1,
+    pvSizeKW: 100,
+    battEnergyKWh: 50,
+    battPowerKW: 25,
+    capexNet: 200000,
+    capexGross: 300000,
+    capexPV: 250000,
+    capexBattery: 50000,
+    npv25: 100000,
+    irr25: 12,
+    simplePaybackYears: 8,
+    selfSufficiencyPercent: 60,
+    annualSavings: 30000,
+    savingsYear1: 30000,
+    totalProductionKWh: 150000,
+    co2AvoidedTonnesPerYear: 20,
+    incentivesHQSolar: 10000,
+    incentivesHQBattery: 5000,
+    incentivesHQ: 15000,
+    incentivesFederal: 20000,
+    taxShield: 8000,
+    totalIncentives: 43000,
+    lcoe: 0.05,
+    annualCostBefore: 50000,
+    annualCostAfter: 20000,
+    annualEnergySavingsKWh: 100000,
+    cashflows: [],
+    sensitivity: null,
+    site: { id: 1, client: { id: 1 } },
+    ...overrides,
+  });
+
+  it('should return simulation unchanged when no sensitivity data', () => {
+    const sim = makeSimulation();
+    const result = applyOptimalScenario(sim as any);
+    expect(result.pvSizeKW).toBe(100);
+  });
+
+  it('should preserve cashflow detail fields when available in scenario', () => {
+    const detailedCashflows = [
+      { year: 0, netCashflow: -180000, ebitda: 0, investment: -180000, dpa: 0, incentives: 0, revenue: 0, opex: 0 },
+      { year: 1, netCashflow: 35000, ebitda: 28000, investment: 0, dpa: 8000, incentives: 5000, revenue: 30000, opex: -2000 },
+      { year: 2, netCashflow: 47000, ebitda: 27000, investment: 0, dpa: 0, incentives: 20000, revenue: 29000, opex: -2000 },
+    ];
+
+    const sim = makeSimulation({
+      sensitivity: {
+        optimalScenarios: {
+          bestNPV: {
+            pvSizeKW: 150,
+            battEnergyKWh: 0,
+            battPowerKW: 0,
+            capexNet: 180000,
+            npv25: 150000,
+            irr25: 15,
+            simplePaybackYears: 6,
+            selfSufficiencyPercent: 70,
+            annualSavings: 35000,
+            totalProductionKWh: 200000,
+            co2AvoidedTonnesPerYear: 25,
+            scenarioBreakdown: {
+              capexGross: 250000,
+              capexSolar: 250000,
+              capexBattery: 0,
+              actualHQSolar: 30000,
+              actualHQBattery: 0,
+              itcAmount: 20000,
+              taxShield: 8000,
+              cashflows: detailedCashflows,
+            },
+          },
+        },
+      },
+    });
+
+    const result = applyOptimalScenario(sim as any);
+    const cf1 = (result.cashflows as any[])[1];
+    expect(cf1.ebitda).toBe(28000);
+    expect(cf1.dpa).toBe(8000);
+    expect(cf1.incentives).toBe(5000);
+    expect(cf1.investment).toBe(0);
+  });
+
+  it('should use fallback zeros when scenario cashflows have no detail', () => {
+    const simpleCashflows = [
+      { year: 0, netCashflow: -180000 },
+      { year: 1, netCashflow: 35000 },
+      { year: 2, netCashflow: 47000 },
+    ];
+
+    const sim = makeSimulation({
+      sensitivity: {
+        optimalScenarios: {
+          bestNPV: {
+            pvSizeKW: 150,
+            battEnergyKWh: 0,
+            battPowerKW: 0,
+            capexNet: 180000,
+            npv25: 150000,
+            irr25: 15,
+            simplePaybackYears: 6,
+            selfSufficiencyPercent: 70,
+            annualSavings: 35000,
+            totalProductionKWh: 200000,
+            co2AvoidedTonnesPerYear: 25,
+            scenarioBreakdown: {
+              capexGross: 250000,
+              capexSolar: 250000,
+              capexBattery: 0,
+              actualHQSolar: 30000,
+              actualHQBattery: 0,
+              itcAmount: 20000,
+              taxShield: 8000,
+              cashflows: simpleCashflows,
+            },
+          },
+        },
+      },
+    });
+
+    const result = applyOptimalScenario(sim as any);
+    const cf1 = (result.cashflows as any[])[1];
+    expect(cf1.ebitda).toBe(0);
+    expect(cf1.investment).toBe(0);
+    expect(cf1.netCashflow).toBe(35000);
+  });
+
+  it('should preserve detail fields even when ebitda is zero (investment-only year)', () => {
+    const detailedCashflows = [
+      { year: 0, netCashflow: -180000, ebitda: 0, investment: -180000, dpa: 0, incentives: 0 },
+      { year: 1, netCashflow: 8000, ebitda: 0, investment: 0, dpa: 8000, incentives: 0 },
+      { year: 10, netCashflow: -50000, ebitda: 0, investment: -50000, dpa: 0, incentives: 0 },
+    ];
+
+    const sim = makeSimulation({
+      sensitivity: {
+        optimalScenarios: {
+          bestNPV: {
+            pvSizeKW: 150,
+            battEnergyKWh: 0,
+            battPowerKW: 0,
+            capexNet: 180000,
+            npv25: 150000,
+            irr25: 15,
+            simplePaybackYears: 6,
+            selfSufficiencyPercent: 70,
+            annualSavings: 35000,
+            totalProductionKWh: 200000,
+            co2AvoidedTonnesPerYear: 25,
+            scenarioBreakdown: {
+              capexGross: 250000,
+              capexSolar: 250000,
+              capexBattery: 0,
+              actualHQSolar: 30000,
+              actualHQBattery: 0,
+              itcAmount: 20000,
+              taxShield: 8000,
+              cashflows: detailedCashflows,
+            },
+          },
+        },
+      },
+    });
+
+    const result = applyOptimalScenario(sim as any);
+    const cf0 = (result.cashflows as any[])[0];
+    expect(cf0.investment).toBe(-180000);
+    const cf1 = (result.cashflows as any[])[1];
+    expect(cf1.dpa).toBe(8000);
+    const cf10 = (result.cashflows as any[])[2];
+    expect(cf10.investment).toBe(-50000);
   });
 });

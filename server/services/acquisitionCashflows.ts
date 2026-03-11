@@ -31,10 +31,10 @@ export interface AcquisitionResult {
 const DEGRADATION_RATE = 0.004;
 
 export function computeAcquisitionCashflows(inputs: AcquisitionInputs): AcquisitionResult {
+  // HQ battery incentive has been discontinued (potentialHQBattery = 0 in cashflowCalculations)
   const {
     annualSavings,
     incentivesHQSolar: hqSolar = 0,
-    incentivesHQBattery: hqBattery = 0,
     incentivesFederal: federalITC = 0,
     taxShield = 0,
     loanTermYears = 10,
@@ -65,13 +65,14 @@ export function computeAcquisitionCashflows(inputs: AcquisitionInputs): Acquisit
     : leaseFinancedAmount / Math.max(1, leaseNumPayments);
   const annualLeasePayment = leaseMonthlyPayment * 12;
 
-  const upfrontCashNeeded = capexGross - hqSolar - (hqBattery * 0.5);
-  const year1Returns = (hqBattery * 0.5) + taxShield;
+  const upfrontCashNeeded = capexGross - hqSolar;
+  const year1Returns = taxShield;
   const year2Returns = federalITC;
-  const leaseYear1Returns = 0;
-  const leaseYear2Returns = 0;
 
-  let cashCumulative = -upfrontCashNeeded;
+  const existingCashflows = inputs.cashflows;
+  const existingYear0 = existingCashflows?.find(c => c.year === 0);
+
+  let cashCumulative = existingYear0 ? existingYear0.cumulative : -upfrontCashNeeded;
   let loanCumulative = -loanDownPaymentAmount;
   let leaseCumulative = 0;
 
@@ -80,13 +81,11 @@ export function computeAcquisitionCashflows(inputs: AcquisitionInputs): Acquisit
   let loanPaybackYear: number | null = null;
   let leasePaybackYear: number | null = null;
 
-  const existingCashflows = inputs.cashflows;
-
   for (let year = 0; year <= horizon; year++) {
     if (year === 0) {
       series.push({
         year,
-        cash: cashCumulative,
+        cash: Math.round(cashCumulative),
         loan: loanCumulative,
         lease: leaseCumulative,
       });
@@ -95,41 +94,35 @@ export function computeAcquisitionCashflows(inputs: AcquisitionInputs): Acquisit
 
     const degradedSavings = annualSavings * Math.pow(1 - DEGRADATION_RATE, year - 1);
 
-    if (existingCashflows && existingCashflows.length > 0) {
-      const cf = existingCashflows.find(c => c.year === year);
-      if (cf) {
-        cashCumulative = cf.cumulative;
-      } else {
-        cashCumulative += degradedSavings;
-      }
+    const hasCashflows = existingCashflows && existingCashflows.length > 0;
+    const cfEntry = hasCashflows ? existingCashflows.find(c => c.year === year) : null;
+
+    if (cfEntry) {
+      cashCumulative = cfEntry.cumulative;
+
+      const yearlyNet = cfEntry.netCashflow;
+      loanCumulative += yearlyNet - (year <= loanTermYears ? annualLoanPayment : 0);
+      leaseCumulative += yearlyNet - (year <= leaseTermYears ? annualLeasePayment : 0);
     } else {
       cashCumulative += degradedSavings;
-    }
+      loanCumulative += degradedSavings;
+      leaseCumulative += degradedSavings;
 
-    loanCumulative += degradedSavings;
-    leaseCumulative += degradedSavings;
+      if (year <= loanTermYears) {
+        loanCumulative -= annualLoanPayment;
+      }
+      if (year <= leaseTermYears) {
+        leaseCumulative -= annualLeasePayment;
+      }
 
-    if (year <= loanTermYears) {
-      loanCumulative -= annualLoanPayment;
-    }
-
-    if (year <= leaseTermYears) {
-      leaseCumulative -= annualLeasePayment;
-    }
-
-    if (year === 1) {
-      if (!existingCashflows || existingCashflows.length === 0) {
+      if (year === 1) {
         cashCumulative += year1Returns;
+        loanCumulative += year1Returns;
       }
-      loanCumulative += year1Returns;
-      leaseCumulative += leaseYear1Returns;
-    }
-    if (year === 2) {
-      if (!existingCashflows || existingCashflows.length === 0) {
+      if (year === 2) {
         cashCumulative += year2Returns;
+        loanCumulative += year2Returns;
       }
-      loanCumulative += year2Returns;
-      leaseCumulative += leaseYear2Returns;
     }
 
     series.push({

@@ -44,42 +44,79 @@ export function FinancingCalculator({ simulation, displayedScenario }: { simulat
   const capexGross = scenarioBreakdown?.capexGross || (simulation.capexNet || 0);
 
   const hqSolar = scenarioBreakdown?.actualHQSolar || 0;
-  const hqBattery = scenarioBreakdown?.actualHQBattery || 0;
+  // HQ battery incentive has been discontinued (potentialHQBattery = 0 in cashflowCalculations)
   const federalITC = scenarioBreakdown?.itcAmount || 0;
   const taxShield = scenarioBreakdown?.taxShield || 0;
-  const totalIncentives = hqSolar + hqBattery + federalITC + taxShield;
+  const totalIncentives = hqSolar + federalITC + taxShield;
 
-  const upfrontCashNeeded = capexGross - hqSolar - (hqBattery * 0.5);
-  const year1Returns = (hqBattery * 0.5) + taxShield;
+  const upfrontCashNeeded = capexGross - hqSolar;
+  const year1Returns = taxShield;
   const year2Returns = federalITC;
 
+  interface ScenarioCashflowEntry {
+    year: number;
+    netCashflow: number;
+    ebitda?: number;
+    investment?: number;
+    dpa?: number;
+    incentives?: number;
+    revenue?: number;
+    opex?: number;
+  }
+
   const serverCashflows: CashflowEntry[] = (simulation.cashflows as CashflowEntry[] || []);
-  const scenarioCashflows: Array<{ year: number; netCashflow: number }> =
-    displayedScenario.scenarioBreakdown?.cashflows || [];
-  const hasFullDetail = serverCashflows.length > 1 &&
-    typeof serverCashflows[1]?.ebitda === "number" && serverCashflows[1]?.ebitda !== 0;
+  const scenarioCashflows: ScenarioCashflowEntry[] =
+    (displayedScenario.scenarioBreakdown?.cashflows as ScenarioCashflowEntry[] | undefined) || [];
+
+  const hasScenarioCashflows = scenarioCashflows.length > 0;
+
+  const scenarioCfHasDetail = (cf: ScenarioCashflowEntry) =>
+    typeof cf.ebitda === "number" || typeof cf.investment === "number" || typeof cf.dpa === "number" || typeof cf.incentives === "number";
+
+  const hasFullDetail = hasScenarioCashflows
+    ? scenarioCashflows.some(cf => cf.year >= 1 && scenarioCfHasDetail(cf))
+    : serverCashflows.length > 1 &&
+      typeof serverCashflows[1]?.ebitda === "number" && serverCashflows[1]?.ebitda !== 0;
 
   const analysisHorizon = 25;
 
   const getYearCashflow = (year: number) => {
-    if (hasFullDetail) {
-      return serverCashflows.find(cf => cf.year === year) || null;
+    if (hasScenarioCashflows) {
+      const scf = scenarioCashflows.find(cf => cf.year === year);
+      if (scf) {
+        if (scenarioCfHasDetail(scf)) {
+          return {
+            year: scf.year,
+            netCashflow: scf.netCashflow,
+            ebitda: scf.ebitda ?? 0,
+            investment: scf.investment ?? 0,
+            dpa: scf.dpa ?? 0,
+            incentives: scf.incentives ?? 0,
+          };
+        }
+        return { ...scf, ebitda: 0, investment: 0, dpa: 0, incentives: 0 };
+      }
+      return null;
     }
-    const scf = scenarioCashflows.find(cf => cf.year === year);
-    return scf ? { ...scf, ebitda: 0, investment: 0, dpa: 0, incentives: 0 } : null;
+    return serverCashflows.find(cf => cf.year === year) || null;
   };
 
   const totalServerNet25 = (() => {
-    const source = hasFullDetail ? serverCashflows : scenarioCashflows;
+    const source = hasScenarioCashflows ? scenarioCashflows
+      : serverCashflows.length > 0 ? serverCashflows
+      : [];
     return source
       .filter(cf => cf.year >= 0 && cf.year <= analysisHorizon)
       .reduce((sum, cf) => sum + cf.netCashflow, 0);
   })();
 
   const totalOperating25 = hasFullDetail
-    ? serverCashflows
-        .filter(cf => cf.year >= 1 && cf.year <= analysisHorizon)
-        .reduce((sum, cf) => sum + cf.ebitda + cf.investment, 0)
+    ? (() => {
+        const detailSource = hasScenarioCashflows ? scenarioCashflows : serverCashflows;
+        return detailSource
+          .filter(cf => cf.year >= 1 && cf.year <= analysisHorizon)
+          .reduce((sum, cf) => sum + (cf.ebitda || 0) + (cf.investment || 0), 0);
+      })()
     : totalServerNet25 + upfrontCashNeeded - totalIncentives;
 
   const loanDownPaymentAmount = capexGross * downPayment / 100;
@@ -156,9 +193,11 @@ export function FinancingCalculator({ simulation, displayedScenario }: { simulat
   const calculateCumulativeCashflows = () => {
     const data: { year: number; cash: number; loan: number; lease: number }[] = [];
 
-    const year0cf = hasFullDetail
-      ? (serverCashflows.find(cf => cf.year === 0)?.netCashflow ?? -upfrontCashNeeded)
-      : -upfrontCashNeeded;
+    const scenarioYear0 = hasScenarioCashflows
+      ? scenarioCashflows.find(cf => cf.year === 0)?.netCashflow
+      : undefined;
+    const serverYear0 = serverCashflows.find(cf => cf.year === 0)?.netCashflow;
+    const year0cf = scenarioYear0 ?? serverYear0 ?? -upfrontCashNeeded;
     let cashCumulative = year0cf;
     let loanCumulative = -loanDownPaymentAmount;
     let leaseCumulative = 0;

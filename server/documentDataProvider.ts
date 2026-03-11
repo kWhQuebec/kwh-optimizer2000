@@ -460,21 +460,33 @@ export function applyOptimalScenario(
     }
 
     if (scenarioBreakdown.cashflows && scenarioBreakdown.cashflows.length > 0) {
+      interface DetailedCashflowEntry {
+        year: number;
+        netCashflow: number;
+        ebitda?: number;
+        investment?: number;
+        dpa?: number;
+        incentives?: number;
+        revenue?: number;
+        opex?: number;
+      }
+      const detailedCashflows = scenarioBreakdown.cashflows as DetailedCashflowEntry[];
       let cumulative = -(merged.capexNet ?? merged.capexGross ?? 0);
-      merged.cashflows = scenarioBreakdown.cashflows.map((cf, i) => {
+      merged.cashflows = detailedCashflows.map((cf, i) => {
         if (i === 0) {
           cumulative = cf.netCashflow;
         } else {
           cumulative += cf.netCashflow;
         }
+        const hasDetail = typeof cf.ebitda === 'number' || typeof cf.investment === 'number' || typeof cf.dpa === 'number' || typeof cf.incentives === 'number';
         return {
           year: cf.year,
-          revenue: 0,
-          opex: 0,
-          ebitda: 0,
-          investment: i === 0 ? -(merged.capexNet ?? 0) : 0,
-          dpa: 0,
-          incentives: 0,
+          revenue: hasDetail ? (cf.revenue ?? 0) : 0,
+          opex: hasDetail ? (cf.opex ?? 0) : 0,
+          ebitda: hasDetail ? (cf.ebitda ?? 0) : 0,
+          investment: hasDetail ? (cf.investment ?? 0) : (i === 0 ? -(merged.capexNet ?? 0) : 0),
+          dpa: hasDetail ? (cf.dpa ?? 0) : 0,
+          incentives: hasDetail ? (cf.incentives ?? 0) : 0,
           netCashflow: cf.netCashflow,
           cumulative,
         };
