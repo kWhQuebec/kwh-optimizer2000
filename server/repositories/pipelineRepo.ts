@@ -3,13 +3,14 @@ import { syncOpportunityChanges } from "../workflowSync";
 import { db } from "../db";
 import {
   opportunities, activities, partnerships, clients, sites,
-  simulationRuns, portfolioSites, meterFiles, roofPolygons,
+  simulationRuns, portfolioSites, meterFiles, roofPolygons, stageTransitionLogs,
 } from "@shared/schema";
 import type {
   Opportunity, InsertOpportunity,
   Activity, InsertActivity,
   Partnership, InsertPartnership,
   Site, SimulationRun,
+  StageTransitionLog, InsertStageTransitionLog,
 } from "@shared/schema";
 
 // ==================== PORTFOLIO AUTO-SYNC (private helper) ====================
@@ -877,4 +878,11 @@ export async function updatePartnership(id: string, data: Partial<InsertPartners
 
 export async function deletePartnership(id: string): Promise<void> {
   await db.delete(partnerships).where(eq(partnerships.id, id));
+}
+
+// ==================== STAGE TRANSITION LOGS ====================
+
+export async function createStageTransitionLog(log: InsertStageTransitionLog): Promise<StageTransitionLog> {
+  const [result] = await db.insert(stageTransitionLogs).values(log).returning();
+  return result;
 }

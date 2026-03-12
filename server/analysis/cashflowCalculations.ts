@@ -11,7 +11,7 @@
  * - HQ OSE 6.0: $1000/kW solar (max 1 MW), 40% cap on admissible CAPEX (solar only)
  * - Federal ITC: 30% of (CAPEX - HQ incentives)
  * - Tax shield (DPA/CCA): 90% × taxRate × (CAPEX - HQ - ITC)
- * - Battery: No HQ incentive (discontinued Dec 2024, no leftover cap room accepted by HQ)
+ * - Battery: No HQ incentive (OSE 6.0 storage volet discontinued Jan 31 2026, no leftover cap room accepted by HQ)
  *
  * @module cashflowCalculations
  */

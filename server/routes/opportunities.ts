@@ -3,6 +3,7 @@ import { authMiddleware, requireStaff, AuthRequest } from "../middleware/auth";
 import { asyncHandler, BadRequestError, NotFoundError } from "../middleware/errorHandler";
 import { storage } from "../storage";
 import { insertOpportunitySchema, insertActivitySchema } from "@shared/schema";
+import { validateStageTransition, type GatingContext } from "@shared/pipeline";
 import { createLogger } from "../lib/logger";
 
 const log = createLogger("Opportunities");
@@ -117,7 +118,75 @@ router.post("/api/opportunities/:id/stage", authMiddleware, requireStaff, asyncH
     throw new BadRequestError("Stage is required");
   }
 
-  const opportunity = await storage.updateOpportunityStage(
+  // Fetch opportunity and related data
+  const opportunity = await storage.getOpportunity(req.params.id);
+  if (!opportunity) {
+    throw new NotFoundError("Opportunity");
+  }
+
+  // Build gating context for validation
+  let lead = null;
+  let hasSimulation = false;
+  let hasDesignAgreement = false;
+  let designAgreementStatus = null;
+  let designAgreementPaid = false;
+
+  if (opportunity.leadId) {
+    lead = await storage.getLead(opportunity.leadId);
+  }
+
+  if (opportunity.siteId) {
+    const sims = await storage.getSimulationRunsBySite(opportunity.siteId);
+    hasSimulation = sims.length > 0;
+
+    const designAgreement = await storage.getDesignAgreementBySite(opportunity.siteId);
+    if (designAgreement) {
+      hasDesignAgreement = true;
+      designAgreementStatus = designAgreement.status;
+      designAgreementPaid = !!designAgreement.depositPaidAt;
+    }
+  }
+
+  // Create gating context
+  const gatingContext: GatingContext = {
+    currentStage: opportunity.stage,
+    targetStage: stage,
+    lead: lead
+      ? {
+          email: lead.email,
+          phone: lead.phone,
+          propertyRelationship: lead.propertyRelationship,
+          roofAge: lead.roofAge,
+          whoPaysElectricity: lead.billPayer, // Legacy mapping
+          qualificationScore: lead.qualificationScore,
+          qualificationStatus: lead.qualificationStatus,
+          businessDriver: lead.businessDriver,
+        }
+      : undefined,
+    hasSimulation,
+    hasDesignAgreement,
+    designAgreementStatus,
+    designAgreementPaid,
+  };
+
+  // Validate stage transition
+  const gatingResult = validateStageTransition(gatingContext);
+
+  if (!gatingResult.allowed) {
+    // Return 400 with blockers
+    throw new BadRequestError(
+      `Stage transition blocked: ${gatingResult.blockers.join("; ")}`,
+      {
+        code: "GATING_BLOCKED",
+        blockers: gatingResult.blockers,
+        warnings: gatingResult.warnings,
+        requiredActions: gatingResult.requiredActions,
+      }
+    );
+  }
+
+  // Proceed with stage update
+  const updatedOpportunity = await storage.updateOpportunityStage(
     req.params.id,
     stage,
     probability,
@@ -125,8 +194,27 @@ router.post("/api/opportunities/:id/stage", authMiddleware, requireStaff, asyncH
     lostNotes
   );
 
-  if (!opportunity) {
+  if (!updatedOpportunity) {
     throw new NotFoundError("Opportunity");
+  }
+
+  // Log the stage transition
+  try {
+    await storage.createStageTransitionLog({
+      entityType: "opportunity",
+      entityId: req.params.id,
+      fromStage: opportunity.stage,
+      toStage: stage,
+      changedBy: req.userId,
+      metadata: {
+        blockers: gatingResult.blockers,
+        warnings: gatingResult.warnings,
+        requiredActions: gatingResult.requiredActions,
+      } as any,
+    });
+  } catch (err) {
+    log.warn(`Failed to log stage transition for opportunity ${req.params.id}:`, err);
+    // Don't block the update if logging fails
   }
 
   // Auto-capture baseline when entering construction or delivered stages
@@ -168,7 +256,15 @@ router.post("/api/opportunities/:id/stage", authMiddleware, requireStaff, asyncH
     }
   }
 
-  res.json(opportunity);
+  // Include gating info in response
+  res.json({
+    ...updatedOpportunity,
+    _gatingInfo: {
+      blockers: gatingResult.blockers,
+      warnings: gatingResult.warnings,
+      requiredActions: gatingResult.requiredActions,
+    },
+  });
 }));
 
 router.get("/api/activities", authMiddleware, requireStaff, asyncHandler(async (req: AuthRequest, res) => {

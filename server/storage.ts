@@ -52,6 +52,7 @@ import type {
   SystemSettings,
   NewsArticle, InsertNewsArticle,
   ProjectBudget, InsertProjectBudget,
+  StageTransitionLog, InsertStageTransitionLog,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -537,6 +538,9 @@ export interface IStorage {
   createProjectBudget(budget: InsertProjectBudget): Promise<ProjectBudget>;
   updateProjectBudget(id: string, data: Partial<ProjectBudget>): Promise<ProjectBudget | undefined>;
   deleteProjectBudget(id: string): Promise<boolean>;
+
+  // Stage Transition Logs (Oleg pipeline gating)
+  createStageTransitionLog(log: InsertStageTransitionLog): Promise<StageTransitionLog>;
 }
 
 

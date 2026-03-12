@@ -29,6 +29,23 @@ router.get("/api/public/agreements/:token", asyncHandler(async (req, res) => {
     throw new NotFoundError("Client");
   }
 
+  // Fetch related simulation run and lead for project summary
+  let projectSummary = null;
+  const simulationRuns = site.simulationRuns || [];
+  if (simulationRuns.length > 0) {
+    const latestRun = simulationRuns[0]; // Most recent
+    projectSummary = {
+      indicativeProposalRef: latestRun.createdAt
+        ? new Date(latestRun.createdAt).toLocaleDateString("en-CA", { year: "numeric", month: "long", day: "numeric" })
+        : null,
+      pvSizeKwdc: latestRun.pvSizeKW || null,
+      pvSizeKwac: latestRun.pvSizeKW ? Math.round(latestRun.pvSizeKW * 0.9 * 10) / 10 : null,
+      bessKwh: latestRun.battEnergyKWh || null,
+      bessKw: latestRun.battPowerKW || null,
+      businessDriver: null, // Would need lead data; can be added if lead is associated
+    };
+  }
+
   res.json({
     id: agreement.id,
     status: agreement.status,
@@ -48,6 +65,10 @@ router.get("/api/public/agreements/:token", asyncHandler(async (req, res) => {
       name: client.name,
       email: client.email,
     },
+    projectSummary,
+    designFee: 2500,
+    creditPercentage: 100,
+    creditDeadlineDays: 90,
   });
 }));
 

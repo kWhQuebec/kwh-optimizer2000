@@ -398,4 +398,7 @@ export class DatabaseStorage implements IStorage {
   createProjectBudget = budgetRepo.createProjectBudget;
   updateProjectBudget = budgetRepo.updateProjectBudget;
   deleteProjectBudget = budgetRepo.deleteProjectBudget;
+
+  // Stage Transition Logs
+  createStageTransitionLog = pipelineRepo.createStageTransitionLog;
 }
