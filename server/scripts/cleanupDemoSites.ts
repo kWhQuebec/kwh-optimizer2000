@@ -132,21 +132,24 @@ async function main() {
   await db.execute(sql.raw('DELETE FROM sites WHERE id IN (' + ids + ')'));
   console.log('  ' + toDelete.length + ' sites deleted');
 
-  // Orphan clients
+  // Orphan portfolios FIRST (portfolios has FK to clients)
+  await db.execute(sql.raw("DELETE FROM portfolios WHERE id NOT IN (SELECT DISTINCT portfolio_id FROM portfolio_sites) AND (name ILIKE '%DEMO%' OR name ILIKE '%DÉMO%' OR name ILIKE '%TEST%')"));
+  console.log('  Orphan portfolios cleaned');
+
+  // Then orphan clients
   const clientIds = [...new Set(toDelete.map((s: any) => s.client_id).filter(Boolean))];
   const keepClientIds = new Set(toKeep.map((s: any) => s.client_id).filter(Boolean));
   for (const cid of clientIds) {
     if (keepClientIds.has(cid)) continue;
+    // Check no remaining sites reference this client
     const check = await db.execute(sql.raw("SELECT count(*) as cnt FROM sites WHERE client_id = '" + cid + "'"));
-    if (Number((check.rows[0] as any)?.cnt) === 0) {
-      await db.execute(sql.raw("DELETE FROM clients WHERE id = '" + cid + "'"));
-      console.log('  Orphan client ' + cid + ' deleted');
-    }
+    if (Number((check.rows[0] as any)?.cnt) > 0) continue;
+    // Check no remaining portfolios reference this client
+    const check2 = await db.execute(sql.raw("SELECT count(*) as cnt FROM portfolios WHERE client_id = '" + cid + "'"));
+    if (Number((check2.rows[0] as any)?.cnt) > 0) continue;
+    await db.execute(sql.raw("DELETE FROM clients WHERE id = '" + cid + "'"));
+    console.log('  Orphan client ' + cid + ' deleted');
   }
-
-  // Orphan portfolios
-  await db.execute(sql.raw("DELETE FROM portfolios WHERE id NOT IN (SELECT DISTINCT portfolio_id FROM portfolio_sites) AND (name ILIKE '%DEMO%' OR name ILIKE '%DÉMO%' OR name ILIKE '%TEST%')"));
-  console.log('  Orphan portfolios cleaned');
 
   const final = await db.execute(sql.raw("SELECT id, name FROM sites WHERE name ILIKE '%DEMO%' OR name ILIKE '%DÉMO%' OR name ILIKE '%TEST%' ORDER BY name"));
   console.log('\nRemaining DEMO/TEST sites:');
