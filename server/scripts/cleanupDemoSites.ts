@@ -13,6 +13,25 @@ const KEEP_NAMES = [
   'DÉMO — Aliments Fresco (M)',
 ];
 
+// All tables with site_id FK that do NOT have onDelete cascade
+const FK_TABLES_NO_CASCADE = [
+  'meter_files',
+  'simulation_runs',
+  'site_visits',
+  'procuration_signatures',
+  'design_agreements',
+  'competitor_proposal_analysis',
+  'construction_agreements',
+  'construction_projects',
+  'om_contracts',
+  'om_visits',
+  'om_performance_snapshots',
+  'opportunities',
+  'activities',
+  'email_logs',
+  'portfolio_sites',
+];
+
 async function main() {
   console.log('Scanning for DEMO/TEST sites...\n');
 
@@ -43,12 +62,18 @@ async function main() {
   const ids = toDelete.map((s: any) => "'" + s.id + "'").join(',');
   console.log('\nDeleting ' + toDelete.length + ' old sites...\n');
 
-  await db.execute(sql.raw('DELETE FROM simulation_runs WHERE site_id IN (' + ids + ')'));
-  console.log('  simulation_runs deleted');
-  await db.execute(sql.raw('DELETE FROM opportunities WHERE site_id IN (' + ids + ')'));
-  console.log('  opportunities deleted');
-  await db.execute(sql.raw('DELETE FROM portfolio_sites WHERE site_id IN (' + ids + ')'));
-  console.log('  portfolio_sites deleted');
+  // Delete from ALL tables with site_id FK (no cascade)
+  for (const table of FK_TABLES_NO_CASCADE) {
+    try {
+      await db.execute(sql.raw('DELETE FROM ' + table + ' WHERE site_id IN (' + ids + ')'));
+      console.log('  ' + table + ' cleaned');
+    } catch (e: any) {
+      // Table might not exist in this DB version
+      console.log('  ' + table + ' skipped (' + (e.message || '').slice(0, 60) + ')');
+    }
+  }
+
+  // Now delete the sites themselves (cascade will handle site_meters, hq_fetch_jobs, site_visit_photos, roof_polygons)
   await db.execute(sql.raw('DELETE FROM sites WHERE id IN (' + ids + ')'));
   console.log('  ' + toDelete.length + ' sites deleted');
 
