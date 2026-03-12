@@ -13,8 +13,17 @@ const KEEP_NAMES = [
   'DÉMO — Aliments Fresco (M)',
 ];
 
-// All tables with site_id FK that do NOT have onDelete cascade
-const FK_TABLES_NO_CASCADE = [
+// Ordered cascade: child tables first, then parent tables
+// meter_readings → meter_files → sites
+// construction_tasks/daily_logs → construction_projects → sites
+// etc.
+const FK_DELETE_ORDER = [
+  // Deep children first
+  'meter_readings',       // FK → meter_files
+  'construction_tasks',   // FK → construction_projects
+  'construction_daily_logs', // FK → construction_projects
+  'construction_milestones', // FK → construction_agreements
+  // Then direct site_id FK tables (no cascade)
   'meter_files',
   'simulation_runs',
   'site_visits',
@@ -62,14 +71,60 @@ async function main() {
   const ids = toDelete.map((s: any) => "'" + s.id + "'").join(',');
   console.log('\nDeleting ' + toDelete.length + ' old sites...\n');
 
-  // Delete from ALL tables with site_id FK (no cascade)
-  for (const table of FK_TABLES_NO_CASCADE) {
+  // Delete indirect children first (no site_id, linked via parent table)
+  try {
+    await db.execute(sql.raw('DELETE FROM meter_readings WHERE meter_file_id IN (SELECT id FROM meter_files WHERE site_id IN (' + ids + '))'));
+    console.log('  meter_readings cleaned');
+  } catch (e: any) { console.log('  meter_readings skipped'); }
+
+  try {
+    await db.execute(sql.raw('DELETE FROM construction_tasks WHERE project_id IN (SELECT id FROM construction_projects WHERE site_id IN (' + ids + '))'));
+    console.log('  construction_tasks cleaned');
+  } catch (e: any) { console.log('  construction_tasks skipped'); }
+
+  try {
+    await db.execute(sql.raw('DELETE FROM construction_daily_logs WHERE project_id IN (SELECT id FROM construction_projects WHERE site_id IN (' + ids + '))'));
+    console.log('  construction_daily_logs cleaned');
+  } catch (e: any) { console.log('  construction_daily_logs skipped'); }
+
+  try {
+    await db.execute(sql.raw('DELETE FROM construction_milestones WHERE agreement_id IN (SELECT id FROM construction_agreements WHERE site_id IN (' + ids + '))'));
+    console.log('  construction_milestones cleaned');
+  } catch (e: any) { console.log('  construction_milestones skipped'); }
+
+  // om_visits and om_performance_snapshots link via om_contract_id, not site_id directly
+  try {
+    await db.execute(sql.raw('DELETE FROM om_visits WHERE om_contract_id IN (SELECT id FROM om_contracts WHERE site_id IN (' + ids + '))'));
+    console.log('  om_visits cleaned');
+  } catch (e: any) { console.log('  om_visits skipped'); }
+
+  try {
+    await db.execute(sql.raw('DELETE FROM om_performance_snapshots WHERE om_contract_id IN (SELECT id FROM om_contracts WHERE site_id IN (' + ids + '))'));
+    console.log('  om_performance_snapshots cleaned');
+  } catch (e: any) { console.log('  om_performance_snapshots skipped'); }
+
+  // Delete direct site_id FK tables — ORDER MATTERS (children before parents)
+  const DIRECT_FK_TABLES = [
+    'meter_files',                // child of sites
+    'simulation_runs',            // child of sites
+    'site_visits',                // child of sites
+    'procuration_signatures',     // child of sites
+    'competitor_proposal_analysis', // child of sites
+    'om_contracts',               // child of sites (om_visits/snapshots already cleaned above)
+    'construction_projects',      // child of construction_agreements (must be before)
+    'construction_agreements',    // child of design_agreements + sites (must be before design_agreements)
+    'design_agreements',          // child of sites
+    'opportunities',              // child of sites
+    'activities',                 // child of sites
+    'email_logs',                 // child of sites
+    'portfolio_sites',            // child of sites
+  ];
+  for (const table of DIRECT_FK_TABLES) {
     try {
       await db.execute(sql.raw('DELETE FROM ' + table + ' WHERE site_id IN (' + ids + ')'));
       console.log('  ' + table + ' cleaned');
     } catch (e: any) {
-      // Table might not exist in this DB version
-      console.log('  ' + table + ' skipped (' + (e.message || '').slice(0, 60) + ')');
+      console.log('  ' + table + ' skipped (' + (e.message || '').slice(0, 80) + ')');
     }
   }
 
