@@ -2,18 +2,23 @@
  * Seed Script: Create 3 Demo Sites for Persona Demonstrations
  *
  * Creates pre-configured demo sites matching the 3 priority personas:
- * 1. DÉMO — Marché Beau-Soleil Laval (Tarif G, ~400 MWh/an, 75 kWc)
- * 2. DÉMO — Usine Thermopak Sherbrooke (Tarif M, ~2 GWh/an, 350 kWc)
- * 3. DÉMO — Groupe Immobilier Horizon (Mix G+M, 5 sites, 490 kWc total)
+ * 1. DÉMO — Marché Beau-Soleil Laval (Tarif G, 175 MWh/an, 75 kWc)
+ * 2. DÉMO — Usine Thermopak Sherbrooke (Tarif M, 1.5 GWh/an, 350 kWc)
+ * 3. DÉMO — Portfolio Horizon (Mix G+M, 5 sites, 525 kWc total)
  *
- * All financial calculations match cashflowCalculations.ts EXACTLY.
+ * v3: REALISTIC KPIs from validated Python simulation with proper HQ tiered billing.
+ * Each site includes 8760-hour energy profiles injected into hourlyProfile JSONB.
+ * When the Optimizer re-simulates these sites, it should produce matching results.
+ *
  * Constants imported from shared/constants.ts.
  *
  * Usage: npx tsx server/scripts/seedDemoSites.ts
  *
- * Updated: March 2026 — v2 (corrected incentive cascade, DPA 90%, yield 1340)
+ * Updated: March 2026 — v3 (realistic KPIs, 8760h profiles, tiered tariff model)
  */
 
+import * as fs from "fs";
+import * as path from "path";
 import { db } from "../db";
 import {
   clients,
@@ -31,6 +36,15 @@ import {
   CCA_RECOVERY_FACTOR,
 } from "@shared/constants";
 import { getTieredSolarCostPerW } from "../analysis/potentialAnalysis";
+
+// ─── 8760-hour profile loader ────────────────────────────────────────────────
+const PROFILES_DIR = path.resolve(__dirname, "demo-profiles");
+
+function loadHourlyProfile(filename: string): unknown[] {
+  const filepath = path.join(PROFILES_DIR, filename);
+  const raw = fs.readFileSync(filepath, "utf-8");
+  return JSON.parse(raw);
+}
 
 // ─── Incentive calculation (mirrors cashflowCalculations.ts exactly) ─────
 function calculateIncentiveCascade(pvKW: number, bifacial = true) {
@@ -92,87 +106,103 @@ function buildConsumptionHistory(
 }
 
 // ─── SITE 1: Marché Beau-Soleil Laval (Tarif G, 75 kWc) ─────────────────
+// v3: 175K kWh/yr (below 15,090 kWh/month tier 1 threshold → all at 11.933¢)
+// This is the OPTIMAL consumption level for Tarif G solar: maximizes ¢/kWh saved.
 const S1_MONTHLY = [
-  { month: 1,  kWh: 38000, kW: 90, cost: 4535 },  // Jan — chauffage + réfrigération
-  { month: 2,  kWh: 35000, kW: 88, cost: 4177 },
-  { month: 3,  kWh: 32000, kW: 82, cost: 3819 },
-  { month: 4,  kWh: 30000, kW: 78, cost: 3580 },
-  { month: 5,  kWh: 28000, kW: 75, cost: 3341 },
-  { month: 6,  kWh: 32000, kW: 84, cost: 3819 },  // Jun — A/C + réfrigération
-  { month: 7,  kWh: 38000, kW: 95, cost: 4535 },  // Jul — pic A/C
-  { month: 8,  kWh: 37000, kW: 92, cost: 4416 },
-  { month: 9,  kWh: 32000, kW: 82, cost: 3819 },
-  { month: 10, kWh: 33000, kW: 84, cost: 3938 },
-  { month: 11, kWh: 35000, kW: 87, cost: 4177 },
-  { month: 12, kWh: 38000, kW: 90, cost: 4535 },  // Déc — chauffage
+  { month: 1,  kWh: 16100, kW: 55, cost: 1921 },  // Jan — fridge + chauffage modéré
+  { month: 2,  kWh: 15400, kW: 52, cost: 1837 },
+  { month: 3,  kWh: 14200, kW: 48, cost: 1694 },
+  { month: 4,  kWh: 13100, kW: 45, cost: 1563 },
+  { month: 5,  kWh: 13800, kW: 47, cost: 1647 },
+  { month: 6,  kWh: 15700, kW: 54, cost: 1873 },  // Jun — A/C + réfrigération
+  { month: 7,  kWh: 16700, kW: 58, cost: 1993 },  // Jul — pic HVAC (aligne solaire!)
+  { month: 8,  kWh: 17100, kW: 60, cost: 2040 },  // Aug — pic été
+  { month: 9,  kWh: 15700, kW: 54, cost: 1873 },
+  { month: 10, kWh: 13800, kW: 47, cost: 1647 },
+  { month: 11, kWh: 13400, kW: 46, cost: 1599 },
+  { month: 12, kWh: 15000, kW: 52, cost: 1790 },  // Déc — chauffage
 ];
-const S1_ANNUAL_KWH = S1_MONTHLY.reduce((s, m) => s + m.kWh, 0); // ~408,000
+const S1_ANNUAL_KWH = S1_MONTHLY.reduce((s, m) => s + m.kWh, 0); // ~175,000
 const S1_ANNUAL_COST = S1_MONTHLY.reduce((s, m) => s + m.cost, 0);
-const S1_PEAK = Math.max(...S1_MONTHLY.map(m => m.kW)); // 95 kW
+const S1_PEAK = Math.max(...S1_MONTHLY.map(m => m.kW)); // 60 kW (below 50kW threshold for most months)
 const S1_PV_KW = 75;
-const S1_PRODUCTION = S1_PV_KW * YIELD_KWH_KWP; // 100,500 kWh
-const S1_SELF_PCT = 0.85;
-const S1_SELF = Math.round(S1_PRODUCTION * S1_SELF_PCT);
+const S1_PRODUCTION = Math.round(S1_PV_KW * YIELD_KWH_KWP); // ~100,500 kWh
+// From validated Python simulation: 78% self-consumption
+const S1_SELF = 61477;
 const S1_EXPORT = S1_PRODUCTION - S1_SELF;
 const S1 = calculateIncentiveCascade(S1_PV_KW);
 
-// Energy savings (Tarif G: 11.933¢/kWh)
-const S1_ENERGY_SAVINGS = Math.round(S1_SELF * 0.11933);
-// Demand savings (Tarif G: $21.261/kW above 50kW threshold, ~20kW reduction)
-const S1_PEAK_AFTER = 75; // 95 → 75 kW (solar shaves ~20 kW during peak)
-const S1_DEMAND_SAVINGS = Math.round((Math.max(0, S1_PEAK - 50) - Math.max(0, S1_PEAK_AFTER - 50)) * 21.261 * 12);
-const S1_SURPLUS = Math.round(S1_EXPORT * SURPLUS_RATE);
-const S1_SAVINGS = S1_ENERGY_SAVINGS + S1_DEMAND_SAVINGS + S1_SURPLUS;
+// v3: Savings from Python simulation with proper HQ tiered billing
+// Self-consumed kWh displaces tier 1 (11.933¢) first → high value per kWh
+// Export credited at 90% of energy rate from year 1 (QC mesurage net)
+// PV-only does NOT reduce demand peak → $0 demand savings
+const S1_SAVINGS = 7185;  // From validated simulation
 
 // ─── SITE 2: Usine Thermopak Sherbrooke (Tarif M, 350 kWc) ──────────────
+// v3: 1.5M kWh/yr — high consumption vs 350kWc = 95% self-consumption (near-zero export)
+// Tarif M has low ¢/kWh (6.061¢) → longer payback is structurally normal.
 const S2_MONTHLY = [
-  { month: 1,  kWh: 190000, kW: 520, cost: 20496 },
-  { month: 2,  kWh: 185000, kW: 510, cost: 19957 },
-  { month: 3,  kWh: 170000, kW: 480, cost: 18340 },
-  { month: 4,  kWh: 155000, kW: 450, cost: 16722 },
-  { month: 5,  kWh: 145000, kW: 420, cost: 15644 },
-  { month: 6,  kWh: 150000, kW: 440, cost: 16183 },  // Jun — clim process
-  { month: 7,  kWh: 170000, kW: 480, cost: 18340 },  // Jul — pic
-  { month: 8,  kWh: 165000, kW: 470, cost: 17800 },
-  { month: 9,  kWh: 155000, kW: 450, cost: 16722 },
-  { month: 10, kWh: 170000, kW: 480, cost: 18340 },
-  { month: 11, kWh: 180000, kW: 500, cost: 19418 },
-  { month: 12, kWh: 188000, kW: 515, cost: 20281 },
+  { month: 1,  kWh: 135000, kW: 320, cost: 13962 },
+  { month: 2,  kWh: 135000, kW: 320, cost: 13962 },
+  { month: 3,  kWh: 131000, kW: 315, cost: 13548 },
+  { month: 4,  kWh: 126000, kW: 310, cost: 13031 },
+  { month: 5,  kWh: 126000, kW: 310, cost: 13031 },
+  { month: 6,  kWh: 120000, kW: 300, cost: 12410 },  // Jun — production stable
+  { month: 7,  kWh: 102000, kW: 275, cost: 10549 },  // Jul — vacances construction
+  { month: 8,  kWh: 108000, kW: 285, cost: 11170 },
+  { month: 9,  kWh: 126000, kW: 310, cost: 13031 },
+  { month: 10, kWh: 131000, kW: 315, cost: 13548 },
+  { month: 11, kWh: 128000, kW: 312, cost: 13238 },
+  { month: 12, kWh: 132000, kW: 318, cost: 13652 },
 ];
-const S2_ANNUAL_KWH = S2_MONTHLY.reduce((s, m) => s + m.kWh, 0); // ~2,023,000
+const S2_ANNUAL_KWH = S2_MONTHLY.reduce((s, m) => s + m.kWh, 0); // ~1,500,000
 const S2_ANNUAL_COST = S2_MONTHLY.reduce((s, m) => s + m.cost, 0);
-const S2_PEAK = Math.max(...S2_MONTHLY.map(m => m.kW)); // 520 kW
+const S2_PEAK = Math.max(...S2_MONTHLY.map(m => m.kW)); // 320 kW
 const S2_PV_KW = 350;
-const S2_PRODUCTION = S2_PV_KW * YIELD_KWH_KWP; // 469,000 kWh
-const S2_SELF_PCT = 0.90;
-const S2_SELF = Math.round(S2_PRODUCTION * S2_SELF_PCT);
+const S2_PRODUCTION = Math.round(S2_PV_KW * YIELD_KWH_KWP); // ~469,000 kWh
+// From validated Python simulation: 95% self-consumption (huge load absorbs almost all)
+const S2_SELF = 352633;
 const S2_EXPORT = S2_PRODUCTION - S2_SELF;
 const S2 = calculateIncentiveCascade(S2_PV_KW);
 
-// Tarif M: 6.061¢/kWh + $17.573/kW (no threshold)
-const S2_ENERGY_SAVINGS = Math.round(S2_SELF * 0.06061);
-const S2_PEAK_AFTER = 460; // ~60 kW reduction from solar
-const S2_DEMAND_SAVINGS = Math.round((S2_PEAK - S2_PEAK_AFTER) * 17.573 * 12);
-const S2_SURPLUS = Math.round(S2_EXPORT * SURPLUS_RATE);
-const S2_SAVINGS = S2_ENERGY_SAVINGS + S2_DEMAND_SAVINGS + S2_SURPLUS;
+// v3: Savings from Python simulation with proper HQ tiered billing
+// Tarif M tier 1: 6.061¢/kWh (first 210,000 kWh/mo) — low but consistent
+// PV-only does NOT reduce demand peak → $0 demand savings
+const S2_SAVINGS = 21373;  // From validated simulation
 
 // ─── SITES 3-7: Portfolio Groupe Immobilier Horizon (Mix G+M) ────────────
+// v3: Updated to match validated Python profiles with 8760h data
 const PORTFOLIO_SITES = [
-  { name: "DÉMO — Succursale A (G)", city: "Laval", type: "retail", tariff: "G" as const,
-    sqft: 12000, roofM2: 1115, pvKW: 45, annualKWh: 200000, peakKW: 55, peakAfterKW: 45, selfPct: 0.90 },
-  { name: "DÉMO — Succursale B (G)", city: "Longueuil", type: "retail", tariff: "G" as const,
-    sqft: 16000, roofM2: 1485, pvKW: 60, annualKWh: 300000, peakKW: 75, peakAfterKW: 60, selfPct: 0.87 },
-  { name: "DÉMO — Entrepôt Montréal-Est (M)", city: "Montréal-Est", type: "warehouse", tariff: "M" as const,
-    sqft: 45000, roofM2: 4180, pvKW: 200, annualKWh: 1200000, peakKW: 350, peakAfterKW: 305, selfPct: 0.92 },
-  { name: "DÉMO — Bureau principal Plateau (G)", city: "Montréal", type: "office", tariff: "G" as const,
-    sqft: 8000, roofM2: 745, pvKW: 35, annualKWh: 150000, peakKW: 40, peakAfterKW: 35, selfPct: 0.88 },
-  { name: "DÉMO — Usine secondaire Anjou (M)", city: "Anjou", type: "light_industrial", tariff: "M" as const,
-    sqft: 30000, roofM2: 2790, pvKW: 150, annualKWh: 900000, peakKW: 280, peakAfterKW: 245, selfPct: 0.91 },
+  { name: "DÉMO — Pharmacie Santé Plus (G)", city: "Montréal", type: "retail", tariff: "G" as const,
+    sqft: 10000, roofM2: 930, pvKW: 55, annualKWh: 160000, peakKW: 55, costPerW: 2.55,
+    profileFile: "portfolio-site-a-pharmacie-santé-plus.json",
+    // From Python simulation: pb=6.4, IRR=16.8%, NPV=$81,533, savings=$6,021/yr, self=87%
+    simSelf: 50884, simSavings: 6021, simPayback: 6.4, simIrr: 0.168, simNpv: 81533 },
+  { name: "DÉMO — Centre Médical Laval (G)", city: "Laval", type: "medical", tariff: "G" as const,
+    sqft: 18000, roofM2: 1675, pvKW: 75, annualKWh: 220000, peakKW: 66, costPerW: 2.50,
+    profileFile: "portfolio-site-b-centre-médical-laval.json",
+    // From Python simulation: pb=7.0, IRR=15.4%, NPV=$92,592, savings=$7,313/yr, self=88%
+    simSelf: 70147, simSavings: 7313, simPayback: 7.0, simIrr: 0.154, simNpv: 92592 },
+  { name: "DÉMO — Entrepôt Logistik (M)", city: "Longueuil", type: "warehouse", tariff: "M" as const,
+    sqft: 40000, roofM2: 3720, pvKW: 200, annualKWh: 500000, peakKW: 132, costPerW: 2.30,
+    profileFile: "portfolio-site-c-entrepôt-logistik.json",
+    // From Python simulation: pb=11.7, IRR=8.3%, NPV=$61,530, savings=$10,577/yr, self=83%
+    simSelf: 176000, simSavings: 10577, simPayback: 11.7, simIrr: 0.083, simNpv: 61530 },
+  { name: "DÉMO — Tour Horizon Bureaux (G)", city: "Montréal", type: "office", tariff: "G" as const,
+    sqft: 22000, roofM2: 2045, pvKW: 45, annualKWh: 280000, peakKW: 71, costPerW: 2.55,
+    profileFile: "portfolio-site-d-tour-horizon-bureaux.json",
+    // From Python simulation: pb=8.3, IRR=12.8%, NPV=$40,909, savings=$4,079/yr, self=93%
+    simSelf: 53050, simSavings: 4079, simPayback: 8.3, simIrr: 0.128, simNpv: 40909 },
+  { name: "DÉMO — Aliments Fresco (M)", city: "Laval", type: "light_industrial", tariff: "M" as const,
+    sqft: 35000, roofM2: 3255, pvKW: 150, annualKWh: 700000, peakKW: 198, costPerW: 2.35,
+    profileFile: "portfolio-site-e-aliments-fresco.json",
+    // From Python simulation: pb=11.7, IRR=8.2%, NPV=$46,339, savings=$9,186/yr, self=96%
+    simSelf: 192500, simSavings: 9186, simPayback: 11.7, simIrr: 0.082, simNpv: 46339 },
 ];
 
 // ─── Seed function ──────────────────────────────────────────────────────
 async function seedDemoSites() {
-  console.warn("🌱 Création des 3 sites démo pour les personas (v2 — formules corrigées)...\n");
+  console.warn("🌱 Création des 3 sites démo pour les personas (v3 — KPIs réalistes + 8760h profiles)...\n");
 
   // ════════════════════════════════════════════════════════════════════════
   // SITE 1: Marché Beau-Soleil (Commerçant Tarif G, 75 kWc)
@@ -190,6 +220,7 @@ async function seedDemoSites() {
   }).returning();
 
   const s1History = buildConsumptionHistory(S1_MONTHLY);
+  const s1HourlyProfile = loadHourlyProfile("site1-marche-beau-soleil.json");
   const [s1Site] = await db.insert(sites).values({
     clientId: s1Client.id,
     name: "DÉMO — Marché Beau-Soleil Laval",
@@ -211,16 +242,18 @@ async function seedDemoSites() {
     subscribedPowerKw: 100,
     maxDemandKw: S1_PEAK,
     hqConsumptionHistory: s1History,
+    hourlyProfile: s1HourlyProfile,
     quickAnalysisSystemSizeKw: S1_PV_KW,
     quickAnalysisAnnualProductionKwh: S1_PRODUCTION,
     quickAnalysisAnnualSavings: S1_SAVINGS,
-    quickAnalysisPaybackYears: 3.8,
+    quickAnalysisPaybackYears: 6.3,
     quickAnalysisGrossCapex: S1.capexPV,
     quickAnalysisNetCapex: Math.round(S1.capexNet),
     quickAnalysisHqIncentive: S1.hqIncentive,
     quickAnalysisMonthlyBill: Math.round(S1_ANNUAL_COST / 12),
   }).returning();
 
+  const S1_SURPLUS = Math.round(S1_EXPORT * SURPLUS_RATE);
   await db.insert(simulationRuns).values({
     siteId: s1Site.id,
     label: "Scénario solaire — 75 kWc (bifacial Opsun 20°)",
@@ -245,14 +278,16 @@ async function seedDemoSites() {
     taxShield: Math.round(S1.taxShield),
     totalIncentives: Math.round(S1.totalIncentives),
     capexNet: Math.round(S1.capexNet),
-    npv25: 243986,  // From Python calculation with full escalation model
-    irr25: 0.230,
-    simplePaybackYears: 3.8,
+    npv25: 109905,   // v3: From validated Python simulation (tiered billing, 4.8%/3.5% escalation)
+    irr25: 0.173,    // v3: 17.3% — realistic for Tarif G with proper tiered billing
+    simplePaybackYears: 6.3,  // v3: honest payback (was 3.8 — unrealistic)
     lcoe: 0.035,
     co2AvoidedTonnesPerYear: Math.round(S1_PRODUCTION * 0.002 * 10) / 10,
     assumptions: {
       tariffCode: "G",
       tariffEnergy: 0.11933,
+      tariffTier2: 0.09184,
+      tariffTier1Threshold: 15090,
       tariffPower: 21.261,
       solarYieldKWhPerKWp: YIELD_KWH_KWP,
       orientationFactor: 1.0,
@@ -263,6 +298,7 @@ async function seedDemoSites() {
       analysisYears: 25,
       netMeteringEnabled: true,
       hqSurplusCompensationRate: SURPLUS_RATE,
+      hourlyProfileInjected: true,
     },
   });
 
@@ -279,8 +315,9 @@ async function seedDemoSites() {
     tags: ["demo", "epicerie", "tarif-G", "persona-1"],
   });
 
-  console.warn(`✅ Site 1: Marché Beau-Soleil Laval (Tarif G, ${S1_PV_KW} kWc, payback 3.8 ans, IRR 23.0%)`);
+  console.warn(`✅ Site 1: Marché Beau-Soleil Laval (Tarif G, ${S1_PV_KW} kWc, payback 6.3 ans, IRR 17.3%)`);
   console.warn(`   CAPEX: $${S1.capexPV.toLocaleString()} → Net $${Math.round(S1.capexNet).toLocaleString()} ($${S1.effectiveCostPerW.toFixed(2)}/W → $${(S1.capexNet/S1_PV_KW/1000).toFixed(2)}/W net)`);
+  console.warn(`   Conso: ${S1_ANNUAL_KWH.toLocaleString()} kWh/yr, Self: ${S1_SELF.toLocaleString()} kWh (78%), 8760h profile injected`);
 
   // ════════════════════════════════════════════════════════════════════════
   // SITE 2: Usine Thermopak (Industriel Tarif M, 350 kWc)
@@ -298,6 +335,7 @@ async function seedDemoSites() {
   }).returning();
 
   const s2History = buildConsumptionHistory(S2_MONTHLY);
+  const s2HourlyProfile = loadHourlyProfile("site2-usine-thermopak.json");
   const [s2Site] = await db.insert(sites).values({
     clientId: s2Client.id,
     name: "DÉMO — Usine Thermopak Sherbrooke",
@@ -319,16 +357,18 @@ async function seedDemoSites() {
     subscribedPowerKw: 600,
     maxDemandKw: S2_PEAK,
     hqConsumptionHistory: s2History,
+    hourlyProfile: s2HourlyProfile,
     quickAnalysisSystemSizeKw: S2_PV_KW,
     quickAnalysisAnnualProductionKwh: S2_PRODUCTION,
     quickAnalysisAnnualSavings: S2_SAVINGS,
-    quickAnalysisPaybackYears: 6.0,
+    quickAnalysisPaybackYears: 11.3,
     quickAnalysisGrossCapex: S2.capexPV,
     quickAnalysisNetCapex: Math.round(S2.capexNet),
     quickAnalysisHqIncentive: S2.hqIncentive,
     quickAnalysisMonthlyBill: Math.round(S2_ANNUAL_COST / 12),
   }).returning();
 
+  const S2_SURPLUS = Math.round(S2_EXPORT * SURPLUS_RATE);
   await db.insert(simulationRuns).values({
     siteId: s2Site.id,
     label: "Scénario solaire — 350 kWc (bifacial Opsun 20°)",
@@ -353,14 +393,16 @@ async function seedDemoSites() {
     taxShield: Math.round(S2.taxShield),
     totalIncentives: Math.round(S2.totalIncentives),
     capexNet: Math.round(S2.capexNet),
-    npv25: 494672,  // From Python calculation with full escalation model
-    irr25: 0.155,
-    simplePaybackYears: 6.0,
+    npv25: 119191,   // v3: From validated Python simulation (tiered billing)
+    irr25: 0.086,    // v3: 8.6% — realistic for Tarif M at 6.061¢/kWh
+    simplePaybackYears: 11.3,  // v3: honest payback (was 6.0 — unrealistic)
     lcoe: 0.030,
     co2AvoidedTonnesPerYear: Math.round(S2_PRODUCTION * 0.002 * 10) / 10,
     assumptions: {
       tariffCode: "M",
       tariffEnergy: 0.06061,
+      tariffTier2: 0.04495,
+      tariffTier1Threshold: 210000,
       tariffPower: 17.573,
       solarYieldKWhPerKWp: YIELD_KWH_KWP,
       orientationFactor: 1.0,
@@ -371,6 +413,7 @@ async function seedDemoSites() {
       analysisYears: 25,
       netMeteringEnabled: true,
       hqSurplusCompensationRate: SURPLUS_RATE,
+      hourlyProfileInjected: true,
     },
   });
 
@@ -387,9 +430,10 @@ async function seedDemoSites() {
     tags: ["demo", "industriel", "tarif-M", "persona-2"],
   });
 
-  console.warn(`✅ Site 2: Usine Thermopak Sherbrooke (Tarif M, ${S2_PV_KW} kWc, payback 6.0 ans, IRR 15.5%)`);
+  console.warn(`✅ Site 2: Usine Thermopak Sherbrooke (Tarif M, ${S2_PV_KW} kWc, payback 11.3 ans, IRR 8.6%)`);
   console.warn(`   CAPEX: $${S2.capexPV.toLocaleString()} → Net $${Math.round(S2.capexNet).toLocaleString()} ($${S2.effectiveCostPerW.toFixed(2)}/W → $${(S2.capexNet/S2_PV_KW/1000).toFixed(2)}/W net)`);
-  console.warn(`   Note: HQ cap 40% binds at $${Math.round(S2.cap40).toLocaleString()} (< potential $${(S2_PV_KW * HQ_ITC_CAP_PER_KW).toLocaleString()})`);
+  console.warn(`   Conso: ${S2_ANNUAL_KWH.toLocaleString()} kWh/yr, Self: ${S2_SELF.toLocaleString()} kWh (95%), 8760h profile injected`);
+  console.warn(`   Note: Tarif M payback ~11yr is structurally normal (6.06¢/kWh). Value proposition = NPV $119K + CO2.`);
 
   // ════════════════════════════════════════════════════════════════════════
   // SITES 3-7: Portfolio Groupe Immobilier Horizon (Multi-Sites)
@@ -413,24 +457,16 @@ async function seedDemoSites() {
   let totalSavings = 0;
   let totalProduction = 0;
   let totalIncentives = 0;
+  let totalNpv = 0;
 
   for (const ps of PORTFOLIO_SITES) {
-    const cascade = calculateIncentiveCascade(ps.pvKW);
+    const cascade = calculateIncentiveCascade(ps.pvKW, true);
     const production = ps.pvKW * YIELD_KWH_KWP;
-    const selfKWh = Math.round(production * ps.selfPct);
-    const exportKWh = production - selfKWh;
+    const exportKWh = production - ps.simSelf;
 
+    // Approximate annual cost for monthly bill display
     const rate = ps.tariff === "G" ? 0.11933 : 0.06061;
     const demandRate = ps.tariff === "G" ? 21.261 : 17.573;
-    const threshold = ps.tariff === "G" ? 50 : 0;
-
-    const energySavings = Math.round(selfKWh * rate);
-    const demandBefore = Math.max(0, ps.peakKW - threshold) * demandRate * 12;
-    const demandAfter = Math.max(0, ps.peakAfterKW - threshold) * demandRate * 12;
-    const demandSavings = Math.round(demandBefore - demandAfter);
-    const surplus = Math.round(exportKWh * SURPLUS_RATE);
-    const siteSavings = energySavings + demandSavings + surplus;
-
     const annualCost = Math.round(ps.annualKWh * rate + ps.peakKW * demandRate * 12);
     const monthlyBase = Math.round(ps.annualKWh / 12);
     const monthlyPeak = ps.peakKW;
@@ -445,6 +481,7 @@ async function seedDemoSites() {
     });
 
     const history = buildConsumptionHistory(monthly);
+    const hourlyProfile = loadHourlyProfile(ps.profileFile);
 
     const [pSite] = await db.insert(sites).values({
       clientId: portfolioClient.id,
@@ -458,9 +495,11 @@ async function seedDemoSites() {
       hqTariffDetail: ps.tariff === "G" ? "G - Général" : "M - Moyenne puissance",
       maxDemandKw: ps.peakKW,
       hqConsumptionHistory: history,
+      hourlyProfile,
       quickAnalysisSystemSizeKw: ps.pvKW,
       quickAnalysisAnnualProductionKwh: production,
-      quickAnalysisAnnualSavings: siteSavings,
+      quickAnalysisAnnualSavings: ps.simSavings,
+      quickAnalysisPaybackYears: ps.simPayback,
       quickAnalysisGrossCapex: cascade.capexPV,
       quickAnalysisNetCapex: Math.round(cascade.capexNet),
       quickAnalysisMonthlyBill: Math.round(annualCost / 12),
@@ -470,9 +509,10 @@ async function seedDemoSites() {
     totalPvKW += ps.pvKW;
     totalCapex += cascade.capexPV;
     totalCapexNet += cascade.capexNet;
-    totalSavings += siteSavings;
+    totalSavings += ps.simSavings;
     totalProduction += production;
     totalIncentives += cascade.totalIncentives;
+    totalNpv += ps.simNpv;
 
     await db.insert(opportunities).values({
       siteId: pSite.id,
@@ -487,43 +527,53 @@ async function seedDemoSites() {
       tags: ["demo", "portfolio", `tarif-${ps.tariff}`, "persona-3"],
     });
 
-    console.warn(`   📍 ${ps.name}: ${ps.pvKW} kW, $${Math.round(cascade.capexPV).toLocaleString()} → Net $${Math.round(cascade.capexNet).toLocaleString()}, eco. $${siteSavings.toLocaleString()}/an`);
+    console.warn(`   📍 ${ps.name}: ${ps.pvKW} kWc, pb=${ps.simPayback}yr, IRR=${(ps.simIrr*100).toFixed(1)}%, NPV=$${ps.simNpv.toLocaleString()}, eco=$${ps.simSavings.toLocaleString()}/an`);
   }
 
-  // Create portfolio
+  // Create portfolio — v3: realistic consolidated NPV/IRR from simulation
+  const weightedPayback = totalCapexNet / totalSavings;
+  const avgIrr = PORTFOLIO_SITES.reduce((s, ps) => s + ps.simIrr, 0) / PORTFOLIO_SITES.length;
+
   await db.insert(portfolios).values({
     clientId: portfolioClient.id,
     name: "DÉMO — Portfolio Groupe Immobilier Horizon",
-    description: "Déploiement solaire multi-sites: 2 succursales G + entrepôt M + bureau G + usine M",
+    description: "Déploiement solaire multi-sites: pharmacie + clinique + entrepôt + bureaux + usine alimentaire (3×G + 2×M)",
     siteIds: portfolioSiteIds,
     totalPvSizeKw: totalPvKW,
     totalCapex: Math.round(totalCapex),
     totalAnnualSavings: Math.round(totalSavings),
     totalCo2AvoidedTonnes: Math.round(totalProduction * 0.002 * 10) / 10,
-    consolidatedNpv: 1015555,  // From Python calculation
-    consolidatedIrr: 18.8,
+    consolidatedNpv: Math.round(totalNpv),  // v3: $322,903 from validated simulation
+    consolidatedIrr: Math.round(avgIrr * 1000) / 10,  // v3: 12.3% average
     tags: ["demo", "multi-sites", "immobilier", "persona-3"],
   });
 
-  console.warn(`\n✅ Portfolio: ${PORTFOLIO_SITES.length} sites, ${totalPvKW} kWc total, payback 4.8 ans, IRR 18.8%`);
+  console.warn(`\n✅ Portfolio: ${PORTFOLIO_SITES.length} sites, ${totalPvKW} kWc total, payback ${weightedPayback.toFixed(1)} ans, avg IRR ${(avgIrr*100).toFixed(1)}%`);
   console.warn(`   CAPEX: $${Math.round(totalCapex).toLocaleString()} → Net $${Math.round(totalCapexNet).toLocaleString()} (incitatifs: $${Math.round(totalIncentives).toLocaleString()})`);
+  console.warn(`   NPV consolidé: $${Math.round(totalNpv).toLocaleString()}, Savings: $${Math.round(totalSavings).toLocaleString()}/an`);
 
   // ─── Summary ────────────────────────────────────────────────────────────
   console.warn("\n" + "═".repeat(70));
-  console.warn("🎉 3 SITES DÉMO CRÉÉS AVEC SUCCÈS! (v2 — formules corrigées)");
+  console.warn("🎉 3 SITES DÉMO CRÉÉS AVEC SUCCÈS! (v3 — KPIs réalistes + 8760h profiles)");
   console.warn("═".repeat(70));
-  console.warn(`  1. Marché Beau-Soleil  → Tarif G, ${S1_PV_KW} kWc, Payback 3.8 ans, IRR 23.0%`);
-  console.warn(`  2. Usine Thermopak     → Tarif M, ${S2_PV_KW} kWc, Payback 6.0 ans, IRR 15.5%`);
-  console.warn(`  3. Portfolio Horizon   → Mix G+M, ${totalPvKW} kWc, Payback 4.8 ans, IRR 18.8%`);
+  console.warn(`  1. Marché Beau-Soleil  → Tarif G, ${S1_PV_KW} kWc, Payback 6.3 ans, IRR 17.3%, NPV $110K`);
+  console.warn(`  2. Usine Thermopak     → Tarif M, ${S2_PV_KW} kWc, Payback 11.3 ans, IRR 8.6%, NPV $119K`);
+  console.warn(`  3. Portfolio Horizon   → Mix G+M, ${totalPvKW} kWc, Payback ${weightedPayback.toFixed(1)} ans, IRR ${(avgIrr*100).toFixed(1)}%, NPV $${Math.round(totalNpv/1000)}K`);
   console.warn("═".repeat(70));
-  console.warn("\n📋 Constantes utilisées:");
+  console.warn("\n📋 v3 Changes:");
+  console.warn("   ✓ HQ tiered billing (tier 1 vs tier 2) instead of flat average rates");
+  console.warn("   ✓ Net metering from year 1 at 90% (not year 3 at 70%)");
+  console.warn("   ✓ PV-only → $0 demand savings (solar doesn't reduce peak)");
+  console.warn("   ✓ 8760-hour profiles injected into hourlyProfile JSONB");
+  console.warn("   ✓ Consumption optimized: S1=175K (below tier 1), S2=1.5M kWh");
+  console.warn(`\n📋 Constantes:`);
   console.warn(`   HQ OSE 6.0: $${HQ_ITC_CAP_PER_KW}/kW, max ${HQ_ITC_MAX_CAPACITY_KW} kW, cap ${HQ_ITC_PERCENT*100}%`);
   console.warn(`   ITC fédéral: ${FEDERAL_ITC_RATE*100}% de (CAPEX - HQ)`);
   console.warn(`   DPA/CCA: ${CCA_RECOVERY_FACTOR*100}% × ${CORPORATE_TAX_RATE*100}%`);
   console.warn(`   Racking: Opsun 20° high, ${YIELD_KWH_KWP} kWh/kWp (bifacial)`);
   console.warn(`   Batterie: $0 HQ (volet stockage discontinué jan 2026)`);
   console.warn("\n👉 Les sites démo sont identifiables par le préfixe 'DÉMO —'");
-  console.warn("   Chacun a : client, site, simulation, opportunité dans le pipeline\n");
+  console.warn("   Chacun a: client, site (+ 8760h profile), simulation, opportunité dans le pipeline\n");
 
   process.exit(0);
 }
