@@ -2,7 +2,7 @@ import type { CashflowEntry, PeakWeekEntry, FrontierPoint } from "@shared/schema
 import type { PDFContext } from "./types";
 import { COLORS } from "./types";
 import { formatCurrency, formatSmartCurrency, drawRoundedRect } from "./helpers";
-import { HQ_TARIFF_ESCALATION_RATE } from '@shared/constants';
+import { HQ_TARIFF_ESCALATION_RATE, HQ_TARIFF_ESCALATION_INITIAL, HQ_TARIFF_ESCALATION_TRANSITION_YEAR } from '@shared/constants';
 
 export function drawBarChart(
   ctx: PDFContext,
@@ -436,14 +436,20 @@ export function drawCostOfInactionChart(
   const { doc, t, simulation } = ctx;
 
   const years = 25;
-  const inflationRate = HQ_TARIFF_ESCALATION_RATE; // HQ tariff escalation standard
+  // Stepped escalation: 4.8%/yr years 0-2 (HQ 2024 announcement), then 3.5%/yr
   let cumulWithout = 0;
   let cumulWith = 0;
   const costData: Array<{ year: number; without: number; with: number }> = [];
+  // Pre-compute compound escalation factor for each year
+  const escalationFactors: number[] = [1]; // year 0 = factor 1
+  for (let yr = 1; yr <= years; yr++) {
+    const rate = yr <= HQ_TARIFF_ESCALATION_TRANSITION_YEAR ? HQ_TARIFF_ESCALATION_INITIAL : HQ_TARIFF_ESCALATION_RATE;
+    escalationFactors.push(escalationFactors[yr - 1] * (1 + rate));
+  }
 
   for (let yr = 0; yr <= years; yr++) {
-    const yearCost = simulation.annualCostBefore * Math.pow(1 + inflationRate, yr);
-    const yearCostAfter = simulation.annualCostAfter * Math.pow(1 + inflationRate, yr);
+    const yearCost = simulation.annualCostBefore * escalationFactors[yr];
+    const yearCostAfter = simulation.annualCostAfter * escalationFactors[yr];
     cumulWithout += yearCost;
     cumulWith += yearCostAfter + (yr === 0 ? simulation.capexNet : 0);
     costData.push({ year: yr, without: cumulWithout, with: cumulWith });

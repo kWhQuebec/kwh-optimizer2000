@@ -31,7 +31,7 @@ import {
 } from "../analysis/simulationEngine";
 import { calculateCashflowMetrics } from "../analysis/cashflowCalculations";
 import { runAnalysisQA, type QAResult } from "../analysis/analysisQA";
-import { HQ_TARIFF_ESCALATION_RATE, TEMPERATURE_COEFFICIENT } from '@shared/constants';
+import { HQ_TARIFF_ESCALATION_RATE, HQ_TARIFF_ESCALATION_INITIAL, HQ_TARIFF_ESCALATION_TRANSITION_YEAR, TEMPERATURE_COEFFICIENT } from '@shared/constants';
 
 export { resolveYieldStrategyFromAnalysis as resolveYieldStrategy };
 export { getTieredSolarCostPerW };
@@ -808,11 +808,13 @@ export function runPotentialAnalysis(
   // CO2 to cars: 4,600 kg CO2 per car per year
   const equivalentCarsRemoved = Math.round((co2AvoidedTonnesPerYear * 1000) / 4600);
 
-  // Cost of inaction: 25-year utility costs without solar (3.5% annual escalation)
+  // Cost of inaction: 25-year utility costs without solar
+  // Stepped escalation: 4.8%/yr years 1-3 (HQ 2024 announcement), then 3.5%/yr long-term
   let costOfInaction25yr = 0;
+  let costEscFactor = 1;
   for (let y = 0; y < 25; y++) {
-    const escalatedCost = annualCostBefore * Math.pow(1 + HQ_TARIFF_ESCALATION_RATE, y);
-    costOfInaction25yr += escalatedCost;
+    if (y > 0) { costEscFactor *= (1 + (y <= HQ_TARIFF_ESCALATION_TRANSITION_YEAR ? HQ_TARIFF_ESCALATION_INITIAL : HQ_TARIFF_ESCALATION_RATE)); }
+    costOfInaction25yr += annualCostBefore * costEscFactor;
   }
 
   const hiddenInsights: HiddenInsights = {

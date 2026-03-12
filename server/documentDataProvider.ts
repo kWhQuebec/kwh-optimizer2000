@@ -140,11 +140,14 @@ export function computeHiddenInsights(sim: DocumentSimulationData): HiddenInsigh
   const equivalentTreesPlanted = Math.round(co2Total25yr * 1000 / 21.77);
   const equivalentCarsRemoved = Math.round(co2Total25yr / 4.6);
 
-  // Cost of inaction: 25-year utility cost without solar at 3.5%/yr escalation
+  // Cost of inaction: 25-year utility cost without solar
+  // Stepped escalation: 4.8%/yr years 0-2 (HQ 2024 announcement), then 3.5%/yr
   const annualCost = sim.annualCostBefore || 0;
   let costOfInaction25yr = 0;
+  let escalationFactor = 1;
   for (let y = 0; y < 25; y++) {
-    costOfInaction25yr += annualCost * Math.pow(1.035, y);
+    if (y > 0) { escalationFactor *= (1 + (y <= 3 ? 0.048 : 0.035)); }
+    costOfInaction25yr += annualCost * escalationFactor;
   }
 
   return {

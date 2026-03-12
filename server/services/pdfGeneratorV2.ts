@@ -1238,12 +1238,17 @@ function buildProjectionRows(
 
   return unique.map(year => {
     const deg = Math.pow(0.995, year - 1);
-    const inf = Math.pow(1.035, year - 1);
+    // Stepped escalation: 4.8%/yr years 1-3 (HQ 2024), then 3.5%/yr
+    const escalationForYear = (yr: number) => yr <= 3 ? 0.048 : 0.035;
+    let infCompound = 1;
+    for (let i = 1; i < year; i++) { infCompound *= (1 + escalationForYear(i)); }
     const production = Math.round(totalProductionKWh * deg);
-    const savings = Math.round(baseSavings * deg * inf);
+    const savings = Math.round(baseSavings * deg * infCompound);
     let cum = 0;
     for (let y = 1; y <= year; y++) {
-      cum += Math.round(baseSavings * Math.pow(0.995, y - 1) * Math.pow(1.035, y - 1));
+      let inf = 1;
+      for (let i = 1; i < y; i++) { inf *= (1 + escalationForYear(i)); }
+      cum += Math.round(baseSavings * Math.pow(0.995, y - 1) * inf);
     }
     cum -= sim.capexNet;
 
