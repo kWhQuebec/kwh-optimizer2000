@@ -22,6 +22,7 @@ import type {
   FinancialBreakdown,
 } from "@shared/schema";
 import { getTieredSolarCostPerW, getDefaultSupplierCostPerW } from "./potentialAnalysis";
+import { HQ_ITC_CAP_PER_KW, HQ_ITC_MAX_CAPACITY_KW, HQ_ITC_PERCENT, FEDERAL_ITC_RATE as SHARED_FEDERAL_ITC_RATE, CCA_RECOVERY_FACTOR } from '@shared/constants';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -132,11 +133,11 @@ export interface CashflowResults {
 // ─── Constants ──────────────────────────────────────────────────────────────
 
 const MAX_ANALYSIS_YEARS = 30;
-const HQ_MAX_ELIGIBLE_KW = 1000; // HQ OSE 6.0: max 1 MW
-const HQ_INCENTIVE_PER_KW = 1000; // $1000/kW
-const HQ_CAP_PERCENT = 0.40; // 40% of admissible CAPEX
-const FEDERAL_ITC_RATE = 0.30; // 30% ITC
-const TAX_SHIELD_FACTOR = 0.90; // 90% of depreciable basis × tax rate
+const HQ_MAX_ELIGIBLE_KW = HQ_ITC_MAX_CAPACITY_KW;
+const HQ_INCENTIVE_PER_KW = HQ_ITC_CAP_PER_KW;
+const HQ_CAP_PERCENT = HQ_ITC_PERCENT;
+const FEDERAL_ITC_RATE = SHARED_FEDERAL_ITC_RATE;
+const TAX_SHIELD_FACTOR = CCA_RECOVERY_FACTOR;
 const CO2_FACTOR_QC = 0.002; // kg CO2/kWh for Quebec grid
 const BATTERY_REPLACEMENT_YEARS = [10, 20, 30]; // Default replacement schedule
 

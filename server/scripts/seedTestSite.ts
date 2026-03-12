@@ -202,11 +202,11 @@ async function seedTestSite() {
     totalIncentives: Math.round(HQ_INCENTIVE + FEDERAL_ITC + TAX_SHIELD),
     capexNet: Math.round(CAPEX_NET),
     npv25: Math.round(annualSavings * 14.5 - CAPEX_NET), // Rough NPV
-    irr25: 18.5,
+    irr25: 0.185,
     simplePaybackYears: 5.2,
     lcoe: 0.035,
     npv30: Math.round(annualSavings * 16 - CAPEX_NET),
-    irr30: 19.2,
+    irr30: 0.192,
     lcoe30: 0.032,
     co2AvoidedTonnesPerYear: Math.round(ANNUAL_PRODUCTION_KWH * 0.0005 * 10) / 10,
     assumptions: {

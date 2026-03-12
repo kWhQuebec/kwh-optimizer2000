@@ -21,7 +21,7 @@ import { scheduleNurtureSequence } from "../emailScheduler";
 import { sendSMSNotification, formatHotLeadMessage } from "../smsService";
 import { sanitizeFilename, sanitizeReferenceId, validatePathWithinBase } from "../lib/pathValidation";
 import { applyTariffToSite } from "../repositories/siteRepo";
-import { SYSTEM_LIFETIME_YEARS, DEGRADATION_FACTOR_25Y, DEGRADATION_RATE_ANNUAL, TEMPERATURE_COEFFICIENT, HQ_ITC_PERCENT, HQ_TARIFF_ESCALATION_RATE, HQ_TARIFF_ESCALATION_INITIAL, HQ_TARIFF_ESCALATION_TRANSITION_YEAR } from '@shared/constants';
+import { SYSTEM_LIFETIME_YEARS, DEGRADATION_FACTOR_25Y, DEGRADATION_RATE_ANNUAL, TEMPERATURE_COEFFICIENT, HQ_ITC_PERCENT, HQ_ITC_CAP_PER_KW, HQ_ITC_MAX_CAPACITY_KW, FEDERAL_ITC_RATE, HQ_TARIFF_ESCALATION_RATE, HQ_TARIFF_ESCALATION_INITIAL, HQ_TARIFF_ESCALATION_TRANSITION_YEAR } from '@shared/constants';
 
 const log = createLogger("Leads");
 
@@ -158,15 +158,10 @@ router.post("/api/quick-estimate", estimateLimiter, asyncHandler(async (req, res
   // Cost per watt: Use tiered pricing from detailed analysis
   // This will be calculated per scenario based on system size
 
-  // Hydro-Québec Autoproduction incentive: $1000/kW, max 40% of CAPEX, limited to 1 MW
-  const HQ_INCENTIVE_PER_KW = 1000;
+  // Hydro-Québec Autoproduction incentive: from shared/constants.ts
+  const HQ_INCENTIVE_PER_KW = HQ_ITC_CAP_PER_KW;
   const HQ_INCENTIVE_MAX_PERCENT = HQ_ITC_PERCENT;
-  const HQ_MW_LIMIT = 1000; // Only first 1000 kW eligible for Net Metering
-
-  // Federal Investment Tax Credit (ITC): 30% of eligible project cost
-  // Applied to net CAPEX (after HQ subsidy), per Canadian tax law
-  // The ITC basis is reduced by any provincial grants/incentives received
-  const FEDERAL_ITC_RATE = 0.30;
+  const HQ_MW_LIMIT = HQ_ITC_MAX_CAPACITY_KW;
 
   // System lifetime for LCOE calculation
   // SYSTEM_LIFETIME_YEARS imported from @shared/constants

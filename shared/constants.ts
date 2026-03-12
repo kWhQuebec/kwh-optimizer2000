@@ -29,6 +29,16 @@ export const HQ_ITC_MAX_CAPACITY_KW = 1000;
 /** HQ ITC as percentage of admissible CAPEX */
 export const HQ_ITC_PERCENT = 0.40;
 
+// ─── Federal Investment Tax Credit (ITC) ────────────────────────
+/** Federal ITC rate (30% of eligible CAPEX after provincial incentives) */
+export const FEDERAL_ITC_RATE = 0.30;
+
+/** Combined federal + provincial tax rate for CCA/DPA shield */
+export const CORPORATE_TAX_RATE = 0.265;
+
+/** CCA recovery factor (conservative 90% of theoretical max) */
+export const CCA_RECOVERY_FACTOR = 0.90;
+
 // ─── System Performance ─────────────────────────────────────────
 /** Standard system lifetime for financial analysis (years) */
 export const SYSTEM_LIFETIME_YEARS = 25;

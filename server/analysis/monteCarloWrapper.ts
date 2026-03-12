@@ -26,7 +26,7 @@
 
 import type { AnalysisAssumptions } from "@shared/schema";
 import { createLogger } from "../lib/logger";
-import { HQ_TARIFF_ESCALATION_RATE, TARIFF_ESCALATION_RANGE, DEGRADATION_RATE_ANNUAL } from '@shared/constants';
+import { HQ_TARIFF_ESCALATION_RATE, TARIFF_ESCALATION_RANGE, DEGRADATION_RATE_ANNUAL, HQ_ITC_CAP_PER_KW, HQ_ITC_PERCENT, HQ_ITC_MAX_CAPACITY_KW, FEDERAL_ITC_RATE, CORPORATE_TAX_RATE, CCA_RECOVERY_FACTOR } from '@shared/constants';
 
 const log = createLogger("MonteCarlo");
 
@@ -136,25 +136,24 @@ export function createSimplifiedScenarioRunner(
     const solarCostPerW = h.solarCostPerW || 2.00;
     const capexGross = pvSizeKW * 1000 * solarCostPerW;
     
-    // Incentives (aligned with main financial engine)
+    // Incentives (aligned with shared/constants.ts)
     // HQ OSE 6.0: $1000/kW capped at 40% of ADMISSIBLE CAPEX (solar only), max 1MW
     const capexAdmissible = capexGross; // In MC wrapper, capexGross = solar only (no battery modeled)
     const hqIncentive = Math.min(
-      pvSizeKW * 1000,
-      capexAdmissible * 0.40,
-      1000 * 1000 // 1MW cap
+      pvSizeKW * HQ_ITC_CAP_PER_KW,
+      capexAdmissible * HQ_ITC_PERCENT,
+      HQ_ITC_MAX_CAPACITY_KW * HQ_ITC_CAP_PER_KW
     );
     const afterHQ = capexGross - hqIncentive;
     // Federal ITC: 30% of remaining CAPEX
-    const federalITC = afterHQ * 0.30;
+    const federalITC = afterHQ * FEDERAL_ITC_RATE;
     const capexNet = afterHQ - federalITC;
-    
+
     // Tax rate for CCA tax shield calculation
-    const taxRate = h.taxRate || 0.265;
-    
+    const taxRate = h.taxRate || CORPORATE_TAX_RATE;
+
     // Tax shield: CCA Class 43.2 allows 100% year-1 expensing for clean energy
-    // Factor 0.90 is conservative (assumes 10% not recovered)
-    const taxShield = capexNet * taxRate * 0.90;
+    const taxShield = capexNet * taxRate * CCA_RECOVERY_FACTOR;
     
     // Energy savings year 1 (surplus revenue separated - delayed to year 3 per HQ 24-month cycle)
     const energyRate = tariffEnergy || h.tariffEnergy || 0.06;
@@ -234,7 +233,7 @@ export function createSimplifiedScenarioRunner(
         // Use relative tolerance based on CAPEX size
         const tolerance = Math.abs(capexNet) * 1e-6;
         if (Math.abs(npvMid) < tolerance || (high - low) < 1e-6) {
-          return Math.max(0, Math.min(1, mid));
+          return mid;
         }
         
         if (npvLow * npvMid < 0) {
