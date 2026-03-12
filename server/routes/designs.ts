@@ -9,6 +9,19 @@ import { createLogger } from "../lib/logger";
 import { asyncHandler, BadRequestError, NotFoundError, ForbiddenError } from "../middleware/errorHandler";
 
 const log = createLogger("Designs");
+
+/** Warn loudly when a document is generated without optimal scenario applied */
+function warnIfNotOptimized(simulation: any, endpoint: string) {
+  if (simulation._optimalNotApplied) {
+    const siteName = simulation.site?.name || simulation.siteId || 'unknown';
+    log.warn(
+      `🚨 DOCUMENT GENERATED WITH BASE SIZING for "${siteName}" via ${endpoint}. ` +
+      `PV=${simulation.pvSizeKW}kW is the roof-constrained maximum, NOT the NPV-optimized size. ` +
+      `This likely means the simulation was created with forcedSizing or is missing sensitivity data. ` +
+      `The client will see an inaccurate system size in this document.`
+    );
+  }
+}
 const router = Router();
 
 router.get("/api/standard-kits", authMiddleware, asyncHandler(async (_req, res) => {
@@ -81,6 +94,7 @@ router.get("/api/simulation-runs/:id/report-pdf", authMiddleware, asyncHandler(a
   }
 
   const optimizedSimulation = applyOptimalScenario(docData.simulation, opt as any);
+  warnIfNotOptimized(optimizedSimulation, 'report-pdf');
 
   const { generateProfessionalPDFv2 } = await import("../services/pdfGeneratorV2");
   const simData = {
@@ -127,6 +141,7 @@ router.get("/api/simulation-runs/:id/executive-summary-pdf", authMiddleware, asy
   }
 
   const optimizedSimulation = applyOptimalScenario(docData.simulation, opt as any);
+  warnIfNotOptimized(optimizedSimulation, 'executive-summary-pdf');
   const simulationWithRoof = {
     ...optimizedSimulation,
     roofVisualizationBuffer: docData.roofVisualizationBuffer,
@@ -154,6 +169,7 @@ router.get("/api/simulation-runs/:id/presentation-pptx", authMiddleware, asyncHa
   }
 
   const optimizedSimulation = applyOptimalScenario(docData.simulation, opt as any);
+  warnIfNotOptimized(optimizedSimulation, 'presentation-pptx');
   const simWithSyntheticFlag = { ...optimizedSimulation, isSynthetic: docData.isSynthetic };
   const { generatePresentationPPTX } = await import("../pptxGeneratorV2");
   const pptxOptions = {

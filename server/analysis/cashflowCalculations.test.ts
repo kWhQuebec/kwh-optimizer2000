@@ -566,6 +566,55 @@ describe('applyOptimalScenario', () => {
     expect(result.pvSizeKW).toBe(100);
   });
 
+  it('should set _optimalNotApplied=true when sensitivity is null', () => {
+    const sim = makeSimulation({ sensitivity: null });
+    const result = applyOptimalScenario(sim as any);
+    expect((result as any)._optimalNotApplied).toBe(true);
+    expect((result as any)._optimalWarning).toBeDefined();
+    expect(typeof (result as any)._optimalWarning).toBe('string');
+    // Base sizing should be unchanged
+    expect(result.pvSizeKW).toBe(100);
+  });
+
+  it('should set _optimalNotApplied=true when sensitivity exists but optimalScenarios is missing', () => {
+    const sim = makeSimulation({ sensitivity: { frontier: [] } });
+    const result = applyOptimalScenario(sim as any);
+    expect((result as any)._optimalNotApplied).toBe(true);
+    expect(result.pvSizeKW).toBe(100);
+  });
+
+  it('should set _optimalNotApplied=false when optimal scenario IS applied', () => {
+    const sim = makeSimulation({
+      sensitivity: {
+        optimalScenarios: {
+          bestNPV: {
+            pvSizeKW: 106,
+            battEnergyKWh: 0,
+            battPowerKW: 0,
+            capexNet: 73000,
+            npv25: 150000,
+            irr25: 0.15,
+            simplePaybackYears: 6,
+            selfSufficiencyPercent: 70,
+            annualSavings: 35000,
+            totalProductionKWh: 140000,
+            co2AvoidedTonnesPerYear: 18,
+          },
+        },
+      },
+    });
+    const result = applyOptimalScenario(sim as any);
+    expect((result as any)._optimalNotApplied).toBe(false);
+    expect(result.pvSizeKW).toBe(106); // Optimized, not base 100
+  });
+
+  it('should include warning message in French with base PV size', () => {
+    const sim = makeSimulation({ pvSizeKW: 180, sensitivity: null });
+    const result = applyOptimalScenario(sim as any);
+    expect((result as any)._optimalWarning).toContain('180 kW');
+    expect((result as any)._optimalWarning).toContain('non optimisé');
+  });
+
   it('should preserve cashflow detail fields when available in scenario', () => {
     const detailedCashflows = [
       { year: 0, netCashflow: -180000, ebitda: 0, investment: -180000, dpa: 0, incentives: 0, revenue: 0, opex: 0 },

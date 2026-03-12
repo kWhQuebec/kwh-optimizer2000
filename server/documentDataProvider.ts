@@ -406,6 +406,16 @@ export function applyOptimalScenario(
 ): SimulationRun & { site: Site & { client: Client } } {
   const sensitivity = simulation.sensitivity as SensitivityAnalysis | null | undefined;
   if (!sensitivity?.optimalScenarios) {
+    const siteInfo = simulation.site?.name || simulation.siteId || 'unknown';
+    log.warn(
+      `⚠️ OPTIMAL SCENARIO NOT APPLIED for site "${siteInfo}" (simulation ${simulation.id}): ` +
+      `sensitivity data is ${sensitivity === null ? 'null (forcedSizing was used)' : 'missing/incomplete'}. ` +
+      `Document will show BASE sizing (PV=${simulation.pvSizeKW}kW) instead of optimized values. ` +
+      `Re-run auto-analysis without forced sizing to generate optimal scenarios.`
+    );
+    // Tag simulation so callers can detect this condition
+    (simulation as any)._optimalNotApplied = true;
+    (simulation as any)._optimalWarning = `Sizing non optimisé — valeurs de base affichées (${simulation.pvSizeKW} kW). Relancer l'analyse pour obtenir le dimensionnement optimal.`;
     return simulation;
   }
 
@@ -509,6 +519,7 @@ export function applyOptimalScenario(
   }
 
   log.info(`Applied ${target} optimal scenario: PV=${optimal.pvSizeKW}kW, Batt=${optimal.battEnergyKWh}kWh, NPV25=${optimal.npv25}, IRR=${optimal.irr25}`);
+  (merged as any)._optimalNotApplied = false;
 
   return merged;
 }
