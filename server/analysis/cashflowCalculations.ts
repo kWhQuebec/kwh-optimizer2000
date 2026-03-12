@@ -22,6 +22,7 @@ import type {
   FinancialBreakdown,
 } from "@shared/schema";
 import { getTieredSolarCostPerW, getDefaultSupplierCostPerW } from "./potentialAnalysis";
+import { HQ_ITC_PERCENT, DEGRADATION_RATE_ANNUAL } from '@shared/constants';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -134,7 +135,7 @@ export interface CashflowResults {
 const MAX_ANALYSIS_YEARS = 30;
 const HQ_MAX_ELIGIBLE_KW = 1000; // HQ OSE 6.0: max 1 MW
 const HQ_INCENTIVE_PER_KW = 1000; // $1000/kW
-const HQ_CAP_PERCENT = 0.40; // 40% of admissible CAPEX
+const HQ_CAP_PERCENT = HQ_ITC_PERCENT; // 40% of admissible CAPEX
 const FEDERAL_ITC_RATE = 0.30; // 30% ITC
 const TAX_SHIELD_FACTOR = 0.90; // 90% of depreciable basis × tax rate
 const CO2_FACTOR_QC = 0.002; // kg CO2/kWh for Quebec grid
@@ -331,7 +332,7 @@ export function generateCashflowArray(
     : capexPV * h.omSolarPercent;
   const opexBase = omSolarBase + (capexBattery * h.omBatteryPercent);
 
-  const degradationRate = h.degradationRatePercent || 0.004;
+  const degradationRate = h.degradationRatePercent || DEGRADATION_RATE_ANNUAL;
   const replacementYear = h.batteryReplacementYear || 10;
   const replacementFactor = h.batteryReplacementCostFactor || 0.60;
   const priceDecline = h.batteryPriceDeclineRate || 0.05;
@@ -425,27 +426,85 @@ export function calculateNPV(
 }
 
 /**
- * Calculate IRR using Newton-Raphson method.
+ * Calculate NPV for a given rate (helper for IRR methods).
+ */
+function calcNPV(cashflows: number[], rate: number): number {
+  let npv = 0;
+  for (let t = 0; t < cashflows.length; t++) {
+    const denom = Math.pow(1 + rate, t);
+    if (denom === 0 || !isFinite(denom)) continue;
+    npv += cashflows[t] / denom;
+  }
+  return npv;
+}
+
+/**
+ * Bisection IRR fallback — guaranteed convergence within [-0.99, 10.0].
+ */
+function bisectionIRR(cashflows: number[]): number {
+  let lo = -0.99;
+  let hi = 10.0;
+  const maxIter = 200;
+  const tol = 1e-6;
+  
+  let npvLo = calcNPV(cashflows, lo);
+  let npvHi = calcNPV(cashflows, hi);
+  
+  // If same sign at both bounds, no real IRR in range
+  if (npvLo * npvHi > 0) return 0;
+  
+  for (let i = 0; i < maxIter; i++) {
+    const mid = (lo + hi) / 2;
+    const npvMid = calcNPV(cashflows, mid);
+    if (Math.abs(npvMid) < tol || (hi - lo) / 2 < tol) return mid;
+    if (npvMid * npvLo < 0) {
+      hi = mid;
+      npvHi = npvMid;
+    } else {
+      lo = mid;
+      npvLo = npvMid;
+    }
+  }
+  return (lo + hi) / 2;
+}
+
+/**
+ * Calculate IRR using Newton-Raphson with bisection fallback.
  * Inline implementation to avoid circular dependency with simulationEngine.
+ * Guards against divergence — always returns a finite value in [-1, 10].
  */
 export function calculateIRR(cashflows: number[], guess: number = 0.1, maxIter: number = 100, tolerance: number = 1e-7): number {
+  if (cashflows.length < 2) return 0;
+  
+  // Check sign changes — need both positive and negative cashflows
+  let hasNeg = false, hasPos = false;
+  for (const cf of cashflows) {
+    if (cf < 0) hasNeg = true;
+    if (cf > 0) hasPos = true;
+  }
+  if (!hasNeg || !hasPos) return hasPos ? 1.0 : 0;
+  
   let rate = guess;
   for (let i = 0; i < maxIter; i++) {
     let npv = 0;
     let dnpv = 0;
     for (let t = 0; t < cashflows.length; t++) {
       const denom = Math.pow(1 + rate, t);
+      if (denom === 0 || !isFinite(denom)) continue;
       npv += cashflows[t] / denom;
       if (t > 0) {
         dnpv -= (t * cashflows[t]) / Math.pow(1 + rate, t + 1);
       }
     }
-    if (Math.abs(dnpv) < 1e-12) break;
+    if (Math.abs(dnpv) < 1e-10) return bisectionIRR(cashflows);
     const newRate = rate - npv / dnpv;
+    if (!isFinite(newRate)) return bisectionIRR(cashflows);
+    if (newRate < -1 || newRate > 10) return bisectionIRR(cashflows);
     if (Math.abs(newRate - rate) < tolerance) return newRate;
     rate = newRate;
   }
-  return rate;
+  // Did not converge — use bisection
+  return bisectionIRR(cashflows);
 }
 
 /**
@@ -575,7 +634,7 @@ export function calculateCashflowMetrics(inputs: CashflowInputs): CashflowResult
   const metrics = calculateFinancialMetrics(cashflows, h.discountRate, h.analysisYears);
 
   // Step 6: LCOE
-  const degradationRate = h.degradationRatePercent || 0.004;
+  const degradationRate = h.degradationRatePercent || DEGRADATION_RATE_ANNUAL;
   const omSolarBase = h.omPerKwc ? h.omPerKwc * pvSizeKW : capexPV * h.omSolarPercent;
   const opexBase = omSolarBase + (capexBattery * h.omBatteryPercent);
 

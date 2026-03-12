@@ -1148,7 +1148,7 @@ router.post("/:siteId/quick-potential", authMiddleware, requireStaff, asyncHandl
   // HQ Incentive: $1000/kW, max 40% of CAPEX, max 1 MW eligible
   const eligibleKW = Math.min(maxCapacityKW, 1000);
   const potentialHqIncentive = eligibleKW * 1000;
-  const maxHqIncentive = grossCapex * 0.40;
+  const maxHqIncentive = grossCapex * HQ_ITC_PERCENT;
   const hqIncentive = Math.min(potentialHqIncentive, maxHqIncentive);
 
   // Federal ITC: 30% of (CAPEX - HQ incentive)
@@ -1529,7 +1529,7 @@ router.post("/:siteId/monte-carlo-analysis", authMiddleware, requireStaff, async
   const monteCarloConfig: MonteCarloConfig = config || {
     iterations: 500,
     variableRanges: {
-      tariffEscalation: [0.025, 0.035],
+      tariffEscalation: TARIFF_ESCALATION_RANGE,
       discountRate: [0.06, 0.08],
       solarYield: [1075, 1225],
       bifacialBoost: [0.10, 0.20],
@@ -1986,6 +1986,7 @@ router.post("/:id/unarchive", authMiddleware, requireStaff, asyncHandler(async (
 // ==================== SYNTHETIC PROFILE ====================
 
 import { getBuildingTypeLabel as getBTLabel } from "@shared/buildingTypes";
+import { HQ_ITC_PERCENT, TARIFF_ESCALATION_RANGE } from '@shared/constants';
 
 const syntheticProfileSchema = z.object({
   buildingSubType: z.enum(["office", "retail", "hotel", "restaurant", "warehouse", "cold_warehouse", "industrial", "light_industrial", "healthcare", "education", "government", "agricultural"]),

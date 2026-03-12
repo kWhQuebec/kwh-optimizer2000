@@ -21,6 +21,7 @@ import { scheduleNurtureSequence } from "../emailScheduler";
 import { sendSMSNotification, formatHotLeadMessage } from "../smsService";
 import { sanitizeFilename, sanitizeReferenceId, validatePathWithinBase } from "../lib/pathValidation";
 import { applyTariffToSite } from "../repositories/siteRepo";
+import { SYSTEM_LIFETIME_YEARS, DEGRADATION_FACTOR_25Y, DEGRADATION_RATE_ANNUAL, TEMPERATURE_COEFFICIENT, HQ_ITC_PERCENT, HQ_TARIFF_ESCALATION_RATE, HQ_TARIFF_ESCALATION_INITIAL, HQ_TARIFF_ESCALATION_TRANSITION_YEAR } from '@shared/constants';
 
 const log = createLogger("Leads");
 
@@ -141,7 +142,7 @@ router.post("/api/quick-estimate", estimateLimiter, asyncHandler(async (req, res
   // - Quebec annual average cell temp ~35°C (ambient + cell rise)
   // - Wire losses: ~3% (canonical value from potentialAnalysis.ts)
   // - Inverter efficiency: ~96%
-  const TEMP_COEFF = -0.004; // -0.4%/°C
+  const TEMP_COEFF = TEMPERATURE_COEFFICIENT; // -0.4%/°C
   const AVERAGE_CELL_TEMP = 35; // °C (annual average including cell rise)
   const STC_CELL_TEMP = 25; // °C
   const WIRE_LOSS_PERCENT = 0.03; // Canonical wire loss value
@@ -159,7 +160,7 @@ router.post("/api/quick-estimate", estimateLimiter, asyncHandler(async (req, res
 
   // Hydro-Québec Autoproduction incentive: $1000/kW, max 40% of CAPEX, limited to 1 MW
   const HQ_INCENTIVE_PER_KW = 1000;
-  const HQ_INCENTIVE_MAX_PERCENT = 0.40;
+  const HQ_INCENTIVE_MAX_PERCENT = HQ_ITC_PERCENT;
   const HQ_MW_LIMIT = 1000; // Only first 1000 kW eligible for Net Metering
 
   // Federal Investment Tax Credit (ITC): 30% of eligible project cost
@@ -168,8 +169,8 @@ router.post("/api/quick-estimate", estimateLimiter, asyncHandler(async (req, res
   const FEDERAL_ITC_RATE = 0.30;
 
   // System lifetime for LCOE calculation
-  const SYSTEM_LIFETIME_YEARS = 25;
-  const DEGRADATION_FACTOR = 0.94; // Average over 25 years with 0.4%/year degradation
+  // SYSTEM_LIFETIME_YEARS imported from @shared/constants
+  const DEGRADATION_FACTOR = DEGRADATION_FACTOR_25Y; // Average over 25 years with 0.4%/year degradation
 
   // Helper function to calculate scenario metrics
   const calculateScenario = (offsetPercent: number) => {
@@ -393,7 +394,7 @@ router.post("/api/quick-estimate", estimateLimiter, asyncHandler(async (req, res
   const costOfInactionYears = 5;
   let opportunityCost = 0;
   for (let year = 0; year < costOfInactionYears; year++) {
-    const escalationRate = year < 3 ? 0.048 : 0.035;
+    const escalationRate = year < HQ_TARIFF_ESCALATION_TRANSITION_YEAR ? HQ_TARIFF_ESCALATION_INITIAL : HQ_TARIFF_ESCALATION_RATE;
     opportunityCost += primaryScenario.annualSavings * Math.pow(1 + escalationRate, year);
   }
   const costOfInaction = Math.round(opportunityCost);

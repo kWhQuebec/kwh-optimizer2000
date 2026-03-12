@@ -14,6 +14,7 @@
 import type { AnalysisAssumptions, BifacialConfig } from "@shared/schema";
 import { getBifacialConfigFromRoofColor, type RoofColorType } from "@shared/schema";
 import { createLogger } from "../lib/logger";
+import { TEMPERATURE_COEFFICIENT } from '@shared/constants';
 
 const log = createLogger("PotentialAnalysis");
 
@@ -426,7 +427,7 @@ export function buildSystemParams(
 ): SystemModelingParams {
   return {
     inverterLoadRatio: assumptions.inverterLoadRatio || 1.45,
-    temperatureCoefficient: assumptions.temperatureCoefficient || -0.004,
+    temperatureCoefficient: assumptions.temperatureCoefficient || TEMPERATURE_COEFFICIENT,
     wireLossPercent: assumptions.wireLossPercent ?? 0.03,
     skipTempCorrection: yieldStrategy.skipTempCorrection,
     lidLossPercent: assumptions.lidLossPercent ?? 0.01,

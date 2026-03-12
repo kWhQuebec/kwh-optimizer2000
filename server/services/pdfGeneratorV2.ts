@@ -642,7 +642,7 @@ function buildResultsPage(
   isSyntheticData: boolean = false
 ): string {
   const paybackStr = sim.simplePaybackYears > 0 ? sim.simplePaybackYears.toFixed(1) : "N/A";
-  const irr = sim.irr25 > 1 ? sim.irr25.toFixed(1) : (sim.irr25 * 100).toFixed(1);
+  const irr = (sim.irr25 * 100).toFixed(1);
 
   return `
   <div class="page">

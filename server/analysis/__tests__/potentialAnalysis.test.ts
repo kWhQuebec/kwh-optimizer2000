@@ -7,9 +7,9 @@ import {
 } from "../potentialAnalysis";
 
 describe("getTieredSolarCostPerW", () => {
-  it("returns $2.30/W for systems < 100 kW", () => {
-    expect(getTieredSolarCostPerW(50)).toBe(2.3);
-    expect(getTieredSolarCostPerW(99)).toBe(2.3);
+  it('returns $2.50/W for systems < 100 kW (30-100 kW tier)', () => {
+    expect(getTieredSolarCostPerW(50)).toBe(2.5);
+    expect(getTieredSolarCostPerW(99)).toBe(2.5);
   });
 
   it("returns $2.15/W for 100-499 kW systems", () => {
@@ -32,12 +32,12 @@ describe("getTieredSolarCostPerW", () => {
     expect(getTieredSolarCostPerW(10000)).toBe(1.7);
   });
 
-  it("returns $2.30/W for zero size", () => {
-    expect(getTieredSolarCostPerW(0)).toBe(2.3);
+  it('returns $2.70/W for zero size (<30 kW tier)', () => {
+    expect(getTieredSolarCostPerW(0)).toBe(2.7);
   });
 
-  it("returns $2.30/W for negative size", () => {
-    expect(getTieredSolarCostPerW(-10)).toBe(2.3);
+  it('returns $2.70/W for negative size (<30 kW tier)', () => {
+    expect(getTieredSolarCostPerW(-10)).toBe(2.7);
   });
 });
 

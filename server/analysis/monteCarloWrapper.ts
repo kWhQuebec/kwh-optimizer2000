@@ -26,6 +26,7 @@
 
 import type { AnalysisAssumptions } from "@shared/schema";
 import { createLogger } from "../lib/logger";
+import { HQ_TARIFF_ESCALATION_RATE, TARIFF_ESCALATION_RANGE, DEGRADATION_RATE_ANNUAL } from '@shared/constants';
 
 const log = createLogger("MonteCarlo");
 
@@ -51,7 +52,7 @@ export interface MonteCarloConfig {
 export const defaultMonteCarloConfig: MonteCarloConfig = {
   iterations: 500,
   variableRanges: {
-    tariffEscalation: [0.025, 0.035], // 2.5-3.5% per James
+    tariffEscalation: TARIFF_ESCALATION_RANGE, // 2.5-3.5% per James
     discountRate: [0.06, 0.08],       // 6-8% WACC
     solarYield: [1075, 1225],         // kWh/kWp/year direct
     bifacialBoost: [0.10, 0.20],      // 10-20% production boost
@@ -181,8 +182,8 @@ export function createSimplifiedScenarioRunner(
     cashflows.push({ year: 0, netCashflow: effectiveYear0 });
     cashflowValues.push(effectiveYear0);
     
-    const degradationRate = h.degradationRatePercent || 0.004;
-    const escalationRate = h.inflationRate || 0.035;
+    const degradationRate = h.degradationRatePercent || DEGRADATION_RATE_ANNUAL;
+    const escalationRate = h.inflationRate || HQ_TARIFF_ESCALATION_RATE;
     const omEscalation = h.omEscalation || 0.025;
     
     for (let year = 1; year <= 25; year++) {
