@@ -1,30 +1,24 @@
-/**
- * Cleanup Script: Remove old DEMO/TEST sites via raw SQL.
- * Keeps only the v3 seed sites by slug.
- * Usage: npx tsx server/scripts/cleanupDemoSites.ts
- */
 import { db } from "../db";
 import { sql } from "drizzle-orm";
 
-const KEEP_SLUGS = [
-  'demo-marche-beau-soleil-laval',
-  'demo-usine-thermopak-sherbrooke',
-  'demo-portfolio-horizon',
-  'demo-pharmacie-sante-plus',
-  'demo-centre-medical-laval',
-  'demo-entrepot-logistik',
-  'demo-tour-horizon-bureaux',
-  'demo-aliments-fresco',
+// Names of the v3 demo sites we KEEP
+const KEEP_NAMES = [
+  'DÉMO — Marché Beau-Soleil Laval',
+  'DÉMO — Usine Thermopak Sherbrooke',
+  'DÉMO — Portfolio Horizon',
+  'DÉMO — Pharmacie Santé Plus (G)',
+  'DÉMO — Centre Médical Laval (G)',
+  'DÉMO — Entrepôt Logistik (M)',
+  'DÉMO — Tour Horizon Bureaux (G)',
+  'DÉMO — Aliments Fresco (M)',
 ];
 
 async function main() {
   console.log('Scanning for DEMO/TEST sites...\n');
 
-  // Find all demo/test sites
   const allDemo = await db.execute(sql.raw(
-    "SELECT id, name, slug, client_id FROM sites WHERE name ILIKE '%DEMO%' OR name ILIKE '%DÉMO%' OR name ILIKE '%TEST%' OR name ILIKE '%test site%' ORDER BY id"
+    "SELECT id, name, client_id FROM sites WHERE name ILIKE '%DEMO%' OR name ILIKE '%DÉMO%' OR name ILIKE '%TEST%' OR name ILIKE '%test site%' ORDER BY id"
   ));
-
   const rows = allDemo.rows || [];
   console.log('Found ' + rows.length + ' DEMO/TEST sites:\n');
 
@@ -32,62 +26,52 @@ async function main() {
   const toDelete: any[] = [];
 
   for (const r of rows) {
-    if (KEEP_SLUGS.includes(String(r.slug || ''))) {
+    if (KEEP_NAMES.includes(String(r.name || ''))) {
       toKeep.push(r);
-      console.log('  KEEP: ID=' + r.id + ' ' + r.name);
+      console.log('  KEEP: ' + r.id + ' ' + r.name);
     } else {
       toDelete.push(r);
-      console.log('  DELETE: ID=' + r.id + ' ' + r.name);
+      console.log('  DELETE: ' + r.id + ' ' + r.name);
     }
   }
 
   if (toDelete.length === 0) {
-    console.log('\nNothing to delete -- database is clean!');
+    console.log('\nNothing to delete!');
     process.exit(0);
   }
 
-  const ids = toDelete.map((s: any) => s.id);
-  const idList = ids.join(',');
+  const ids = toDelete.map((s: any) => "'" + s.id + "'").join(',');
+  console.log('\nDeleting ' + toDelete.length + ' old sites...\n');
 
-  console.log('\nDeleting ' + ids.length + ' old sites...\n');
-
-  // Cascade delete
-  await db.execute(sql.raw('DELETE FROM simulation_runs WHERE site_id IN (' + idList + ')'));
-  console.log('  Deleted simulation_runs');
-
-  await db.execute(sql.raw('DELETE FROM opportunities WHERE site_id IN (' + idList + ')'));
-  console.log('  Deleted opportunities');
-
-  await db.execute(sql.raw('DELETE FROM portfolio_sites WHERE site_id IN (' + idList + ')'));
-  console.log('  Deleted portfolio_sites');
-
-  await db.execute(sql.raw('DELETE FROM sites WHERE id IN (' + idList + ')'));
-  console.log('  Deleted ' + ids.length + ' sites');
+  await db.execute(sql.raw('DELETE FROM simulation_runs WHERE site_id IN (' + ids + ')'));
+  console.log('  simulation_runs deleted');
+  await db.execute(sql.raw('DELETE FROM opportunities WHERE site_id IN (' + ids + ')'));
+  console.log('  opportunities deleted');
+  await db.execute(sql.raw('DELETE FROM portfolio_sites WHERE site_id IN (' + ids + ')'));
+  console.log('  portfolio_sites deleted');
+  await db.execute(sql.raw('DELETE FROM sites WHERE id IN (' + ids + ')'));
+  console.log('  ' + toDelete.length + ' sites deleted');
 
   // Orphan clients
   const clientIds = [...new Set(toDelete.map((s: any) => s.client_id).filter(Boolean))];
   const keepClientIds = new Set(toKeep.map((s: any) => s.client_id).filter(Boolean));
   for (const cid of clientIds) {
     if (keepClientIds.has(cid)) continue;
-    const check = await db.execute(sql.raw('SELECT count(*) as cnt FROM sites WHERE client_id = ' + cid));
+    const check = await db.execute(sql.raw("SELECT count(*) as cnt FROM sites WHERE client_id = '" + cid + "'"));
     if (Number((check.rows[0] as any)?.cnt) === 0) {
-      await db.execute(sql.raw('DELETE FROM clients WHERE id = ' + cid));
-      console.log('  Deleted orphan client ID=' + cid);
+      await db.execute(sql.raw("DELETE FROM clients WHERE id = '" + cid + "'"));
+      console.log('  Orphan client ' + cid + ' deleted');
     }
   }
 
   // Orphan portfolios
   await db.execute(sql.raw("DELETE FROM portfolios WHERE id NOT IN (SELECT DISTINCT portfolio_id FROM portfolio_sites) AND (name ILIKE '%DEMO%' OR name ILIKE '%DÉMO%' OR name ILIKE '%TEST%')"));
-  console.log('  Cleaned orphan portfolios');
+  console.log('  Orphan portfolios cleaned');
 
-  // Final state
-  const final = await db.execute(sql.raw("SELECT id, name FROM sites WHERE name ILIKE '%DEMO%' OR name ILIKE '%DÉMO%' OR name ILIKE '%TEST%' ORDER BY id"));
+  const final = await db.execute(sql.raw("SELECT id, name FROM sites WHERE name ILIKE '%DEMO%' OR name ILIKE '%DÉMO%' OR name ILIKE '%TEST%' ORDER BY name"));
   console.log('\nRemaining DEMO/TEST sites:');
-  for (const s of (final.rows || [])) {
-    console.log('  ID=' + (s as any).id + ' ' + (s as any).name);
-  }
+  for (const s of (final.rows || [])) { console.log('  ' + (s as any).name); }
   console.log('\nDone!');
   process.exit(0);
 }
-
-main().catch((err) => { console.error('Error:', err); process.exit(1); });
+main().catch((e) => { console.error(e); process.exit(1); });
