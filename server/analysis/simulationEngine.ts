@@ -166,25 +166,70 @@ export function runHourlySimulation(
     };
   }
 
-  const dailyPeakHours = new Map<string, { index: number; peak: number; hour: number }>();
+  // ── Pre-pass: calculate optimal daily target levels ──
+  // For each day, find the target level T such that the total energy needed
+  // to shave all peaks above T equals the available battery SOC.
+  // This distributes battery energy optimally across all high peaks in a day,
+  // instead of greedily dumping energy into chronologically-first hours.
+  //
+  // Algorithm: binary search on T between threshold and dayMaxPeak.
+  // At T, energy needed = sum(max(0, min(peak_h - T, battPowerKW))) for hours where peak_h > T
+  // Find T where energy needed = available SOC (estimated as 90% of battEnergyKWh)
 
-  for (let i = 0; i < hourlyData.length; i++) {
-    const { hour, month, peak } = hourlyData[i];
-    const dayIndex = Math.floor(i / 24);
-    const dayKey = `${month}-${dayIndex}`;
+  const dailyTargetLevels = new Map<string, number>();
 
-    const existing = dailyPeakHours.get(dayKey);
-    if (!existing || peak > existing.peak) {
-      dailyPeakHours.set(dayKey, { index: i, peak, hour });
+  if (battPowerKW > 0 && battEnergyKWh > 0) {
+    // Group hours by day
+    const dailyHours = new Map<string, Array<{ index: number; peak: number; hour: number }>>();
+    for (let i = 0; i < hourlyData.length; i++) {
+      const { hour, month, peak } = hourlyData[i];
+      const dayIndex = Math.floor(i / 24);
+      const dayKey = `${month}-${dayIndex}`;
+      const arr = dailyHours.get(dayKey) || [];
+      arr.push({ index: i, peak, hour });
+      dailyHours.set(dayKey, arr);
+    }
+
+    for (const [dayKey, hours] of dailyHours) {
+      const peaksAbove = hours.filter(h => h.peak > threshold).sort((a, b) => b.peak - a.peak);
+      if (peaksAbove.length === 0) {
+        dailyTargetLevels.set(dayKey, threshold);
+        continue;
+      }
+
+      const dayMaxPeak = peaksAbove[0].peak;
+      // Available SOC for this day — assume 90% charged from overnight + any solar
+      const availableSOC = battEnergyKWh * 0.9;
+
+      // Binary search for optimal target level
+      let lo = threshold;
+      let hi = dayMaxPeak;
+
+      // Check if we have enough energy to bring everything to threshold
+      const energyForThreshold = peaksAbove.reduce(
+        (sum, h) => sum + Math.min(h.peak - threshold, battPowerKW), 0
+      );
+
+      if (energyForThreshold <= availableSOC) {
+        // Enough energy to shave everything to threshold
+        dailyTargetLevels.set(dayKey, threshold);
+      } else {
+        // Binary search for the target level
+        for (let iter = 0; iter < 30; iter++) {
+          const mid = (lo + hi) / 2;
+          const energyNeeded = peaksAbove.reduce(
+            (sum, h) => sum + Math.max(0, Math.min(h.peak - mid, battPowerKW)), 0
+          );
+          if (energyNeeded > availableSOC) {
+            lo = mid; // Need to raise target (less shaving)
+          } else {
+            hi = mid; // Can lower target (more shaving)
+          }
+        }
+        dailyTargetLevels.set(dayKey, Math.ceil(lo)); // Round up to be conservative
+      }
     }
   }
-
-  const priorityPeakIndices = new Set<number>();
-  dailyPeakHours.forEach((dayPeak) => {
-    if (dayPeak.peak > threshold) {
-      priorityPeakIndices.add(dayPeak.index);
-    }
-  });
 
   for (let i = 0; i < hourlyData.length; i++) {
     const { hour, month, consumption, peak } = hourlyData[i];
@@ -235,32 +280,26 @@ export function runHourlySimulation(
     let isGridCharging = false;
 
     if (battPowerKW > 0 && battEnergyKWh > 0) {
-      const isPriorityPeak = priorityPeakIndices.has(i);
+      const dayIndex = Math.floor(i / 24);
+      const dayKey = `${month}-${dayIndex}`;
+      const targetLevel = dailyTargetLevels.get(dayKey) ?? threshold;
 
-      let higherPeakComing = false;
-      if (!isPriorityPeak && peak > threshold) {
-        for (let lookahead = 1; lookahead <= 6 && i + lookahead < hourlyData.length; lookahead++) {
-          if (hourlyData[i + lookahead].peak > peak) {
-            higherPeakComing = true;
-            break;
-          }
-        }
-      }
-
-      const shouldDischarge = peak > threshold && soc > 0 && (isPriorityPeak || !higherPeakComing);
-
-      if (shouldDischarge) {
-        const maxDischarge = isPriorityPeak
-          ? Math.min(peak - threshold, battPowerKW, soc)
-          : Math.min(peak - threshold, battPowerKW, soc * 0.5);
+      if (peak > targetLevel && soc > 0) {
+        // Discharge to bring peak down to daily target level
+        // The target level is pre-calculated to optimally distribute battery energy
+        // across ALL high-peak hours in the day, not just the chronologically first ones.
+        const maxDischarge = Math.min(peak - targetLevel, battPowerKW, soc);
         battAction = -maxDischarge;
       } else if (net < 0 && soc < battEnergyKWh) {
         battAction = Math.min(Math.abs(net), battPowerKW, battEnergyKWh - soc);
-      } else if (hour >= 22 && soc < battEnergyKWh * 0.5) {
-        // Grid charging: only when SOC below 50% (solar should handle most charging)
-        // This prevents excessive grid charging costs that eat demand savings
-        // Cap grid charge to 50% SOC — enough for morning peak, solar fills the rest
-        const targetSoc = battEnergyKWh * 0.5;
+      } else if (hour >= 22 && soc < battEnergyKWh * 0.9) {
+        // Grid charging overnight: charge to 90% SOC to ensure enough energy for
+        // multi-hour peak shaving days (e.g. 11 hours above threshold in summer).
+        // The old 50% cap starved the battery — day 174 had soc=67 at the critical hour
+        // with reserveForPriority=67, leaving availableNow=0 (the 3.9 kW bug, part B).
+        // Cost: ~$6/night extra grid charging. Benefit: ~$175/month demand reduction.
+        // Grid charging cost is already tracked in totalGridChargingKWh for financial model.
+        const targetSoc = battEnergyKWh * 0.9;
         battAction = Math.min(battPowerKW, targetSoc - soc);
         if (battAction > 0) {
           isGridCharging = true;
