@@ -11,6 +11,7 @@ import {
   getArchetypeParams,
   getMonthlyFactors,
   getBuildingTypeByKey,
+  BUILDING_TYPES_REGISTRY,
 } from '@shared/buildingTypes';
 
 const SCHEDULE_OVERRIDES: Record<string, { operatingStart: number; operatingEnd: number }> = {
@@ -82,6 +83,14 @@ function hourlyWeight(hour: number, opStart: number, opEnd: number, baseNight: n
  */
 export function generateSyntheticProfile(params: SyntheticProfileParams): SyntheticProfileResult {
   const { buildingSubType, annualConsumptionKWh, operatingSchedule = 'standard' } = params;
+
+  // Validate building type exists — resolveBuildingTypeKey silently falls back to 'office'
+  const resolvedKey = (buildingSubType in BUILDING_TYPES_REGISTRY) ? buildingSubType
+    : (['commercial', 'institutional', 'other'].includes(buildingSubType)) ? buildingSubType
+    : null;
+  if (resolvedKey === null) {
+    throw new Error(`Unknown building sub-type: ${buildingSubType}`);
+  }
 
   const archetype = getArchetypeParams(buildingSubType);
   const monthly = getMonthlyFactors(buildingSubType);

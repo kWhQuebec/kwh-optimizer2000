@@ -425,27 +425,108 @@ export function calculateNPV(
 }
 
 /**
- * Calculate IRR using Newton-Raphson method.
- * Inline implementation to avoid circular dependency with simulationEngine.
+ * Bisection fallback for IRR when Newton-Raphson fails to converge.
  */
-export function calculateIRR(cashflows: number[], guess: number = 0.1, maxIter: number = 100, tolerance: number = 1e-7): number {
+function bisectionIRR(cashflows: number[]): number {
+  let low = -0.99;
+  let high = 2.0;
+  const maxIterations = 100;
+  const tolerance = 0.0001;
+
+  const npvAtRate = (rate: number): number => {
+    let npv = 0;
+    for (let t = 0; t < cashflows.length; t++) {
+      npv += cashflows[t] / Math.pow(1 + rate, t);
+    }
+    return npv;
+  };
+
+  let npvLow = npvAtRate(low);
+  let npvHigh = npvAtRate(high);
+
+  if (npvLow * npvHigh > 0) {
+    for (let rate = low; rate <= high; rate += 0.1) {
+      const npv = npvAtRate(rate);
+      if (npvLow * npv < 0) {
+        high = rate;
+        npvHigh = npv;
+        break;
+      }
+      if (npv * npvHigh < 0) {
+        low = rate;
+        npvLow = npv;
+        break;
+      }
+    }
+    if (npvLow * npvHigh > 0) {
+      return 0;
+    }
+  }
+
+  for (let i = 0; i < maxIterations; i++) {
+    const mid = (low + high) / 2;
+    const npvMid = npvAtRate(mid);
+    if (Math.abs(npvMid) < tolerance || (high - low) / 2 < tolerance) {
+      return Math.max(0, mid);
+    }
+    if (npvLow * npvMid < 0) {
+      high = mid;
+      npvHigh = npvMid;
+    } else {
+      low = mid;
+      npvLow = npvMid;
+    }
+  }
+  return Math.max(0, (low + high) / 2);
+}
+
+/**
+ * Calculate IRR using Newton-Raphson method with safeguards.
+ * Includes sign checks, clamping, convergence caps, and bisection fallback.
+ */
+export function calculateIRR(cashflows: number[], guess: number = 0.1, maxIter: number = 200, tolerance: number = 0.0001): number {
+  if (cashflows.length < 2) return 0;
+
+  // Sign check: need both negative and positive cashflows for meaningful IRR
+  let hasNegative = false;
+  let hasPositive = false;
+  for (const cf of cashflows) {
+    if (cf < 0) hasNegative = true;
+    if (cf > 0) hasPositive = true;
+  }
+  if (!hasNegative || !hasPositive) {
+    return hasPositive ? 1.0 : 0;
+  }
+
   let rate = guess;
   for (let i = 0; i < maxIter; i++) {
     let npv = 0;
     let dnpv = 0;
     for (let t = 0; t < cashflows.length; t++) {
       const denom = Math.pow(1 + rate, t);
+      if (denom === 0 || !isFinite(denom)) continue;
       npv += cashflows[t] / denom;
       if (t > 0) {
         dnpv -= (t * cashflows[t]) / Math.pow(1 + rate, t + 1);
       }
     }
-    if (Math.abs(dnpv) < 1e-12) break;
+    if (Math.abs(dnpv) < 1e-10) {
+      return bisectionIRR(cashflows);
+    }
     const newRate = rate - npv / dnpv;
-    if (Math.abs(newRate - rate) < tolerance) return newRate;
-    rate = newRate;
+    if (!isFinite(newRate)) {
+      return bisectionIRR(cashflows);
+    }
+    // Clamp to prevent divergence
+    const clampedRate = Math.max(-0.99, Math.min(5, newRate));
+    if (Math.abs(clampedRate - rate) < tolerance) {
+      // Cap final result to reasonable range [0, 1] (0% to 100%)
+      return Math.max(0, Math.min(1, clampedRate));
+    }
+    rate = clampedRate;
   }
-  return rate;
+  // Newton-Raphson didn't converge — fall back to bisection
+  return bisectionIRR(cashflows);
 }
 
 /**

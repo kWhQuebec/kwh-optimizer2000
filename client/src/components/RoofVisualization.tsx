@@ -655,6 +655,7 @@ function calculateAntiShadingRowSpacing(panelHeightM: number, tiltDeg: number, s
 }
 
 function formatNumber(num: number, language: string): string {
+  if (num === null || num === undefined || isNaN(num)) return "0";
   return num.toLocaleString(language === "fr" ? "fr-CA" : "en-CA");
 }
 

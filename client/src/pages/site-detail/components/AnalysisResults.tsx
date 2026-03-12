@@ -180,8 +180,11 @@ export function AnalysisResults({
 
   const usableRoofSqM = (assumptions.roofAreaSqFt / 10.764) * assumptions.roofUtilizationRatio;
   const maxPVFromRoof = (usableRoofSqM / 3.71) * 0.660;
-  const effectiveMaxPV = roofGeometryCapacityKW !== null ? roofGeometryCapacityKW : maxPVFromRoof;
-  const isRoofLimited = (simulation.pvSizeKW || 0) >= effectiveMaxPV * 0.95;
+  const computedMaxPV = roofGeometryCapacityKW !== null ? roofGeometryCapacityKW : maxPVFromRoof;
+  // Fallback: if computed roof capacity is 0/NaN but we have a PV system size, use system size as floor
+  const systemPvKW = simulation.pvSizeKW || 0;
+  const effectiveMaxPV = (computedMaxPV > 0 && !isNaN(computedMaxPV)) ? computedMaxPV : Math.max(systemPvKW, computedMaxPV || 0);
+  const isRoofLimited = systemPvKW >= effectiveMaxPV * 0.95;
 
   const SectionDivider = ({ title, icon: Icon }: { title: string; icon?: any }) => (
     <div className="flex items-center gap-3 py-2">
