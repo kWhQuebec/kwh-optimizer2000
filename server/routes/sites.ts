@@ -1663,8 +1663,13 @@ router.get("/:siteId/price-breakdown", authMiddleware, asyncHandler(async (req: 
     : null;
 
   // Compute fallback capacity from polygon area (KB Racking formula) — kbKwDc (Google Solar) is for yield only
-    const _polygons = await storage.getSolarPolygons(site.id);
-    const _polygonArea = _polygons.reduce((sum, p) => sum + ((p as any).areaSqM || 0), 0);
+    const _allPolygons = await storage.getRoofPolygons(site.id);
+    const _solarPolygons = _allPolygons.filter((p) => {
+      if ((p as any).color === "#f97316") return false;
+      const label = ((p as any).label || "").toLowerCase();
+      return !label.includes("constraint") && !label.includes("contrainte") && !label.includes("hvac") && !label.includes("obstacle");
+    });
+    const _polygonArea = _solarPolygons.reduce((sum, p) => sum + ((p as any).areaSqM || 0), 0);
     const _effectiveArea = _polygonArea > 0 ? _polygonArea : (site.roofAreaSqM || site.roofAreaAutoSqM || 0);
     let capacityKW = _effectiveArea > 0 ? (_effectiveArea * 0.85 / 3.71) * 0.660 : 100;
 
@@ -2380,8 +2385,13 @@ router.post("/:siteId/budgets/initialize", authMiddleware, requireStaff, asyncHa
     : null;
 
   // Compute fallback capacity from polygon area (KB Racking formula) — kbKwDc (Google Solar) is for yield only
-    const _polygons = await storage.getSolarPolygons(site.id);
-    const _polygonArea = _polygons.reduce((sum, p) => sum + ((p as any).areaSqM || 0), 0);
+    const _allPolygons = await storage.getRoofPolygons(site.id);
+    const _solarPolygons = _allPolygons.filter((p) => {
+      if ((p as any).color === "#f97316") return false;
+      const label = ((p as any).label || "").toLowerCase();
+      return !label.includes("constraint") && !label.includes("contrainte") && !label.includes("hvac") && !label.includes("obstacle");
+    });
+    const _polygonArea = _solarPolygons.reduce((sum, p) => sum + ((p as any).areaSqM || 0), 0);
     const _effectiveArea = _polygonArea > 0 ? _polygonArea : (site.roofAreaSqM || site.roofAreaAutoSqM || 0);
     let capacityKW = _effectiveArea > 0 ? (_effectiveArea * 0.85 / 3.71) * 0.660 : 100;
   if (latestSim?.pvSizeKW) capacityKW = latestSim.pvSizeKW;
