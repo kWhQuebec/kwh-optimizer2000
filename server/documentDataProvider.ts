@@ -34,6 +34,7 @@ export interface DocumentSimulationData {
   battEnergyKWh: number;
   battPowerKW: number;
   demandShavingSetpointKW: number;
+  peakAfterKW: number; // Actual peak after battery dispatch (not the theoretical setpoint floor)
   annualConsumptionKWh: number;
   peakDemandKW: number;
   annualSavings: number;
@@ -112,12 +113,13 @@ export function computeHiddenInsights(sim: DocumentSimulationData): HiddenInsigh
   const dataConfidence = !isSynthetic && hasHourlyData ? 'hq_actual' as const : 'satellite' as const;
   const dataConfidencePercent = !isSynthetic && hasHourlyData ? 95 : 75;
 
-  // Peak demand reduction
-  const peakDemandReductionKw = sim.demandShavingSetpointKW > 0 && sim.peakDemandKW > 0
-    ? Math.max(0, sim.peakDemandKW - sim.demandShavingSetpointKW)
+  // Peak demand reduction: use actual peak after dispatch, not theoretical setpoint floor
+  const peakAfter = (sim as any).peakAfterKW > 0 ? (sim as any).peakAfterKW : sim.demandShavingSetpointKW;
+  const peakDemandReductionKw = peakAfter > 0 && sim.peakDemandKW > 0
+    ? Math.max(0, sim.peakDemandKW - peakAfter)
     : 0;
-  // ~$15/kW/month demand charge (Quebec C&I average)
-  const peakDemandSavingsAnnual = peakDemandReductionKw * 15 * 12;
+  // HQ Tariff M demand charge: $17.573/kW/month
+  const peakDemandSavingsAnnual = peakDemandReductionKw * 17.573 * 12;
 
   // Self-consumption vs export
   const selfConsumptionPercent = sim.selfSufficiencyPercent || 0;
@@ -430,6 +432,10 @@ export function applyOptimalScenario(
     savingsYear1: optimal.annualSavings,
     totalProductionKWh: optimal.totalProductionKWh,
     co2AvoidedTonnesPerYear: optimal.co2AvoidedTonnesPerYear,
+    // Fallback peakAfterKW from DB annualDemandReductionKW (overridden by scenarioBreakdown if available)
+    peakAfterKW: simulation.annualDemandReductionKW
+      ? (simulation.peakDemandKW ?? 0) - (simulation.annualDemandReductionKW ?? 0)
+      : (simulation.peakDemandKW ?? 0),
   };
 
   if (scenarioBreakdown) {
@@ -445,6 +451,11 @@ export function applyOptimalScenario(
     merged.lcoe = scenarioBreakdown.lcoe ?? simulation.lcoe;
     merged.annualCostAfter = Math.max(0, (simulation.annualCostBefore ?? 0) - (optimal.annualSavings ?? 0));
     merged.annualEnergySavingsKWh = scenarioBreakdown.annualEnergySavingsKWh ?? simulation.annualEnergySavingsKWh;
+
+    // Real peak demand after battery dispatch (not the theoretical setpoint floor)
+    if (scenarioBreakdown.peakDemandAfterKW != null) {
+      (merged as any).peakAfterKW = scenarioBreakdown.peakDemandAfterKW;
+    }
 
     if (scenarioBreakdown.hourlyProfileSummary && scenarioBreakdown.hourlyProfileSummary.length > 0) {
       const summaryAsHourly: HourlyProfileEntry[] = scenarioBreakdown.hourlyProfileSummary.map((s: any) => ({

@@ -424,6 +424,13 @@ export async function generatePresentationPPTX(
       { label: snapLabels.estimatedProduction.label, value: formatSmartEnergy(totalProductionKWhSnapshot || 0, lang) },
       { label: t("Autosuffisance solaire", "Solar self-sufficiency"), value: `${(simulation.selfSufficiencyPercent || 0).toFixed(0)}%` },
     ];
+    // Add demand reduction row when BESS is present
+    if (simulation.battEnergyKWh > 0 && hiddenInsights.peakDemandReductionKw > 0) {
+      snapItems.push({
+        label: t("Réduction de pointe", "Peak demand reduction"),
+        value: `${simulation.peakDemandKW?.toFixed(0) || '?'} → ${Math.round(simulation.peakDemandKW - hiddenInsights.peakDemandReductionKw)} kW (−${hiddenInsights.peakDemandReductionKw} kW)`
+      });
+    }
 
     slideHtmls.push(wrapSlide(`
       <h2>${t("APERÇU DU PROJET", "PROJECT SNAPSHOT")}</h2>
@@ -995,7 +1002,10 @@ export async function generatePresentationPPTX(
       { icon: "&#9728;", title: t("Autoconsommation", "Self-consumption"), desc: t("Production → charges", "Production → loads") },
     ];
     if (hasBattery) {
-      modes.push({ icon: "&#128267;", title: t("Écrêtage", "Peak Shaving"), desc: t("Batterie réduit la pointe", "Battery reduces peak") });
+      const peakRedKw = hiddenInsights.peakDemandReductionKw;
+      modes.push({ icon: "&#128267;", title: t("Écrêtage", "Peak Shaving"), desc: peakRedKw > 0
+        ? t(`−${peakRedKw} kW de pointe facturée`, `−${peakRedKw} kW billed peak`)
+        : t("Batterie réduit la pointe", "Battery reduces peak") });
     }
     modes.push({ icon: "&#128228;", title: t("Injection", "Export"), desc: t("Surplus → HQ", "Surplus → HQ grid") });
 

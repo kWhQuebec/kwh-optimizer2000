@@ -997,11 +997,18 @@ function buildStoragePage(
   t: (fr: string, en: string) => string,
   pageNum: number
 ): string {
-  const peakReduction = sim.peakDemandKW > 0 && sim.demandShavingSetpointKW > 0
-    ? Math.round(((sim.peakDemandKW - sim.demandShavingSetpointKW) / sim.peakDemandKW) * 100)
+  // Use actual peak after dispatch (not theoretical setpoint floor)
+  const peakAfter = sim.peakAfterKW > 0 ? sim.peakAfterKW : sim.peakDemandKW;
+  const demandReductionKW = Math.max(0, sim.peakDemandKW - peakAfter);
+  const peakReduction = sim.peakDemandKW > 0 && demandReductionKW > 0
+    ? Math.round((demandReductionKW / sim.peakDemandKW) * 100)
     : 0;
-  const peakAfter = sim.demandShavingSetpointKW > 0 ? sim.demandShavingSetpointKW : sim.peakDemandKW;
-  const battSavings = sim.battEnergyKWh > 0 ? Math.round(sim.annualSavings * 0.15) : 0;
+  // Real demand savings = demand reduction × tariff power × 12 months
+  // Use HQ Tariff M rate ($17.573/kW/month) or derive from annualCostBefore
+  const tariffPowerPerMonth = sim.peakDemandKW > 0 && sim.annualCostBefore > 0
+    ? (sim.annualCostBefore * 0.45) / (sim.peakDemandKW * 12)  // ~45% of bill is demand charges
+    : 17.573;
+  const battSavings = sim.battEnergyKWh > 0 ? Math.round(demandReductionKW * tariffPowerPerMonth * 12) : 0;
 
   return `
   <div class="page">
