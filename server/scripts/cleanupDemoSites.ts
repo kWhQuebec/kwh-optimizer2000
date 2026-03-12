@@ -76,7 +76,7 @@ async function main() {
 
   // 5. Delete orphan clients
   for (const cid of safeToDeleteClientIds) {
-    const remaining = await db.select({ count: sql<number>\`count(*)\` }).from(sites).where(eq(sites.clientId, cid));
+    const remaining = await db.select({ count: sql<number>`count(*)` }).from(sites).where(eq(sites.clientId, cid));
     if (Number(remaining[0]?.count) === 0) {
       await db.delete(clients).where(eq(clients.id, cid));
       console.log("  Deleted orphan client ID=" + cid);
@@ -84,11 +84,11 @@ async function main() {
   }
 
   // 6. Delete orphan portfolios
-  await db.execute(sql\`
+  await db.execute(sql`
     DELETE FROM portfolios p
     WHERE NOT EXISTS (SELECT 1 FROM portfolio_sites ps WHERE ps.portfolio_id = p.id)
     AND (p.name ILIKE '%DEMO%' OR p.name ILIKE '%DÉMO%' OR p.name ILIKE '%TEST%')
-  \`);
+  `);
   console.log("  Cleaned orphan portfolios");
 
   console.log("\nCleanup complete! Kept " + toKeep.length + " v3 sites, deleted " + toDelete.length + " old ones.");
