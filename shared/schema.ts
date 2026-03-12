@@ -2445,8 +2445,8 @@ export interface AnalysisAssumptions {
   
   // CAPEX costs
   solarCostPerW: number;     // $/W - default 2.25
-  batteryCapacityCost: number; // $/kWh - default 450
-  batteryPowerCost: number;   // $/kW - default 800
+  batteryCapacityCost: number; // $/kWh - default 400
+  batteryPowerCost: number;   // $/kW - default 300
   
   // O&M
   omSolarPercent: number;    // % of CAPEX - default 0.01
