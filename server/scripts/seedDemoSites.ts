@@ -259,6 +259,7 @@ async function seedDemoSites() {
     quickAnalysisNetCapex: Math.round(S1.capexNet),
     quickAnalysisHqIncentive: S1.hqIncentive,
     quickAnalysisMonthlyBill: Math.round(S1_ANNUAL_COST / 12),
+    quickAnalysisCompletedAt: new Date(),
   }).returning();
 
   const S1_SURPLUS = Math.round(S1_EXPORT * SURPLUS_RATE);
@@ -374,6 +375,7 @@ async function seedDemoSites() {
     quickAnalysisNetCapex: Math.round(S2.capexNet),
     quickAnalysisHqIncentive: S2.hqIncentive,
     quickAnalysisMonthlyBill: Math.round(S2_ANNUAL_COST / 12),
+    quickAnalysisCompletedAt: new Date(),
   }).returning();
 
   const S2_SURPLUS = Math.round(S2_EXPORT * SURPLUS_RATE);
@@ -518,6 +520,7 @@ async function seedDemoSites() {
       quickAnalysisGrossCapex: cascade.capexPV,
       quickAnalysisNetCapex: Math.round(cascade.capexNet),
       quickAnalysisMonthlyBill: Math.round(annualCost / 12),
+      quickAnalysisCompletedAt: new Date(),
     }).returning();
 
     portfolioSiteIds.push(pSite.id);

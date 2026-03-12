@@ -1085,9 +1085,20 @@ router.post("/:siteId/quick-potential", authMiddleware, requireStaff, asyncHandl
   const effectiveUtilizationRatio = baseUtilizationRatio * (1 - constraintFactor);
   const usableRoofAreaSqM = totalRoofAreaSqM * effectiveUtilizationRatio;
 
-  // Calculate system sizing
-  const numPanels = Math.floor(usableRoofAreaSqM / panelAreaSqM);
-  const maxCapacityKW = (numPanels * panelPowerW) / 1000;
+  // Calculate system sizing (constrained by roof area AND consumption)
+  const numPanelsFromRoof = Math.floor(usableRoofAreaSqM / panelAreaSqM);
+  let maxCapacityKW = (numPanelsFromRoof * panelPowerW) / 1000;
+
+  // Cap system size by annual consumption — don't oversize beyond what the building uses
+  // Use a conservative yield estimate (1150 kWh/kWp) for consumption cap
+  const siteAnnualKwh = site.annualConsumptionKwh || (site as any).annualConsumptionKWh || 0;
+  if (siteAnnualKwh > 0) {
+    const maxCapacityFromConsumption = siteAnnualKwh / 1150; // ~100% offset target
+    if (maxCapacityKW > maxCapacityFromConsumption * 1.1) { // Allow 10% oversize margin
+      maxCapacityKW = Math.round(maxCapacityFromConsumption * 10) / 10;
+    }
+  }
+  const numPanels = Math.ceil((maxCapacityKW * 1000) / panelPowerW);
 
   // Use resolveYieldStrategy() as SINGLE source of truth for yield
   // This ensures consistency with detailed analysis (same bifacial boost, Google data, etc.)
@@ -1157,13 +1168,60 @@ router.post("/:siteId/quick-potential", authMiddleware, requireStaff, asyncHandl
 
   const netCapex = grossCapex - hqIncentive - federalItc;
 
-  // Estimate annual savings (using typical HQ M tariff rate of ~$0.06/kWh)
-  const hqEnergyRate = 0.06;
-  const estimatedAnnualSavings = annualProductionKWh * hqEnergyRate;
+  // Estimate annual savings using REAL tariff rates from site data
+  const { getSimplifiedRates, detectTariff: detectTariffFn } = await import("../hqTariffs");
+  const { HQ_TARIFF_ESCALATION_INITIAL, HQ_TARIFF_ESCALATION_RATE, HQ_TARIFF_ESCALATION_TRANSITION_YEAR, DEGRADATION_RATE_ANNUAL } = await import("@shared/constants");
 
-  // Simple payback calculation
+  // Extract tariff code from hqTariffDetail (e.g., "G - Général" → "G", "M - Moyenne puissance" → "M")
+  let tariffCode = "M"; // Default fallback
+  if (site.hqTariffDetail) {
+    const match = String(site.hqTariffDetail).match(/^([A-Z][A-Z0-9]*)/i);
+    if (match) tariffCode = match[1].toUpperCase();
+  } else if (site.maxDemandKw) {
+    // Auto-detect from peak demand if no tariff set
+    const detected = detectTariffFn(site.maxDemandKw, siteAnnualKwh || 0, true);
+    tariffCode = detected.detectedTariff;
+  }
+
+  const rates = getSimplifiedRates(tariffCode);
+  const energyRate = rates.energyRate; // $/kWh (tier 1)
+
+  // Energy savings: production × energy rate
+  const energySavingsYear1 = annualProductionKWh * energyRate;
+
+  // Demand savings for Tarif M+ (demand charge reduction from solar peak shaving)
+  // Conservative: assume solar reduces peak by ~30% of system size during HQ billing peak
+  let demandSavingsYear1 = 0;
+  if (rates.demandRate > 0 && maxCapacityKW > 0) {
+    const estimatedPeakReductionKW = maxCapacityKW * 0.30; // Conservative 30%
+    demandSavingsYear1 = estimatedPeakReductionKW * rates.demandRate * 12;
+  }
+
+  const estimatedAnnualSavings = energySavingsYear1 + demandSavingsYear1;
+
+  // Escalation-adjusted payback: accounts for HQ tariff increases + panel degradation
+  // Year 1-3: 4.8%/yr escalation. Year 4+: 3.5%/yr. Degradation: 0.4%/yr.
+  let cumulativeSavings = 0;
+  let escalationPaybackYears = 999;
+  for (let year = 1; year <= 25; year++) {
+    const escalationFactor = year <= HQ_TARIFF_ESCALATION_TRANSITION_YEAR
+      ? Math.pow(1 + HQ_TARIFF_ESCALATION_INITIAL, year - 1)
+      : Math.pow(1 + HQ_TARIFF_ESCALATION_INITIAL, HQ_TARIFF_ESCALATION_TRANSITION_YEAR) *
+        Math.pow(1 + HQ_TARIFF_ESCALATION_RATE, year - 1 - HQ_TARIFF_ESCALATION_TRANSITION_YEAR);
+    const degradationFactor = Math.pow(1 - DEGRADATION_RATE_ANNUAL, year - 1);
+    const yearSavings = estimatedAnnualSavings * escalationFactor * degradationFactor;
+    cumulativeSavings += yearSavings;
+    if (cumulativeSavings >= netCapex && escalationPaybackYears === 999) {
+      // Interpolate within the year for precision
+      const prevCumulative = cumulativeSavings - yearSavings;
+      const remainingToRecover = netCapex - prevCumulative;
+      escalationPaybackYears = (year - 1) + (remainingToRecover / yearSavings);
+      break;
+    }
+  }
+
   const simplePaybackYears = estimatedAnnualSavings > 0
-    ? netCapex / estimatedAnnualSavings
+    ? Math.round(escalationPaybackYears * 10) / 10
     : 999;
 
   // Save quick analysis results to site record
@@ -1209,7 +1267,13 @@ router.post("/:siteId/quick-potential", authMiddleware, requireStaff, asyncHandl
       hqIncentive: Math.round(hqIncentive),
       federalItc: Math.round(federalItc),
       estimatedAnnualSavings: Math.round(estimatedAnnualSavings),
+      energySavingsYear1: Math.round(energySavingsYear1),
+      demandSavingsYear1: Math.round(demandSavingsYear1),
       simplePaybackYears: Math.round(simplePaybackYears * 10) / 10,
+      tariffCode,
+      energyRate: Math.round(energyRate * 100000) / 100000, // $/kWh with precision
+      demandRate: rates.demandRate,
+      escalationApplied: true,
     },
     yieldStrategy,
   });
