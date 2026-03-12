@@ -292,15 +292,17 @@ export function runHourlySimulation(
         battAction = -maxDischarge;
       } else if (net < 0 && soc < battEnergyKWh) {
         battAction = Math.min(Math.abs(net), battPowerKW, battEnergyKWh - soc);
-      } else if (hour >= 22 && soc < battEnergyKWh * 0.9) {
-        // Grid charging overnight: charge to 90% SOC to ensure enough energy for
-        // multi-hour peak shaving days (e.g. 11 hours above threshold in summer).
-        // The old 50% cap starved the battery — day 174 had soc=67 at the critical hour
-        // with reserveForPriority=67, leaving availableNow=0 (the 3.9 kW bug, part B).
-        // Cost: ~$6/night extra grid charging. Benefit: ~$175/month demand reduction.
-        // Grid charging cost is already tracked in totalGridChargingKWh for financial model.
+      } else if ((hour >= 22 || hour < 6) && soc < battEnergyKWh * 0.9) {
+        // Grid charging overnight (22h-5h): charge to 90% SOC for next day's peak shaving.
+        // CRITICAL: Cap charging rate so peak + charge <= threshold.
+        // Without this cap, a 100kW battery charging during 80kW nighttime consumption
+        // creates a 180kW billing peak — HIGHER than the peaks we're trying to shave.
+        // HQ Tariff M bills on the highest 15-min interval INCLUDING nighttime.
+        // Extended window (22h-5h) compensates for the lower charge rate: at avg nighttime
+        // ~60kW with threshold 129kW, we charge at ~69kW × 8 hours = 552kWh capacity.
         const targetSoc = battEnergyKWh * 0.9;
-        battAction = Math.min(battPowerKW, targetSoc - soc);
+        const maxChargeWithoutNewPeak = Math.max(0, threshold - peak);
+        battAction = Math.min(battPowerKW, targetSoc - soc, maxChargeWithoutNewPeak);
         if (battAction > 0) {
           isGridCharging = true;
         }
