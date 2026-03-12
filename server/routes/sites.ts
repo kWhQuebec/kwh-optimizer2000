@@ -1402,12 +1402,12 @@ router.post("/:siteId/run-potential-analysis", authMiddleware, requireStaff, asy
   const roofUtilizationRatio = baseAssumptions.roofUtilizationRatio ?? 0.85;
   const usableAreaSqM = effectiveRoofAreaSqM * roofUtilizationRatio;
   const formulaMaxPvKw = (usableAreaSqM / 3.71) * 0.660;
-  const kbMaxPvKw = site.kbKwDc && site.kbKwDc > 0 ? site.kbKwDc : formulaMaxPvKw;
+  const kbMaxPvKw = formulaMaxPvKw; // kbKwDc (Google Solar) is for yield estimation only, NOT PV sizing
   (analysisAssumptions as any).maxPVFromRoofKw = kbMaxPvKw;
 
   log.info(`Roof area source: ${tracedSolarAreaSqM > 0 ? 'polygons' : 'site'}, ` +
     `tracedArea=${tracedSolarAreaSqM.toFixed(0)}mÂ², effectiveArea=${effectiveRoofAreaSqM.toFixed(0)}mÂ², ` +
-    `maxPV=${kbMaxPvKw.toFixed(1)}kW (${site.kbKwDc && site.kbKwDc > 0 ? 'RoofVisualization' : 'KB Racking formula'})`);
+    `maxPV=${kbMaxPvKw.toFixed(1)}kW (${'KB Racking formula from polygon/roof area'})`);
 
   const result = runPotentialAnalysis(
     dedupResult.readings,
@@ -1662,7 +1662,11 @@ router.get("/:siteId/price-breakdown", authMiddleware, asyncHandler(async (req: 
     ? simulations.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime())[0]
     : null;
 
-  let capacityKW = site.kbKwDc || 100;
+  // Compute fallback capacity from polygon area (KB Racking formula) — kbKwDc (Google Solar) is for yield only
+    const _polygons = await storage.getSolarPolygons(site.id);
+    const _polygonArea = _polygons.reduce((sum, p) => sum + ((p as any).areaSqM || 0), 0);
+    const _effectiveArea = _polygonArea > 0 ? _polygonArea : (site.roofAreaSqM || site.roofAreaAutoSqM || 0);
+    let capacityKW = _effectiveArea > 0 ? (_effectiveArea * 0.85 / 3.71) * 0.660 : 100;
 
   if (latestSim?.sensitivity) {
     const sens = latestSim.sensitivity as any;
@@ -2375,7 +2379,11 @@ router.post("/:siteId/budgets/initialize", authMiddleware, requireStaff, asyncHa
     ? simulations.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime())[0]
     : null;
 
-  let capacityKW = site.kbKwDc || 100;
+  // Compute fallback capacity from polygon area (KB Racking formula) — kbKwDc (Google Solar) is for yield only
+    const _polygons = await storage.getSolarPolygons(site.id);
+    const _polygonArea = _polygons.reduce((sum, p) => sum + ((p as any).areaSqM || 0), 0);
+    const _effectiveArea = _polygonArea > 0 ? _polygonArea : (site.roofAreaSqM || site.roofAreaAutoSqM || 0);
+    let capacityKW = _effectiveArea > 0 ? (_effectiveArea * 0.85 / 3.71) * 0.660 : 100;
   if (latestSim?.pvSizeKW) capacityKW = latestSim.pvSizeKW;
 
   const { getTieredSolarCostPerW } = await import("../analysis/potentialAnalysis");
