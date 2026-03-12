@@ -751,15 +751,17 @@ export default function ClientsPage() {
                 {t("clients.add")}
               </Button>
             </DialogTrigger>
-          <DialogContent className="sm:max-w-lg">
+          <DialogContent className="sm:max-w-lg max-h-[85vh] flex flex-col overflow-hidden">
             <DialogHeader>
               <DialogTitle>{t("clients.add")}</DialogTitle>
             </DialogHeader>
-            <ClientForm
-              onSubmit={handleCreate}
-              onCancel={() => setDialogOpen(false)}
-              isLoading={createMutation.isPending}
-            />
+            <div className="flex-1 overflow-y-auto min-h-0">
+              <ClientForm
+                onSubmit={handleCreate}
+                onCancel={() => setDialogOpen(false)}
+                isLoading={createMutation.isPending}
+              />
+            </div>
           </DialogContent>
         </Dialog>
         </div>
@@ -926,18 +928,20 @@ export default function ClientsPage() {
 
       {/* Edit Dialog */}
       <Dialog open={!!editingClient} onOpenChange={(open) => !open && setEditingClient(null)}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-lg max-h-[85vh] flex flex-col overflow-hidden">
           <DialogHeader>
             <DialogTitle>{t("common.edit")} - {editingClient?.name}</DialogTitle>
           </DialogHeader>
-          {editingClient && (
-            <ClientForm
-              client={editingClient}
-              onSubmit={handleUpdate}
-              onCancel={() => setEditingClient(null)}
-              isLoading={updateMutation.isPending}
-            />
-          )}
+          <div className="flex-1 overflow-y-auto min-h-0">
+            {editingClient && (
+              <ClientForm
+                client={editingClient}
+                onSubmit={handleUpdate}
+                onCancel={() => setEditingClient(null)}
+                isLoading={updateMutation.isPending}
+              />
+            )}
+          </div>
         </DialogContent>
       </Dialog>
       
