@@ -17,7 +17,8 @@ import {
   QUEBEC_MONTHLY_TEMPS,
   BASELINE_YIELD,
 } from "../analysis/potentialAnalysis";
-import { calculateCashflowMetrics } from "../analysis/cashflowCalculations";
+import { calculateCashflowMetrics, calculateIRR } from "../analysis/cashflowCalculations";
+import { TEMPERATURE_COEFFICIENT } from '@shared/constants';
 
 export const SNOW_LOSS_FLAT_ROOF: number[] = [
   0.55, // Jan - 55% loss (PVGIS-calibrated, panels partially self-clear via heating)
@@ -131,7 +132,7 @@ export function runHourlySimulation(
   battPowerKW: number,
   threshold: number,
   solarYieldFactor: number = 1.0,
-  systemParams: SystemModelingParams = { inverterLoadRatio: 1.45, temperatureCoefficient: -0.004, wireLossPercent: 0.03, skipTempCorrection: false, lidLossPercent: 0.01, mismatchLossPercent: 0.02, mismatchStringsLossPercent: 0.0015, moduleQualityGainPercent: 0.0075 },
+  systemParams: SystemModelingParams = { inverterLoadRatio: 1.45, temperatureCoefficient: TEMPERATURE_COEFFICIENT, wireLossPercent: 0.03, skipTempCorrection: false, lidLossPercent: 0.01, mismatchLossPercent: 0.02, mismatchStringsLossPercent: 0.0015, moduleQualityGainPercent: 0.0075 },
   yieldSource: 'google' | 'manual' | 'default' = 'default',
   snowLossProfile?: 'none' | 'flat_roof' | 'tilted' | 'ballasted_10deg'
 ): HourlySimulationResult {
@@ -350,117 +351,10 @@ export function calculateNPV(cashflows: number[], rate: number, years: number): 
   return npv;
 }
 
-export function calculateIRR(cashflows: number[]): number {
-  if (cashflows.length < 2) return 0;
+// calculateIRR is now imported from cashflowCalculations.ts (single source of truth)
+// Re-export for any external consumers:
+export { calculateIRR };
 
-  let hasNegative = false;
-  let hasPositive = false;
-  for (const cf of cashflows) {
-    if (cf < 0) hasNegative = true;
-    if (cf > 0) hasPositive = true;
-  }
-
-  if (!hasNegative || !hasPositive) {
-    return hasPositive ? 1.0 : 0;
-  }
-
-  let irr = 0.1;
-  const maxIterations = 200;
-  const tolerance = 0.0001;
-
-  for (let i = 0; i < maxIterations; i++) {
-    let npv = 0;
-    let dnpv = 0;
-
-    for (let t = 0; t < cashflows.length; t++) {
-      const denominator = Math.pow(1 + irr, t);
-      if (denominator === 0 || !isFinite(denominator)) continue;
-
-      const pv = cashflows[t] / denominator;
-      npv += pv;
-      if (t > 0) {
-        dnpv -= t * cashflows[t] / Math.pow(1 + irr, t + 1);
-      }
-    }
-
-    if (Math.abs(dnpv) < 1e-10) {
-      return bisectionIRR(cashflows);
-    }
-
-    const newIrr = irr - npv / dnpv;
-
-    if (!isFinite(newIrr)) {
-      return bisectionIRR(cashflows);
-    }
-
-    const clampedIrr = Math.max(-0.99, Math.min(5, newIrr));
-
-    if (Math.abs(clampedIrr - irr) < tolerance) {
-      return Math.max(0, Math.min(1, clampedIrr));
-    }
-
-    irr = clampedIrr;
-  }
-
-  return bisectionIRR(cashflows);
-}
-
-export function bisectionIRR(cashflows: number[]): number {
-  let low = -0.99;
-  let high = 2.0;
-  const maxIterations = 100;
-  const tolerance = 0.0001;
-
-  const npvAtRate = (rate: number): number => {
-    let npv = 0;
-    for (let t = 0; t < cashflows.length; t++) {
-      npv += cashflows[t] / Math.pow(1 + rate, t);
-    }
-    return npv;
-  };
-
-  let npvLow = npvAtRate(low);
-  let npvHigh = npvAtRate(high);
-
-  if (npvLow * npvHigh > 0) {
-    for (let rate = low; rate <= high; rate += 0.1) {
-      const npv = npvAtRate(rate);
-      if (npvLow * npv < 0) {
-        high = rate;
-        npvHigh = npv;
-        break;
-      }
-      if (npv * npvHigh < 0) {
-        low = rate;
-        npvLow = npv;
-        break;
-      }
-    }
-
-    if (npvLow * npvHigh > 0) {
-      return 0;
-    }
-  }
-
-  for (let i = 0; i < maxIterations; i++) {
-    const mid = (low + high) / 2;
-    const npvMid = npvAtRate(mid);
-
-    if (Math.abs(npvMid) < tolerance || (high - low) / 2 < tolerance) {
-      return Math.max(0, Math.min(1, mid));
-    }
-
-    if (npvLow * npvMid < 0) {
-      high = mid;
-      npvHigh = npvMid;
-    } else {
-      low = mid;
-      npvLow = npvMid;
-    }
-  }
-
-  return Math.max(0, Math.min(1, (low + high) / 2));
-}
 
 export function runScenarioWithSizing(
   hourlyData: Array<{ hour: number; month: number; consumption: number; peak: number }>,
@@ -499,7 +393,7 @@ export function runScenarioWithSizing(
     : ((h.yieldSource === 'google' || h.yieldSource === 'manual') ? h.yieldSource : 'default');
   const systemParams: SystemModelingParams = {
     inverterLoadRatio: h.inverterLoadRatio || 1.45,
-    temperatureCoefficient: h.temperatureCoefficient || -0.004,
+    temperatureCoefficient: h.temperatureCoefficient || TEMPERATURE_COEFFICIENT,
     wireLossPercent: h.wireLossPercent ?? 0.03,
     skipTempCorrection,
     lidLossPercent: h.lidLossPercent ?? 0.01,

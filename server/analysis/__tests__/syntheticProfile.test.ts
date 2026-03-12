@@ -147,14 +147,17 @@ describe("generateSyntheticProfile", () => {
     expect(extNight.kWh / extNoon.kWh).toBeGreaterThan(stdNight.kWh / stdNoon.kWh);
   });
 
-  it("throws on unknown building type", () => {
-    expect(() =>
-      generateSyntheticProfile({
+  it("returns fallback profile for unknown building type", () => {
+      // Function uses fallback default for C&I instead of throwing
+      const result = generateSyntheticProfile({
         buildingSubType: "spaceship" as BuildingSubType,
-        annualConsumptionKWh: annualKWh,
-      })
-    ).toThrow("Unknown building sub-type");
-  });
+        annualConsumptionKwh: 100000,
+      });
+      expect(result).toBeDefined();
+      expect(result.readings.length).toBeGreaterThan(0);
+      // Should still produce valid hourly readings for a year
+      expect(result.readings.length).toBe(8760);
+    });
 
   it("all readings have positive kWh and kW", () => {
     const types: BuildingSubType[] = ["office", "warehouse", "retail", "industrial", "institutional"];

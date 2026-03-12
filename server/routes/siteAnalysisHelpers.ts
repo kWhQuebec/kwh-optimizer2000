@@ -30,6 +30,7 @@ import {
   SNOW_LOSS_FLAT_ROOF,
 } from "../analysis/simulationEngine";
 import { calculateCashflowMetrics } from "../analysis/cashflowCalculations";
+import { HQ_TARIFF_ESCALATION_RATE, TEMPERATURE_COEFFICIENT } from '@shared/constants';
 
 export { resolveYieldStrategyFromAnalysis as resolveYieldStrategy };
 export { getTieredSolarCostPerW };
@@ -635,7 +636,7 @@ export function runPotentialAnalysis(
   const currentYieldSource: 'google' | 'manual' | 'default' = (h.yieldSource === 'google' || h.yieldSource === 'manual') ? h.yieldSource : 'default';
   const systemParams: SystemModelingParams = {
     inverterLoadRatio: h.inverterLoadRatio || 1.45,
-    temperatureCoefficient: h.temperatureCoefficient || -0.004,
+    temperatureCoefficient: h.temperatureCoefficient || TEMPERATURE_COEFFICIENT,
     wireLossPercent: h.wireLossPercent ?? 0.03,
     skipTempCorrection,
     lidLossPercent: h.lidLossPercent ?? 0.01,
@@ -656,7 +657,7 @@ export function runPotentialAnalysis(
   const totalExportedKWh = simResult.totalExportedKWh;
   const peakDemandKW = peakKW;
   const peakAfterKW = simResult.peakAfter;
-  const annualDemandReductionKW = peakKW - peakAfterKW;
+  const annualDemandReductionKW = Math.max(0, peakKW - peakAfterKW);
   // ── Financial calculations via shared module ──────────────────────────
   const financials = calculateCashflowMetrics({
     pvSizeKW,
@@ -718,7 +719,7 @@ export function runPotentialAnalysis(
   // Cost of inaction: 25-year utility costs without solar (3.5% annual escalation)
   let costOfInaction25yr = 0;
   for (let y = 0; y < 25; y++) {
-    const escalatedCost = annualCostBefore * Math.pow(1 + 0.035, y);
+    const escalatedCost = annualCostBefore * Math.pow(1 + HQ_TARIFF_ESCALATION_RATE, y);
     costOfInaction25yr += escalatedCost;
   }
 

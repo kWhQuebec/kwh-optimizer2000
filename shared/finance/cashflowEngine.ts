@@ -7,6 +7,7 @@
  * 
  * All displays in Market Intelligence should derive from these calculations.
  */
+import { HQ_TARIFF_ESCALATION_RATE } from "../constants";
 
 function roundCurrency(value: number, decimals: number = 2): number {
   const factor = Math.pow(10, decimals);
@@ -75,6 +76,7 @@ export interface CashflowModel {
 /**
  * Build the complete cashflow model for all financing scenarios
  */
+import { HQ_TARIFF_ESCALATION_RATE } from "../constants";
 export function buildCashflowModel(inputs: CashflowInputs): CashflowModel {
   const {
     systemSizeKW,
@@ -196,10 +198,11 @@ export function buildCashflowModel(inputs: CashflowInputs): CashflowModel {
 /**
  * Default assumptions based on Quebec market conditions
  */
+import { HQ_TARIFF_ESCALATION_RATE } from "../constants";
 export const DEFAULT_CASHFLOW_INPUTS: Partial<CashflowInputs> = {
   hqIncentivePerKw: 1000,
   itcRate: 0.30,
-  kwhInflation: 0.035,
+  kwhInflation: HQ_TARIFF_ESCALATION_RATE,
   trcInflation: 0.03,
   degradation: 0.004,
   omRate: 0.01,

@@ -1148,7 +1148,7 @@ router.post("/:siteId/quick-potential", authMiddleware, requireStaff, asyncHandl
   // HQ Incentive: $1000/kW, max 40% of CAPEX, max 1 MW eligible
   const eligibleKW = Math.min(maxCapacityKW, 1000);
   const potentialHqIncentive = eligibleKW * 1000;
-  const maxHqIncentive = grossCapex * 0.40;
+  const maxHqIncentive = grossCapex * HQ_ITC_PERCENT;
   const hqIncentive = Math.min(potentialHqIncentive, maxHqIncentive);
 
   // Federal ITC: 30% of (CAPEX - HQ incentive)
@@ -1402,12 +1402,12 @@ router.post("/:siteId/run-potential-analysis", authMiddleware, requireStaff, asy
   const roofUtilizationRatio = baseAssumptions.roofUtilizationRatio ?? 0.85;
   const usableAreaSqM = effectiveRoofAreaSqM * roofUtilizationRatio;
   const formulaMaxPvKw = (usableAreaSqM / 3.71) * 0.660;
-  const kbMaxPvKw = site.kbKwDc && site.kbKwDc > 0 ? site.kbKwDc : formulaMaxPvKw;
+  const kbMaxPvKw = formulaMaxPvKw; // kbKwDc (Google Solar) is for yield estimation only, NOT PV sizing
   (analysisAssumptions as any).maxPVFromRoofKw = kbMaxPvKw;
 
   log.info(`Roof area source: ${tracedSolarAreaSqM > 0 ? 'polygons' : 'site'}, ` +
     `tracedArea=${tracedSolarAreaSqM.toFixed(0)}mÂ², effectiveArea=${effectiveRoofAreaSqM.toFixed(0)}mÂ², ` +
-    `maxPV=${kbMaxPvKw.toFixed(1)}kW (${site.kbKwDc && site.kbKwDc > 0 ? 'RoofVisualization' : 'KB Racking formula'})`);
+    `maxPV=${kbMaxPvKw.toFixed(1)}kW (${'KB Racking formula from polygon/roof area'})`);
 
   const result = runPotentialAnalysis(
     dedupResult.readings,
@@ -1529,7 +1529,7 @@ router.post("/:siteId/monte-carlo-analysis", authMiddleware, requireStaff, async
   const monteCarloConfig: MonteCarloConfig = config || {
     iterations: 500,
     variableRanges: {
-      tariffEscalation: [0.025, 0.035],
+      tariffEscalation: TARIFF_ESCALATION_RANGE,
       discountRate: [0.06, 0.08],
       solarYield: [1075, 1225],
       bifacialBoost: [0.10, 0.20],
@@ -1662,7 +1662,16 @@ router.get("/:siteId/price-breakdown", authMiddleware, asyncHandler(async (req: 
     ? simulations.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime())[0]
     : null;
 
-  let capacityKW = site.kbKwDc || 100;
+  // Compute fallback capacity from polygon area (KB Racking formula) — kbKwDc (Google Solar) is for yield only
+    const _allPolygons = await storage.getRoofPolygons(site.id);
+    const _solarPolygons = _allPolygons.filter((p) => {
+      if ((p as any).color === "#f97316") return false;
+      const label = ((p as any).label || "").toLowerCase();
+      return !label.includes("constraint") && !label.includes("contrainte") && !label.includes("hvac") && !label.includes("obstacle");
+    });
+    const _polygonArea = _solarPolygons.reduce((sum, p) => sum + ((p as any).areaSqM || 0), 0);
+    const _effectiveArea = _polygonArea > 0 ? _polygonArea : (site.roofAreaSqM || site.roofAreaAutoSqM || 0);
+    let capacityKW = _effectiveArea > 0 ? (_effectiveArea * 0.85 / 3.71) * 0.660 : 100;
 
   if (latestSim?.sensitivity) {
     const sens = latestSim.sensitivity as any;
@@ -1977,6 +1986,7 @@ router.post("/:id/unarchive", authMiddleware, requireStaff, asyncHandler(async (
 // ==================== SYNTHETIC PROFILE ====================
 
 import { getBuildingTypeLabel as getBTLabel } from "@shared/buildingTypes";
+import { HQ_ITC_PERCENT, TARIFF_ESCALATION_RANGE } from '@shared/constants';
 
 const syntheticProfileSchema = z.object({
   buildingSubType: z.enum(["office", "retail", "hotel", "restaurant", "warehouse", "cold_warehouse", "industrial", "light_industrial", "healthcare", "education", "government", "agricultural"]),
@@ -2375,7 +2385,16 @@ router.post("/:siteId/budgets/initialize", authMiddleware, requireStaff, asyncHa
     ? simulations.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime())[0]
     : null;
 
-  let capacityKW = site.kbKwDc || 100;
+  // Compute fallback capacity from polygon area (KB Racking formula) — kbKwDc (Google Solar) is for yield only
+    const _allPolygons = await storage.getRoofPolygons(site.id);
+    const _solarPolygons = _allPolygons.filter((p) => {
+      if ((p as any).color === "#f97316") return false;
+      const label = ((p as any).label || "").toLowerCase();
+      return !label.includes("constraint") && !label.includes("contrainte") && !label.includes("hvac") && !label.includes("obstacle");
+    });
+    const _polygonArea = _solarPolygons.reduce((sum, p) => sum + ((p as any).areaSqM || 0), 0);
+    const _effectiveArea = _polygonArea > 0 ? _polygonArea : (site.roofAreaSqM || site.roofAreaAutoSqM || 0);
+    let capacityKW = _effectiveArea > 0 ? (_effectiveArea * 0.85 / 3.71) * 0.660 : 100;
   if (latestSim?.pvSizeKW) capacityKW = latestSim.pvSizeKW;
 
   const { getTieredSolarCostPerW } = await import("../analysis/potentialAnalysis");

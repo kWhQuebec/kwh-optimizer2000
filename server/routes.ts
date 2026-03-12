@@ -964,7 +964,7 @@ function runPotentialAnalysis(
         annualConsumptionKWh,
         peakDemandKW,
         annualEnergySavingsKWh: finalSimResult.totalSelfConsumption,
-        annualDemandReductionKW: peakKW - finalSimResult.peakAfter,
+        annualDemandReductionKW: Math.max(0, peakKW - finalSimResult.peakAfter),
         selfConsumptionKWh: finalSimResult.totalSelfConsumption,
         selfSufficiencyPercent: finalFinancials.selfSufficiencyPercent,
         totalProductionKWh: finalSimResult.totalProductionKWh,

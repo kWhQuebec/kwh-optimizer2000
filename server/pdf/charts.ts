@@ -2,6 +2,7 @@ import type { CashflowEntry, PeakWeekEntry, FrontierPoint } from "@shared/schema
 import type { PDFContext } from "./types";
 import { COLORS } from "./types";
 import { formatCurrency, formatSmartCurrency, drawRoundedRect } from "./helpers";
+import { HQ_TARIFF_ESCALATION_RATE } from '@shared/constants';
 
 export function drawBarChart(
   ctx: PDFContext,
@@ -435,7 +436,7 @@ export function drawCostOfInactionChart(
   const { doc, t, simulation } = ctx;
 
   const years = 25;
-  const inflationRate = 0.035; // HQ tariff escalation standard
+  const inflationRate = HQ_TARIFF_ESCALATION_RATE; // HQ tariff escalation standard
   let cumulWithout = 0;
   let cumulWith = 0;
   const costData: Array<{ year: number; without: number; with: number }> = [];
