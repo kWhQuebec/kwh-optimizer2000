@@ -17,7 +17,7 @@ import {
   QUEBEC_MONTHLY_TEMPS,
   BASELINE_YIELD,
 } from "../analysis/potentialAnalysis";
-import { calculateCashflowMetrics, calculateIRR } from "../analysis/cashflowCalculations";
+import { calculateCashflowMetrics, calculateIRR, bisectionIRR } from "../analysis/cashflowCalculations";
 import { TEMPERATURE_COEFFICIENT } from '@shared/constants';
 
 export const SNOW_LOSS_FLAT_ROOF: number[] = [
@@ -353,7 +353,7 @@ export function calculateNPV(cashflows: number[], rate: number, years: number): 
 
 // calculateIRR is now imported from cashflowCalculations.ts (single source of truth)
 // Re-export for any external consumers:
-export { calculateIRR };
+export { calculateIRR, bisectionIRR };
 
 
 export function runScenarioWithSizing(

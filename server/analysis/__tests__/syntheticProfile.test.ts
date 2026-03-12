@@ -151,7 +151,7 @@ describe("generateSyntheticProfile", () => {
       // Function uses fallback default for C&I instead of throwing
       const result = generateSyntheticProfile({
         buildingSubType: "spaceship" as BuildingSubType,
-        annualConsumptionKwh: 100000,
+        annualConsumptionKWh: 100000,
       });
       expect(result).toBeDefined();
       expect(result.readings.length).toBeGreaterThan(0);

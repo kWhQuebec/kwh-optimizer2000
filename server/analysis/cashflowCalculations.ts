@@ -427,7 +427,7 @@ export function calculateNPV(
 /**
  * Bisection fallback for IRR when Newton-Raphson fails to converge.
  */
-function bisectionIRR(cashflows: number[]): number {
+export function bisectionIRR(cashflows: number[]): number {
   let low = -0.99;
   let high = 2.0;
   const maxIterations = 100;
@@ -467,7 +467,7 @@ function bisectionIRR(cashflows: number[]): number {
     const mid = (low + high) / 2;
     const npvMid = npvAtRate(mid);
     if (Math.abs(npvMid) < tolerance || (high - low) / 2 < tolerance) {
-      return Math.max(0, mid);
+      return mid;
     }
     if (npvLow * npvMid < 0) {
       high = mid;
@@ -477,7 +477,7 @@ function bisectionIRR(cashflows: number[]): number {
       npvLow = npvMid;
     }
   }
-  return Math.max(0, (low + high) / 2);
+  return (low + high) / 2;
 }
 
 /**
@@ -520,8 +520,8 @@ export function calculateIRR(cashflows: number[], guess: number = 0.1, maxIter: 
     // Clamp to prevent divergence
     const clampedRate = Math.max(-0.99, Math.min(5, newRate));
     if (Math.abs(clampedRate - rate) < tolerance) {
-      // Cap final result to reasonable range [0, 1] (0% to 100%)
-      return Math.max(0, Math.min(1, clampedRate));
+      // Cap final result to reasonable range [-1, 1] (-100% to 100%)
+      return Math.max(-0.99, Math.min(1, clampedRate));
     }
     rate = clampedRate;
   }
