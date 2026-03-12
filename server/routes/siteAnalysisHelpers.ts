@@ -30,6 +30,7 @@ import {
   SNOW_LOSS_FLAT_ROOF,
 } from "../analysis/simulationEngine";
 import { calculateCashflowMetrics } from "../analysis/cashflowCalculations";
+import { runAnalysisQA, type QAResult } from "../analysis/analysisQA";
 import { HQ_TARIFF_ESCALATION_RATE, TEMPERATURE_COEFFICIENT } from '@shared/constants';
 
 export { resolveYieldStrategyFromAnalysis as resolveYieldStrategy };
@@ -367,6 +368,13 @@ interface AnalysisResult {
   sensitivity: SensitivityAnalysis;
   interpolatedMonths: number[];
   hiddenInsights: HiddenInsights;
+  dataQuality: {
+    usedRealDailyProfiles: boolean;
+    interpolatedMonthCount: number;
+    hasSyntheticPeaks: boolean;
+    warning?: string;
+  };
+  qaResult?: QAResult;
 }
 
 interface ForcedSizing {
@@ -383,9 +391,8 @@ interface AnalysisOptions {
 export function buildHourlyData(readings: Array<{ kWh: number | null; kW: number | null; timestamp: Date }>): {
   hourlyData: Array<{ hour: number; month: number; consumption: number; peak: number }>;
   interpolatedMonths: number[];
+  usedRealDailyProfiles: boolean;
 } {
-  const hourlyByHourMonth: Map<string, { totalKWh: number; maxKW: number; count: number }> = new Map();
-
   // Detect interval from data to properly convert kW → kWh
   // HQ 15-min data provides kW (puissance) but not kWh (énergie)
   let intervalHours = 1;
@@ -402,138 +409,223 @@ export function buildHourlyData(readings: Array<{ kWh: number | null; kW: number
     }
   }
 
-  for (const r of readings) {
-    const hour = r.timestamp.getHours();
-    const month = r.timestamp.getMonth() + 1;
-    const key = `${month}-${hour}`;
+  // ── Phase 1: Build real daily profiles from actual readings ──
+  // Key: "YYYY-MM-DD-HH" → { totalKWh, maxKW, count }
+  const realDayHour: Map<string, { totalKWh: number; maxKW: number; count: number }> = new Map();
 
-    const existing = hourlyByHourMonth.get(key) || { totalKWh: 0, maxKW: 0, count: 0 };
+  for (const r of readings) {
+    const ts = new Date(r.timestamp);
+    const year = ts.getFullYear();
+    const month = ts.getMonth() + 1;
+    const day = ts.getDate();
+    const hour = ts.getHours();
+    const key = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}-${String(hour).padStart(2, '0')}`;
+
+    const existing = realDayHour.get(key) || { totalKWh: 0, maxKW: 0, count: 0 };
     const kWhMissing = r.kWh == null || (r.kWh === 0 && r.kW != null && r.kW > 0);
     const effectiveKWh = kWhMissing ? ((r.kW || 0) * intervalHours) : (r.kWh || 0);
     existing.totalKWh += effectiveKWh;
     existing.maxKW = Math.max(existing.maxKW, r.kW || 0);
     existing.count++;
+    realDayHour.set(key, existing);
+  }
+
+  // ── Phase 2: Determine which months have real daily data ──
+  // Track unique days per month to decide if we have enough real data
+  const daysPerMonth: Map<number, Set<string>> = new Map();
+  for (const key of realDayHour.keys()) {
+    const parts = key.split('-');
+    const month = parseInt(parts[1]);
+    const dayKey = `${parts[0]}-${parts[1]}-${parts[2]}`;
+    if (!daysPerMonth.has(month)) daysPerMonth.set(month, new Set());
+    daysPerMonth.get(month)!.add(dayKey);
+  }
+
+  const monthsWithRealData: Set<number> = new Set();
+  for (let month = 1; month <= 12; month++) {
+    const days = daysPerMonth.get(month);
+    // Need at least 15 days of data to use real profiles for this month
+    if (days && days.size >= 15) {
+      monthsWithRealData.add(month);
+    }
+  }
+
+  // ── Phase 3: Also build month-hour aggregates for fallback/interpolation ──
+  const hourlyByHourMonth: Map<string, { totalKWh: number; maxKW: number; avgKW: number; count: number }> = new Map();
+  for (const r of readings) {
+    const hour = r.timestamp.getHours();
+    const month = r.timestamp.getMonth() + 1;
+    const key = `${month}-${hour}`;
+
+    const existing = hourlyByHourMonth.get(key) || { totalKWh: 0, maxKW: 0, avgKW: 0, count: 0 };
+    const kWhMissing = r.kWh == null || (r.kWh === 0 && r.kW != null && r.kW > 0);
+    const effectiveKWh = kWhMissing ? ((r.kW || 0) * intervalHours) : (r.kWh || 0);
+    existing.totalKWh += effectiveKWh;
+    existing.maxKW = Math.max(existing.maxKW, r.kW || 0);
+    existing.count++;
+    // Running sum for average (finalized below)
+    existing.avgKW += (r.kW || 0);
     hourlyByHourMonth.set(key, existing);
   }
-  
-  const monthsWithData: Set<number> = new Set();
-  for (let month = 1; month <= 12; month++) {
-    let hasAnyData = false;
-    for (let hour = 0; hour < 24; hour++) {
-      const key = `${month}-${hour}`;
-      const data = hourlyByHourMonth.get(key);
-      if (data && data.count > 0) {
-        hasAnyData = true;
-        break;
-      }
-    }
-    if (hasAnyData) {
-      monthsWithData.add(month);
-    }
+  // Finalize avgKW
+  for (const [, data] of hourlyByHourMonth) {
+    data.avgKW = data.count > 0 ? data.avgKW / data.count : 0;
   }
-  
+
+  // ── Phase 4: Identify interpolated months and build fallback profiles ──
   const interpolatedMonths: number[] = [];
-  
+  // For months without enough real data, build average-day profiles using month-hour aggregates
+  // BUT use avgKW for peak instead of maxKW — this gives a typical day, not worst-case
+  const fallbackProfiles: Map<string, { consumption: number; peak: number }> = new Map();
+
   for (let month = 1; month <= 12; month++) {
-    if (!monthsWithData.has(month)) {
+    if (!monthsWithRealData.has(month)) {
       interpolatedMonths.push(month);
-      
+
+      // Find nearest months with data for interpolation
       let prevMonth: number | null = null;
       for (let p = month - 1; p >= 1; p--) {
-        if (monthsWithData.has(p)) {
+        if (monthsWithRealData.has(p) || hourlyByHourMonth.has(`${p}-12`)) {
           prevMonth = p;
           break;
         }
       }
       if (prevMonth === null) {
         for (let p = 12; p > month; p--) {
-          if (monthsWithData.has(p)) {
+          if (monthsWithRealData.has(p) || hourlyByHourMonth.has(`${p}-12`)) {
             prevMonth = p;
             break;
           }
         }
       }
-      
+
       let nextMonth: number | null = null;
       for (let n = month + 1; n <= 12; n++) {
-        if (monthsWithData.has(n)) {
+        if (monthsWithRealData.has(n) || hourlyByHourMonth.has(`${n}-12`)) {
           nextMonth = n;
           break;
         }
       }
       if (nextMonth === null) {
         for (let n = 1; n < month; n++) {
-          if (monthsWithData.has(n)) {
+          if (monthsWithRealData.has(n) || hourlyByHourMonth.has(`${n}-12`)) {
             nextMonth = n;
             break;
           }
         }
       }
-      
+
       for (let hour = 0; hour < 24; hour++) {
         let avgConsumption = 0;
         let avgPeak = 0;
         let sourceCount = 0;
-        
+
         if (prevMonth !== null) {
           const prevKey = `${prevMonth}-${hour}`;
           const prevData = hourlyByHourMonth.get(prevKey);
           if (prevData && prevData.count > 0) {
             avgConsumption += prevData.totalKWh / prevData.count;
-            avgPeak += prevData.maxKW;
+            // Use average kW, not max — gives typical day profile for interpolation
+            avgPeak += prevData.avgKW;
             sourceCount++;
           }
         }
-        
+
         if (nextMonth !== null && nextMonth !== prevMonth) {
           const nextKey = `${nextMonth}-${hour}`;
           const nextData = hourlyByHourMonth.get(nextKey);
           if (nextData && nextData.count > 0) {
             avgConsumption += nextData.totalKWh / nextData.count;
-            avgPeak += nextData.maxKW;
+            avgPeak += nextData.avgKW;
             sourceCount++;
           }
         }
-        
-        const key = `${month}-${hour}`;
-        hourlyByHourMonth.set(key, {
-          totalKWh: sourceCount > 0 ? avgConsumption / sourceCount : 0,
-          maxKW: sourceCount > 0 ? avgPeak / sourceCount : 0,
-          count: 1,
+
+        fallbackProfiles.set(`${month}-${hour}`, {
+          consumption: sourceCount > 0 ? avgConsumption / sourceCount : 0,
+          peak: sourceCount > 0 ? avgPeak / sourceCount : 0,
         });
       }
     }
   }
-  
+
+  // ── Phase 5: Build 8760-hour profile using real daily data where available ──
   const hourlyData: Array<{ hour: number; month: number; consumption: number; peak: number }> = [];
-  
+  const usedRealDailyProfiles = monthsWithRealData.size >= 6; // Flag for QA
+
   for (let month = 1; month <= 12; month++) {
     const daysInMonth = new Date(2025, month, 0).getDate();
-    for (let day = 1; day <= daysInMonth; day++) {
-      for (let hour = 0; hour < 24; hour++) {
-        const key = `${month}-${hour}`;
-        const data = hourlyByHourMonth.get(key);
-        
-        if (data && data.count > 0) {
+
+    if (monthsWithRealData.has(month)) {
+      // ── Real data path: use actual daily profiles ──
+      // Collect all real days for this month sorted by date
+      const realDays: Array<{ dayKey: string; year: number; day: number }> = [];
+      const monthDays = daysPerMonth.get(month);
+      if (monthDays) {
+        for (const dayKey of monthDays) {
+          const parts = dayKey.split('-');
+          realDays.push({ dayKey, year: parseInt(parts[0]), day: parseInt(parts[2]) });
+        }
+        realDays.sort((a, b) => a.day - b.day);
+      }
+
+      for (let day = 1; day <= daysInMonth; day++) {
+        // Find the closest real day for this calendar day
+        // If we have data for this exact day (in any year), use it
+        // Otherwise use the nearest day in the same month
+        let bestDayKey: string | null = null;
+        let bestDistance = Infinity;
+        for (const rd of realDays) {
+          const dist = Math.abs(rd.day - day);
+          if (dist < bestDistance) {
+            bestDistance = dist;
+            bestDayKey = rd.dayKey;
+          }
+        }
+
+        for (let hour = 0; hour < 24; hour++) {
+          if (bestDayKey) {
+            const hourKey = `${bestDayKey}-${String(hour).padStart(2, '0')}`;
+            const data = realDayHour.get(hourKey);
+            if (data && data.count > 0) {
+              hourlyData.push({
+                hour,
+                month,
+                consumption: data.totalKWh / data.count,
+                // Use ACTUAL kW for this specific day-hour — NOT max of entire month
+                peak: data.maxKW,
+              });
+              continue;
+            }
+          }
+          // Fallback: use month-hour average if specific day-hour missing
+          const mhKey = `${month}-${hour}`;
+          const mhData = hourlyByHourMonth.get(mhKey);
           hourlyData.push({
             hour,
             month,
-            consumption: data.totalKWh / data.count,
-            peak: data.maxKW,
+            consumption: mhData ? mhData.totalKWh / mhData.count : 0,
+            peak: mhData ? mhData.avgKW : 0,
           });
-        } else {
+        }
+      }
+    } else {
+      // ── Interpolated month: use fallback average-day profile ──
+      for (let day = 1; day <= daysInMonth; day++) {
+        for (let hour = 0; hour < 24; hour++) {
+          const fb = fallbackProfiles.get(`${month}-${hour}`);
           hourlyData.push({
             hour,
             month,
-            consumption: 0,
-            peak: 0,
+            consumption: fb ? fb.consumption : 0,
+            peak: fb ? fb.peak : 0,
           });
         }
       }
     }
   }
-  
-  return { hourlyData, interpolatedMonths };
+
+  return { hourlyData, interpolatedMonths, usedRealDailyProfiles };
 }
 
 export function runPotentialAnalysis(
@@ -553,8 +645,8 @@ export function runPotentialAnalysis(
     h.yieldSource = customAssumptions.yieldSource;
   }
   
-  const { hourlyData, interpolatedMonths } = buildHourlyData(readings);
-  
+  const { hourlyData, interpolatedMonths, usedRealDailyProfiles } = buildHourlyData(readings);
+
   const forcedSizing = options?.forcedSizing;
   
   let totalKWh = 0;
@@ -749,6 +841,33 @@ export function runPotentialAnalysis(
         npv25
       );
   
+  // ── QA Validation ──
+  const qaResult = runAnalysisQA({
+    totalReadings: readings.length,
+    hasRealMeterData: readings.length > 1000,
+    usedRealDailyProfiles,
+    interpolatedMonthCount: interpolatedMonths.length,
+    dataSpanDays: readings.length > 1
+      ? (readings[readings.length - 1].timestamp.getTime() - readings[0].timestamp.getTime()) / 86400000
+      : 0,
+    hasSyntheticFiles: readings.length === 0,
+    pvSizeKW,
+    battEnergyKWh,
+    battPowerKW,
+    peakDemandKW,
+    annualConsumptionKWh,
+    annualDemandReductionKW,
+    annualSavings,
+    capexNet,
+    npv25,
+    irr25,
+    simplePaybackYears,
+    selfSufficiencyPercent,
+    totalProductionKWh,
+    monthlyPeaksBefore: simResult.monthlyPeaksBefore,
+    monthlyPeaksAfter: simResult.monthlyPeaksAfter,
+  });
+
   return {
     pvSizeKW,
     battEnergyKWh,
@@ -804,6 +923,17 @@ export function runPotentialAnalysis(
     sensitivity,
     interpolatedMonths,
     hiddenInsights,
+    dataQuality: {
+      usedRealDailyProfiles,
+      interpolatedMonthCount: interpolatedMonths.length,
+      hasSyntheticPeaks: !usedRealDailyProfiles,
+      warning: !usedRealDailyProfiles
+        ? 'Peak demand values use month-hour MAX aggregation (synthetic worst-case profile). Battery peak shaving results may be conservative. Upload 12+ months of 15-min HQ data for accurate daily dispatch modeling.'
+        : interpolatedMonths.length > 3
+          ? `${interpolatedMonths.length} months interpolated from adjacent data. Battery results for those months are approximations.`
+          : undefined,
+    },
+    qaResult,
   };
 }
 
