@@ -7,6 +7,7 @@ import {
   DollarSign,
   TrendingUp,
   Battery,
+  Clock,
   Info,
   Plus,
 } from "lucide-react";
@@ -370,6 +371,20 @@ export function ScenarioComparison({
           paybackYears: optimalScenarios.bestIRR.simplePaybackYears,
           capexNet: optimalScenarios.bestIRR.capexNet,
         } : null,
+        payback: optimalScenarios.bestPayback ? {
+          pvSize: optimalScenarios.bestPayback.pvSizeKW,
+          batterySize: optimalScenarios.bestPayback.battEnergyKWh,
+          batteryPower: optimalScenarios.bestPayback.battPowerKW,
+          label: language === "fr" ? "Meilleur Payback" : "Best Payback",
+          description: language === "fr"
+            ? "Récupération de l'investissement la plus rapide"
+            : "Fastest investment recovery",
+          npv25: optimalScenarios.bestPayback.npv25,
+          irr25: optimalScenarios.bestPayback.irr25,
+          selfSufficiency: optimalScenarios.bestPayback.selfSufficiencyPercent,
+          paybackYears: optimalScenarios.bestPayback.simplePaybackYears,
+          capexNet: optimalScenarios.bestPayback.capexNet,
+        } : null,
         selfSufficiency: optimalScenarios.maxSelfSufficiency ? {
           pvSize: optimalScenarios.maxSelfSufficiency.pvSizeKW,
           batterySize: optimalScenarios.maxSelfSufficiency.battEnergyKWh,
@@ -414,7 +429,7 @@ export function ScenarioComparison({
   }, [referenceSimulation, optimalScenarios, language]);
 
   // Handler for opening optimization dialog with preset
-  const handleOptimizationClick = (presetType: 'irr' | 'selfSufficiency') => {
+  const handleOptimizationClick = (presetType: 'irr' | 'payback' | 'selfSufficiency') => {
     if (!optimizationPresets || !referenceSimulation) {
       toast({
         title: language === "fr" ? "Erreur" : "Error",
@@ -790,6 +805,48 @@ export function ScenarioComparison({
                     </TableRow>
                   )}
 
+                  {/* Best Payback Row */}
+                  {optimalScenarios.bestPayback && optimalScenarios.bestPayback.id !== optimalScenarios.bestNPV?.id && optimalScenarios.bestPayback.id !== optimalScenarios.bestIRR?.id && (
+                    <TableRow className="hover-elevate" data-testid="row-strategy-payback">
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Clock className="w-4 h-4 text-orange-600" />
+                          <div>
+                            <span className="font-medium text-orange-700 dark:text-orange-400">
+                              {language === "fr" ? "Meilleur Payback" : "Best Payback"}
+                            </span>
+                            <p className="text-xs text-muted-foreground">
+                              {language === "fr" ? "Récupération rapide" : "Fastest recovery"}
+                            </p>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right font-mono">{formatNumber(optimalScenarios.bestPayback.pvSizeKW, 0)}</TableCell>
+                      <TableCell className="text-right font-mono">
+                        {optimalScenarios.bestPayback.battEnergyKWh > 0
+                          ? `${formatNumber(optimalScenarios.bestPayback.battEnergyKWh, 0)} kWh`
+                          : <span className="text-muted-foreground">-</span>
+                        }
+                      </TableCell>
+                      <TableCell className="text-right font-mono">{formatCurrency(optimalScenarios.bestPayback.capexNet)}</TableCell>
+                      <TableCell className="text-right font-mono">{formatCurrency(optimalScenarios.bestPayback.npv25)}</TableCell>
+                      <TableCell className="text-right font-mono">{formatNumber(optimalScenarios.bestPayback.irr25 * 100, 1)}%</TableCell>
+                      <TableCell className="text-right font-mono">{formatNumber(optimalScenarios.bestPayback.selfSufficiencyPercent, 1)}%</TableCell>
+                      <TableCell className="text-right font-mono font-bold text-orange-600">{formatNumber(optimalScenarios.bestPayback.simplePaybackYears, 1)} {language === "fr" ? "ans" : "yrs"}</TableCell>
+                      <TableCell className="text-center">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleOptimizationClick('payback')}
+                          data-testid="button-create-payback-variant"
+                        >
+                          <Plus className="w-3 h-3 mr-1" />
+                          {language === "fr" ? "Variante" : "Variant"}
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  )}
+
                   {/* Max Self-Sufficiency Row */}
                   {optimalScenarios.maxSelfSufficiency && optimalScenarios.maxSelfSufficiency.id !== optimalScenarios.bestNPV?.id && (
                     <TableRow className="hover-elevate" data-testid="row-strategy-self-sufficiency">
@@ -849,6 +906,8 @@ export function ScenarioComparison({
               {/* Note about shared configurations */}
               {optimalScenarios && (
                 (optimalScenarios.bestIRR?.id === optimalScenarios.bestNPV?.id ||
+                 optimalScenarios.bestPayback?.id === optimalScenarios.bestNPV?.id ||
+                 optimalScenarios.bestPayback?.id === optimalScenarios.bestIRR?.id ||
                  optimalScenarios.maxSelfSufficiency?.id === optimalScenarios.bestNPV?.id) && (
                 <div className="flex items-start gap-2 border-t border-muted pt-2">
                   <span className="text-xs text-muted-foreground">
