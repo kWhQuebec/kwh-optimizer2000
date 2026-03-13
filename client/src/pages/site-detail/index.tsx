@@ -112,7 +112,7 @@ export default function SiteDetailPage() {
   const [isRoofDrawingModalOpen, setIsRoofDrawingModalOpen] = useState(false);
   const [isGeocodingAddress, setIsGeocodingAddress] = useState(false);
   const [pendingModalOpen, setPendingModalOpen] = useState(false);
-  const [optimizationTarget, setOptimizationTarget] = useState<'npv' | 'irr' | 'selfSufficiency'>('npv');
+  const [optimizationTarget, setOptimizationTarget] = useState<'npv' | 'irr' | 'selfSufficiency' | 'payback'>('payback');
   const [syntheticBannerDismissed, setSyntheticBannerDismissed] = useState(false);
   const [editingSyntheticProfile, setEditingSyntheticProfile] = useState(false);
   const [isTransitioningSimulation, setIsTransitioningSimulation] = useState(false);

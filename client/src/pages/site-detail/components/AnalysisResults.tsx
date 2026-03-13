@@ -90,7 +90,7 @@ export function AnalysisResults({
   isStaff = false,
   onNavigateToDesignAgreement,
   isLoadingFullData = false,
-  optimizationTarget = 'npv',
+  optimizationTarget = 'payback',
   onOptimizationTargetChange,
   onOpenRoofDrawing,
   onCompareScenarios,
@@ -265,20 +265,6 @@ export function AnalysisResults({
           scenarioBreakdown: src.scenarioBreakdown,
         };
       })(),
-      selfSufficiency: optScenarios.maxSelfSufficiency ? {
-        pvSizeKW: optScenarios.maxSelfSufficiency.pvSizeKW,
-        battEnergyKWh: optScenarios.maxSelfSufficiency.battEnergyKWh,
-        battPowerKW: optScenarios.maxSelfSufficiency.battPowerKW,
-        npv25: optScenarios.maxSelfSufficiency.npv25,
-        irr25: optScenarios.maxSelfSufficiency.irr25,
-        selfSufficiencyPercent: optScenarios.maxSelfSufficiency.selfSufficiencyPercent,
-        simplePaybackYears: optScenarios.maxSelfSufficiency.simplePaybackYears,
-        capexNet: optScenarios.maxSelfSufficiency.capexNet,
-        annualSavings: optScenarios.maxSelfSufficiency.annualSavings,
-        totalProductionKWh: optScenarios.maxSelfSufficiency.totalProductionKWh,
-        co2AvoidedTonnesPerYear: optScenarios.maxSelfSufficiency.co2AvoidedTonnesPerYear,
-        scenarioBreakdown: optScenarios.maxSelfSufficiency.scenarioBreakdown,
-      } : null,
       payback: (() => {
         const src = optScenarios.bestPayback || optScenarios.bestIRR || optScenarios.bestNPV;
         if (!src) return null;
@@ -297,6 +283,20 @@ export function AnalysisResults({
           scenarioBreakdown: src.scenarioBreakdown,
         };
       })(),
+      selfSufficiency: optScenarios.maxSelfSufficiency ? {
+        pvSizeKW: optScenarios.maxSelfSufficiency.pvSizeKW,
+        battEnergyKWh: optScenarios.maxSelfSufficiency.battEnergyKWh,
+        battPowerKW: optScenarios.maxSelfSufficiency.battPowerKW,
+        npv25: optScenarios.maxSelfSufficiency.npv25,
+        irr25: optScenarios.maxSelfSufficiency.irr25,
+        selfSufficiencyPercent: optScenarios.maxSelfSufficiency.selfSufficiencyPercent,
+        simplePaybackYears: optScenarios.maxSelfSufficiency.simplePaybackYears,
+        capexNet: optScenarios.maxSelfSufficiency.capexNet,
+        annualSavings: optScenarios.maxSelfSufficiency.annualSavings,
+        totalProductionKWh: optScenarios.maxSelfSufficiency.totalProductionKWh,
+        co2AvoidedTonnesPerYear: optScenarios.maxSelfSufficiency.co2AvoidedTonnesPerYear,
+        scenarioBreakdown: optScenarios.maxSelfSufficiency.scenarioBreakdown,
+      } : null,
     };
   }, [simulation.sensitivity]);
 
@@ -411,10 +411,10 @@ export function AnalysisResults({
   }, [simulation.hourlyProfile, displayedScenario]);
 
   const optimizationLabels = {
-    npv: { fr: "Meilleur VAN", en: "Best NPV", icon: DollarSign },
-    irr: { fr: "Meilleur TRI", en: "Best IRR", icon: TrendingUp },
-    selfSufficiency: { fr: "Autonomie max", en: "Max Independence", icon: Battery },
-    payback: { fr: "Meilleur Payback", en: "Best Payback", icon: Clock },
+    payback: { fr: "Récupération rapide", en: "Fastest Payback", icon: Clock },
+    npv: { fr: "Profit max", en: "Max Profit", icon: DollarSign },
+    irr: { fr: "Rendement %", en: "Best IRR %", icon: TrendingUp },
+    selfSufficiency: { fr: "Indépendance max", en: "Max Independence", icon: Battery },
   };
 
   const dashboardPvSizeKW = displayedScenario.pvSizeKW ?? simulation.pvSizeKW ?? 0;
@@ -732,7 +732,7 @@ export function AnalysisResults({
                   className="flex-wrap justify-start sm:justify-end border rounded-lg p-1 bg-muted/30"
                   data-testid="toggle-optimization-target"
                 >
-                  {(['npv', 'irr', 'selfSufficiency', 'payback'] as const).map((target) => {
+                  {(['payback', 'npv', 'irr', 'selfSufficiency'] as const).map((target) => {
                     const label = optimizationLabels[target];
                     const scenario = optimizationScenarios[target];
                     if (!scenario) return null;
@@ -763,6 +763,63 @@ export function AnalysisResults({
           </div>
         </CardHeader>
         <CardContent>
+          {/* Mini comparison table — 4 optimization objectives at a glance */}
+          {optimizationScenarios && (
+            <div className="mb-6 overflow-x-auto" data-testid="optimization-comparison-table">
+              <table className="w-full text-xs border-collapse">
+                <thead>
+                  <tr className="border-b text-muted-foreground">
+                    <th className="text-left py-2 px-2 font-medium">{language === "fr" ? "Objectif" : "Objective"}</th>
+                    <th className="text-right py-2 px-2 font-medium">{language === "fr" ? "Solaire" : "Solar"}</th>
+                    <th className="text-right py-2 px-2 font-medium">{language === "fr" ? "Stockage" : "Storage"}</th>
+                    <th className="text-right py-2 px-2 font-medium">{language === "fr" ? "Récup." : "Payback"}</th>
+                    <th className="text-right py-2 px-2 font-medium">VAN/NPV</th>
+                    <th className="text-right py-2 px-2 font-medium">TRI/IRR</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(['payback', 'npv', 'irr', 'selfSufficiency'] as const).map((key) => {
+                    const scenario = optimizationScenarios[key];
+                    if (!scenario) return null;
+                    const lbl = optimizationLabels[key];
+                    const Icon = lbl.icon;
+                    const isActive = optimizationTarget === key;
+                    const colors: Record<string, string> = { payback: 'text-orange-600', npv: 'text-green-600', irr: 'text-blue-600', selfSufficiency: 'text-purple-600' };
+                    const bgColors: Record<string, string> = { payback: 'bg-orange-50 dark:bg-orange-950/20', npv: 'bg-green-50 dark:bg-green-950/20', irr: 'bg-blue-50 dark:bg-blue-950/20', selfSufficiency: 'bg-purple-50 dark:bg-purple-950/20' };
+                    return (
+                      <tr
+                        key={key}
+                        className={`border-b last:border-0 cursor-pointer transition-colors hover:bg-muted/50 ${isActive ? bgColors[key] + ' font-medium' : ''}`}
+                        onClick={() => onOptimizationTargetChange?.(key)}
+                      >
+                        <td className="py-2 px-2">
+                          <div className="flex items-center gap-1.5">
+                            <Icon className={`w-3.5 h-3.5 ${colors[key]}`} />
+                            <span className={isActive ? colors[key] + ' font-semibold' : ''}>{language === "fr" ? lbl.fr : lbl.en}</span>
+                            {isActive && <span className="ml-1 w-1.5 h-1.5 rounded-full bg-primary" />}
+                          </div>
+                        </td>
+                        <td className="text-right py-2 px-2 font-mono">{formatSmartPower(scenario.pvSizeKW, language)}</td>
+                        <td className="text-right py-2 px-2 font-mono">
+                          {scenario.battEnergyKWh > 0 ? `${Math.round(scenario.battEnergyKWh)} kWh` : '-'}
+                        </td>
+                        <td className={`text-right py-2 px-2 font-mono ${key === 'payback' && isActive ? 'font-bold ' + colors[key] : ''}`}>
+                          {scenario.simplePaybackYears > 0 ? `${scenario.simplePaybackYears.toFixed(1)} ${language === "fr" ? "ans" : "yrs"}` : '-'}
+                        </td>
+                        <td className={`text-right py-2 px-2 font-mono ${key === 'npv' && isActive ? 'font-bold ' + colors[key] : ''}`}>
+                          {formatSmartCurrency(scenario.npv25, language)}
+                        </td>
+                        <td className={`text-right py-2 px-2 font-mono ${key === 'irr' && isActive ? 'font-bold ' + colors[key] : ''}`}>
+                          {(scenario.irr25 * 100).toFixed(1)}%
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+
           <div className="grid sm:grid-cols-4 gap-6">
             <div className="flex items-start gap-3 min-w-0">
               <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
@@ -2628,10 +2685,10 @@ export function AnalysisResults({
 
                     <div>
                       <h4 className="text-sm font-semibold mb-4">
-                        {language === "fr" ? `Optimisation taille stockage (VAN vs kWh, PV fixé à ${Math.round(dashboardPvSizeKW)} kWc)` : `Storage Size Optimization (NPV vs kWh, PV fixed at ${Math.round(dashboardPvSizeKW)} kWc)`}
+                        {language === "fr" ? `Optimisation taille stockage (VAN vs kWh, avec ${formatSmartPower(dashboardPvSizeKW, language)} PV)` : `Storage Size Optimization (NPV vs kWh, with ${formatSmartPower(dashboardPvSizeKW, language)} PV)`}
                       </h4>
                       <p className="text-xs text-muted-foreground -mt-3 mb-3">
-                        {language === "fr" ? `VAN selon la taille du stockage (PV fixé)` : `NPV vs storage capacity (PV fixed)`}
+                        {language === "fr" ? `VAN selon la taille du stockage (PV fixed)` : `NPV vs storage capacity (PV fixed)`}
                       </p>
                       <div className="h-56">
                         <ResponsiveContainer width="100%" height="100%">

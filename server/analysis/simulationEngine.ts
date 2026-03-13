@@ -962,12 +962,11 @@ export function runSensitivityAnalysis(
     }
   }
 
-  // Best Payback - minimum payback years among profitable scenarios
   let bestPaybackPoint: FrontierPoint | null = null;
   let minPayback = Infinity;
   for (const point of profitablePoints) {
-    const payback = point.simplePaybackYears || 0;
-    if (payback > 0 && payback < minPayback && !isNaN(payback) && isFinite(payback)) {
+    const payback = point.simplePaybackYears || Infinity;
+    if (payback < minPayback && !isNaN(payback) && isFinite(payback)) {
       minPayback = payback;
       bestPaybackPoint = point;
     }

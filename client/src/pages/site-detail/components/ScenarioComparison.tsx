@@ -188,20 +188,20 @@ export function ScenarioComparison({
   // Badge definitions
   const badgeConfigs = {
     npv: {
-      labelFr: 'Meilleure VAN',
-      labelEn: 'Best NPV',
+      labelFr: 'Profit max',
+      labelEn: 'Max Profit',
       bgClass: 'bg-green-500 border-green-500',
       borderClass: 'border-green-500 bg-green-50/50 dark:bg-green-950/20'
     },
     irr: {
-      labelFr: 'Meilleur TRI',
-      labelEn: 'Best IRR',
+      labelFr: 'Rendement %',
+      labelEn: 'Best IRR %',
       bgClass: 'bg-blue-500 border-blue-500',
       borderClass: 'border-blue-500 bg-blue-50/50 dark:bg-blue-950/20'
     },
     selfSufficiency: {
-      labelFr: 'Meilleure autonomie',
-      labelEn: 'Best Self-Sufficiency',
+      labelFr: 'Indépendance max',
+      labelEn: 'Max Independence',
       bgClass: 'bg-purple-500 border-purple-500',
       borderClass: 'border-purple-500 bg-purple-50/50 dark:bg-purple-950/20'
     },
@@ -347,7 +347,7 @@ export function ScenarioComparison({
           pvSize: optimalScenarios.bestNPV.pvSizeKW,
           batterySize: optimalScenarios.bestNPV.battEnergyKWh,
           batteryPower: optimalScenarios.bestNPV.battPowerKW,
-          label: language === "fr" ? "Meilleur VAN" : "Best NPV",
+          label: language === "fr" ? "Profit max" : "Max Profit",
           description: language === "fr"
             ? "Profit total maximisé sur 25 ans"
             : "Maximum total profit over 25 years",
@@ -361,7 +361,7 @@ export function ScenarioComparison({
           pvSize: optimalScenarios.bestIRR.pvSizeKW,
           batterySize: optimalScenarios.bestIRR.battEnergyKWh,
           batteryPower: optimalScenarios.bestIRR.battPowerKW,
-          label: language === "fr" ? "Meilleur TRI" : "Best IRR",
+          label: language === "fr" ? "Rendement %" : "Best IRR %",
           description: language === "fr"
             ? "Rendement relatif maximisé"
             : "Maximum relative return on investment",
@@ -375,7 +375,7 @@ export function ScenarioComparison({
           pvSize: optimalScenarios.bestPayback.pvSizeKW,
           batterySize: optimalScenarios.bestPayback.battEnergyKWh,
           batteryPower: optimalScenarios.bestPayback.battPowerKW,
-          label: language === "fr" ? "Meilleur Payback" : "Best Payback",
+          label: language === "fr" ? "Récupération rapide" : "Fastest Payback",
           description: language === "fr"
             ? "Récupération de l'investissement la plus rapide"
             : "Fastest investment recovery",
@@ -389,7 +389,7 @@ export function ScenarioComparison({
           pvSize: optimalScenarios.maxSelfSufficiency.pvSizeKW,
           batterySize: optimalScenarios.maxSelfSufficiency.battEnergyKWh,
           batteryPower: optimalScenarios.maxSelfSufficiency.battPowerKW,
-          label: language === "fr" ? "Autonomie maximale" : "Max Self-Sufficiency",
+          label: language === "fr" ? "Indépendance max" : "Max Independence",
           description: language === "fr"
             ? "Indépendance énergétique maximale"
             : "Maximum energy independence",
@@ -411,7 +411,7 @@ export function ScenarioComparison({
         pvSize: Math.round(refPV * 0.6),
         batterySize: 0,
         batteryPower: 0,
-        label: language === "fr" ? "Meilleur TRI" : "Best IRR",
+        label: language === "fr" ? "Rendement %" : "Best IRR %",
         description: language === "fr"
           ? "Système plus petit = CAPEX réduit = meilleur rendement relatif"
           : "Smaller system = lower CAPEX = better relative return"
@@ -420,7 +420,7 @@ export function ScenarioComparison({
         pvSize: Math.round(refPV * 1.3),
         batterySize: Math.max(Math.round(refPV * 0.5), 50),
         batteryPower: Math.max(Math.round(refPV * 0.25), 25),
-        label: language === "fr" ? "Autonomie maximale" : "Max Self-Sufficiency",
+        label: language === "fr" ? "Indépendance max" : "Max Independence",
         description: language === "fr"
           ? "Système agrandi + stockage = moins de dépendance au réseau"
           : "Larger system + storage = less grid dependence"
@@ -732,10 +732,10 @@ export function ScenarioComparison({
                           <DollarSign className="w-4 h-4 text-green-600" />
                           <div>
                             <span className="font-medium text-green-700 dark:text-green-400">
-                              {language === "fr" ? "Meilleur VAN" : "Best NPV"}
+                              {language === "fr" ? "Profit max" : "Max Profit"}
                             </span>
                             <p className="text-xs text-muted-foreground">
-                              {language === "fr" ? "Profit maximisé" : "Max profit"}
+                              {language === "fr" ? "VAN 25 ans maximisée" : "NPV 25yr maximized"}
                             </p>
                           </div>
                           <Badge variant="outline" className="ml-1 text-xs bg-green-100 text-green-700 border-green-300">
@@ -771,10 +771,10 @@ export function ScenarioComparison({
                           <TrendingUp className="w-4 h-4 text-blue-600" />
                           <div>
                             <span className="font-medium text-blue-700 dark:text-blue-400">
-                              {language === "fr" ? "Meilleur TRI" : "Best IRR"}
+                              {language === "fr" ? "Rendement %" : "Best IRR %"}
                             </span>
                             <p className="text-xs text-muted-foreground">
-                              {language === "fr" ? "Rendement maximisé" : "Max return %"}
+                              {language === "fr" ? "TRI maximisé" : "Max return %"}
                             </p>
                           </div>
                         </div>
@@ -813,10 +813,10 @@ export function ScenarioComparison({
                           <Clock className="w-4 h-4 text-orange-600" />
                           <div>
                             <span className="font-medium text-orange-700 dark:text-orange-400">
-                              {language === "fr" ? "Meilleur Payback" : "Best Payback"}
+                              {language === "fr" ? "Récupération rapide" : "Fastest Payback"}
                             </span>
                             <p className="text-xs text-muted-foreground">
-                              {language === "fr" ? "Récupération rapide" : "Fastest recovery"}
+                              {language === "fr" ? "Retour investissement min." : "Min. investment recovery"}
                             </p>
                           </div>
                         </div>
@@ -855,7 +855,7 @@ export function ScenarioComparison({
                           <Battery className="w-4 h-4 text-purple-600" />
                           <div>
                             <span className="font-medium text-purple-700 dark:text-purple-400">
-                              {language === "fr" ? "Autonomie max" : "Max Independence"}
+                              {language === "fr" ? "Indépendance max" : "Max Independence"}
                             </span>
                             <p className="text-xs text-muted-foreground">
                               {language === "fr" ? "Moins de réseau" : "Less grid"}

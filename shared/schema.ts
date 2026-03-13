@@ -2754,7 +2754,7 @@ export interface OptimalScenarios {
   bestNPV: OptimalScenario | null;      // Maximum NPV25
   bestIRR: OptimalScenario | null;       // Maximum IRR (with NPV > 0 constraint)
   maxSelfSufficiency: OptimalScenario | null;  // Maximum self-consumption %
-  bestPayback: OptimalScenario | null;         // Minimum payback years (profitable scenarios only)
+  bestPayback: OptimalScenario | null;  // Minimum payback years (profitable scenarios only)
 }
 
 // Complete sensitivity analysis result
