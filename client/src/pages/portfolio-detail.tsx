@@ -807,8 +807,8 @@ export default function PortfolioDetailPage() {
             );
 
             const renderSiteRow = (ps: typeof portfolioSites[0]) => {
-              const sim = ps.latestSimulation;
               const psAny = ps as any;
+              const rm = psAny.resolvedMetrics;
               return (
                 <TableRow key={ps.siteId}>
                   <TableCell>
@@ -826,7 +826,7 @@ export default function PortfolioDetailPage() {
                   </TableCell>
                   <TableCell className="text-right">
                     <EditableCell
-                      value={sim?.pvSizeKW}
+                      value={rm?.pvSizeKW}
                       overrideValue={psAny.overridePvSizeKW}
                       portfolioSiteId={ps.id}
                       field="overridePvSizeKW"
@@ -838,7 +838,7 @@ export default function PortfolioDetailPage() {
                   </TableCell>
                   <TableCell className="text-right">
                     <EditableCell
-                      value={sim?.battEnergyKWh}
+                      value={rm?.batteryKWh}
                       overrideValue={psAny.overrideBatteryKWh}
                       portfolioSiteId={ps.id}
                       field="overrideBatteryKWh"
@@ -850,7 +850,7 @@ export default function PortfolioDetailPage() {
                   </TableCell>
                   <TableCell className="text-right">
                     <EditableCell
-                      value={sim?.capexNet}
+                      value={rm?.capexNet}
                       overrideValue={psAny.overrideCapexNet}
                       portfolioSiteId={ps.id}
                       field="overrideCapexNet"
@@ -862,7 +862,7 @@ export default function PortfolioDetailPage() {
                   </TableCell>
                   <TableCell className="text-right">
                     <EditableCell
-                      value={sim?.npv25}
+                      value={rm?.npv25}
                       overrideValue={psAny.overrideNpv}
                       portfolioSiteId={ps.id}
                       field="overrideNpv"
@@ -874,7 +874,7 @@ export default function PortfolioDetailPage() {
                   </TableCell>
                   <TableCell className="text-right">
                     <EditableCell
-                      value={sim?.irr25}
+                      value={rm?.irr25}
                       overrideValue={psAny.overrideIrr}
                       portfolioSiteId={ps.id}
                       field="overrideIrr"
@@ -886,7 +886,7 @@ export default function PortfolioDetailPage() {
                   </TableCell>
                   <TableCell className="text-right">
                     <EditableCell
-                      value={sim?.annualSavings}
+                      value={rm?.annualSavings}
                       overrideValue={psAny.overrideAnnualSavings}
                       portfolioSiteId={ps.id}
                       field="overrideAnnualSavings"

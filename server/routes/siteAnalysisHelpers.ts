@@ -13,6 +13,7 @@ import {
   type CashflowEntry,
   type FinancialBreakdown,
 } from "@shared/schema";
+import { buildSimulationInsert } from "../analysis/resolveSimulationMetrics";
 import {
   resolveYieldStrategy as resolveYieldStrategyFromAnalysis,
   getTieredSolarCostPerW,
@@ -351,15 +352,8 @@ interface AnalysisResult {
   irr30: number;
   lcoe30: number;
   co2AvoidedTonnesPerYear: number;
-  // Properties needed by createSimulationRun (mapped names)
   totalExportedKWh: number;
   annualSurplusRevenue: number;
-  annualEnergyCostSavings: number;
-  annualDemandCostSavings: number;
-  totalAnnualSavings: number;
-  systemCost: number;
-  npv: number;
-  irr: number;
   assumptions: AnalysisAssumptions;
   cashflows: CashflowEntry[];
   breakdown: FinancialBreakdown;
@@ -908,15 +902,8 @@ export function runPotentialAnalysis(
     irr30,
     lcoe30,
     co2AvoidedTonnesPerYear,
-    // Mapped names for createSimulationRun compatibility
     totalExportedKWh,
     annualSurplusRevenue,
-    annualEnergyCostSavings: selfConsumptionKWh * h.tariffEnergy,
-    annualDemandCostSavings: demandSavings,
-    totalAnnualSavings: annualSavings,
-    systemCost: capexNet,
-    npv: npv25,
-    irr: irr25,
     assumptions: h,
     cashflows,
     breakdown,
@@ -1083,42 +1070,9 @@ export async function runAutoAnalysisForSite(siteId: string): Promise<void> {
     { preCalculatedDataSpanDays: dedupResult.dataSpanDays }
   );
 
-  await storage.createSimulationRun({
-    siteId,
-    meterId: null,
-    type: "SCENARIO",
-    status: "completed",
-    pvSizeKW: result.pvSizeKW,
-    battEnergyKWh: result.battEnergyKWh,
-    battPowerKW: result.battPowerKW,
-    demandShavingSetpointKW: result.demandShavingSetpointKW,
-    annualConsumptionKWh: result.annualConsumptionKWh,
-    peakDemandKW: result.peakDemandKW,
-    annualEnergySavingsKWh: result.annualEnergySavingsKWh,
-    annualDemandReductionKW: result.annualDemandReductionKW,
-    selfConsumptionKWh: result.selfConsumptionKWh,
-    selfSufficiencyPercent: result.selfSufficiencyPercent,
-    totalProductionKWh: result.totalProductionKWh,
-    totalExportedKWh: result.totalExportedKWh,
-    annualSurplusRevenue: result.annualSurplusRevenue,
-    annualEnergyCostSavings: result.annualEnergyCostSavings,
-    annualDemandCostSavings: result.annualDemandCostSavings,
-    totalAnnualSavings: result.totalAnnualSavings,
-    systemCost: result.systemCost,
-    npv: result.npv,
-    irr: result.irr,
-    simplePaybackYears: result.simplePaybackYears,
-    lcoe: result.lcoe,
-    co2AvoidedTonnesPerYear: result.co2AvoidedTonnesPerYear,
-    assumptions: result.assumptions,
-    cashflows: result.cashflows,
-    breakdown: result.breakdown,
-    hourlyProfile: result.hourlyProfile,
-    peakWeekData: result.peakWeekData,
-    sensitivity: result.sensitivity,
-    interpolatedMonths: result.interpolatedMonths,
+  await storage.createSimulationRun(buildSimulationInsert(siteId, result, {
     label: "Auto-analyse (import HQ)",
-  } as any);
+  }));
 
   await storage.updateSite(siteId, { readyForAnalysis: false });
   log.info(`Auto-analysis saved for site ${siteId}`);

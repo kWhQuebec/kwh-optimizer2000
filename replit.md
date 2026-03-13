@@ -52,8 +52,16 @@ JWT access tokens expire after 15 minutes. Login returns both `token` (access) a
 ### Roof Area Source Tracking
 Both quick-potential and detailed analysis endpoints track the source of roof area data via a `roofAreaSource` field in responses: `"polygons"` (drawn), `"site"` (manual/Google Solar), `"sibling-copy"` (copied from same-address site), or `"consumption-estimate"` (reverse-engineered from consumption). The frontend displays an amber warning banner when results use estimated roof area.
 
+### Canonical Simulation Metrics Resolver
+The module `server/analysis/resolveSimulationMetrics.ts` provides the single source of truth for reading financial metrics from simulation records:
+- **`resolveSimulationMetrics(simulation, target?)`** — Canonical resolver that checks `sensitivity.optimalScenarios` for the requested target ('npv'|'irr'|'selfSufficiency'), falling back to flat DB columns. Used by portfolio aggregation and PDF generation.
+- **`buildSimulationInsert(siteId, result, options?)`** — Typed helper for creating simulation records. Both manual and auto-analysis paths use this, eliminating field name mismatches and `as any` casts.
+- **`aggregatePortfolioKPIs(portfolioSites, target?)`** — Unified portfolio aggregation used by `/api/portfolios/:id/full`, `/recalculate`, portfolio PDF, and master agreement PDF. IRR is consistently weighted by `capexNet`.
+- **`resolvePortfolioSiteMetrics(ps, target?)`** — Per-site resolution with override chain: override value → resolved metric → 0.
+- **`calculateVolumeDiscount(numBuildings)`** — Shared volume discount calculation.
+
 ### Portfolio Synchronization
-The portfolio recalculate endpoint (`POST /api/portfolios/:id/recalculate`) clears all site-level overrides before recalculating totals from the latest simulations. This ensures the portfolio always reflects current analysis results after sync.
+The portfolio recalculate endpoint (`POST /api/portfolios/:id/recalculate`) clears all site-level overrides before recalculating totals from the latest simulations. This ensures the portfolio always reflects current analysis results after sync. Portfolio PDF and master agreement PDF now live-calculate aggregates using the canonical resolver instead of reading stale pre-stored values.
 
 ### Error Handling
 The backend uses a centralized error handling system with custom `AppError` classes and an `asyncHandler` wrapper for consistent error responses.

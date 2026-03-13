@@ -23,6 +23,7 @@ import {
   type Site,
 } from "@shared/schema";
 import { BUDGET_CATEGORIES } from "@shared/stageLabels";
+import { buildSimulationInsert } from "../analysis/resolveSimulationMetrics";
 import {
   runMonteCarloAnalysis,
   createSimplifiedScenarioRunner,
@@ -1483,52 +1484,7 @@ router.post("/:siteId/run-potential-analysis", authMiddleware, requireStaff, asy
     }
   );
 
-  const simulation = await storage.createSimulationRun({
-    siteId,
-    meterId: null,
-    type: "SCENARIO",
-    pvSizeKW: result.pvSizeKW,
-    battEnergyKWh: result.battEnergyKWh,
-    battPowerKW: result.battPowerKW,
-    demandShavingSetpointKW: result.demandShavingSetpointKW,
-    annualConsumptionKWh: result.annualConsumptionKWh,
-    peakDemandKW: result.peakDemandKW,
-    annualEnergySavingsKWh: result.annualEnergySavingsKWh,
-    annualDemandReductionKW: result.annualDemandReductionKW,
-    selfConsumptionKWh: result.selfConsumptionKWh,
-    selfSufficiencyPercent: result.selfSufficiencyPercent,
-    totalProductionKWh: result.totalProductionKWh,
-    annualCostBefore: result.annualCostBefore,
-    annualCostAfter: result.annualCostAfter,
-    annualSavings: result.annualSavings,
-    savingsYear1: result.savingsYear1,
-    capexGross: result.capexGross,
-    capexPV: result.capexPV,
-    capexBattery: result.capexBattery,
-    incentivesHQ: result.incentivesHQ,
-    incentivesHQSolar: result.incentivesHQSolar,
-    incentivesHQBattery: result.incentivesHQBattery,
-    incentivesFederal: result.incentivesFederal,
-    taxShield: result.taxShield,
-    totalIncentives: result.totalIncentives,
-    capexNet: result.capexNet,
-    npv25: result.npv25,
-    npv10: result.npv10,
-    npv20: result.npv20,
-    irr25: result.irr25,
-    irr10: result.irr10,
-    irr20: result.irr20,
-    simplePaybackYears: result.simplePaybackYears,
-    lcoe: result.lcoe,
-    co2AvoidedTonnesPerYear: result.co2AvoidedTonnesPerYear,
-    assumptions: result.assumptions,
-    cashflows: result.cashflows,
-    breakdown: result.breakdown,
-    hourlyProfile: result.hourlyProfile,
-    peakWeekData: result.peakWeekData,
-    sensitivity: result.sensitivity,
-    interpolatedMonths: result.interpolatedMonths,
-  });
+  const simulation = await storage.createSimulationRun(buildSimulationInsert(siteId, result));
 
   res.json({
     simulationId: simulation.id,

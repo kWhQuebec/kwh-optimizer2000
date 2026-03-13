@@ -8,6 +8,10 @@ import { createLogger } from "../lib/logger";
 import { asyncHandler, BadRequestError, NotFoundError, ForbiddenError, ValidationError } from "../middleware/errorHandler";
 import { sendHqProcurationEmail } from "../emailService";
 import { z } from "zod";
+import {
+  aggregatePortfolioKPIs,
+  resolvePortfolioSiteMetrics,
+} from "../analysis/resolveSimulationMetrics";
 
 const log = createLogger("Portfolios");
 
@@ -70,75 +74,17 @@ router.get("/api/portfolios/:id/full", authMiddleware, asyncHandler(async (req: 
   }
 
   const portfolioSites = await storage.getPortfolioSites(req.params.id);
+  const kpis = aggregatePortfolioKPIs(portfolioSites);
 
-  let totalPvSizeKW = 0;
-  let totalBatteryCapacityKWh = 0;
-  let totalNetCapex = 0;
-  let totalAnnualSavings = 0;
-  let totalCo2Avoided = 0;
-  let weightedIrrSum = 0;
-  let totalNpv = 0;
-  let sitesWithSimulations = 0;
-
-  for (const ps of portfolioSites) {
-    const sim = ps.latestSimulation;
-
-    // Read directly from simulation columns (not the JSONB results blob which has different field names)
-    const pvSize = ps.overridePvSizeKW ?? sim?.pvSizeKW ?? 0;
-    const batterySize = ps.overrideBatteryKWh ?? sim?.battEnergyKWh ?? 0;
-    const netCapex = ps.overrideCapexNet ?? sim?.capexNet ?? 0;
-    const npv = ps.overrideNpv ?? sim?.npv25 ?? 0;
-    const irr = ps.overrideIrr ?? sim?.irr25 ?? 0;
-    const annualSavings = ps.overrideAnnualSavings ?? sim?.annualSavings ?? 0;
-    const co2 = sim?.co2AvoidedTonnesPerYear ?? 0;
-
-    const hasData = pvSize > 0 || netCapex !== 0 || npv !== 0 || annualSavings !== 0 ||
-                   ps.overridePvSizeKW != null || ps.overrideCapexNet != null ||
-                   ps.overrideNpv != null || ps.overrideAnnualSavings != null;
-
-    if (hasData || sim) {
-      totalPvSizeKW += pvSize;
-      totalBatteryCapacityKWh += batterySize;
-      totalNetCapex += netCapex;
-      totalNpv += npv;
-      totalAnnualSavings += annualSavings;
-      totalCo2Avoided += co2;
-
-      if (netCapex > 0 && irr !== 0) {
-        weightedIrrSum += irr * netCapex;
-      }
-      if (netCapex !== 0 || pvSize > 0) {
-        sitesWithSimulations++;
-      }
-    }
-  }
-
-  const weightedIrr = totalNetCapex > 0 ? weightedIrrSum / totalNetCapex : 0;
-
-  const numBuildings = portfolioSites.length;
-  let volumeDiscount = 0;
-  if (numBuildings >= 20) volumeDiscount = 0.15;
-  else if (numBuildings >= 10) volumeDiscount = 0.10;
-  else if (numBuildings >= 5) volumeDiscount = 0.05;
-
-  const aggregatedKpis = {
-    totalPvSizeKW,
-    totalBatteryCapacityKWh,
-    totalNetCapex,
-    totalNpv,
-    weightedIrr,
-    totalAnnualSavings,
-    totalCo2Avoided,
-    numBuildings,
-    sitesWithSimulations,
-    volumeDiscount,
-    discountedCapex: totalNetCapex * (1 - volumeDiscount),
-  };
+  const sitesWithResolved = portfolioSites.map(ps => ({
+    ...ps,
+    resolvedMetrics: resolvePortfolioSiteMetrics(ps),
+  }));
 
   res.json({
     portfolio,
-    sites: portfolioSites,
-    kpis: aggregatedKpis,
+    sites: sitesWithResolved,
+    kpis,
   });
 }));
 
@@ -338,6 +284,7 @@ router.get("/api/portfolios/:id/pdf", authMiddleware, asyncHandler(async (req: A
 
   const { generatePortfolioSummaryPDF } = await import("../pdf");
 
+  const kpis = aggregatePortfolioKPIs(portfolioSites);
   const quotedCosts = (portfolio.quotedCosts as Record<string, unknown>) || {};
 
   generatePortfolioSummaryPDF(doc, {
@@ -345,28 +292,31 @@ router.get("/api/portfolios/:id/pdf", authMiddleware, asyncHandler(async (req: A
     name: portfolio.name,
     clientName: client.name,
     description: portfolio.description || undefined,
-    numBuildings: portfolio.numBuildings || portfolioSites.length,
+    numBuildings: kpis.numBuildings,
     estimatedTravelDays: portfolio.estimatedTravelDays,
-    volumeDiscountPercent: portfolio.volumeDiscountPercent,
+    volumeDiscountPercent: kpis.volumeDiscount,
     quotedCosts,
-    totalPvSizeKW: portfolio.totalPvSizeKW,
-    totalBatteryKWh: portfolio.totalBatteryKWh,
-    totalCapexNet: portfolio.totalCapexNet,
-    totalNpv25: portfolio.totalNpv25,
-    weightedIrr25: portfolio.weightedIrr25,
-    totalAnnualSavings: portfolio.totalAnnualSavings,
-    totalCo2Avoided: portfolio.totalCo2Avoided,
-    sites: portfolioSites.map(ps => ({
-      siteName: ps.site?.name || "Unknown",
-      city: ps.site?.city || undefined,
-      pvSizeKW: ps.latestSimulation?.pvSizeKW || null,
-      batteryKWh: ps.latestSimulation?.battEnergyKWh || null,
-      capexNet: ps.latestSimulation?.capexNet || null,
-      npv25: ps.latestSimulation?.npv25 || null,
-      irr25: ps.latestSimulation?.irr25 || null,
-      annualSavings: ps.latestSimulation?.annualSavings || null,
-      co2Avoided: ps.latestSimulation?.co2AvoidedTonnesPerYear || null,
-    })),
+    totalPvSizeKW: kpis.totalPvSizeKW,
+    totalBatteryKWh: kpis.totalBatteryCapacityKWh,
+    totalCapexNet: kpis.totalNetCapex,
+    totalNpv25: kpis.totalNpv,
+    weightedIrr25: kpis.weightedIrr,
+    totalAnnualSavings: kpis.totalAnnualSavings,
+    totalCo2Avoided: kpis.totalCo2Avoided,
+    sites: portfolioSites.map(ps => {
+      const m = resolvePortfolioSiteMetrics(ps);
+      return {
+        siteName: ps.site?.name || "Unknown",
+        city: ps.site?.city || undefined,
+        pvSizeKW: m.pvSizeKW || null,
+        batteryKWh: m.batteryKWh || null,
+        capexNet: m.capexNet || null,
+        npv25: m.npv25 || null,
+        irr25: m.irr25 || null,
+        annualSavings: m.annualSavings || null,
+        co2Avoided: m.co2Avoided || null,
+      };
+    }),
     createdAt: portfolio.createdAt || undefined,
   }, lang as "fr" | "en");
 
@@ -395,19 +345,20 @@ router.get("/api/portfolios/:id/master-agreement-pdf", authMiddleware, asyncHand
 
   const { generateMasterAgreementPDFBuffer } = await import("../pdf/masterAgreementPDF");
 
+  const kpis = aggregatePortfolioKPIs(portfolioSites);
   let totalFirstYearKwh = 0;
   const allSites = portfolioSites.map(ps => {
     const fm = (ps as any).financialModel;
-    const pvKw = ps.overridePvSizeKW ?? ps.latestSimulation?.pvSizeKW ?? null;
-    const yr1Kwh = fm?.projectSpecs?.firstYearKwh ?? ps.latestSimulation?.totalProductionKWh ?? null;
-    const cost = fm?.projectCosts?.totalProjectCost ?? ps.overrideCapexNet ?? ps.latestSimulation?.capexNet ?? null;
+    const resolved = resolvePortfolioSiteMetrics(ps);
+    const yr1Kwh = resolved.totalProductionKWh > 0 ? resolved.totalProductionKWh : (fm?.projectSpecs?.firstYearKwh ?? null);
+    const cost = resolved.capexNet > 0 ? resolved.capexNet : (fm?.projectCosts?.totalProjectCost ?? null);
     if (yr1Kwh) totalFirstYearKwh += yr1Kwh;
     return {
       siteName: ps.site?.name || "Unknown",
       address: ps.site?.address || undefined,
       city: ps.site?.city || undefined,
       financialModel: fm || undefined,
-      pvSizeKW: pvKw,
+      pvSizeKW: resolved.pvSizeKW || null,
       firstYearKwh: yr1Kwh,
       totalProjectCost: cost,
     };
@@ -417,14 +368,14 @@ router.get("/api/portfolios/:id/master-agreement-pdf", authMiddleware, asyncHand
     name: portfolio.name,
     clientName: client.name,
     description: portfolio.description || undefined,
-    numBuildings: portfolio.numBuildings || portfolioSites.length,
-    volumeDiscountPercent: portfolio.volumeDiscountPercent,
-    totalPvSizeKW: portfolio.totalPvSizeKW,
-    totalBatteryKWh: portfolio.totalBatteryKWh,
-    totalCapexNet: portfolio.totalCapexNet,
-    totalNpv25: portfolio.totalNpv25,
-    totalAnnualSavings: portfolio.totalAnnualSavings,
-    totalCo2Avoided: portfolio.totalCo2Avoided,
+    numBuildings: kpis.numBuildings,
+    volumeDiscountPercent: kpis.volumeDiscount,
+    totalPvSizeKW: kpis.totalPvSizeKW,
+    totalBatteryKWh: kpis.totalBatteryCapacityKWh,
+    totalCapexNet: kpis.totalNetCapex,
+    totalNpv25: kpis.totalNpv,
+    totalAnnualSavings: kpis.totalAnnualSavings,
+    totalCo2Avoided: kpis.totalCo2Avoided,
     totalFirstYearKwh: totalFirstYearKwh || null,
     sites: allSites,
   }, lang as "fr" | "en");
@@ -443,15 +394,6 @@ router.post("/api/portfolios/:id/recalculate", authMiddleware, requireStaff, asy
 
   const portfolioSites = await storage.getPortfolioSites(req.params.id);
 
-  let totalPvSizeKW = 0;
-  let totalBatteryKWh = 0;
-  let totalCapexNet = 0;
-  let totalNpv25 = 0;
-  let totalAnnualSavings = 0;
-  let totalCo2Avoided = 0;
-  let totalCapexGross = 0;
-  let weightedIrrSum = 0;
-
   for (const ps of portfolioSites) {
     await storage.updatePortfolioSite(ps.id, {
       overridePvSizeKW: null,
@@ -461,44 +403,17 @@ router.post("/api/portfolios/:id/recalculate", authMiddleware, requireStaff, asy
       overrideIrr: null,
       overrideAnnualSavings: null,
     });
-
-    const pvSize = ps.latestSimulation?.pvSizeKW ?? 0;
-    const battKWh = ps.latestSimulation?.battEnergyKWh ?? 0;
-    const capexNet = ps.latestSimulation?.capexNet ?? 0;
-    const npv = ps.latestSimulation?.npv25 ?? 0;
-    const irr = ps.latestSimulation?.irr25 ?? 0;
-    const annualSavings = ps.latestSimulation?.annualSavings ?? 0;
-    const co2 = ps.latestSimulation?.co2AvoidedTonnesPerYear ?? 0;
-
-    const hasData = pvSize > 0 || capexNet !== 0 || npv !== 0 || annualSavings !== 0;
-
-    if (hasData || ps.latestSimulation) {
-      totalPvSizeKW += pvSize;
-      totalBatteryKWh += battKWh;
-      totalCapexNet += capexNet;
-      totalNpv25 += npv;
-      totalAnnualSavings += annualSavings;
-      totalCo2Avoided += co2;
-
-      const capex = ps.latestSimulation?.capexGross || capexNet || 0;
-      if (capex > 0 && irr !== 0) {
-        totalCapexGross += capex;
-        weightedIrrSum += irr * capex;
-      }
-    }
+    ps.overridePvSizeKW = null;
+    ps.overrideBatteryKWh = null;
+    ps.overrideCapexNet = null;
+    ps.overrideNpv = null;
+    ps.overrideIrr = null;
+    ps.overrideAnnualSavings = null;
   }
 
-  const weightedIrr25 = totalCapexGross > 0 ? weightedIrrSum / totalCapexGross : null;
-
-  let volumeDiscountPercent = 0;
-  const numBuildings = portfolioSites.length;
-  if (numBuildings >= 20) {
-    volumeDiscountPercent = 0.15;
-  } else if (numBuildings >= 10) {
-    volumeDiscountPercent = 0.10;
-  } else if (numBuildings >= 5) {
-    volumeDiscountPercent = 0.05;
-  }
+  const kpis = aggregatePortfolioKPIs(portfolioSites);
+  const volumeDiscountPercent = kpis.volumeDiscount;
+  const numBuildings = kpis.numBuildings;
 
   const TRAVEL_COST_PER_DAY = 150;
   const VISIT_COST_PER_BUILDING = 600;
@@ -536,13 +451,13 @@ router.post("/api/portfolios/:id/recalculate", authMiddleware, requireStaff, asy
     volumeDiscountPercent,
     quotedCosts,
     totalCad: total,
-    totalPvSizeKW,
-    totalBatteryKWh,
-    totalCapexNet,
-    totalNpv25,
-    weightedIrr25,
-    totalAnnualSavings,
-    totalCo2Avoided,
+    totalPvSizeKW: kpis.totalPvSizeKW,
+    totalBatteryKWh: kpis.totalBatteryCapacityKWh,
+    totalCapexNet: kpis.totalNetCapex,
+    totalNpv25: kpis.totalNpv,
+    weightedIrr25: kpis.weightedIrr,
+    totalAnnualSavings: kpis.totalAnnualSavings,
+    totalCo2Avoided: kpis.totalCo2Avoided,
   });
 
   res.json(updated);

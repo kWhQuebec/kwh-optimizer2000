@@ -397,8 +397,8 @@ function buildFinancialFrameworkPage(data: MasterAgreementData, t: (fr: string, 
 
   const makeRows = (sites: typeof allRows) => sites.map(site => {
     const fm = site.financialModel;
-    const pvKw = fm?.projectSpecs?.projectSizeDcKw ?? site.pvSizeKW;
-    const cost = fm?.projectCosts?.totalProjectCost ?? site.totalProjectCost;
+    const pvKw = site.pvSizeKW ?? fm?.projectSpecs?.projectSizeDcKw ?? null;
+    const cost = site.totalProjectCost ?? fm?.projectCosts?.totalProjectCost ?? null;
     const dollarPerW = fm?.projectCosts?.installCostPerW
       ? fm.projectCosts.installCostPerW.toFixed(2)
       : (pvKw && cost) ? (cost / (pvKw * 1000)).toFixed(2) : "&mdash;";
