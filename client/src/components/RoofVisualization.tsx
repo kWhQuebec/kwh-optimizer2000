@@ -1912,13 +1912,6 @@ export function RoofVisualization({
           });
           
           roofPolygonObjectsRef.current.push(solarGooglePolygon);
-          solarPolygonDataForUnified.push({
-            polygon: solarGooglePolygon,
-            id: polygon.id,
-            coords,
-            tiltDegrees: polygon.tiltDegrees ?? undefined,
-            azimuthDegrees: isFlush ? (polygon.orientation ?? undefined) : undefined,
-          });
           
           if (hasNorthAzimuth) {
             const centroid = computeCentroid(coords);
