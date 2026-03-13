@@ -34,6 +34,8 @@ import { calculateCashflowMetrics } from "../analysis/cashflowCalculations";
 import { runAnalysisQA, type QAResult } from "../analysis/analysisQA";
 import { HQ_TARIFF_ESCALATION_RATE, HQ_TARIFF_ESCALATION_INITIAL, HQ_TARIFF_ESCALATION_TRANSITION_YEAR, TEMPERATURE_COEFFICIENT } from '@shared/constants';
 
+function isNorthFacingPolygon(p){const t=(p.tiltDegrees??p.tilt_degrees??0);if(t<=0)return false;const a=p.orientation;if(a==null||a===undefined)return false;const n=((a%360)+360)%360;return n>=315||n<=45;}
+
 export { resolveYieldStrategyFromAnalysis as resolveYieldStrategy };
 export { getTieredSolarCostPerW };
 export type { YieldStrategy, SystemModelingParams };
@@ -1036,8 +1038,8 @@ export async function runAutoAnalysisForSite(siteId: string): Promise<void> {
   const solarPolygons = polygons.filter(p => {
     if (p.color === "#f97316") return false;
     const label = (p.label || "").toLowerCase();
-    return !label.includes("constraint") && !label.includes("contrainte") &&
-           !label.includes("hvac") && !label.includes("obstacle");
+    if(isNorthFacingPolygon(p))return false;
+        return !label.includes("constraint")&&!label.includes("contrainte")&&!label.includes("hvac")&&!label.includes("obstacle");
   });
 
   const tracedSolarAreaSqM = solarPolygons.reduce((sum, p) => sum + (p.areaSqM || 0), 0);
@@ -1059,7 +1061,7 @@ export async function runAutoAnalysisForSite(siteId: string): Promise<void> {
 
   const roofUtilizationRatio = baseAssumptions.roofUtilizationRatio ?? 0.85;
   const usableAreaSqM = effectiveRoofAreaSqM * roofUtilizationRatio;
-  const kbMaxPvKw = (usableAreaSqM / 3.71) * 0.660;
+  const formulaMaxPvKw=(usableAreaSqM/3.71)*0.660;const sKb=(site).kbKwDc;const kbMaxPvKw=(sKb&&sKb>0)?Math.min(formulaMaxPvKw,sKb):formulaMaxPvKw;
   analysisAssumptions.maxPVFromRoofKw = kbMaxPvKw;
 
   log.info(`Auto-analysis: site=${siteId}, roofArea=${effectiveRoofAreaSqM.toFixed(0)}m², maxPV=${kbMaxPvKw.toFixed(1)}kW`);

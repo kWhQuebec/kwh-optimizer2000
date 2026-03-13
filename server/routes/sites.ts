@@ -163,6 +163,8 @@ async function triggerRoofEstimation(siteId: string): Promise<void> {
   }
 }
 
+function isNorthFacingPolygon(p){const t=(p.tiltDegrees??p.tilt_degrees??0);if(t<=0)return false;const a=p.orientation;if(a==null||a===undefined)return false;const n=((a%360)+360)%360;return n>=315||n<=45;}
+
 router.get("/list", authMiddleware, asyncHandler(async (req: AuthRequest, res) => {
   const { limit, offset, search, clientId, includeArchived, sortBy } = req.query;
   const showArchived = includeArchived === "true";
@@ -1029,8 +1031,8 @@ router.post("/:siteId/quick-potential", authMiddleware, requireStaff, asyncHandl
   const solarPolygons = polygons.filter(p => {
     if (p.color === "#f97316") return false; // Orange = constraint
     const label = (p.label || "").toLowerCase();
-    return !label.includes("constraint") && !label.includes("contrainte") &&
-           !label.includes("hvac") && !label.includes("obstacle");
+    if(isNorthFacingPolygon(p))return false;
+            return !label.includes("constraint")&&!label.includes("contrainte")&&!label.includes("hvac")&&!label.includes("obstacle");
   });
 
   // Calculate total roof area from polygons or fallback to site values
@@ -1418,8 +1420,8 @@ router.post("/:siteId/run-potential-analysis", authMiddleware, requireStaff, asy
   const solarPolygons = polygons.filter(p => {
     if (p.color === "#f97316") return false; // Orange = constraint
     const label = (p.label || "").toLowerCase();
-    return !label.includes("constraint") && !label.includes("contrainte") &&
-           !label.includes("hvac") && !label.includes("obstacle");
+    if(isNorthFacingPolygon(p))return false;
+            return !label.includes("constraint")&&!label.includes("contrainte")&&!label.includes("hvac")&&!label.includes("obstacle");
   });
 
   // Calculate total traced solar area
@@ -1467,7 +1469,7 @@ router.post("/:siteId/run-potential-analysis", authMiddleware, requireStaff, asy
   const roofUtilizationRatio = baseAssumptions.roofUtilizationRatio ?? 0.85;
   const usableAreaSqM = effectiveRoofAreaSqM * roofUtilizationRatio;
   const formulaMaxPvKw = (usableAreaSqM / 3.71) * 0.660;
-  const kbMaxPvKw = formulaMaxPvKw; // kbKwDc (Google Solar) is for yield estimation only, NOT PV sizing
+  const _kbKwDc=site.kbKwDc;const kbMaxPvKw=(_kbKwDc&&_kbKwDc>0)?Math.min(formulaMaxPvKw,_kbKwDc):formulaMaxPvKw;
   (analysisAssumptions as any).maxPVFromRoofKw = kbMaxPvKw;
 
   log.info(`Roof area source: ${tracedSolarAreaSqM > 0 ? 'polygons' : 'site'}, ` +
@@ -1687,7 +1689,8 @@ router.get("/:siteId/price-breakdown", authMiddleware, asyncHandler(async (req: 
     const _solarPolygons = _allPolygons.filter((p) => {
       if ((p as any).color === "#f97316") return false;
       const label = ((p as any).label || "").toLowerCase();
-      return !label.includes("constraint") && !label.includes("contrainte") && !label.includes("hvac") && !label.includes("obstacle");
+      if(isNorthFacingPolygon(p))return false;
+            return !label.includes("constraint")&&!label.includes("contrainte")&&!label.includes("hvac")&&!label.includes("obstacle");
     });
     const _polygonArea = _solarPolygons.reduce((sum, p) => sum + ((p as any).areaSqM || 0), 0);
     const _effectiveArea = _polygonArea > 0 ? _polygonArea : (site.roofAreaSqM || site.roofAreaAutoSqM || 0);
@@ -2450,7 +2453,8 @@ router.post("/:siteId/budgets/initialize", authMiddleware, requireStaff, asyncHa
     const _solarPolygons = _allPolygons.filter((p) => {
       if ((p as any).color === "#f97316") return false;
       const label = ((p as any).label || "").toLowerCase();
-      return !label.includes("constraint") && !label.includes("contrainte") && !label.includes("hvac") && !label.includes("obstacle");
+      if(isNorthFacingPolygon(p))return false;
+            return !label.includes("constraint")&&!label.includes("contrainte")&&!label.includes("hvac")&&!label.includes("obstacle");
     });
     const _polygonArea = _solarPolygons.reduce((sum, p) => sum + ((p as any).areaSqM || 0), 0);
     const _effectiveArea = _polygonArea > 0 ? _polygonArea : (site.roofAreaSqM || site.roofAreaAutoSqM || 0);

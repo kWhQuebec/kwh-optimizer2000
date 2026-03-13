@@ -424,7 +424,7 @@ export function AnalysisResults({
   const displayedRoofCapacityKW = Math.round(effectiveMaxPV);
   // Only cap PV size by roof if the roof capacity is credible (> 50% of simulation value)
   // Otherwise the cap likely comes from missing/wrong polygons and would corrupt the display
-  const roofCapIsCredible = displayedRoofCapacityKW > 0 && displayedRoofCapacityKW >= uncappedPvSizeKW * 0.5;
+  const roofCapIsCredible = displayedRoofCapacityKW > 0 || roofGeometryCapacityKW > 0;
   const cappedPvSizeKW = roofCapIsCredible
     ? Math.min(uncappedPvSizeKW, displayedRoofCapacityKW)
     : uncappedPvSizeKW;
@@ -896,8 +896,8 @@ export function AnalysisResults({
                 const savedKw = site.kbKwDc;
                 const newKw = Math.round(data.maxCapacityKW);
                 if (!savedKw || Math.abs(savedKw - newKw) > 1) {
-                  // Guard: never auto-overwrite if new value is < 50% of saved value
-                  if (savedKw && newKw < savedKw * 0.5) {
+                  // Guard: only block zero/negative
+                  if (newKw <= 0) {
                     console.warn(
                       `[RoofVisualization] Skipping auto-save: new kbKwDc (${newKw} kW) is less than 50% of saved value (${savedKw} kW). ` +
                       `This likely indicates incorrect polygons. User must redraw roof manually.`

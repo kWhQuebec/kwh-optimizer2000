@@ -76,7 +76,6 @@ export interface CashflowModel {
 /**
  * Build the complete cashflow model for all financing scenarios
  */
-import { HQ_TARIFF_ESCALATION_RATE } from "../constants";
 export function buildCashflowModel(inputs: CashflowInputs): CashflowModel {
   const {
     systemSizeKW,
@@ -198,7 +197,6 @@ export function buildCashflowModel(inputs: CashflowInputs): CashflowModel {
 /**
  * Default assumptions based on Quebec market conditions
  */
-import { HQ_TARIFF_ESCALATION_RATE } from "../constants";
 export const DEFAULT_CASHFLOW_INPUTS: Partial<CashflowInputs> = {
   hqIncentivePerKw: 1000,
   itcRate: 0.30,
