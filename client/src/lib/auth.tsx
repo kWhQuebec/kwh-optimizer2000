@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from "react";
+import { getFreshToken } from "./queryClient";
 
 interface AuthUser {
   id: string;
@@ -34,13 +35,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return null;
   });
   const [isLoading, setIsLoading] = useState(true);
+  const skipNextCheckRef = useRef(false);
 
   useEffect(() => {
     async function checkAuth() {
+      if (skipNextCheckRef.current) {
+        skipNextCheckRef.current = false;
+        return;
+      }
+
       if (!token) {
         setIsLoading(false);
         return;
       }
+
+      setIsLoading(true);
 
       try {
         const response = await fetch("/api/auth/me", {
@@ -52,14 +61,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (response.ok) {
           const userData = await response.json();
           setUser(userData);
+        } else if (response.status === 401) {
+          const freshToken = await getFreshToken();
+          if (freshToken && freshToken !== token) {
+            const retryResponse = await fetch("/api/auth/me", {
+              headers: {
+                Authorization: `Bearer ${freshToken}`,
+              },
+            });
+            if (retryResponse.ok) {
+              const userData = await retryResponse.json();
+              skipNextCheckRef.current = true;
+              setToken(freshToken);
+              setUser(userData);
+            } else {
+              localStorage.removeItem("token");
+              localStorage.removeItem("refreshToken");
+              setToken(null);
+              setUser(null);
+            }
+          } else {
+            localStorage.removeItem("token");
+            localStorage.removeItem("refreshToken");
+            setToken(null);
+            setUser(null);
+          }
         } else {
-          localStorage.removeItem("token");
-          setToken(null);
+          console.error("Auth check returned unexpected status:", response.status);
         }
       } catch (error) {
         console.error("Auth check failed:", error);
         localStorage.removeItem("token");
+        localStorage.removeItem("refreshToken");
         setToken(null);
+        setUser(null);
       } finally {
         setIsLoading(false);
       }
@@ -106,11 +141,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (data.refreshToken) {
       localStorage.setItem("refreshToken", data.refreshToken);
     }
-    setToken(data.token);
     setUser({
       ...data.user,
       forcePasswordChange: data.user.forcePasswordChange || false,
     });
+    skipNextCheckRef.current = true;
+    setToken(data.token);
     
     return { forcePasswordChange: data.user.forcePasswordChange || false };
   }, []);

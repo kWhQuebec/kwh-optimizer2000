@@ -25,12 +25,18 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
   const { t, language } = useI18n();
-  const { login } = useAuth();
+  const { login, isAuthenticated, isLoading: authLoading } = useAuth();
   const [, setLocation] = useLocation();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const currentLogo = language === "fr" ? logoFr : logoEn;
+
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      setLocation("/app");
+    }
+  }, [authLoading, isAuthenticated, setLocation]);
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
