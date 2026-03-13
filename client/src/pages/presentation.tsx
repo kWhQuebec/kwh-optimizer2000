@@ -725,14 +725,14 @@ function EnergyProfileSlide({ simulation, language }: { simulation: SimulationRu
         const avgConsumption = data.consumptionSum / data.count;
         const avgProduction = data.productionSum / data.count;
         const avgPeakBefore = data.peakBeforeSum / data.count;
+        const avgPeakAfter = data.peakAfterSum / data.count;
         const consumptionAfter = avgConsumption - avgProduction;
-        const peakAfterNet = Math.max(0, avgPeakBefore - avgProduction);
         result.push({
           hour: `${h}h`,
           consumptionBefore: Math.round(avgConsumption),
           consumptionAfter: Math.max(0, Math.round(consumptionAfter)),
           peakBefore: Math.round(avgPeakBefore),
-          peakAfter: Math.round(peakAfterNet),
+          peakAfter: Math.round(avgPeakAfter),
         });
       }
     }
