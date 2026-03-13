@@ -178,9 +178,15 @@ export function AnalysisResults({
     }
   }, [breakdown, simulation.pvSizeKW, assumptions.solarCostPerW]);
 
+  // Server stores maxPVFromRoofKw in simulation assumptions (polygon-based, authoritative).
+  // Use it as primary cap source to stay consistent with the simulation's own sizing constraint.
+  // Fall back to roofGeometryCapacityKW (panel placement) or formula if not available.
+  const serverMaxPVFromRoof = (assumptions as any).maxPVFromRoofKw as number | undefined;
   const usableRoofSqM = (assumptions.roofAreaSqFt / 10.764) * assumptions.roofUtilizationRatio;
-  const maxPVFromRoof = (usableRoofSqM / 3.71) * 0.660;
-  const computedMaxPV = roofGeometryCapacityKW !== null ? roofGeometryCapacityKW : maxPVFromRoof;
+  const maxPVFromRoof = serverMaxPVFromRoof ?? (usableRoofSqM / 3.71) * 0.660;
+  const computedMaxPV = serverMaxPVFromRoof
+    ? serverMaxPVFromRoof  // Trust server calculation — consistent with simulation cap
+    : (roofGeometryCapacityKW !== null ? roofGeometryCapacityKW : maxPVFromRoof);
   // Fallback: if computed roof capacity is 0/NaN but we have a PV system size, use system size as floor
   const systemPvKW = simulation.pvSizeKW || 0;
   const effectiveMaxPV = (computedMaxPV > 0 && !isNaN(computedMaxPV)) ? computedMaxPV : Math.max(systemPvKW, computedMaxPV || 0);
