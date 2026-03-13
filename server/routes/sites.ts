@@ -1855,6 +1855,35 @@ router.get("/:siteId/roof-polygons", authMiddleware, asyncHandler(async (req: Au
   res.json(polygons);
 }));
 
+
+// --- KB Racking: recalculate kbKwDc when polygons change (server-side) ---
+async function recalcKbKwDcFromPolygons(siteId: string): Promise<void> {
+  try {
+    const allPolygons = await storage.getRoofPolygons(siteId);
+    // Filter out constraint/obstacle polygons (same logic as siteAnalysisHelpers.ts line 1050)
+    const solarPolygons = allPolygons.filter((p: any) => {
+      if (p.color === '#f97316') return false; // orange = constraint
+      const label = (p.label || '').toLowerCase();
+      return !label.includes('constraint') && !label.includes('contrainte') &&
+             !label.includes('hvac') && !label.includes('obstacle');
+    });
+    const totalAreaSqM = solarPolygons.reduce((sum: number, p: any) => sum + (p.areaSqM || 0), 0);
+    if (totalAreaSqM <= 0) {
+      await storage.updateSite(siteId, { kbKwDc: null, kbPanelCount: null } as any);
+      log.info('[recalcKbKwDc] No solar polygons for site ' + siteId + ', cleared kbKwDc');
+      return;
+    }
+    const roofUtilizationRatio = 0.85;
+    const usableAreaSqM = totalAreaSqM * roofUtilizationRatio;
+    const kbKwDc = Math.round((usableAreaSqM / 3.71) * 0.660);
+    const kbPanelCount = Math.round(usableAreaSqM / 3.71);
+    await storage.updateSite(siteId, { kbKwDc, kbPanelCount } as any);
+    log.info('[recalcKbKwDc] site=' + siteId + ' totalArea=' + totalAreaSqM.toFixed(0) + 'm2 kbKwDc=' + kbKwDc + 'kW panels=' + kbPanelCount);
+  } catch (err: any) {
+    log.warn('[recalcKbKwDc] Failed for site ' + siteId + ': ' + err.message);
+  }
+}
+
 const updateRoofPolygonSchema = z.object({
   label: z.string().nullable().optional(),
   coordinates: z.array(z.array(z.number())).optional(),
@@ -1902,6 +1931,8 @@ router.post("/:siteId/roof-polygons", authMiddleware, asyncHandler(async (req: A
 router.delete("/:siteId/roof-polygons", authMiddleware, asyncHandler(async (req: AuthRequest, res) => {
   const { siteId } = req.params;
   const deletedCount = await storage.deleteRoofPolygonsBySite(siteId);
+  // Recalculate kbKwDc (will clear since no polygons remain)
+  await recalcKbKwDcFromPolygons(siteId);
   res.status(200).json({ success: true, deleted: deletedCount });
 }));
 
@@ -1925,6 +1956,10 @@ router.put("/roof-polygons/:id", authMiddleware, asyncHandler(async (req: AuthRe
   }
 
   const polygon = await storage.updateRoofPolygon(id, validationResult.data);
+  // Recalculate kbKwDc from current polygons (fixes stale geometry capacity)
+  if (existing.siteId) {
+    await recalcKbKwDcFromPolygons(existing.siteId);
+  }
   res.json(polygon);
 }));
 
@@ -1935,7 +1970,12 @@ router.delete("/roof-polygons/:id", authMiddleware, asyncHandler(async (req: Aut
     throw new NotFoundError("Roof polygon");
   }
 
+  const deletedPolygonSiteId = existing.siteId;
   await storage.deleteRoofPolygon(id);
+  // Recalculate kbKwDc from remaining polygons
+  if (deletedPolygonSiteId) {
+    await recalcKbKwDcFromPolygons(deletedPolygonSiteId);
+  }
   res.status(204).send();
 }));
 
