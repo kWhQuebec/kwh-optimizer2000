@@ -1733,17 +1733,33 @@ export function RoofVisualization({
   // shadows are prioritized. This mimics how a real EPC would stage installation:
   // start with the biggest open section, then work on smaller/constrained sections.
   const sortPanelsByRowPriority = useCallback((panels: PanelPosition[]): PanelPosition[] => {
-    // Step 1: Group panels by polygon and sort each group internally by priority
+    // Step 1: Group panels by polygon and sort each group internally
+    // South-facing panels (lower latitude in northern hemisphere) get priority
     const byPolygon = new Map<string, PanelPosition[]>();
     for (const p of panels) {
       const pid = p.polygonId || "default";
       if (!byPolygon.has(pid)) byPolygon.set(pid, []);
       byPolygon.get(pid)!.push(p);
     }
-    
-    // Sort each polygon's panels by priority (best positions first within that polygon)
+
+    // Sort each polygon's panels: combine existing priority with south bonus
+    // South bonus: panels with lower latitude (more south) get higher effective priority
     byPolygon.forEach((group) => {
-      group.sort((a: PanelPosition, b: PanelPosition) => (b.priority || 0) - (a.priority || 0));
+      if (group.length === 0) return;
+      const latitudes = group.map(p => p.lat);
+      const minLat = Math.min(...latitudes);
+      const maxLat = Math.max(...latitudes);
+      const latRange = maxLat - minLat;
+
+      group.sort((a: PanelPosition, b: PanelPosition) => {
+        // South bonus: 0-15000 points based on latitude position (south = highest)
+        // This ensures south-facing roof panels fill first when slider is low
+        const southBonusA = latRange > 0 ? Math.round(15000 * (1 - (a.lat - minLat) / latRange)) : 0;
+        const southBonusB = latRange > 0 ? Math.round(15000 * (1 - (b.lat - minLat) / latRange)) : 0;
+        const scoreA = (a.priority || 0) + southBonusA;
+        const scoreB = (b.priority || 0) + southBonusB;
+        return scoreB - scoreA;
+      });
     });
     
     const polygonGroups = Array.from(byPolygon.entries());
@@ -1754,9 +1770,16 @@ export function RoofVisualization({
       return sorted;
     }
     
-    // Step 2: Rank polygons by ease/size — largest (most panels) first
-    // More accepted panels = bigger usable area = fewer constraints relative to size
-    polygonGroups.sort((a, b) => b[1].length - a[1].length);
+    // Step 2: Rank polygons by south-facing preference, then size
+    // Average latitude of panels in each polygon: lower = more south = higher priority
+    polygonGroups.sort((a, b) => {
+      const avgLatA = a[1].reduce((sum, p) => sum + p.lat, 0) / a[1].length;
+      const avgLatB = b[1].reduce((sum, p) => sum + p.lat, 0) / b[1].length;
+      // South first (lower lat), then larger polygon as tiebreaker
+      const latDiff = avgLatA - avgLatB; // negative = A is more south
+      if (Math.abs(latDiff) > 0.00005) return latDiff; // ~5m threshold
+      return b[1].length - a[1].length; // Larger polygon first as tiebreaker
+    });
     
     // Step 3: Concatenate — fill best polygon completely, then next, etc.
     const result: PanelPosition[] = [];
