@@ -1965,6 +1965,22 @@ export function RoofVisualization({
           0 // Force 0° = east-west rows = panels facing true south
         );
         
+        // Deprioritize panels on north-facing polygons (detected via azimuth)
+        const northFacingIds = new Set(
+          solarPolygons
+            .filter(p => (p.tiltDegrees ?? 0) > 0 && isNorthFacingAzimuth(p.orientation))
+            .map(p => p.id)
+        );
+        if (northFacingIds.size > 0) {
+          const penalty = -30000;
+          for (const panel of buildingResult.panels) {
+            if (northFacingIds.has(panel.polygonId)) panel.priority = (panel.priority || 0) + penalty;
+          }
+          for (const panel of trueSouthResult.panels) {
+            if (northFacingIds.has(panel.polygonId)) panel.priority = (panel.priority || 0) + penalty;
+          }
+        }
+
         const sortedBuildingPanels = sortPanelsByRowPriority(buildingResult.panels);
         const sortedSouthPanels = sortPanelsByRowPriority(trueSouthResult.panels);
         
