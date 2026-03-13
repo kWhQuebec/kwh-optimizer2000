@@ -496,8 +496,34 @@ function placeModulesOnPolygon(
 }
 
 /**
- * Auto-optimize module size: test multiple sizes and pick the one that
- * maximizes total panel count across all polygons.
+ * Check if two axis-aligned rectangles in rotated space overlap,
+ * including a mandatory gap (MODULE_GAP_M) between them.
+ */
+function modulesOverlapInRotatedSpace(
+  ax: number, ay: number, aw: number, ah: number,
+  bx: number, by: number, bw: number, bh: number,
+  gap: number
+): boolean {
+  return !(
+    ax + aw + gap <= bx ||  // a is fully left of b (with gap)
+    bx + bw + gap <= ax ||  // b is fully left of a (with gap)
+    ay + ah + gap <= by ||  // a is fully above b (with gap)
+    by + bh + gap <= ay     // b is fully above a (with gap)
+  );
+}
+
+/**
+ * Auto-optimize module size with GAP-FILL: two-pass approach.
+ *
+ * Pass 1: Find the single module size that maximizes total panel count (existing logic).
+ * Pass 2: Try progressively smaller modules in remaining gaps between placed modules
+ *         and around constraints. This mimics real EPC practice where installers mix
+ *         array sizes to maximize roof utilization.
+ *
+ * The gap-fill pass checks each candidate position against:
+ * - Roof polygon containment + perimeter setback
+ * - Constraint/obstacle clearance
+ * - Collision with already-placed modules (with MODULE_GAP_M clearance)
  */
 function autoOptimizeModuleSize(
   polygonData: {
@@ -518,6 +544,9 @@ function autoOptimizeModuleSize(
   const hasAnyFlushMount = polygonData.some(p => p.flushMount);
   const candidates = defineModuleCandidates(hasAnyFlushMount);
 
+  // ═══════════════════════════════════════════════════════════════════════
+  // PASS 1: Find the best single module size (existing logic)
+  // ═══════════════════════════════════════════════════════════════════════
   let bestTotalPanels = 0;
   let bestSize = candidates[0];
   let bestModules: ModulePlacement[] = [];
@@ -550,6 +579,192 @@ function autoOptimizeModuleSize(
       bestSize = size;
       bestModules = modules;
     }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // PASS 2: Gap-fill with smaller modules
+  // Try progressively smaller modules in spaces where the primary size
+  // couldn't fit. This recovers panels around obstacles, odd-shaped edges,
+  // and between existing arrays.
+  // ═══════════════════════════════════════════════════════════════════════
+
+  // Build list of occupied bounding boxes from Pass 1 (in rotated space, per polygon)
+  const occupiedByPolygon = new Map<string, { x: number; y: number; w: number; h: number }[]>();
+  for (const mod of bestModules) {
+    const key = mod.polygonId;
+    if (!occupiedByPolygon.has(key)) occupiedByPolygon.set(key, []);
+    occupiedByPolygon.get(key)!.push({
+      x: mod.originX,
+      y: mod.originY,
+      w: mod.panels.length > 0
+        ? (Math.max(...mod.panels.map(p => p.gridX!)) - mod.originX + PANEL_WIDTH_M)
+        : 0,
+      h: mod.panels.length > 0
+        ? (Math.max(...mod.panels.map(p => p.gridY!)) - mod.originY + PANEL_HEIGHT_M)
+        : 0,
+    });
+  }
+
+  // Gap-fill candidates: smaller than the best primary size, sorted largest-first
+  // This ensures we fill with the biggest modules that fit before trying tiny ones
+  const gapFillCandidates = candidates.filter(c =>
+    c.panelCount < bestSize.panelCount && c.panelCount >= 8 // Min 8 panels (2×4) to be worth placing
+  );
+
+  let nextModuleId = bestModules.length + 1;
+  let gapFillPanels = 0;
+  let gapFillModules = 0;
+
+  const panelPitchX = PANEL_WIDTH_M + PANEL_GAP_M;
+
+  for (const fillSize of gapFillCandidates) {
+    for (const poly of polygonData) {
+      const panelPitchY = poly.flushMount ? FLUSH_MOUNT_ROW_SPACING_M : KB_ROW_SPACING_M;
+
+      // Use a fine grid step (smallest module pitch) to scan for gap positions
+      const scanStepX = panelPitchX * 2; // Step by 2 panels width for performance
+      const scanStepY = panelPitchY;      // Step by 1 row height
+
+      const occupied = occupiedByPolygon.get(poly.polygonId) || [];
+
+      for (let mx = poly.minXRot + PERIMETER_SETBACK_M; mx + fillSize.widthM <= poly.maxXRot - PERIMETER_SETBACK_M; mx += scanStepX) {
+        for (let my = poly.minYRot + PERIMETER_SETBACK_M; my + fillSize.depthM <= poly.maxYRot - PERIMETER_SETBACK_M; my += scanStepY) {
+          // Quick check: does this position overlap any already-placed module?
+          let overlapsExisting = false;
+          for (const occ of occupied) {
+            if (modulesOverlapInRotatedSpace(
+              mx, my, fillSize.widthM, fillSize.depthM,
+              occ.x, occ.y, occ.w, occ.h,
+              MODULE_GAP_M
+            )) {
+              overlapsExisting = true;
+              break;
+            }
+          }
+          if (overlapsExisting) continue;
+
+          // Full validation: polygon containment + constraints + edge sampling
+          if (!modulePositionIsValid(
+            mx, my, fillSize.widthM, fillSize.depthM,
+            cosPos, sinPos,
+            poly.localCentroid, metersPerDegreeLat, poly.localMetersPerDegreeLng,
+            poly.originalPolygon, poly.coords, expandedConstraintPolygons
+          )) {
+            continue;
+          }
+
+          // Module fits! Generate individual panels inside it
+          const panels: PanelPosition[] = [];
+          for (let col = 0; col < fillSize.cols; col++) {
+            for (let row = 0; row < fillSize.rows; row++) {
+              const gridX = mx + col * panelPitchX;
+              const gridY = my + row * panelPitchY;
+
+              const panelCornersRotated = [
+                { x: gridX, y: gridY },
+                { x: gridX + PANEL_WIDTH_M, y: gridY },
+                { x: gridX + PANEL_WIDTH_M, y: gridY + PANEL_HEIGHT_M },
+                { x: gridX, y: gridY + PANEL_HEIGHT_M },
+              ];
+
+              const panelCornersGeo = panelCornersRotated.map(corner => {
+                const unrotatedX = corner.x * cosPos - corner.y * sinPos;
+                const unrotatedY = corner.x * sinPos + corner.y * cosPos;
+                return {
+                  lat: poly.localCentroid.lat + unrotatedY / metersPerDegreeLat,
+                  lng: poly.localCentroid.lng + unrotatedX / poly.localMetersPerDegreeLng,
+                };
+              });
+
+              const panelCenterLat = (panelCornersGeo[0].lat + panelCornersGeo[2].lat) / 2;
+              const panelCenterLng = (panelCornersGeo[0].lng + panelCornersGeo[2].lng) / 2;
+
+              let shadowPenalty = 0;
+              const panelCenter = new google.maps.LatLng(panelCenterLat, panelCenterLng);
+              for (const shadowPoly of shadowZones) {
+                if (google.maps.geometry.poly.containsLocation(panelCenter, shadowPoly)) {
+                  shadowPenalty = 1.0;
+                  break;
+                }
+              }
+
+              const distToEdge = pointToPolygonDistance(panelCenterLat, panelCenterLng, poly.coords, poly.localCentroid.lat);
+              const approxMaxEdgeDist = Math.min(poly.maxXRot - poly.minXRot, poly.maxYRot - poly.minYRot) / 2;
+              const edgeScore = approxMaxEdgeDist > 0 ? Math.min(1, distToEdge / approxMaxEdgeDist) : 0.5;
+
+              // Gap-fill panels get slightly lower base priority (15000 vs 20000)
+              // so they're removed first when user slides capacity down
+              const qualityScore = Math.round(
+                (1 - shadowPenalty * 0.7) * 3750 +
+                edgeScore * 2250 +
+                1500
+              );
+
+              panels.push({
+                lat: panelCornersGeo[0].lat,
+                lng: panelCornersGeo[0].lng,
+                widthDeg: (panelCornersGeo[1].lng - panelCornersGeo[0].lng),
+                heightDeg: (panelCornersGeo[3].lat - panelCornersGeo[0].lat),
+                polygonId: poly.polygonId,
+                corners: panelCornersGeo,
+                rowIndex: row,
+                colIndex: col,
+                priority: qualityScore,
+                arrayId: nextModuleId,
+                gridX: gridX + PANEL_WIDTH_M / 2,
+                gridY: gridY + PANEL_HEIGHT_M / 2,
+              });
+            }
+          }
+
+          // Gap-fill modules get lower priority than primary modules
+          const moduleCenterX = mx + fillSize.widthM / 2;
+          const moduleCenterY = my + fillSize.depthM / 2;
+          const roofCenterX = (poly.minXRot + poly.maxXRot) / 2;
+          const roofCenterY = (poly.minYRot + poly.maxYRot) / 2;
+          const distFromCenter = Math.sqrt(
+            (moduleCenterX - roofCenterX) ** 2 + (moduleCenterY - roofCenterY) ** 2
+          );
+          const maxDist = Math.sqrt(
+            ((poly.maxXRot - poly.minXRot) / 2) ** 2 + ((poly.maxYRot - poly.minYRot) / 2) ** 2
+          ) || 1;
+          // Gap-fill: base 10000 (vs 20000 for primary) — removed first by slider
+          const modulePriority = Math.round(10000 * (1 - distFromCenter / maxDist));
+
+          for (const p of panels) {
+            p.priority = modulePriority;
+          }
+
+          const newModule: ModulePlacement = {
+            moduleId: nextModuleId++,
+            rows: fillSize.rows,
+            cols: fillSize.cols,
+            polygonId: poly.polygonId,
+            originX: mx,
+            originY: my,
+            panels,
+            capacityKW: Math.round(panels.length * PANEL_KW * 100) / 100,
+            priority: modulePriority,
+          };
+
+          bestModules.push(newModule);
+          gapFillPanels += panels.length;
+          gapFillModules++;
+
+          // Register this module as occupied for subsequent smaller candidates
+          occupied.push({
+            x: mx,
+            y: my,
+            w: fillSize.widthM,
+            h: fillSize.depthM,
+          });
+        }
+      }
+    }
+  }
+
+  if (gapFillPanels > 0) {
+    console.warn(`[RoofVisualization] GAP-FILL: +${gapFillPanels} panels in ${gapFillModules} smaller modules (${Math.round(gapFillPanels * PANEL_KW)} kW recovered)`);
   }
 
   return { bestSize, bestModules, allResults };
