@@ -223,7 +223,7 @@ export function ScenarioComparison({
     // Find champion for each metric across ALL scenarios
     // For ties, use secondary metrics or index as tiebreaker
     const findChampion = (
-      metric: 'npv' | 'irr' | 'selfSufficiency',
+      metric: 'npv' | 'irr' | 'selfSufficiency' | 'payback',
       getValue: (s: typeof allScenarios[0]) => number,
       isHigherBetter: boolean
     ) => {

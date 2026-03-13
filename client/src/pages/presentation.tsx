@@ -138,7 +138,7 @@ function PresentationPage() {
 
   const urlParams = new URLSearchParams(window.location.search);
   const simIdFromUrl = urlParams.get('sim');
-  const optFromUrl = (urlParams.get('opt') || 'npv') as 'npv' | 'irr' | 'selfSufficiency';
+  const optFromUrl = (urlParams.get('opt') || 'npv') as 'npv' | 'irr' | 'selfSufficiency' | 'payback';
 
   const { data: site, isLoading } = useQuery<SiteWithDetails>({
     queryKey: ['/api/sites', id],
@@ -179,6 +179,7 @@ function PresentationPage() {
       npv: sensitivity.optimalScenarios.bestNPV,
       irr: sensitivity.optimalScenarios.bestIRR,
       selfSufficiency: sensitivity.optimalScenarios.maxSelfSufficiency,
+      payback: sensitivity.optimalScenarios.bestPayback,
     };
     const optimal = targetMap[optFromUrl] ?? sensitivity.optimalScenarios.bestNPV;
     if (!optimal) return sim;

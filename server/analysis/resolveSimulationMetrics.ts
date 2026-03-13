@@ -46,7 +46,7 @@ export interface ResolvedMetrics {
   selfConsumptionKWh: number;
 }
 
-export type OptimizationTarget = 'npv' | 'irr' | 'selfSufficiency';
+export type OptimizationTarget = 'npv' | 'irr' | 'selfSufficiency' | 'payback';
 
 function num(v: number | null | undefined): number {
   return v ?? 0;
@@ -106,6 +106,7 @@ export function resolveSimulationMetrics(
     npv: sensitivity.optimalScenarios.bestNPV,
     irr: sensitivity.optimalScenarios.bestIRR,
     selfSufficiency: sensitivity.optimalScenarios.maxSelfSufficiency,
+    payback: sensitivity.optimalScenarios.bestPayback,
   };
   const optimal: OptimalScenario | null = targetMap[target] ?? sensitivity.optimalScenarios.bestNPV ?? null;
   if (!optimal) {

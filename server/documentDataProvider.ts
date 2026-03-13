@@ -402,7 +402,7 @@ export async function prepareDocumentData(simulationId: string, storage: IStorag
 
 export function applyOptimalScenario(
   simulation: SimulationRun & { site: Site & { client: Client } },
-  target: 'npv' | 'irr' | 'selfSufficiency' = 'npv'
+  target: 'npv' | 'irr' | 'selfSufficiency' | 'payback' = 'npv'
 ): SimulationRun & { site: Site & { client: Client } } {
   const sensitivity = simulation.sensitivity as SensitivityAnalysis | null | undefined;
   if (!sensitivity?.optimalScenarios) {
@@ -423,6 +423,7 @@ export function applyOptimalScenario(
     npv: sensitivity.optimalScenarios.bestNPV,
     irr: sensitivity.optimalScenarios.bestIRR,
     selfSufficiency: sensitivity.optimalScenarios.maxSelfSufficiency,
+    payback: sensitivity.optimalScenarios.bestPayback,
   };
   const optimal: OptimalScenario | null = targetMap[target] ?? sensitivity.optimalScenarios.bestNPV ?? null;
   if (!optimal) {

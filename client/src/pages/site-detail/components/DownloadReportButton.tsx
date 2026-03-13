@@ -19,7 +19,7 @@ export function DownloadReportButton({
 }: {
   simulationId: string;
   siteName: string;
-  optimizationTarget?: 'npv' | 'irr' | 'selfSufficiency';
+  optimizationTarget?: 'npv' | 'irr' | 'selfSufficiency' | 'payback';
   onBeforeDownload?: () => Promise<void>;
   isQualified?: boolean;
 }) {
