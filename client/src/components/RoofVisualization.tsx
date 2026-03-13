@@ -1311,11 +1311,13 @@ function scorePolygons(
     const southScore = latRange > 0 ? (1 - (centroids[i].lat - minLat) / latRange) * 100 : 50;
     const adjustedSouthScore = solarPolygonData.length === 1 ? 50 : southScore;
 
+    // South orientation is critical for solar yield — weight it heavily
+    // Flush-mount systems on north-facing roofs lose 30-40% production
     const score =
-      exposureScore * 0.40 +
-      areaScore * 0.35 +
-      centralityScore * 0.15 +
-      adjustedSouthScore * 0.10;
+      exposureScore * 0.25 +
+      areaScore * 0.25 +
+      centralityScore * 0.10 +
+      adjustedSouthScore * 0.40;
 
     return { polygonId: id, score, areaScore, exposureScore, centralityScore, southScore: adjustedSouthScore };
   });
@@ -1665,6 +1667,10 @@ export function RoofVisualization({
         flushMount: isFlushMount,
       });
     }
+
+    // Step 2b: Sort polygons by score (highest first = south-facing, large, unshaded)
+    polygonData.sort((a, b) => (polygonScoreMap[b.polygonId] ?? 0) - (polygonScoreMap[a.polygonId] ?? 0));
+    console.log(`[RoofVisualization] Polygon priority order: ${polygonData.map(p => `${p.polygonId.slice(0,8)}(${(polygonScoreMap[p.polygonId] ?? 0).toFixed(0)})`).join(' > ')}`);
 
     // Step 3: Auto-optimize module size across all polygons
     const { bestSize, bestModules, allResults } = autoOptimizeModuleSize(
@@ -2621,7 +2627,7 @@ export function RoofVisualization({
               {currentPVSizeKW && Math.round(currentPVSizeKW) !== Math.round(maxCapacity) && (
                 <Badge variant="secondary" className="bg-primary/80 text-white border-primary backdrop-blur-sm">
                   <Zap className="w-3 h-3 mr-1" />
-                  {formatNumber(Math.round(currentPVSizeKW), language)} kWc
+                  {formatNumber(Math.round(currentPVSizeKW), language)} kWc {language === "fr" ? "recommandé" : "recommended"}
                 </Badge>
               )}
             </div>
@@ -2797,7 +2803,7 @@ export function RoofVisualization({
               {/* Utilization */}
               {allPanelPositions.length > 0 && (
                 <span className="text-muted-foreground">
-                  {language === "fr" ? "Utilisation" : "Utilization"}: {((panelsToShow / allPanelPositions.length) * 100).toFixed(0)}%
+                  {language === "fr" ? "Utilisation" : "Utilization"}: {Math.min(100, Math.round((panelsToShow / allPanelPositions.length) * 100))}%
                 </span>
               )}
               
@@ -2864,8 +2870,9 @@ export function RoofVisualization({
                   const southPanelCount = Math.min(panelsToShow, trueSouthPanels.length);
                   const buildingCapacityKW = Math.round(buildingPanelCount * PANEL_KW);
                   const southCapacityKW = Math.round(southPanelCount * PANEL_KW);
-                  const buildingYield = calculateEstimatedYield(buildingAlignedAngle, effectiveTiltDeg, flushMountYieldFactor);
-                  const southYield = calculateEstimatedYield(0, effectiveTiltDeg, flushMountYieldFactor);
+                  // Don't use flushMountYieldFactor override in comparison — let orientation math show real difference
+                  const buildingYield = calculateEstimatedYield(buildingAlignedAngle, effectiveTiltDeg);
+                  const southYield = calculateEstimatedYield(0, effectiveTiltDeg);
                   const buildingProduction = buildingPanelCount * PANEL_KW * buildingYield;
                   const southProduction = southPanelCount * PANEL_KW * southYield;
                   const difference = southProduction - buildingProduction;

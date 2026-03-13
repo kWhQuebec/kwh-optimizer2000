@@ -411,10 +411,10 @@ export function AnalysisResults({
   }, [simulation.hourlyProfile, displayedScenario]);
 
   const optimizationLabels = {
-    payback: { fr: "Récupération rapide", en: "Fastest Payback", icon: Clock },
-    npv: { fr: "Profit max", en: "Max Profit", icon: DollarSign },
-    irr: { fr: "Rendement %", en: "Best IRR %", icon: TrendingUp },
-    selfSufficiency: { fr: "Indépendance max", en: "Max Independence", icon: Battery },
+    payback: { fr: "Retour", en: "Payback", icon: Clock },
+    npv: { fr: "VAN", en: "NPV", icon: DollarSign },
+    irr: { fr: "TRI", en: "IRR", icon: TrendingUp },
+    selfSufficiency: { fr: "Autonomie Max", en: "Max Autonomy", icon: Battery },
   };
 
   const dashboardPvSizeKW = displayedScenario.pvSizeKW ?? simulation.pvSizeKW ?? 0;
