@@ -962,10 +962,22 @@ export function runSensitivityAnalysis(
     }
   }
 
+  // Best Payback - minimum payback years among profitable scenarios
+  let bestPaybackPoint: FrontierPoint | null = null;
+  let minPayback = Infinity;
+  for (const point of profitablePoints) {
+    const payback = point.simplePaybackYears || 0;
+    if (payback > 0 && payback < minPayback && !isNaN(payback) && isFinite(payback)) {
+      minPayback = payback;
+      bestPaybackPoint = point;
+    }
+  }
+
   const optimalScenarios: OptimalScenarios = {
     bestNPV: bestNPVPoint ? toOptimalScenarioWithBreakdown(bestNPVPoint) : null,
     bestIRR: bestIRRPoint ? toOptimalScenarioWithBreakdown(bestIRRPoint) : null,
     maxSelfSufficiency: maxSelfSuffPoint ? toOptimalScenarioWithBreakdown(maxSelfSuffPoint) : null,
+    bestPayback: bestPaybackPoint ? toOptimalScenarioWithBreakdown(bestPaybackPoint) : null,
   };
 
   return {

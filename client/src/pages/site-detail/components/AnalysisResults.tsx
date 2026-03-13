@@ -104,8 +104,8 @@ export function AnalysisResults({
   isStaff?: boolean;
   onNavigateToDesignAgreement?: () => void;
   isLoadingFullData?: boolean;
-  optimizationTarget?: 'npv' | 'irr' | 'selfSufficiency';
-  onOptimizationTargetChange?: (target: 'npv' | 'irr' | 'selfSufficiency') => void;
+  optimizationTarget?: 'npv' | 'irr' | 'selfSufficiency' | 'payback';
+  onOptimizationTargetChange?: (target: 'npv' | 'irr' | 'selfSufficiency' | 'payback') => void;
   onOpenRoofDrawing?: () => void;
   onCompareScenarios?: () => void;
   onGeometryUpdate?: (data: { maxCapacityKW: number; panelCount: number; realisticCapacityKW: number; constraintAreaSqM: number; arrays?: any[] }) => void;
@@ -279,6 +279,24 @@ export function AnalysisResults({
         co2AvoidedTonnesPerYear: optScenarios.maxSelfSufficiency.co2AvoidedTonnesPerYear,
         scenarioBreakdown: optScenarios.maxSelfSufficiency.scenarioBreakdown,
       } : null,
+      payback: (() => {
+        const src = optScenarios.bestPayback || optScenarios.bestIRR || optScenarios.bestNPV;
+        if (!src) return null;
+        return {
+          pvSizeKW: src.pvSizeKW,
+          battEnergyKWh: src.battEnergyKWh,
+          battPowerKW: src.battPowerKW,
+          npv25: src.npv25,
+          irr25: src.irr25,
+          selfSufficiencyPercent: src.selfSufficiencyPercent,
+          simplePaybackYears: src.simplePaybackYears,
+          capexNet: src.capexNet,
+          annualSavings: src.annualSavings,
+          totalProductionKWh: src.totalProductionKWh,
+          co2AvoidedTonnesPerYear: src.co2AvoidedTonnesPerYear,
+          scenarioBreakdown: src.scenarioBreakdown,
+        };
+      })(),
     };
   }, [simulation.sensitivity]);
 
@@ -396,6 +414,7 @@ export function AnalysisResults({
     npv: { fr: "Meilleur VAN", en: "Best NPV", icon: DollarSign },
     irr: { fr: "Meilleur TRI", en: "Best IRR", icon: TrendingUp },
     selfSufficiency: { fr: "Autonomie max", en: "Max Independence", icon: Battery },
+    payback: { fr: "Meilleur Payback", en: "Best Payback", icon: Clock },
   };
 
   const dashboardPvSizeKW = displayedScenario.pvSizeKW ?? simulation.pvSizeKW ?? 0;
@@ -707,13 +726,13 @@ export function AnalysisResults({
                   value={optimizationTarget}
                   onValueChange={(value) => {
                     if (value && onOptimizationTargetChange) {
-                      onOptimizationTargetChange(value as 'npv' | 'irr' | 'selfSufficiency');
+                      onOptimizationTargetChange(value as 'npv' | 'irr' | 'selfSufficiency' | 'payback');
                     }
                   }}
                   className="flex-wrap justify-start sm:justify-end border rounded-lg p-1 bg-muted/30"
                   data-testid="toggle-optimization-target"
                 >
-                  {(['npv', 'irr', 'selfSufficiency'] as const).map((target) => {
+                  {(['npv', 'irr', 'selfSufficiency', 'payback'] as const).map((target) => {
                     const label = optimizationLabels[target];
                     const scenario = optimizationScenarios[target];
                     if (!scenario) return null;
@@ -2609,10 +2628,10 @@ export function AnalysisResults({
 
                     <div>
                       <h4 className="text-sm font-semibold mb-4">
-                        {language === "fr" ? "Optimisation taille stockage (VAN vs kWh)" : "Storage Size Optimization (NPV vs kWh)"}
+                        {language === "fr" ? `Optimisation taille stockage (VAN vs kWh, PV fixé à ${Math.round(dashboardPvSizeKW)} kWc)` : `Storage Size Optimization (NPV vs kWh, PV fixed at ${Math.round(dashboardPvSizeKW)} kWc)`}
                       </h4>
                       <p className="text-xs text-muted-foreground -mt-3 mb-3">
-                        {language === "fr" ? `VAN selon la taille du stockage` : `NPV vs storage capacity`}
+                        {language === "fr" ? `VAN selon la taille du stockage (PV fixé)` : `NPV vs storage capacity (PV fixed)`}
                       </p>
                       <div className="h-56">
                         <ResponsiveContainer width="100%" height="100%">
